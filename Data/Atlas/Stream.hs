@@ -26,6 +26,7 @@ decodeElem =  do
                 case t of
                     0 -> return Nothing
                     1 -> fmap Just get
+                    _ -> fail "unexpected Word8 in decodeElem"
 
 
 -- TODO

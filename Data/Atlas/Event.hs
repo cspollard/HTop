@@ -7,6 +7,9 @@ import Data.Atlas.Electron
 import Data.Atlas.Muon
 import Data.Atlas.Jet
 
+import Data.Map
+import Data.Text
+
 import Data.Binary
 import GHC.Generics (Generic)
 
@@ -14,7 +17,8 @@ data Event = Event {
     eRunNumber :: Int,
     eEventNumber :: Int,
     eMCChannelNumber :: Int,
-    eMCWeight :: Double,
+    eEventWeights :: Map Text Double,
+    eWeightVariations :: Map Text Double,
     eMu :: Double,
     eElectrons :: Electrons,
     eMuons :: Muons,

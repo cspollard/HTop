@@ -4,6 +4,7 @@ module Data.Atlas.TopTree where
 
 import Data.List (sortBy)
 import Data.Ord (comparing)
+import qualified Data.Map as M
 
 import Control.Applicative
 
@@ -19,6 +20,7 @@ import qualified Data.Attoparsec.Lazy as AL
 import Data.Attoparsec.ByteString.Char8 (skipSpace, char, string, manyTill, takeWhile1, anyChar)
 
 import Data.Monoid ((<>))
+import Control.Monad (forM)
 
 import Data.HEP.LorentzVector
 import Data.Atlas.Event
@@ -131,15 +133,24 @@ ptSort = sortBy (comparing (lvPt . lv'))
         lv' = lv
 
 
+parseBranchMap :: FromJSON v => [Text] -> Value -> Parser (M.Map Text v)
+parseBranchMap ts v = M.fromList <$> forM ts (\t -> (,) t <$> parseBranch t v)
+
 instance FromJSON Event where
     parseJSON v = Event <$>
                     parseBranch "runNumber" v <*>
                     parseBranch "eventNumber" v <*>
                     parseBranch "mcChannelNumber" v <*>
-                    parseBranch "weight_mc" v <*>
+                    parseBranchMap evtWeights v <*>
+                    parseBranchMap evtSystWeights v <*>
                     parseBranch "mu" v <*>
                     fmap ptSort (parseElectrons v) <*>
                     fmap ptSort (parseMuons v) <*>
                     fmap ptSort (parseJets v) <*>
                     fmap ptSort (parseLargeJets v) <*>
                     parseMET v
+
+
+        where
+            evtWeights = ["weight_mc", "weight_pileup", "weight_leptonSF", "weight_bTagSF_77"]
+            evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN"]
