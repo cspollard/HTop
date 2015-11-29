@@ -15,6 +15,9 @@ data Jet = Jet {
 
 instance Binary Jet
 
+instance HasLorentzVector Jet where
+    lv = fromLV . jPtEtaPhiE
+
 type Jets = [Jet]
 
 data LargeJet = LargeJet {
@@ -25,6 +28,9 @@ data LargeJet = LargeJet {
 
 instance Binary LargeJet
 
+instance HasLorentzVector LargeJet where
+    lv = fromLV . ljPtEtaPhiE
+
 type LargeJets = [LargeJet]
 
 data TrackJet = TrackJet {
@@ -33,5 +39,8 @@ data TrackJet = TrackJet {
     } deriving (Show, Generic)
 
 instance Binary TrackJet
+
+instance HasLorentzVector TrackJet where
+    lv = fromLV . tjPtEtaPhiE
 
 type TrackJets = [TrackJet]

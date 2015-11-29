@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric,UndecidableInstances,FlexibleInstances #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Data.HEP.LorentzVector where
 
@@ -34,14 +34,8 @@ class LorentzVector a where
     fromLV :: LorentzVector b => b -> a
 
 
--- all LorentzVectors are monoids under addition
-instance LorentzVector v => Monoid v where
-    mempty = fromLV $ XYZT 0 0 0 0
-    a `mappend` b = fromLV $ XYZT
-                (lvX a + lvX b)
-                (lvY a + lvY b)
-                (lvZ a + lvZ b)
-                (lvT a + lvT b)
+class HasLorentzVector hlv where
+    lv :: LorentzVector a => hlv -> a
 
 
 -- flip only the 3 vector of a LorentzVector
@@ -137,3 +131,21 @@ instance LorentzVector XYZT where
     lvT (XYZT _ _ _ t) = t
 
     fromLV = XYZT <$> lvX <*> lvY <*> lvZ <*> lvT
+
+
+-- all LorentzVectors are monoids under addition
+instance Monoid PtEtaPhiE where
+    mempty = fromLV $ XYZT 0 0 0 0
+    a `mappend` b = fromLV $ XYZT
+                (lvX a + lvX b)
+                (lvY a + lvY b)
+                (lvZ a + lvZ b)
+                (lvT a + lvT b)
+
+instance Monoid XYZT where
+    mempty = fromLV $ XYZT 0 0 0 0
+    a `mappend` b = fromLV $ XYZT
+                (lvX a + lvX b)
+                (lvY a + lvY b)
+                (lvZ a + lvZ b)
+                (lvT a + lvT b)

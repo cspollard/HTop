@@ -20,11 +20,11 @@ import Data.Attoparsec.ByteString.Char8 (skipSpace, char, string, manyTill, take
 
 import Data.Monoid ((<>))
 
+import Data.HEP.LorentzVector
 import Data.Atlas.Event
 import Data.Atlas.Electron
 import Data.Atlas.Muon
 import Data.Atlas.Jet
-import Data.Atlas.PtEtaPhiE
 
 
 bracketScan :: Char -> Char -> AL.Parser BS.ByteString
@@ -123,8 +123,12 @@ parseMET val = let et = parseBranch "met_met" val in
                     et
 
 
-ptSort :: LorentzVector v => [v] -> [v]
-ptSort = sortBy (comparing lvPt)
+ptSort :: HasLorentzVector v => [v] -> [v]
+ptSort = sortBy (comparing (lvPt . lv'))
+    where
+        -- need to give an explicit type here.
+        lv' :: HasLorentzVector v => v -> PtEtaPhiE
+        lv' = lv
 
 
 instance FromJSON Event where

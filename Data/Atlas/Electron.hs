@@ -17,4 +17,7 @@ data Electron = Electron {
 
 instance Binary Electron
 
+instance HasLorentzVector Electron where
+    lv = fromLV . ePtEtaPhiE
+
 type Electrons = [Electron]

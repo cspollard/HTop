@@ -16,4 +16,7 @@ data Muon = Muon {
 
 instance Binary Muon
 
+instance HasLorentzVector Muon where
+    lv = fromLV . mPtEtaPhiE
+
 type Muons = [Muon]
