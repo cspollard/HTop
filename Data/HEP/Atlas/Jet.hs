@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module Data.Atlas.Jet where
+module Data.HEP.Atlas.Jet where
 
 import Data.HEP.LorentzVector
 

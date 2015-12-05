@@ -2,8 +2,8 @@ module Main where
 
 import qualified Data.ByteString.Lazy as BSL
 
-import Data.Atlas.Stream
-import Data.Atlas.Event
+import Data.HEP.Atlas.Stream
+import Data.HEP.Atlas.Event
 
 main :: IO ()
 main = do

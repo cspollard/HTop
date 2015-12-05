@@ -1,7 +1,7 @@
 -- from
 -- https://stackoverflow.com/questions/6205294/binary-serialization-for-lists-of-undefined-length-in-haskell
 
-module Data.Atlas.Stream where
+module Data.HEP.Atlas.Stream where
 
 import Data.Binary
 import Data.Binary.Get

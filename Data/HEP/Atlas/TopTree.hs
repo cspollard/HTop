@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.Atlas.TopTree where
+module Data.HEP.Atlas.TopTree where
 
 import Data.List (sortBy)
 import Data.Ord (comparing)
@@ -23,10 +23,10 @@ import Data.Monoid ((<>))
 import Control.Monad (forM)
 
 import Data.HEP.LorentzVector
-import Data.Atlas.Event
-import Data.Atlas.Electron
-import Data.Atlas.Muon
-import Data.Atlas.Jet
+import Data.HEP.Atlas.Event
+import Data.HEP.Atlas.Electron
+import Data.HEP.Atlas.Muon
+import Data.HEP.Atlas.Jet
 
 
 bracketScan :: Char -> Char -> AL.Parser BS.ByteString
