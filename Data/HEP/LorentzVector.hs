@@ -104,8 +104,6 @@ data PtEtaPhiE = PtEtaPhiE Double Double Double Double
 
 instance Binary PtEtaPhiE
 
-type PtEtaPhiEs = [PtEtaPhiE]
-
 instance LorentzVector PtEtaPhiE where
     lvPt (PtEtaPhiE pt _ _ _) = pt
     lvEta (PtEtaPhiE _ eta _ _) = eta
@@ -113,6 +111,11 @@ instance LorentzVector PtEtaPhiE where
     lvE (PtEtaPhiE _ _ _ e) = e
 
     fromLV = PtEtaPhiE <$> lvPt <*> lvEta <*> lvPhi <*> lvE
+
+instance HasLorentzVector PtEtaPhiE where
+    lv = fromLV
+
+type PtEtaPhiEs = [PtEtaPhiE]
 
 
 
@@ -133,6 +136,9 @@ instance LorentzVector XYZT where
     fromLV = XYZT <$> lvX <*> lvY <*> lvZ <*> lvT
 
 
+instance HasLorentzVector XYZT where
+    lv = fromLV
+
 -- all LorentzVectors are monoids under addition
 instance Monoid PtEtaPhiE where
     mempty = fromLV $ XYZT 0 0 0 0
@@ -149,3 +155,9 @@ instance Monoid XYZT where
                 (lvY a + lvY b)
                 (lvZ a + lvZ b)
                 (lvT a + lvT b)
+
+toXYZT :: HasLorentzVector a => a -> XYZT
+toXYZT = lv
+
+toPtEtaPhiE :: HasLorentzVector a => a -> PtEtaPhiE
+toPtEtaPhiE = lv
