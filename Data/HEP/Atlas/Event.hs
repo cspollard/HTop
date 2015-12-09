@@ -3,6 +3,7 @@
 module Data.HEP.Atlas.Event where
 
 import Data.HEP.LorentzVector
+import Data.HEP.Cut
 import Data.HEP.Atlas.Electron
 import Data.HEP.Atlas.Muon
 import Data.HEP.Atlas.Jet
@@ -31,8 +32,8 @@ instance Binary Event
 
 type Events = [Event]
 
-nJets :: (Jet -> Bool) -> Event -> Int
-nJets cut = length . filter cut . eJets
+nJets :: Cut Jet -> Event -> Int
+nJets c = length . filter (cut c) . eJets
 
-nLargeJets :: (LargeJet -> Bool) -> Event -> Int
-nLargeJets cut = length . filter cut . eLargeJets
+nLargeJets :: Cut LargeJet -> Event -> Int
+nLargeJets c = length . filter (cut c) . eLargeJets

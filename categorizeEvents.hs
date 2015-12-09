@@ -24,7 +24,7 @@ minMV2c20 :: Double -> Cut Jet
 minMV2c20 x = Cut $ (> x) . jMV2c20
 
 nBtags :: Event -> Int
-nBtags = nJets . cut $ cAnd (minPt 25000) (minMV2c20 0.7)
+nBtags = nJets . cut $ minPt 25000 `cAnd` maxAbsEta 2.5 `cAnd` minMV2c20 0.7
 
 main :: IO ()
 main = do
