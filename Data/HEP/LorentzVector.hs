@@ -52,6 +52,7 @@ lvDot a b = lvX a * lvX b +
             lvZ a * lvZ b -
             lvT a * lvT b
 
+
 -- TODO
 -- some of these should be moved inside LorentzVector for speedup.
 lvPx :: (LorentzVector a) => a -> Double

@@ -1,28 +1,24 @@
 module Data.HEP.Cut where
 
-import Data.Functor.Contravariant
 import Data.Foldable (Foldable(..))
 import qualified Data.Foldable as F
 
-import Control.Applicative
+import Control.Arrow
 
 -- Make use of Any, All, etc
-newtype Cut a = Cut { cut :: a -> Bool }
-
-instance Contravariant Cut where
-    f `contramap` Cut g = Cut (g . f)
+type Cut a = a -> Bool
 
 cPass :: Cut a
-cPass = Cut $ const True
+cPass = const True
 
 cFail :: Cut a
-cFail = Cut $ const False
+cFail = const False
 
 cOr :: Cut a -> Cut a -> Cut a
-cOr cf cg = Cut $ (||) <$> cut cf <*> cut cg
+cOr c c' = c &&& c' >>> uncurry (||)
 
 cAnd :: Cut a -> Cut a -> Cut a
-cAnd cf cg = Cut $ (&&) <$> cut cf <*> cut cg
+cAnd c c' = c &&& c' >>> uncurry (&&)
 
 -- TODO
 -- make work for any Foldable

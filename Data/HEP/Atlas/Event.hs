@@ -33,7 +33,7 @@ instance Binary Event
 type Events = [Event]
 
 nJets :: Cut Jet -> Event -> Int
-nJets c = length . filter (cut c) . eJets
+nJets c = length . filter c . eJets
 
 nLargeJets :: Cut LargeJet -> Event -> Int
-nLargeJets c = length . filter (cut c) . eLargeJets
+nLargeJets c = length . filter c . eLargeJets

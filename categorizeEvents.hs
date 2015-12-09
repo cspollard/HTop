@@ -10,30 +10,37 @@ import Data.HEP.Atlas.Jet
 import Data.HEP.Cut
 import Data.HEP.LorentzVector
 
-import Control.Applicative
+import Data.Histogram hiding (zip)
+import Data.Histogram.Fill
+import qualified Data.Vector.Unboxed as V
 
-
+import Data.Aeson
 
 minPt :: HasLorentzVector a => Double -> Cut a
-minPt x = Cut $ (> x) . lvPt . toPtEtaPhiE
+minPt x = (> x) . lvPt . toPtEtaPhiE
 
 maxAbsEta :: HasLorentzVector a => Double -> Cut a
-maxAbsEta x = Cut $ (< x) . abs . lvEta . toPtEtaPhiE
+maxAbsEta x = (< x) . abs . lvEta . toPtEtaPhiE
 
 minMV2c20 :: Double -> Cut Jet
-minMV2c20 x = Cut $ (> x) . jMV2c20
+minMV2c20 x = (> x) . jMV2c20
 
 nBtags :: Event -> Int
-nBtags = nJets . cut $ minPt 25000 `cAnd` maxAbsEta 2.5 `cAnd` minMV2c20 0.7
+nBtags = nJets $ minPt 25000 `cAnd` maxAbsEta 2.5 `cAnd` minMV2c20 0.7
+
+leadJetPt :: Event -> Double
+leadJetPt = lvPt . toPtEtaPhiE . head . eJets
+
 
 main :: IO ()
 main = do
+
+        let hLargeJetPt = forceDouble -<< mkSimple (binD 0 10 5e5) <<- leadJetPt
+
         evts <- decodeList `fmap` BSL.getContents :: IO Events
-        let tag1 = filter ((==) 1 . nBtags) evts :: Events
-        let tag2 = filter ((==) 2 . nBtags) evts :: Events
 
-        print "hello!"
+        let h = fillBuilder hLargeJetPt $ filter ((==) 1 . nBtags) evts
 
-        BSL.writeFile "tag2.bin" $ encodeList tag2
+        print . encode $ V.zip (binsList . bins $ h) (histData h)
 
         return ()
