@@ -7,8 +7,10 @@ import Data.HEP.Cut
 import Data.HEP.Atlas.Electron
 import Data.HEP.Atlas.Muon
 import Data.HEP.Atlas.Jet
+import Data.Uncertain
 
 import Data.Map (Map)
+import qualified Data.Map as M
 import Data.Text (Text)
 
 import Data.Binary
@@ -37,3 +39,6 @@ nJets c = length . filter c . eJets
 
 nLargeJets :: Cut LargeJet -> Event -> Int
 nLargeJets c = length . filter c . eLargeJets
+
+weight :: Event -> U Double
+weight evt = M.foldr (*) (pois 1) . M.map pois $ eEventWeights evt

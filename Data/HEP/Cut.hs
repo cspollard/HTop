@@ -5,7 +5,10 @@ import qualified Data.Foldable as F
 
 import Control.Arrow
 
+-- TODO
+-- bijections are the "right" way to do cOr and cAnd.
 -- Make use of Any, All, etc
+
 type Cut a = a -> Bool
 
 cPass :: Cut a

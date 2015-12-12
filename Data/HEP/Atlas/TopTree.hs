@@ -126,11 +126,7 @@ parseMET val = let et = parseBranch "met_met" val in
 
 
 ptSort :: HasLorentzVector v => [v] -> [v]
-ptSort = sortBy (comparing (lvPt . lv'))
-    where
-        -- need to give an explicit type here.
-        lv' :: HasLorentzVector v => v -> PtEtaPhiE
-        lv' = lv
+ptSort = sortBy (comparing (lvPt . toPtEtaPhiE))
 
 
 parseBranchMap :: FromJSON v => [Text] -> Value -> Parser (M.Map Text v)
