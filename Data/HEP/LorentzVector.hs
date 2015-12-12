@@ -9,6 +9,7 @@ import Data.Monoid
 import Control.Applicative ((<$>), (<*>))
 
 -- right now you must provide X, Y, Z, T or Pt, Eta, Phi, E definitions
+-- in addition to fromLV.
 -- I realize this is slow in some cases.
 -- TODO
 
@@ -27,7 +28,7 @@ class LorentzVector a where
     lvEta :: a -> Double
     lvEta = negate . log . tan . (/2) <$> lvTheta
     lvPhi :: a -> Double
-    lvPhi = fmap atan $ (/) <$> lvY <*> lvX
+    lvPhi = atan2 <$> lvY <*> lvX
     lvE :: a -> Double
     lvE = lvT
 
@@ -68,7 +69,7 @@ lvE2 :: (LorentzVector a) => a -> Double
 lvE2 = lvT2
 
 lvTheta :: (LorentzVector a) => a -> Double
-lvTheta = fmap atan $ (/) <$> lvPt <*> lvPz
+lvTheta = atan2 <$> lvPt <*> lvPz
 
 squareF :: Num b => (a -> b) -> a -> b
 squareF f = (*) <$> f <*> f

@@ -8,7 +8,8 @@ module Data.Uncertain where
 -- an uncertain value:
 -- - the value
 -- - its uncertainty
-data U a = U a a
+-- should this really be strict in both?
+data U a = U !a !a
     deriving (Eq, Ord)
 
 instance Show a => Show (U a) where
