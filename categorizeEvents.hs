@@ -10,11 +10,13 @@ import Data.HEP.Atlas.Jet
 import Data.HEP.Cut
 import Data.HEP.LorentzVector
 
-import Data.Histogram.Generic hiding (zip, map)
+import Data.Histogram.Generic hiding (zip, map, sum)
+import qualified Data.Histogram.Generic as H
 import Data.Histogram.Fill
 
 import Control.Monad (forM_)
-import Data.Text hiding (map, take)
+import Data.Text (Text, pack)
+import qualified Data.Text as T
 import Data.Monoid
 
 import qualified Data.Vector as V
@@ -35,6 +37,26 @@ nBtags :: Event -> Int
 nBtags = nJets $ minPt 25000 `cAnd` maxAbsEta 2.5 `cAnd` minMV2c20 0.7
 
 
+showHist :: Text -> Text -> Text -> Histogram V.Vector BinD (U Double) -> Text
+showHist path title xlabel h = T.unlines $
+                            [
+                            "# BEGIN YODA_HISTO1D " <> path,
+                            "Path=" <> path,
+                            "Type=Histo1D",
+                            "Title=" <> title,
+                            "XLabel=" <> xlabel,
+                            pack $ "Total\tTotal\t" ++ show intTot ++ "\t" ++  show (intErr*intErr) ++ "\t1.0\t1.0\t1",
+                            "Underflow\tUnderflow\t0.0\t0.0\t0.0\t0.0\t0",
+                            "Overflow\tOverflow\t0.0\t0.0\t0.0\t0.0\t0"
+                            ] ++
+                            map (\((xmin, xmax), U y dy) -> pack (show xmin ++ "\t" ++ show xmax ++ "\t" ++ show y ++ "\t" ++ show (dy*dy) ++ "1.0\t1.0\t1")) (toTuple h)
+                            ++ [
+                            "# END YODA_HISTO1D",
+                            ""
+                            ]
+
+                             where (U intTot intErr) = H.sum h
+
 toTuple :: IntervalBin b => Histogram V.Vector b a -> [((BinValue b, BinValue b), a)]
 toTuple h = V.toList $ V.zip (binsList . bins $ h) (histData h)
 
@@ -46,14 +68,4 @@ main = do
 
         forM_ hists $ \(t, hists') -> do
             forM_ hists' $ \(s, h) -> do
-                let p = "/HTop/" <> t <> s
-                putStrLn . unpack $ "# BEGIN YODA_HISTO1D " <> p
-                putStrLn . unpack $ "Path=" <> p
-                putStrLn "Type=Histo1D"
-                putStrLn . unpack $ "XLabel=" <> s
-                putStrLn "Total\tTotal\t1.0\t1.0\t1.0\t1.0\t1"
-                putStrLn "Underflow\tUnderflow\t0.0\t0.0\t0.0\t0.0\t0"
-                putStrLn "Overflow\tOverflow\t0.0\t0.0\t0.0\t0.0\t0"
-                mapM_ putStrLn . map (\((xmin, xmax), U y dy) -> show xmin ++ "\t" ++ show xmax ++ "\t" ++ show y ++ "\t" ++ show (dy*dy) ++ "1.0\t1.0\t1") $ toTuple h
-                putStrLn "# END YODA_HISTO1D"
-                putStrLn ""
+                putStr . T.unpack $ (showHist ("/None/" <> t <> s) t s h)
