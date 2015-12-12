@@ -54,6 +54,7 @@ phiBins = binD (-pi) 50 pi
 
 type Named a = (Text, a)
 
+-- clean both of these up
 objHists :: (HasLorentzVector a, Num val) => HBuilder (a, val) [Named (Histogram V.Vector BinD val)]
 objHists = sequenceA [
                       ("pT", ) <$> mkWeightedG ptBins <<- first lvPt,
@@ -63,6 +64,7 @@ objHists = sequenceA [
                       ("phi", ) <$> mkWeightedG phiBins <<- first lvPhi
                      ] <<- first toPtEtaPhiE
 
+-- make leadHist, secondHist, etc
 eventHists :: HBuilder Event [Named ([Named (Histogram V.Vector BinD (U Double))])]
 eventHists = sequenceA [
                          ("Jets", ) <$> objHists <<- first fromJust <<? (isJust . fst) <<- (first (listToMaybe . eJets)),
