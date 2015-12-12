@@ -3,7 +3,7 @@ module Data.HEP.Cut where
 import Data.Foldable (Foldable(..))
 import qualified Data.Foldable as F
 
-import Control.Arrow
+import Control.Applicative
 
 -- TODO
 -- bijections are the "right" way to do cOr and cAnd.
@@ -18,10 +18,10 @@ cFail :: Cut a
 cFail = const False
 
 cOr :: Cut a -> Cut a -> Cut a
-cOr c c' = c &&& c' >>> uncurry (||)
+cOr = liftA2 (||)
 
 cAnd :: Cut a -> Cut a -> Cut a
-cAnd c c' = c &&& c' >>> uncurry (&&)
+cAnd = liftA2 (&&)
 
 -- TODO
 -- make work for any Foldable
