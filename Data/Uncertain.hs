@@ -20,8 +20,10 @@ sqr a = a*a
 quadsum :: Floating a => a -> a -> a
 quadsum x y = sqrt $ sqr x + sqr y
 
+-- TODO
+-- abs???
 pois :: Floating a => a -> U a
-pois x = x +- sqrt x
+pois x = x +- sqrt (abs x)
 
 constU :: Num a => a -> U a
 constU x = U x 0

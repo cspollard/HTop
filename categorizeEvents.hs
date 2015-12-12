@@ -39,20 +39,17 @@ ptHist :: (HasLorentzVector a, Num val) => Int -> Double -> Double -> HBuilder (
 ptHist n xmin xmax = mkWeightedG (binD xmin n xmax) <<- f
         where f = first (lvPt . toPtEtaPhiE)
 
-
 leadJet :: Event -> Jet
 leadJet = head . eJets
-
 
 main :: IO ()
 main = do
 
-        let hLeadJetPt = ptHist 10 0 5e5 <<- (leadJet &&& weight)
+        -- don't be lazy....
+        let hLeadJetPt = ptHist 10 0 5e5 <<- ($!) (leadJet &&& weight)
 
         evts <- decodeList `fmap` BSL.getContents :: IO Events
 
         let h = fillBuilder hLeadJetPt $ filter ((==) 1 . nBtags) evts
 
         print $ V.zip (binsList . bins $ h) (histData h)
-
-        return ()

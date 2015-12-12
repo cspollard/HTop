@@ -41,4 +41,4 @@ nLargeJets :: Cut LargeJet -> Event -> Int
 nLargeJets c = length . filter c . eLargeJets
 
 weight :: Event -> U Double
-weight evt = M.foldr (*) (pois 1) . M.map pois $ eEventWeights evt
+weight evt = pois $ M.foldr (*) 1 (eEventWeights evt)
