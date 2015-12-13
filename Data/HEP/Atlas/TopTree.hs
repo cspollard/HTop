@@ -9,7 +9,7 @@ import qualified Data.Map as M
 import Control.Applicative
 
 import Data.Text (Text, unpack)
-import Data.Aeson (Value(..), withObject, eitherDecode)
+import Data.Aeson (Value(..), withObject, eitherDecode, object, Result(..), fromJSON)
 import Data.Aeson ((.:), FromJSON(..))
 import Data.Aeson.Types (Parser)
 
@@ -28,6 +28,8 @@ import Data.HEP.Atlas.Electron
 import Data.HEP.Atlas.Muon
 import Data.HEP.Atlas.Jet
 
+import Debug.Trace
+
 
 bracketScan :: Char -> Char -> AL.Parser BS.ByteString
 bracketScan p q = do
@@ -39,29 +41,34 @@ bracketScan p q = do
 
 
 -- return event and whether it is the last one
-event :: AL.Parser (Event, Bool)
-event = do
+event :: [Text] -> AL.Parser (Event, Bool)
+event branches = do
             skipSpace
-            evtTxt <- BSL.fromStrict <$> bracketScan '{' '}'
+            evtTxt <- BSL.fromStrict <$> bracketScan '[' ']'
             case eitherDecode evtTxt of
                 Left err -> fail err
-                Right evt -> ((,) evt . (/= ',')) <$> (skipSpace *> anyChar )
+                Right evtVals -> case fromJSON (object (zip branches evtVals)) of
+                                        Error s -> fail s
+                                        Success evt -> ((,) evt . (/= ',')) <$> (skipSpace *> anyChar )
 
 
-parseEvents :: BSL.ByteString -> Events
-parseEvents bs = case AL.parse event bs of
+parseEvents :: [Text] -> BSL.ByteString -> Events
+parseEvents branches bs = case AL.parse (event branches) bs of
                     AL.Fail _ _ err -> error err
-                    AL.Done bs' (evt, False) -> evt : parseEvents bs'
+                    AL.Done bs' (evt, False) -> evt : parseEvents branches bs'
                     AL.Done _ (evt, True) -> [evt]
 
 
 
 parseTree :: BSL.ByteString -> Events
-parseTree bs = case AL.parse headerParse bs of
+parseTree bs = case AL.parse branchesTxt bs of
                 AL.Fail _ _ err -> error err
-                AL.Done bs' _ -> parseEvents bs'
+                AL.Done bs' bs'' -> case eitherDecode (BSL.fromStrict bs'') :: Either String [(Text, Text)] of
+                                        Left err -> error err
+                                        Right branches-> parseEvents (map fst branches) bs'
         where
             headerParse = manyTill anyChar (string "\"events\"") <* skipSpace <* char ':' <* skipSpace <* char '['
+            branchesTxt = manyTill anyChar (string "\"branches\"") *> skipSpace *> char ':' *> skipSpace *> bracketScan '[' ']' <* headerParse
 
 
 
