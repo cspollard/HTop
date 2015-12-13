@@ -9,7 +9,7 @@ import qualified Data.Map as M
 import Control.Applicative
 
 import Data.Text (Text, unpack)
-import Data.Aeson (Value(..), withObject, eitherDecode, object, Result(..), fromJSON)
+import Data.Aeson (Value(..), withObject, eitherDecodeStrict, object, Result(..), fromJSON)
 import Data.Aeson ((.:), FromJSON(..))
 import Data.Aeson.Types (Parser)
 
@@ -28,9 +28,6 @@ import Data.HEP.Atlas.Electron
 import Data.HEP.Atlas.Muon
 import Data.HEP.Atlas.Jet
 
-import Debug.Trace
-
-
 bracketScan :: Char -> Char -> AL.Parser BS.ByteString
 bracketScan p q = do
                     _ <- char p
@@ -44,8 +41,8 @@ bracketScan p q = do
 event :: [Text] -> AL.Parser (Event, Bool)
 event branches = do
             skipSpace
-            evtTxt <- BSL.fromStrict <$> bracketScan '[' ']'
-            case eitherDecode evtTxt of
+            evtTxt <- bracketScan '[' ']'
+            case eitherDecodeStrict evtTxt of
                 Left err -> fail err
                 Right evtVals -> case fromJSON (object (zip branches evtVals)) of
                                         Error s -> fail s
@@ -63,7 +60,7 @@ parseEvents branches bs = case AL.parse (event branches) bs of
 parseTree :: BSL.ByteString -> Events
 parseTree bs = case AL.parse branchesTxt bs of
                 AL.Fail _ _ err -> error err
-                AL.Done bs' bs'' -> case eitherDecode (BSL.fromStrict bs'') :: Either String [(Text, Text)] of
+                AL.Done bs' bs'' -> case eitherDecodeStrict bs'' :: Either String [(Text, Text)] of
                                         Left err -> error err
                                         Right branches-> parseEvents (map fst branches) bs'
         where
