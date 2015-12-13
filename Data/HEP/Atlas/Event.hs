@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric,OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 
 module Data.HEP.Atlas.Event where
 
@@ -7,7 +7,6 @@ import Data.HEP.Cut
 import Data.HEP.Atlas.Electron
 import Data.HEP.Atlas.Muon
 import Data.HEP.Atlas.Jet
-import Data.Uncertain
 
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -40,5 +39,5 @@ nJets c = length . filter c . eJets
 nLargeJets :: Cut LargeJet -> Event -> Int
 nLargeJets c = length . filter c . eLargeJets
 
-weight :: Event -> U Double
-weight evt = pois $ M.foldr (*) 1 (eEventWeights evt)
+weight :: Event -> Double
+weight evt = M.foldr (*) 1 (eEventWeights evt)
