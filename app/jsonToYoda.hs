@@ -24,7 +24,7 @@ import Data.Monoid
 import qualified Data.Vector as V
 import Data.Uncertain
 
-import Data.Hep.Atlas.Histograms 
+import Data.HEP.Atlas.Histograms 
 
 minPt :: HasLorentzVector a => Double -> Cut a
 minPt x = (> x) . lvPt . toPtEtaPhiE

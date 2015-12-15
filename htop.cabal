@@ -16,8 +16,21 @@ build-type:          Simple
 -- extra-source-files:  
 cabal-version:       >=1.10
 
+executable jsonToYoda
+    main-is:            app/jsonToYoda.hs
+    build-depends:      base >=4.7 && <5.0
+                      , binary >=0.7
+                      , containers >=0.5
+                      , text >=1.2
+                      , histogram-fill >=0.8
+                      , vector >=0.10
+                      , bytestring >=0.10
+                      , aeson >=0.10
+                      , attoparsec >=0.13
+                      , htop >= 0.1.0.0
+
 executable jsonToBinary
-    main-is:             app/jsonToBinary.hs
+    main-is:            app/jsonToBinary.hs
     build-depends:      base >=4.7 && <5.0
                       , binary >=0.7
                       , containers >=0.5
