@@ -39,43 +39,11 @@ nBtags :: Event -> Int
 nBtags = nJets $ minPt 25000 `cAnd` maxAbsEta 2.5 `cAnd` minMV2c20 0.7
 
 
-showHist :: Text -> Text -> Text -> Histogram V.Vector BinD (BinData Double) -> Text
-showHist path title xlabel h = T.unlines $
-                            [
-                            "# BEGIN YODA_HISTO1D " <> path,
-                            "Path=" <> path,
-                            "Type=Histo1D",
-                            "Title=" <> title,
-                            "XLabel=" <> xlabel,
-                            -- fromJust is dangerous here. there
-                            -- should be some default behavior.
-                            pack $ "Total\tTotal\t" ++ binDataToStr (H.foldl (<>) mempty h <> fromJust (underflows h) <> fromJust (overflows h)),
-                            pack $ "Underflow\tUnderflow\t" ++ binDataToStr (fromJust $ underflows h),
-                            pack $ "Overflow\tOverflow\t" ++ binDataToStr (fromJust $ overflows h)
-                            ] ++
-                            map (\((xmin, xmax), b) -> pack $ show xmin ++ "\t" ++ show xmax ++ "\t" ++ binDataToStr b) (toTuple h)
-                            ++ [
-                            "# END YODA_HISTO1D",
-                            ""
-                            ]
-
-                             where
-                                 binDataToStr b = show (getSum $ sumw b) ++ "\t" ++
-                                                show (getSum $ sumw2 b) ++ "\t" ++
-                                                show (getSum $ sumwx b) ++ "\t" ++
-                                                show (getSum $ sumwx2 b) ++ "\t" ++
-                                                show (getSum $ numEntries b)
-
-
-toTuple :: IntervalBin b => Histogram V.Vector b a -> [((BinValue b, BinValue b), a)]
-toTuple h = V.toList $ V.zip (binsList . bins $ h) (histData h)
-
 main :: IO ()
 main = do
         evts <- liftM parseTree BSL.getContents :: IO Events
 
-        let hists = fillBuilder allHists evts
+        let hists = concat $ fillBuilder (eventHists "") evts
 
-        forM_ hists $ \(t, hists') -> do
-            forM_ hists' $ \(s, h) -> do
-                putStr . T.unpack $ (showHist ("/HTop/" <> t <> s) t s h)
+        forM_ hists $
+            putStr . T.unpack . showHist "/HTop/"

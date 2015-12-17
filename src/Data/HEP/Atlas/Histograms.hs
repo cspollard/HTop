@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, TupleSections #-}
+{-# LANGUAGE OverloadedStrings, FlexibleContexts #-}
 
 module Data.HEP.Atlas.Histograms where
 
@@ -7,27 +7,32 @@ import Control.Arrow
 import Data.Monoid
 
 import Data.Text (Text)
+import qualified Data.Text as T
+
 import Data.Maybe (isJust, fromJust, listToMaybe)
 
-import Data.Histogram.Generic hiding (zip)
+import Data.Histogram.Generic (Histogram(..), underflows, overflows)
+import qualified Data.Histogram.Generic as HG
 import Data.Histogram.Fill
 
 import Data.Traversable (sequenceA)
 import qualified Data.Vector as V
+import qualified Data.Vector.Generic as G
 
 import Data.HEP.Atlas.Event
 import Data.HEP.LorentzVector
 
+import qualified Data.Map as M
 
 
 ptBins :: BinD
-ptBins = binD 0 50 500e3
+ptBins = binD 0 50 500
 
 eBins :: BinD
-eBins = binD 0 50 500e3
+eBins = binD 0 50 500
 
 mBins :: BinD
-mBins = binD 0 50 200e3
+mBins = binD 0 50 200
 
 etaBins :: BinD
 etaBins = binD (-3) 50 3
@@ -36,8 +41,21 @@ phiBins :: BinD
 phiBins = binD (-pi) 50 pi
 
 
-type Named a = (Text, a)
+-- a YodaHist is just a histogram with some annotations.
+data YodaHist v b val = YodaHist {
+                    yhAnnots :: M.Map Text Text, 
+                    yhHist :: Histogram v b val
+                    }
 
+alterAnnots :: (M.Map Text Text -> M.Map Text Text) -> YodaHist v b val -> YodaHist v b val
+alterAnnots f (YodaHist yha yhh) = YodaHist (f yha) yhh
+
+alterHist :: (Histogram v b val -> Histogram v b val) -> YodaHist v b val -> YodaHist v b val
+alterHist f (YodaHist yha yhh) = YodaHist yha $ f yhh
+
+type YodaHistD = YodaHist V.Vector BinD (BinData Double)
+
+-- strict in args to prevent histograms from taking up infinite space
 data BinData a = BinData {
                     sumw :: !(Sum a),
                     sumw2 :: !(Sum a),
@@ -47,9 +65,9 @@ data BinData a = BinData {
                     } deriving (Show, Eq, Ord)
 
 
--- make an entry out of a tuple
-toBinDataEntry :: Num a => (a, a) -> BinData a
-toBinDataEntry (x, w) = BinData (Sum w) (Sum (w*w)) (Sum (w*x)) (Sum (w*w*x*x)) (Sum 1)
+-- make BinData out of a (val, weight) tuple
+toBinData :: Num a => (a, a) -> BinData a
+toBinData (x, w) = BinData (Sum w) (Sum (w*w)) (Sum (w*x)) (Sum (w*w*x*x)) (Sum 1)
 
 
 instance Num a => Monoid (BinData a) where
@@ -62,48 +80,82 @@ instance Num a => Monoid (BinData a) where
                     (numEntries h <> numEntries h')
 
 
--- a histogram for an observable from type 'a' with a name.
--- this could be generalized away from BinD and Doubles.
-obsHist :: Text -> BinD -> (a -> Double) ->
-            HBuilder (a, Double) (Named (Histogram V.Vector BinD (BinData Double)))
-obsHist name binning obs = (name, ) <$>
-            mkFoldBuilderG binning mempty f
-            <<- \(a, w) -> let t = obs a in (t, (t, w))
-    where
-        f :: BinData Double -> (Double, Double) -> BinData Double
-        f contents (x, w) = contents <> toBinDataEntry (x, w)
+
+-- probably could be generalized.
+hist :: (Bin b, G.Vector v (BinData (BinValue b)), Num (BinValue b)) =>
+            b -> HBuilder (BinValue b, BinValue b) (Histogram v b (BinData (BinValue b)))
+hist binning = mkFoldBuilderG binning mempty (\v xw -> v <> toBinData xw)
+            <<- \(x, w) -> (x, (x, w))
 
 
--- suite of histograms for LorentzVectors
-lvHists :: (HasLorentzVector a) =>
-            HBuilder (a, Double) [Named (Histogram V.Vector BinD (BinData Double))]
-lvHists = sequenceA [
-                      obsHist "pt" ptBins lvPt,
-                      obsHist "E" eBins lvE,
-                      obsHist "m" mBins lvM,
-                      obsHist "eta" etaBins lvEta,
-                      obsHist "phi" phiBins lvPhi
-                     ] <<- first toPtEtaPhiE
+yodaHistBuilder :: [(Text, Text)] -> BinD -> HBuilder (Double, Double) YodaHistD
+yodaHistBuilder annots binning = YodaHist (M.fromList annots) <$> hist binning
 
 
 -- only use the first (if any) of a list for filling
-firstHist :: HBuilder (a, val) b -> HBuilder ([a], val) b
-firstHist h = h <<- first fromJust <<? (isJust . fst) <<- first listToMaybe
+fillFirst :: HBuilder (a, val) b -> HBuilder ([a], val) b
+fillFirst h = h <<- first fromJust <<? (isJust . fst) <<- first listToMaybe
 
 
 -- fill all instances with the same value
-allHist :: HBuilder (a, val) b -> HBuilder ([a], val) b
-allHist h = h <<-| \(as, v) -> zip as (repeat v)
+fillAll :: HBuilder (a, val) b -> HBuilder ([a], val) b
+fillAll h = h <<-| \(as, v) -> zip as (repeat v)
 
 
-allHists :: HBuilder Event [Named [Named (Histogram V.Vector BinD (BinData Double))]]
-allHists = sequenceA [
-                          ("Jets", ) <$> allHist lvHists <<- first eJets,
-                          ("LargeJets", ) <$> allHist lvHists <<- first eLargeJets,
-                          ("Electrons", ) <$> allHist lvHists <<- first eElectrons,
-                          ("Muons", ) <$> allHist lvHists <<- first eMuons,
-                          ("LeadJet", ) <$> firstHist lvHists <<- first eJets,
-                          ("LeadLargeJet", ) <$> firstHist lvHists <<- first eLargeJets,
-                          ("LeadElectron", ) <$> firstHist lvHists <<- first eElectrons,
-                          ("LeadMuon", ) <$> firstHist lvHists <<- first eMuons
+-- suite of histograms for LorentzVectors
+lvHists :: HasLorentzVector a => Text -> Text -> HBuilder (a, Double) [YodaHistD]
+lvHists path xtitle = sequenceA [
+                      yodaHistBuilder [("Path", path <> "pt"), ("XLabel", xtitle <> "$p_{\\mathrm T}$ [GeV]")] ptBins <<- first ((/ 1e3) . lvPt),
+                      yodaHistBuilder [("Path", path <> "E"), ("XLabel", xtitle <> "$E$ [GeV]")] eBins <<- first ((/ 1e3) . lvE),
+                      yodaHistBuilder [("Path", path <> "mass"), ("XLabel", xtitle <> "mass [GeV]$")] mBins <<- first ((/ 1e3) . lvM),
+                      yodaHistBuilder [("Path", path <> "eta"), ("XLabel", xtitle <> "$\\eta$")] etaBins <<- first lvEta,
+                      yodaHistBuilder [("Path", path <> "phi"), ("XLabel", xtitle <> "$\\phi$")] phiBins <<- first lvPhi
+                     ] <<- first toPtEtaPhiE
+
+
+
+eventHists :: Text -> HBuilder Event [[YodaHistD]]
+eventHists path = sequenceA [
+                          fillAll (lvHists (path <> "jets/") "small-$R$ jet ") <<- first eJets,
+                          fillAll (lvHists (path <> "largejets/") "large-$R$ jet ") <<- first eLargeJets,
+                          fillAll (lvHists (path <> "electrons/") "electron ") <<- first eElectrons,
+                          fillAll (lvHists (path <> "muons/") "muon ") <<- first eMuons,
+                          fillFirst (lvHists (path <> "jet0/") "leading small-$R$ jet ") <<- first eJets,
+                          fillFirst (lvHists (path <> "largejet0/") "leading large-$R$ jet ") <<- first eLargeJets,
+                          fillFirst (lvHists (path <> "electron0/") "leading electron ") <<- first eElectrons,
+                          fillFirst (lvHists (path <> "muon0/") "leading muon ") <<- first eMuons,
+                          lvHists (path <> "met/") "$E/{\\mathrm T}^{\\mathrm miss} " <<- first eMET
                         ] <<- (id &&& weight)
+
+
+integral :: (G.Vector v val, Bin b, Monoid val) => Histogram v b val -> val
+integral h = HG.foldl (<>) mempty h <> fromJust (underflows h) <> fromJust (overflows h)
+
+toTuple :: (G.Vector v val, G.Vector v ((BinValue b, BinValue b), val), G.Vector v (BinValue b, BinValue b), IntervalBin b) =>
+            Histogram v b val -> [((BinValue b, BinValue b), val)]
+toTuple h = G.toList $ G.zip (HG.binsList . HG.bins $ h) (HG.histData h)
+
+
+showHist :: Text -> YodaHistD -> Text
+showHist path (YodaHist annots h) = T.unlines $
+                            [ "# BEGIN YODA_HISTO1D " <> path', "Path=" <> path', "Type=Histo1D" ] ++
+                            -- write annotations
+                            map (\(t, a) -> t <> "=" <> a) (M.toList annots) ++
+                            [
+                            -- fromJust is dangerous here. there
+                            -- should be some default behavior.
+                            "Total\tTotal\t" <> binDataToText (integral h),
+                            "Underflow\tUnderflow\t" <> binDataToText (fromJust $ underflows h),
+                            "Overflow\tOverflow\t" <> binDataToText (fromJust $ overflows h)
+                            ] ++
+                            map (\((xmin, xmax), b) -> T.pack (show xmin ++ "\t" ++ show xmax ++ "\t") <> binDataToText b) (toTuple h) ++
+                            [ "# END YODA_HISTO1D", "" ]
+
+                            where
+                                path' = path <> (M.!) annots "Path"
+                                binDataToText b = T.pack $
+                                                show (getSum $ sumw b) ++ "\t" ++
+                                                show (getSum $ sumw2 b) ++ "\t" ++
+                                                show (getSum $ sumwx b) ++ "\t" ++
+                                                show (getSum $ sumwx2 b) ++ "\t" ++
+                                                show (getSum $ numEntries b)
