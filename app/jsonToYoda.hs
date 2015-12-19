@@ -40,7 +40,7 @@ nBtags = nJets $ minPt 25000 `cAnd` maxAbsEta 2.5 `cAnd` minMV2c20 0.7
 
 
 evtWeights = ["weight_mc", "weight_pileup", "weight_leptonSF", "weight_bTagSF_77"]
-evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN",
+evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN"] {-,
             "weight_leptonSF_EL_SF_Trigger_UP", "weight_leptonSF_EL_SF_Trigger_DOWN",
             "weight_leptonSF_EL_SF_Reco_UP", "weight_leptonSF_EL_SF_Reco_DOWN",
             "weight_leptonSF_EL_SF_ID_UP", "weight_leptonSF_EL_SF_ID_DOWN",
@@ -50,13 +50,14 @@ evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN",
             "weight_leptonSF_MU_SF_ID_STAT_UP", "weight_leptonSF_MU_SF_ID_STAT_DOWN",
             "weight_leptonSF_MU_SF_ID_SYST_UP", "weight_leptonSF_MU_SF_ID_SYST_DOWN"
             ]
+            -}
 
 
 main :: IO ()
 main = do
         evts <- liftM (parseTree evtWeights evtSystWeights) BSL.getContents :: IO Events
 
-        let hists = fillBuilder (eventSystHists ("nominal" : evtSystWeights)) evts
+        let hists = concatMap concat $ fillBuilder (eventSystHists ("nominal" : evtSystWeights)) evts
 
         forM_ hists $
             putStr . T.unpack . showHist "/HTop/"

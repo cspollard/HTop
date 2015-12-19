@@ -84,8 +84,11 @@ instance Num a => Monoid (BinData a) where
 -- probably could be generalized.
 hist :: (Bin b, G.Vector v (BinData (BinValue b)), Num (BinValue b)) =>
             b -> HBuilder (BinValue b, BinValue b) (Histogram v b (BinData (BinValue b)))
-hist binning = mkFoldBuilderG binning mempty (\v xw -> v <> toBinData xw)
-            <<- \(x, w) -> (x, (x, w))
+hist binning = mkFoldBuilderG binning mempty comb
+                <<- dup'
+            where
+                comb v xw = v <> toBinData xw
+                dup' (x, w) = (x, (x, w))
 
 
 yodaHist :: [(Text, Text)] -> BinD -> HBuilder (Double, Double) YodaHistD
@@ -114,8 +117,8 @@ lvHists path xtitle = sequenceA [
 
 
 
-eventHists :: Text -> HBuilder Event [YodaHistD]
-eventHists syst = concat <$> sequenceA [
+eventHists :: Text -> HBuilder Event [[YodaHistD]]
+eventHists syst = sequenceA [
                           fillAll (lvHists (syst <> "/jets/") "small-$R$ jet ") <<- first eJets,
                           fillAll (lvHists (syst <> "/largejets/") "large-$R$ jet ") <<- first eLargeJets,
                           fillAll (lvHists (syst <> "/electrons/") "electron ") <<- first eElectrons,
@@ -127,8 +130,8 @@ eventHists syst = concat <$> sequenceA [
                           lvHists (syst <> "/met/") "$E/{\\mathrm T}^{\\mathrm miss} " <<- first eMET
                         ] <<- (id &&& weight syst)
 
-eventSystHists :: [Text] -> HBuilder Event [YodaHistD]
-eventSystHists systs = concat <$> traverse eventHists systs
+eventSystHists :: [Text] -> HBuilder Event [[[YodaHistD]]]
+eventSystHists systs = traverse eventHists systs
 
 integral :: (G.Vector v val, Bin b, Monoid val) => Histogram v b val -> val
 integral h = HG.foldl (<>) mempty h <> fromJust (underflows h) <> fromJust (overflows h)
