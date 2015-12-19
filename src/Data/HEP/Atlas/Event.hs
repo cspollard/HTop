@@ -15,6 +15,8 @@ import Data.Text (Text)
 import Data.Binary
 import GHC.Generics (Generic)
 
+-- TODO
+-- How do we want to deal with syst weights?
 data Event = Event {
     eRunNumber :: Int,
     eEventNumber :: Int,

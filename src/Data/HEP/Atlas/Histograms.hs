@@ -88,8 +88,8 @@ hist binning = mkFoldBuilderG binning mempty (\v xw -> v <> toBinData xw)
             <<- \(x, w) -> (x, (x, w))
 
 
-yodaHistBuilder :: [(Text, Text)] -> BinD -> HBuilder (Double, Double) YodaHistD
-yodaHistBuilder annots binning = YodaHist (M.fromList annots) <$> hist binning
+yodaHist :: [(Text, Text)] -> BinD -> HBuilder (Double, Double) YodaHistD
+yodaHist annots binning = YodaHist (M.fromList annots) <$> hist binning
 
 
 -- only use the first (if any) of a list for filling
@@ -105,11 +105,11 @@ fillAll h = h <<-| \(as, v) -> zip as (repeat v)
 -- suite of histograms for LorentzVectors
 lvHists :: HasLorentzVector a => Text -> Text -> HBuilder (a, Double) [YodaHistD]
 lvHists path xtitle = sequenceA [
-                      yodaHistBuilder [("Path", path <> "pt"), ("XLabel", xtitle <> "$p_{\\mathrm T}$ [GeV]")] ptBins <<- first ((/ 1e3) . lvPt),
-                      yodaHistBuilder [("Path", path <> "E"), ("XLabel", xtitle <> "$E$ [GeV]")] eBins <<- first ((/ 1e3) . lvE),
-                      yodaHistBuilder [("Path", path <> "mass"), ("XLabel", xtitle <> "mass [GeV]$")] mBins <<- first ((/ 1e3) . lvM),
-                      yodaHistBuilder [("Path", path <> "eta"), ("XLabel", xtitle <> "$\\eta$")] etaBins <<- first lvEta,
-                      yodaHistBuilder [("Path", path <> "phi"), ("XLabel", xtitle <> "$\\phi$")] phiBins <<- first lvPhi
+                      yodaHist [("Path", path <> "pt"), ("XLabel", xtitle <> "$p_{\\mathrm T}$ [GeV]")] ptBins <<- first ((/ 1e3) . lvPt),
+                      yodaHist [("Path", path <> "E"), ("XLabel", xtitle <> "$E$ [GeV]")] eBins <<- first ((/ 1e3) . lvE),
+                      yodaHist [("Path", path <> "mass"), ("XLabel", xtitle <> "mass [GeV]$")] mBins <<- first ((/ 1e3) . lvM),
+                      yodaHist [("Path", path <> "eta"), ("XLabel", xtitle <> "$\\eta$")] etaBins <<- first lvEta,
+                      yodaHist [("Path", path <> "phi"), ("XLabel", xtitle <> "$\\phi$")] phiBins <<- first lvPhi
                      ] <<- first toPtEtaPhiE
 
 
