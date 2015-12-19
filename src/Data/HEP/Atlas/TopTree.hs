@@ -11,7 +11,7 @@ import Control.Applicative
 import Data.Text (Text, unpack)
 import Data.Aeson (Value(..), withObject, eitherDecodeStrict, object, Result(..), fromJSON)
 import Data.Aeson ((.:), FromJSON(..))
-import Data.Aeson.Types (Parser)
+import Data.Aeson.Types (Parser, parse)
 
 import qualified Data.ByteString.Lazy.Char8 as BSL
 import qualified Data.ByteString.Char8 as BS
@@ -38,31 +38,31 @@ bracketScan p q = do
 
 
 -- return event and whether it is the last one
-event :: [Text] -> AL.Parser (Event, Bool)
-event branches = do
+event :: [Text] -> [Text] -> [Text] -> AL.Parser (Event, Bool)
+event evtWeights evtSystWeights branches = do
             skipSpace
             evtTxt <- bracketScan '[' ']'
             case eitherDecodeStrict evtTxt of
                 Left err -> fail err
-                Right evtVals -> case fromJSON (object (zip branches evtVals)) of
+                Right evtVals -> case parse (parseEvent evtWeights evtSystWeights) (object (zip branches evtVals)) of
                                         Error s -> fail s
                                         Success evt -> ((,) evt . (/= ',')) <$> (skipSpace *> anyChar )
 
 
-parseEvents :: [Text] -> BSL.ByteString -> Events
-parseEvents branches bs = case AL.parse (event branches) bs of
+parseEvents :: [Text] -> [Text] -> [Text] -> BSL.ByteString -> Events
+parseEvents evtWeights evtSystWeights branches bs = case AL.parse (event evtWeights evtSystWeights branches) bs of
                     AL.Fail _ _ err -> error err
-                    AL.Done bs' (evt, False) -> evt : parseEvents branches bs'
+                    AL.Done bs' (evt, False) -> evt : parseEvents evtWeights evtSystWeights branches bs'
                     AL.Done _ (evt, True) -> [evt]
 
 
 
-parseTree :: BSL.ByteString -> Events
-parseTree bs = case AL.parse branchesTxt bs of
+parseTree :: [Text] -> [Text] -> BSL.ByteString -> Events
+parseTree evtWeights evtSystWeights bs = case AL.parse branchesTxt bs of
                 AL.Fail _ _ err -> error err
                 AL.Done bs' bs'' -> case eitherDecodeStrict bs'' :: Either String [(Text, Text)] of
                                         Left err -> error err
-                                        Right branches-> parseEvents (map fst branches) bs'
+                                        Right branches-> parseEvents evtWeights evtSystWeights (map fst branches) bs'
         where
             headerParse = manyTill anyChar (string "\"events\"") <* skipSpace <* char ':' <* skipSpace <* char '['
             branchesTxt = manyTill anyChar (string "\"branches\"") *> skipSpace *> char ':' *> skipSpace *> bracketScan '[' ']' <* headerParse
@@ -136,21 +136,17 @@ ptSort = sortBy (comparing (lvPt . toPtEtaPhiE))
 parseBranchMap :: FromJSON v => [Text] -> Value -> Parser (M.Map Text v)
 parseBranchMap ts v = M.fromList <$> forM ts (\t -> (,) t <$> parseBranch t v)
 
-instance FromJSON Event where
-    parseJSON v = Event <$>
+
+parseEvent :: [Text] -> [Text] -> Value -> Parser Event
+parseEvent evtWeights evtSystWeights v = Event <$>
                     parseBranch "runNumber" v <*>
                     parseBranch "eventNumber" v <*>
                     parseBranch "mcChannelNumber" v <*>
                     parseBranchMap evtWeights v <*>
-                    parseBranchMap evtSystWeights v <*>
+                    fmap (M.insert "nominal" 1.0) (parseBranchMap evtSystWeights v) <*>
                     parseBranch "mu" v <*>
                     fmap ptSort (parseElectrons v) <*>
                     fmap ptSort (parseMuons v) <*>
                     fmap ptSort (parseJets v) <*>
                     fmap ptSort (parseLargeJets v) <*>
                     parseMET v
-
-
-        where
-            evtWeights = ["weight_mc", "weight_pileup", "weight_leptonSF", "weight_bTagSF_77"]
-            evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN"]

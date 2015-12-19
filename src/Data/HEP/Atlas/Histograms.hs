@@ -114,19 +114,21 @@ lvHists path xtitle = sequenceA [
 
 
 
-eventHists :: Text -> HBuilder Event [[YodaHistD]]
-eventHists path = sequenceA [
-                          fillAll (lvHists (path <> "jets/") "small-$R$ jet ") <<- first eJets,
-                          fillAll (lvHists (path <> "largejets/") "large-$R$ jet ") <<- first eLargeJets,
-                          fillAll (lvHists (path <> "electrons/") "electron ") <<- first eElectrons,
-                          fillAll (lvHists (path <> "muons/") "muon ") <<- first eMuons,
-                          fillFirst (lvHists (path <> "jet0/") "leading small-$R$ jet ") <<- first eJets,
-                          fillFirst (lvHists (path <> "largejet0/") "leading large-$R$ jet ") <<- first eLargeJets,
-                          fillFirst (lvHists (path <> "electron0/") "leading electron ") <<- first eElectrons,
-                          fillFirst (lvHists (path <> "muon0/") "leading muon ") <<- first eMuons,
-                          lvHists (path <> "met/") "$E/{\\mathrm T}^{\\mathrm miss} " <<- first eMET
-                        ] <<- (id &&& weight)
+eventHists :: Text -> HBuilder Event [YodaHistD]
+eventHists syst = concat <$> sequenceA [
+                          fillAll (lvHists (syst <> "/jets/") "small-$R$ jet ") <<- first eJets,
+                          fillAll (lvHists (syst <> "/largejets/") "large-$R$ jet ") <<- first eLargeJets,
+                          fillAll (lvHists (syst <> "/electrons/") "electron ") <<- first eElectrons,
+                          fillAll (lvHists (syst <> "/muons/") "muon ") <<- first eMuons,
+                          fillFirst (lvHists (syst <> "/jet0/") "leading small-$R$ jet ") <<- first eJets,
+                          fillFirst (lvHists (syst <> "/largejet0/") "leading large-$R$ jet ") <<- first eLargeJets,
+                          fillFirst (lvHists (syst <> "/electron0/") "leading electron ") <<- first eElectrons,
+                          fillFirst (lvHists (syst <> "/muon0/") "leading muon ") <<- first eMuons,
+                          lvHists (syst <> "/met/") "$E/{\\mathrm T}^{\\mathrm miss} " <<- first eMET
+                        ] <<- (id &&& weight syst)
 
+eventSystHists :: [Text] -> HBuilder Event [YodaHistD]
+eventSystHists systs = concat <$> traverse eventHists systs
 
 integral :: (G.Vector v val, Bin b, Monoid val) => Histogram v b val -> val
 integral h = HG.foldl (<>) mempty h <> fromJust (underflows h) <> fromJust (overflows h)

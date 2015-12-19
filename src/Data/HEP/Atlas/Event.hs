@@ -41,5 +41,5 @@ nJets c = length . filter c . eJets
 nLargeJets :: Cut LargeJet -> Event -> Int
 nLargeJets c = length . filter c . eLargeJets
 
-weight :: Event -> Double
-weight evt = M.foldr (*) 1 (eEventWeights evt)
+weight :: Text -> Event -> Double
+weight t evt = M.foldr (*) 1 (eEventWeights evt) * (M.!) (eWeightVariations evt) t
