@@ -87,6 +87,7 @@ hist :: (Bin b, G.Vector v (BinData (BinValue b)), Num (BinValue b)) =>
 hist binning = mkFoldBuilderG binning mempty comb
                 <<- dup'
             where
+                -- just doing this for profiling.
                 comb v xw = v <> toBinData xw
                 dup' (x, w) = (x, (x, w))
 

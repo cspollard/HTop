@@ -28,6 +28,7 @@ executable jsonToYoda
                       , aeson >=0.10
                       , attoparsec >=0.13
                       , htop >= 0.1.0.0
+  default-language:    Haskell2010
 
 executable jsonToBinary
     main-is:            app/jsonToBinary.hs
@@ -41,6 +42,7 @@ executable jsonToBinary
                       , aeson >=0.10
                       , attoparsec >=0.13
                       , htop >= 0.1.0.0
+  default-language:    Haskell2010
 
 library
     exposed-modules:    Data.Uncertain
