@@ -4,9 +4,11 @@ flags:
 extra-package-dbs: []
 packages:
 - '.'
+- ../hhep.git
 extra-deps:
-- aeson-0.10.0.0
+- aeson-0.8.1.1
 - attoparsec-0.13.0.1
+- data-ordlist-0.4.7.0
 - dlist-0.7.1.2
 - hashable-1.2.3.3
 - histogram-fill-0.8.4.1
