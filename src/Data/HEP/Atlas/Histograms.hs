@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, FlexibleContexts #-}
+{-# LANGUAGE OverloadedStrings, FlexibleContexts, DeriveGeneric #-}
 
 module Data.HEP.Atlas.Histograms where
 
@@ -14,6 +14,9 @@ import Data.Maybe (isJust, fromJust, listToMaybe)
 import Data.Histogram.Generic (Histogram(..), underflows, overflows)
 import qualified Data.Histogram.Generic as HG
 import Data.Histogram.Fill
+import Data.Histogram.Binary
+import Data.Binary (Binary(..))
+import GHC.Generics (Generic)
 
 import Data.Traversable (sequenceA)
 import qualified Data.Vector as V
@@ -45,7 +48,9 @@ phiBins = binD (-pi) 50 pi
 data YodaHist v b val = YodaHist {
                     yhAnnots :: M.Map Text Text, 
                     yhHist :: Histogram v b val
-                    }
+                    } deriving Generic
+
+instance (Binary val, G.Vector v val, Bin b, Binary b) => Binary (YodaHist v b val) where
 
 alterAnnots :: (M.Map Text Text -> M.Map Text Text) -> YodaHist v b val -> YodaHist v b val
 alterAnnots f (YodaHist yha yhh) = YodaHist (f yha) yhh
@@ -62,7 +67,14 @@ data BinData a = BinData {
                     sumwx :: !(Sum a),
                     sumwx2 :: !(Sum a),
                     numEntries :: !(Sum Int)
-                    } deriving (Show, Eq, Ord)
+                    } deriving (Show, Eq, Ord, Generic)
+
+
+instance (Binary a) => Binary (Sum a) where
+    put = put . getSum
+    get = Sum <$> get
+
+instance (Binary a) => Binary (BinData a) where
 
 
 -- make BinData out of a (val, weight) tuple

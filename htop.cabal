@@ -16,36 +16,6 @@ build-type:          Simple
 -- extra-source-files:  
 cabal-version:       >=1.10
 
-executable jsonToYoda
-    main-is:            app/jsonToYoda.hs
-    build-depends:      base >=4.7 && <5.0
-                      , binary >=0.7
-                      , containers >=0.5
-                      , text >=1.2
-                      , histogram-fill >=0.8
-                      , vector >=0.10
-                      , bytestring >=0.10
-                      , aeson <= 0.9
-                      , attoparsec >=0.13
-                      , hhep >= 0.1.0.0
-                      , htop >= 0.1.0.0
-  default-language:    Haskell2010
-
-executable jsonToBinary
-    main-is:            app/jsonToBinary.hs
-    build-depends:      base >=4.7 && <5.0
-                      , binary >=0.7
-                      , containers >=0.5
-                      , text >=1.2
-                      , histogram-fill >=0.8
-                      , vector >=0.10
-                      , bytestring >=0.10
-                      , aeson <= 0.9
-                      , attoparsec >=0.13
-                      , hhep >= 0.1.0.0
-                      , htop >= 0.1.0.0
-  default-language:    Haskell2010
-
 library
     exposed-modules:    Data.Uncertain
                       , Data.HEP.Cut
@@ -63,6 +33,7 @@ library
                       , containers >=0.5
                       , text >=1.2
                       , histogram-fill >=0.8
+                      , histogram-fill-binary >=0.6
                       , vector >=0.10
                       , bytestring >=0.10
                       , aeson <= 0.9
@@ -72,3 +43,52 @@ library
     hs-source-dirs:      src
     default-language:    Haskell2010
     ghc-prof-options:    -O -prof -auto-all -caf-all
+
+executable jsonToHist
+    main-is:            app/jsonToHist.hs
+    build-depends:      base >=4.7 && <5.0
+                      , binary >=0.7
+                      , containers >=0.5
+                      , text >=1.2
+                      , histogram-fill >=0.8
+                      , histogram-fill-binary >=0.6
+                      , vector >=0.10
+                      , bytestring >=0.10
+                      , aeson <= 0.9
+                      , attoparsec >=0.13
+                      , hhep >= 0.1.0.0
+                      , htop >= 0.1.0.0
+  default-language:    Haskell2010
+
+executable histToYoda
+    main-is:            app/histToYoda.hs
+    build-depends:      base >=4.7 && <5.0
+                      , binary >=0.7
+                      , containers >=0.5
+                      , text >=1.2
+                      , histogram-fill >=0.8
+                      , histogram-fill-binary >=0.6
+                      , vector >=0.10
+                      , bytestring >=0.10
+                      , aeson <= 0.9
+                      , attoparsec >=0.13
+                      , hhep >= 0.1.0.0
+                      , htop >= 0.1.0.0
+  default-language:    Haskell2010
+
+executable jsonToBinary
+    main-is:            app/jsonToBinary.hs
+    build-depends:      base >=4.7 && <5.0
+                      , binary >=0.7
+                      , containers >=0.5
+                      , text >=1.2
+                      , histogram-fill >=0.8
+                      , histogram-fill-binary >=0.6
+                      , vector >=0.10
+                      , bytestring >=0.10
+                      , aeson <= 0.9
+                      , attoparsec >=0.13
+                      , hhep >= 0.1.0.0
+                      , htop >= 0.1.0.0
+  default-language:    Haskell2010
+

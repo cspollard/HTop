@@ -12,6 +12,7 @@ extra-deps:
 - dlist-0.7.1.2
 - hashable-1.2.3.3
 - histogram-fill-0.8.4.1
+- histogram-fill-binary-0.6.2.1
 - monad-primitive-0.1
 - mtl-2.2.1
 - primitive-0.6.1.0
