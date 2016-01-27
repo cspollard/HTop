@@ -20,7 +20,7 @@ import GHC.Generics (Generic)
 data Event = Event {
     eRunNumber :: Int,
     eEventNumber :: Int,
-    eMCChannelNumber :: Int,
+    eMCChannelNumber :: Maybe Int,
     eEventWeights :: Map Text Double,
     eWeightVariations :: Map Text Double,
     eMu :: Double,
