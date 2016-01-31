@@ -1,16 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.HEP.ATLAS.CrossSections where
+module Data.HEP.Atlas.CrossSections where
 
 import Control.Applicative
-import Data.Attoparsec.ByteString.Char8
+import Data.Attoparsec.ByteString.Char8 hiding (isEndOfLine)
 import Data.IntMap
+import Data.Either (rights)
+
+import Debug.Trace
+
+isEndOfLine :: Char -> Bool
+isEndOfLine c = c == '\n' || c == '\r'
 
 type CrossSectionInfo = IntMap Double
 
 crossSectionInfo :: Parser CrossSectionInfo
-crossSectionInfo = fromList <$> many p
+crossSectionInfo = fromList . rights <$> many (eitherP comment xsecline) <* endOfInput
                     where
-                        comment = (char '#' >> takeTill endOfLine) <|> skipSpace
-                        xsecline = (,) <$> (scientific << skipSpace) <*> ((*) <$> scientific << skipSpace <*> (scientific << skipSpace <|> return 1.0))
-                        p = many comment >> xsecline 
+                        comment = char '#' *> takeTill isEndOfLine *> skipSpace
+                        xsecline = (,) <$> (decimal <* skipSpace) <*> ((*) <$> (double <* skipSpace) <*> (option 1.0 (double <* skipSpace)))
