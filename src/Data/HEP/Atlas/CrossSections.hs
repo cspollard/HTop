@@ -12,5 +12,5 @@ crossSectionInfo :: Parser CrossSectionInfo
 crossSectionInfo = fromList <$> many p
                     where
                         comment = (char '#' >> takeTill endOfLine) <|> skipSpace
-                        xsecline = (,) <$> (scientific << skipSpace) <*> ((*) <$> scientific << skipSpace <*> scientific << skipSpace)
+                        xsecline = (,) <$> (scientific << skipSpace) <*> ((*) <$> scientific << skipSpace <*> (scientific << skipSpace <|> return 1.0))
                         p = many comment >> xsecline 
