@@ -8,6 +8,5 @@ import Data.Attoparsec.ByteString.Char8 (parseOnly)
 
 main :: IO ()
 main = do
-    bs <- BSC.getContents
-
-    print $ parseOnly crossSectionInfo bs
+    fin <- head <$> getArgs
+    xsecs <- parseOnly crossSectionInfo <$> BSC.readFile fin
