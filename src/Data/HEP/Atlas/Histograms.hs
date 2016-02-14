@@ -144,7 +144,7 @@ eventHists syst = sequenceA [
                         ] <<- (id &&& weight syst)
 
 eventSystHists :: [Text] -> HBuilder Event [[[YodaHistD]]]
-eventSystHists systs = traverse eventHists systs
+eventSystHists = traverse eventHists
 
 integral :: (G.Vector v val, Bin b, Monoid val) => Histogram v b val -> val
 integral h = HG.foldl (<>) mempty h <> fromJust (underflows h) <> fromJust (overflows h)
