@@ -11,16 +11,11 @@ import qualified Data.Text as T
 
 import Data.Maybe (isJust, fromJust, listToMaybe)
 
-import Data.Histogram.Generic (Histogram(..), underflows, overflows)
-import qualified Data.Histogram.Generic as HG
-import Data.Histogram.Fill
-import Data.Histogram.Binary
+import Data.Histogram
 import Data.Binary (Binary(..))
 import GHC.Generics (Generic)
 
 import Data.Traversable (sequenceA)
-import qualified Data.Vector as V
-import qualified Data.Vector.Generic as G
 
 import Data.HEP.Atlas.Event
 import Data.HEP.LorentzVector
@@ -28,37 +23,39 @@ import Data.HEP.LorentzVector
 import qualified Data.Map as M
 
 
-ptBins :: BinD
-ptBins = binD 0 50 500
+type Histo1D = Histogram (BinData Double) Double
 
-eBins :: BinD
-eBins = binD 0 50 500
+ptHist :: Histo1D
+ptHist = histogram 50 (0, 500) mempty
 
-mBins :: BinD
-mBins = binD 0 50 200
+eHist :: Histo1D
+eHist = histogram 50 (0 500) mempty
 
-etaBins :: BinD
-etaBins = binD (-3) 50 3
+mHist :: Histo1D
+mHist = histogram 50 (0 200) mempty
 
-phiBins :: BinD
-phiBins = binD (-pi) 50 pi
+etaHist :: Histo1D
+etaHist = histogram 50 (-3, 3) mempty
+
+phiHist :: Histo1D
+phiHist = histogram 50 (-pi, pi) mempty
 
 
 -- a YodaHist is just a histogram with some annotations.
-data YodaHist v b val = YodaHist {
+data YodaHist val b = YodaHist {
                     yhAnnots :: M.Map Text Text, 
-                    yhHist :: Histogram v b val
+                    yhHist :: Histogram val b
                     } deriving Generic
 
-instance (Binary val, G.Vector v val, Bin b, Binary b) => Binary (YodaHist v b val) where
+instance (Binary val, Binary b) => Binary (YodaHist val b) where
 
-alterAnnots :: (M.Map Text Text -> M.Map Text Text) -> YodaHist v b val -> YodaHist v b val
+alterAnnots :: (M.Map Text Text -> M.Map Text Text) -> YodaHist val b -> YodaHist val b
 alterAnnots f (YodaHist yha yhh) = YodaHist (f yha) yhh
 
-alterHist :: (Histogram v b val -> Histogram v b val) -> YodaHist v b val -> YodaHist v b val
+alterHist :: (Histogram val b -> Histogram val b) -> YodaHist val b -> YodaHist val b
 alterHist f (YodaHist yha yhh) = YodaHist yha $ f yhh
 
-type YodaHistD = YodaHist V.Vector BinD (BinData Double)
+type YodaHistD = YodaHist (BinData Double) Double
 
 -- strict in args to prevent histograms from taking up infinite space
 data BinData a = BinData {
@@ -93,67 +90,47 @@ instance Num a => Monoid (BinData a) where
 
 
 
--- probably could be generalized.
-hist :: (Bin b, G.Vector v (BinData (BinValue b)), Num (BinValue b)) =>
-            b -> HBuilder (BinValue b, BinValue b) (Histogram v b (BinData (BinValue b)))
-hist binning = mkFoldBuilderG binning mempty comb
-                <<- dup'
-            where
-                -- just doing this for profiling.
-                comb v xw = v <> toBinData xw
-                dup' (x, w) = (x, (x, w))
+yodaHistBuilder :: [(Text, Text)] -> Histo1D -> Builder (Double, Double) YodaHistD
+yodaHistBuilder annots hist = premap (fst &&& toBinData) $ YodaHist (M.fromList annots) <$> histBuilder (<>) hist
 
-
-yodaHist :: [(Text, Text)] -> BinD -> HBuilder (Double, Double) YodaHistD
-yodaHist annots binning = YodaHist (M.fromList annots) <$> hist binning
-
-
--- only use the first (if any) of a list for filling
-fillFirst :: HBuilder (a, val) b -> HBuilder ([a], val) b
-fillFirst h = h <<- first fromJust <<? (isJust . fst) <<- first listToMaybe
-
-
--- fill all instances with the same value
-fillAll :: HBuilder (a, val) b -> HBuilder ([a], val) b
-fillAll h = h <<-| \(as, v) -> zip as (repeat v)
-
+test :: Builder (Double, Double) [YodaHistD]
+test = sequenceA [ yodaHistBuilder [] ptHist
+                 , yodaHistBuilder [] eHist 
+                 ] <<- first (*2)
 
 -- suite of histograms for LorentzVectors
-lvHists :: HasLorentzVector a => Text -> Text -> HBuilder (a, Double) [YodaHistD]
+-- TODO
+-- instance Num b => Num (a -> b) where
+lvHists :: HasLorentzVector a => Text -> Text -> Builder (a, Double) [YodaHistD]
 lvHists path xtitle = sequenceA [
-                      yodaHist [("Path", path <> "pt"), ("XLabel", xtitle <> "$p_{\\mathrm T}$ [GeV]")] ptBins <<- first ((/ 1e3) . lvPt),
-                      yodaHist [("Path", path <> "E"), ("XLabel", xtitle <> "$E$ [GeV]")] eBins <<- first ((/ 1e3) . lvE),
-                      yodaHist [("Path", path <> "mass"), ("XLabel", xtitle <> "mass [GeV]$")] mBins <<- first ((/ 1e3) . lvM),
-                      yodaHist [("Path", path <> "eta"), ("XLabel", xtitle <> "$\\eta$")] etaBins <<- first lvEta,
-                      yodaHist [("Path", path <> "phi"), ("XLabel", xtitle <> "$\\phi$")] phiBins <<- first lvPhi
-                     ] <<- first toPtEtaPhiE
+                      yodaHistBuilder [("Path", path <> "pt"), ("XLabel", xtitle <> "$p_{\\mathrm T}$ [GeV]")] ptHist <<- first ((/ 1e3) . lvPt)
+                    , yodaHistBuilder [("Path", path <> "E"), ("XLabel", xtitle <> "$E$ [GeV]")] eHist <<- first ((/ 1e3) . lvE)
+                    , yodaHistBuilder [("Path", path <> "mass"), ("XLabel", xtitle <> "mass [GeV]$")] mHist <<- first ((/ 1e3) . lvM)
+                    , yodaHistBuilder [("Path", path <> "eta"), ("XLabel", xtitle <> "$\\eta$")] etaHist <<- first lvEta
+                    , yodaHistBuilder [("Path", path <> "phi"), ("XLabel", xtitle <> "$\\phi$")] phiHist <<- first lvPhi
+                    ] <<- first toPtEtaPhiE
 
 
 
-eventHists :: Text -> HBuilder Event [[YodaHistD]]
+-- TODO Need a way to take Builder a b -> Builder [a] b
+eventHists :: Text -> Builder Event [[YodaHistD]]
 eventHists syst = sequenceA [
-                          fillAll (lvHists (syst <> "/jets/") "small-$R$ jet ") <<- first eJets,
-                          fillAll (lvHists (syst <> "/largejets/") "large-$R$ jet ") <<- first eLargeJets,
-                          fillAll (lvHists (syst <> "/electrons/") "electron ") <<- first eElectrons,
-                          fillAll (lvHists (syst <> "/muons/") "muon ") <<- first eMuons,
-                          fillFirst (lvHists (syst <> "/jet0/") "leading small-$R$ jet ") <<- first eJets,
-                          fillFirst (lvHists (syst <> "/largejet0/") "leading large-$R$ jet ") <<- first eLargeJets,
-                          fillFirst (lvHists (syst <> "/electron0/") "leading electron ") <<- first eElectrons,
-                          fillFirst (lvHists (syst <> "/muon0/") "leading muon ") <<- first eMuons,
-                          lvHists (syst <> "/met/") "$E/{\\mathrm T}^{\\mathrm miss} " <<- first eMET
-                        ] <<- (id &&& weight syst)
+                  foldrBuilder (lvHists (syst <> "/jets/") "small-$R$ jet ") <<- first eJets
+                , foldrBuilder (lvHists (syst <> "/largejets/") "large-$R$ jet ") <<- first eLargeJets
+                , foldrBuilder (lvHists (syst <> "/electrons/") "electron ") <<- first eElectrons
+                , foldrBuilder (lvHists (syst <> "/muons/") "muon ") <<- first eMuons
+                , foldrBuilder (lvHists (syst <> "/jet0/") "leading small-$R$ jet ") <<- first (listToMaybe . eJets)
+                , foldrBuilder (lvHists (syst <> "/largejet0/") "leading large-$R$ jet ") <<- first (listToMaybe . eLargeJets)
+                , foldrBuilder (lvHists (syst <> "/electron0/") "leading electron ") <<- first (listToMaybe . eElectrons)
+                , foldrBuilder (lvHists (syst <> "/muon0/") "leading muon ") <<- first (listToMaybe . eMuons)
+                , lvHists (syst <> "/met/") "$E/{\\mathrm T}^{\\mathrm miss} " <<- first eMET
+                ] <<- (id &&& weight syst)
 
-eventSystHists :: [Text] -> HBuilder Event [[[YodaHistD]]]
+eventSystHists :: [Text] -> Event -> [[[YodaHistD]]] -> [[[YodaHistD]]]
 eventSystHists = traverse eventHists
 
-integral :: (G.Vector v val, Bin b, Monoid val) => Histogram v b val -> val
-integral h = HG.foldl (<>) mempty h <> fromJust (underflows h) <> fromJust (overflows h)
 
-toTuple :: (G.Vector v val, G.Vector v ((BinValue b, BinValue b), val), G.Vector v (BinValue b, BinValue b), IntervalBin b) =>
-            Histogram v b val -> [((BinValue b, BinValue b), val)]
-toTuple h = G.toList $ G.zip (HG.binsList . HG.bins $ h) (HG.histData h)
-
-
+{-
 showHist :: Text -> YodaHistD -> Text
 showHist path (YodaHist annots h) = T.unlines $
                             [ "# BEGIN YODA_HISTO1D " <> path', "Path=" <> path', "Type=Histo1D" ] ++
@@ -177,3 +154,4 @@ showHist path (YodaHist annots h) = T.unlines $
                                                 show (getSum $ sumwx b) ++ "\t" ++
                                                 show (getSum $ sumwx2 b) ++ "\t" ++
                                                 show (getSum $ numEntries b)
+                                                -}

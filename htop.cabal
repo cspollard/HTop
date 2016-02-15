@@ -33,8 +33,6 @@ library
                       , binary >=0.7
                       , containers >=0.5
                       , text >=1.2
-                      , histogram-fill >=0.8
-                      , histogram-fill-binary >=0.6
                       , vector >=0.10
                       , bytestring >=0.10
                       , aeson <= 0.9
@@ -51,8 +49,6 @@ executable jsonToHist
                       , binary >=0.7
                       , containers >=0.5
                       , text >=1.2
-                      , histogram-fill >=0.8
-                      , histogram-fill-binary >=0.6
                       , vector >=0.10
                       , bytestring >=0.10
                       , aeson <= 0.9
@@ -67,8 +63,6 @@ executable histToYoda
                       , binary >=0.7
                       , containers >=0.5
                       , text >=1.2
-                      , histogram-fill >=0.8
-                      , histogram-fill-binary >=0.6
                       , vector >=0.10
                       , bytestring >=0.10
                       , aeson <= 0.9
@@ -83,8 +77,6 @@ executable jsonToBinary
                       , binary >=0.7
                       , containers >=0.5
                       , text >=1.2
-                      , histogram-fill >=0.8
-                      , histogram-fill-binary >=0.6
                       , vector >=0.10
                       , bytestring >=0.10
                       , aeson <= 0.9
@@ -99,8 +91,6 @@ executable combineHist
                       , binary >=0.7
                       , containers >=0.5
                       , text >=1.2
-                      , histogram-fill >=0.8
-                      , histogram-fill-binary >=0.6
                       , vector >=0.10
                       , bytestring >=0.10
                       , aeson <= 0.9
