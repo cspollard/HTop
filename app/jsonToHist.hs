@@ -55,5 +55,5 @@ main :: IO ()
 main = do
         evts <- liftM (parseTree evtWeights evtSystWeights) BSL.getContents :: IO Events
 
-        let hists = concatMap concat $ built $ feedr (eventSystHists ("nominal" : evtSystWeights)) evts
+        let hists = concatMap concat $ built $ feedr' (eventSystHists ("nominal" : evtSystWeights)) evts
         BSL.putStr . encodeList $ hists
