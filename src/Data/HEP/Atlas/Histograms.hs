@@ -9,7 +9,7 @@ import Data.Monoid
 import Data.Text (Text)
 import qualified Data.Text as T
 
-import Data.Maybe (isJust, fromJust, listToMaybe)
+import Data.Maybe (listToMaybe)
 
 import Data.Histogram
 import Data.Binary (Binary(..))
@@ -44,8 +44,8 @@ phiHist = histogram 50 (-pi, pi) mempty
 -- a YodaHist is just a histogram with some annotations.
 data YodaHist b val = YodaHist {
                     yhAnnots :: M.Map Text Text, 
-                    yhHist :: Histogram b val
-                    } deriving Generic
+                    yhHist :: !(Histogram b val)
+                    } deriving (Generic, Show)
 
 instance (Binary val, Binary b) => Binary (YodaHist b val) where
 
@@ -138,8 +138,6 @@ showHist path (YodaHist annots h) = T.unlines $
                             -- write annotations
                             map (\(t, a) -> t <> "=" <> a) (M.toList annots) ++
                             [
-                            -- fromJust is dangerous here. there
-                            -- should be some default behavior.
                             "Total\tTotal\t" <> binDataToText (integral h),
                             "Underflow\tUnderflow\t" <> binDataToText (underflow h),
                             "Overflow\tOverflow\t" <> binDataToText (overflow h)

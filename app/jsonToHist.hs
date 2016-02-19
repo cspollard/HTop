@@ -24,6 +24,30 @@ import Data.Histogram
 import Data.HEP.Atlas.Histograms
 import Data.HEP.Atlas.Stream
 
+
+evtWeights = ["weight_mc", "weight_pileup", "weight_leptonSF", "weight_bTagSF_77"]
+evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN",
+            "weight_leptonSF_EL_SF_Trigger_UP", "weight_leptonSF_EL_SF_Trigger_DOWN",
+            "weight_leptonSF_EL_SF_Reco_UP", "weight_leptonSF_EL_SF_Reco_DOWN",
+            "weight_leptonSF_EL_SF_ID_UP", "weight_leptonSF_EL_SF_ID_DOWN",
+            "weight_leptonSF_EL_SF_Isol_UP", "weight_leptonSF_EL_SF_Isol_DOWN",
+            "weight_leptonSF_MU_SF_Trigger_STAT_UP", "weight_leptonSF_MU_SF_Trigger_STAT_DOWN",
+            "weight_leptonSF_MU_SF_Trigger_SYST_UP", "weight_leptonSF_MU_SF_Trigger_SYST_DOWN",
+            "weight_leptonSF_MU_SF_ID_STAT_UP", "weight_leptonSF_MU_SF_ID_STAT_DOWN",
+            "weight_leptonSF_MU_SF_ID_SYST_UP", "weight_leptonSF_MU_SF_ID_SYST_DOWN"
+            ]
+
+
+main :: IO ()
+main = do
+        evts <- liftM (parseTree evtWeights evtSystWeights) BSL.getContents :: IO Events
+
+        -- TODO
+        -- strictness?
+        let hists = concatMap concat $ built $ feedl' (eventSystHists ("nominal" : evtSystWeights)) evts
+        BSL.putStr . encodeList $ hists
+
+-- example cuts
 minPt :: HasLorentzVector a => Double -> Cut a
 minPt x = (> x) . lvPt . toPtEtaPhiE
 
@@ -36,24 +60,3 @@ minMV2c20 x = (> x) . jMV2c20
 nBtags :: Event -> Int
 nBtags = nJets $ minPt 25000 `cAnd` maxAbsEta 2.5 `cAnd` minMV2c20 0.7
 
-
-evtWeights = ["weight_mc", "weight_pileup", "weight_leptonSF", "weight_bTagSF_77"]
-evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN"] {-,
-            "weight_leptonSF_EL_SF_Trigger_UP", "weight_leptonSF_EL_SF_Trigger_DOWN",
-            "weight_leptonSF_EL_SF_Reco_UP", "weight_leptonSF_EL_SF_Reco_DOWN",
-            "weight_leptonSF_EL_SF_ID_UP", "weight_leptonSF_EL_SF_ID_DOWN",
-            "weight_leptonSF_EL_SF_Isol_UP", "weight_leptonSF_EL_SF_Isol_DOWN",
-            "weight_leptonSF_MU_SF_Trigger_STAT_UP", "weight_leptonSF_MU_SF_Trigger_STAT_DOWN",
-            "weight_leptonSF_MU_SF_Trigger_SYST_UP", "weight_leptonSF_MU_SF_Trigger_SYST_DOWN",
-            "weight_leptonSF_MU_SF_ID_STAT_UP", "weight_leptonSF_MU_SF_ID_STAT_DOWN",
-            "weight_leptonSF_MU_SF_ID_SYST_UP", "weight_leptonSF_MU_SF_ID_SYST_DOWN"
-            ]
-            -}
-
-
-main :: IO ()
-main = do
-        evts <- liftM (parseTree evtWeights evtSystWeights) BSL.getContents :: IO Events
-
-        let hists = concatMap concat $ built $ feedr' (eventSystHists ("nominal" : evtSystWeights)) evts
-        BSL.putStr . encodeList $ hists
