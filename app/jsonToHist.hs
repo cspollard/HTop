@@ -43,14 +43,9 @@ main :: IO ()
 main = do
         evts <- liftM (parseTree evtWeights evtSystWeights) BSL.getContents :: IO Events
 
-        -- TODO
-        -- strictness?
-        -- let hists = concatMap concat $ built $ feedl' (eventSystHists ("nominal" : evtSystWeights)) evts
-        -- BSL.putStr . encodeList $ hists
+        let hists = concatMap concat $ built $ feedl' (eventSystHists ("nominal" : evtSystWeights)) evts
+        BSL.putStr . encodeList $ hists
 
-        -- this is *still* not eating up the events as they come in.
-        let hist = built $ feedl' (yodaHistBuilder [("Path", "nominal/pt")] ptHist <<- (((/ 1e3) . lvPt . eMET) &&& weight "nominal")) evts
-        BSL.putStr . encodeList . pure $ hist
 
 -- example cuts
 minPt :: HasLorentzVector a => Double -> Cut a
