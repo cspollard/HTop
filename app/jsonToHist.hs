@@ -25,6 +25,8 @@ import Data.Histogram
 import Data.HEP.Atlas.Histograms
 import Data.HEP.Atlas.Stream
 
+import Control.Parallel.Strategies
+
 
 evtWeights = ["weight_mc", "weight_pileup", "weight_leptonSF", "weight_bTagSF_77"]
 evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN",
@@ -43,7 +45,7 @@ main :: IO ()
 main = do
         evts <- liftM (parseTree evtWeights evtSystWeights) BSL.getContents :: IO Events
 
-        let hists = concatMap concat $ built $ feedl' (eventSystHists ("nominal" : evtSystWeights)) evts
+        let hists = concatMap concat $ built $ feedl' (eventSystHists ("nominal" : evtSystWeights)) $ using evts (parTraversable rseq)
         BSL.putStr . encodeList $ hists
 
 
@@ -59,4 +61,3 @@ minMV2c20 x = (> x) . jMV2c20
 
 nBtags :: Event -> Int
 nBtags = nJets $ minPt 25000 `cAnd` maxAbsEta 2.5 `cAnd` minMV2c20 0.7
-

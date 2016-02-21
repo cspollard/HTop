@@ -12,6 +12,7 @@ extra-deps:
 - dlist-0.7.1.2
 - hashable-1.2.4.0
 - mtl-2.2.1
+- parallel-3.2.1.0
 - primitive-0.6.1.0
 - scientific-0.3.4.4
 - syb-0.6
