@@ -37,6 +37,7 @@ library
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , parallel >= 0.3
                       , hhep >= 0.1.0.0
 
     hs-source-dirs:     src
@@ -54,11 +55,12 @@ executable jsonToHist
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , parallel >= 0.3
                       , hhep >= 0.1.0.0
                       , htop >= 0.1.0.0
   default-language:     Haskell2010
-  ghc-options:          -O2
-  ghc-prof-options:     -O2 -prof -auto-all -caf-all
+  ghc-options:          -O2 -threaded "-with-rtsopts=-N"
+  ghc-prof-options:     -O2 -threaded "-with-rtsopts=-N" -prof -auto-all -caf-all
 
 executable histToYoda
     main-is:            app/histToYoda.hs
@@ -70,6 +72,7 @@ executable histToYoda
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , parallel >= 0.3
                       , hhep >= 0.1.0.0
                       , htop >= 0.1.0.0
   ghc-options:         -O2
@@ -86,6 +89,7 @@ executable jsonToBinary
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , parallel >= 0.3
                       , hhep >= 0.1.0.0
                       , htop >= 0.1.0.0
   ghc-options:         -O2
@@ -102,6 +106,7 @@ executable combineHist
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , parallel >= 0.3
                       , hhep >= 0.1.0.0
                       , htop >= 0.1.0.0
   ghc-options:         -O2

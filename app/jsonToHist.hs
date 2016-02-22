@@ -2,6 +2,7 @@
 
 module Main where
 
+import Control.Parallel.Strategies (using, rseq, parBuffer)
 import qualified Data.ByteString.Lazy as BSL
 
 import Data.Maybe (fromJust)
@@ -69,7 +70,7 @@ main :: IO ()
 main = do
         evts <- liftM (parseTree evtWeights evtSystWeights) BSL.getContents :: IO Events
 
-        let hists = concatMap concat $ built $ feedl' (eventSystHists ("nominal" : evtSystWeights)) evts
+        let hists = concatMap concat $ built $ feedl' (eventSystHists ("nominal" : evtSystWeights)) $ using (take 5000 evts) (parBuffer 8 rseq)
         BSL.putStr . encodeList $ hists
 
 
