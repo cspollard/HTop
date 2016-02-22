@@ -28,6 +28,7 @@ data Event = Event {
     eMuons :: Muons,
     eJets :: Jets,
     eLargeJets :: LargeJets,
+    eTrackJets :: TrackJets,
     eMET :: PtEtaPhiE
     } deriving (Show, Generic)
 

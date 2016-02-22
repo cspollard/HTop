@@ -119,6 +119,11 @@ parseLargeJets val = fmap LargeJet `fmap`
                             parseBranch "ljet_m" val `zipWithA`
                             parseBranch "ljet_sd12" val
 
+parseTrackJets :: Value -> Parser TrackJets
+parseTrackJets val = fmap TrackJet `fmap`
+                            parsePtEtaPhiEs "tjet_" val `zipWithA`
+                            parseBranch "tjet_mv2c20" val
+
 
 parseMET :: Value -> Parser PtEtaPhiE
 parseMET val = let et = parseBranch "met_met" val in
@@ -149,4 +154,5 @@ parseEvent evtWeights evtSystWeights v = Event <$>
                     fmap ptSort (parseMuons v) <*>
                     fmap ptSort (parseJets v) <*>
                     fmap ptSort (parseLargeJets v) <*>
+                    fmap ptSort (parseTrackJets v) <*>
                     parseMET v
