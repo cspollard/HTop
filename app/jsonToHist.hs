@@ -28,7 +28,8 @@ import Data.HEP.Atlas.Stream
 
 
 evtWeights = ["weight_mc", "weight_pileup", "weight_leptonSF"]
-evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN",
+evtSystWeights = []
+              {- ["weight_pileup_UP", "weight_pileup_DOWN",
                   "weight_leptonSF_EL_SF_Trigger_UP", "weight_leptonSF_EL_SF_Trigger_DOWN",
                   "weight_leptonSF_EL_SF_Reco_UP", "weight_leptonSF_EL_SF_Reco_DOWN",
                   "weight_leptonSF_EL_SF_ID_UP", "weight_leptonSF_EL_SF_ID_DOWN",
@@ -53,8 +54,10 @@ evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN",
                   "weight_indiv_SF_MU_Isol_SYST_UP", "weight_indiv_SF_MU_Isol_SYST_DOWN",
                   "weight_indiv_SF_MU_TTVA_STAT_UP", "weight_indiv_SF_MU_TTVA_STAT_DOWN",
                   "weight_indiv_SF_MU_TTVA_SYST_UP", "weight_indiv_SF_MU_TTVA_SYST_DOWN"
-                  ]
+                  ] -}
 
+-- TODO
+-- don't know what to do with these yet.
 otherWeights = ["weight_indiv_SF_MU_TTVA",
                 "weight_indiv_SF_MU_Isol",
                 "weight_indiv_SF_MU_ID",
@@ -70,7 +73,7 @@ main :: IO ()
 main = do
         evts <- liftM (parseTree evtWeights evtSystWeights) BSL.getContents :: IO Events
 
-        let hists = concatMap concat $ built $ feedl' (eventSystHists ("nominal" : evtSystWeights)) $ using (take 5000 evts) (parBuffer 8 rseq)
+        let hists = concatMap concat $ built $ feedl' (eventSystHists ("nominal" : evtSystWeights)) $ using evts (parBuffer 8 rseq)
         BSL.putStr . encodeList $ hists
 
 
