@@ -112,3 +112,20 @@ executable combineHist
   ghc-options:         -O2
   ghc-prof-options:    -O2 -prof -auto-all -caf-all
   default-language:    Haskell2010
+
+executable printEvents
+    main-is:            app/printEvents.hs
+    build-depends:      base >=4.7 && <5.0
+                      , binary >=0.7
+                      , containers >=0.5
+                      , text >=1.2
+                      , vector >=0.10
+                      , bytestring >=0.10
+                      , aeson <= 0.9
+                      , attoparsec >=0.13
+                      , parallel >= 0.3
+                      , hhep >= 0.1.0.0
+                      , htop >= 0.1.0.0
+  ghc-options:         -O2
+  ghc-prof-options:    -O2 -prof -auto-all -caf-all
+  default-language:    Haskell2010

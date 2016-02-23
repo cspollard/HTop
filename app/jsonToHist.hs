@@ -27,53 +27,12 @@ import Data.HEP.Atlas.Histograms
 import Data.HEP.Atlas.Stream
 
 
-evtWeights = ["weight_mc", "weight_pileup", "weight_leptonSF"]
-evtSystWeights = []
-              {- ["weight_pileup_UP", "weight_pileup_DOWN",
-                  "weight_leptonSF_EL_SF_Trigger_UP", "weight_leptonSF_EL_SF_Trigger_DOWN",
-                  "weight_leptonSF_EL_SF_Reco_UP", "weight_leptonSF_EL_SF_Reco_DOWN",
-                  "weight_leptonSF_EL_SF_ID_UP", "weight_leptonSF_EL_SF_ID_DOWN",
-                  "weight_leptonSF_EL_SF_Isol_UP", "weight_leptonSF_EL_SF_Isol_DOWN",
-                  "weight_leptonSF_MU_SF_Trigger_STAT_UP", "weight_leptonSF_MU_SF_Trigger_STAT_DOWN",
-                  "weight_leptonSF_MU_SF_Trigger_SYST_UP", "weight_leptonSF_MU_SF_Trigger_SYST_DOWN",
-                  "weight_leptonSF_MU_SF_ID_STAT_UP", "weight_leptonSF_MU_SF_ID_STAT_DOWN",
-                  "weight_leptonSF_MU_SF_ID_SYST_UP", "weight_leptonSF_MU_SF_ID_SYST_DOWN",
-                  "weight_leptonSF_MU_SF_Isol_STAT_UP", "weight_leptonSF_MU_SF_Isol_STAT_DOWN",
-                  "weight_leptonSF_MU_SF_Isol_SYST_UP", "weight_leptonSF_MU_SF_Isol_SYST_DOWN",
-                  "weight_leptonSF_MU_SF_TTVA_STAT_UP", "weight_leptonSF_MU_SF_TTVA_STAT_DOWN",
-                  "weight_leptonSF_MU_SF_TTVA_SYST_UP", "weight_leptonSF_MU_SF_TTVA_SYST_DOWN",
-                  "weight_indiv_SF_EL_Trigger_UP", "weight_indiv_SF_EL_Trigger_DOWN",
-                  "weight_indiv_SF_EL_Reco_UP", "weight_indiv_SF_EL_Reco_DOWN",
-                  "weight_indiv_SF_EL_ID_UP", "weight_indiv_SF_EL_ID_DOWN",
-                  "weight_indiv_SF_EL_Isol_UP", "weight_indiv_SF_EL_Isol_DOWN",
-                  "weight_indiv_SF_MU_Trigger_STAT_UP", "weight_indiv_SF_MU_Trigger_STAT_DOWN",
-                  "weight_indiv_SF_MU_Trigger_SYST_UP", "weight_indiv_SF_MU_Trigger_SYST_DOWN",
-                  "weight_indiv_SF_MU_ID_STAT_UP", "weight_indiv_SF_MU_ID_STAT_DOWN",
-                  "weight_indiv_SF_MU_ID_SYST_UP", "weight_indiv_SF_MU_ID_SYST_DOWN",
-                  "weight_indiv_SF_MU_Isol_STAT_UP", "weight_indiv_SF_MU_Isol_STAT_DOWN",
-                  "weight_indiv_SF_MU_Isol_SYST_UP", "weight_indiv_SF_MU_Isol_SYST_DOWN",
-                  "weight_indiv_SF_MU_TTVA_STAT_UP", "weight_indiv_SF_MU_TTVA_STAT_DOWN",
-                  "weight_indiv_SF_MU_TTVA_SYST_UP", "weight_indiv_SF_MU_TTVA_SYST_DOWN"
-                  ] -}
-
--- TODO
--- don't know what to do with these yet.
-otherWeights = ["weight_indiv_SF_MU_TTVA",
-                "weight_indiv_SF_MU_Isol",
-                "weight_indiv_SF_MU_ID",
-                "weight_indiv_SF_MU_Trigger",
-                "weight_indiv_SF_EL_Trigger",
-                "weight_indiv_SF_EL_Reco",
-                "weight_indiv_SF_EL_ID",
-                "weight_indiv_SF_EL_Isol"
-                ]
-
 
 main :: IO ()
 main = do
         evts <- liftM (parseTree evtWeights evtSystWeights) BSL.getContents :: IO Events
 
-        let hists = concatMap concat $ built $ feedl' (eventSystHists ("nominal" : evtSystWeights)) $ using evts (parBuffer 8 rseq)
+        let hists = concatMap concat $ built $ feed' (eventSystHists ("nominal" : [] {- evtSystWeights -})) $ using evts (parBuffer 8 rseq)
         BSL.putStr . encodeList $ hists
 
 

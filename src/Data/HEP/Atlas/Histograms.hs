@@ -93,13 +93,13 @@ yodaHistBuilder :: [(Text, Text)] -> Histo1D -> Builder (Double, Double) YodaHis
 yodaHistBuilder annots hist = premap (fst &&& toBinData) $ YodaHist (M.fromList annots) <$> histBuilder (<>) hist
 
 fillFirst :: Builder (a, b) c -> Builder ([a], b) c
-fillFirst b = foldrBuilder b <<- \(xs, w) ->
+fillFirst b = foldBuilder b <<- \(xs, w) ->
                                     case listToMaybe xs of
                                         Just x -> Just (x, w)
                                         Nothing -> Nothing
 
 fillAll :: Builder (a, b) c -> Builder ([a], b) c
-fillAll b = foldrBuilder b <<- (uncurry zip . (id *** repeat))
+fillAll b = foldBuilder b <<- (uncurry zip . (id *** repeat))
 
 -- suite of histograms for LorentzVectors
 -- TODO
@@ -115,10 +115,12 @@ lvHists path xtitle = sequenceA [
 
 
 
+-- TODO
+-- we call, e.g. eJets twice per event.
+-- could be cleaned up.
 eventHists :: Text -> Builder Event [[YodaHistD]]
 eventHists syst = sequenceA [
-                  lvHists (syst <> "/met/") "$E/{\\mathrm T}^{\\mathrm miss} " <<- first eMET
-                , fillAll (lvHists (syst <> "/jets/") "small-$R$ jet ") <<- first eJets
+                  fillAll (lvHists (syst <> "/jets/") "small-$R$ jet ") <<- first eJets
                 , fillAll (lvHists (syst <> "/largejets/") "large-$R$ jet ") <<- first eLargeJets
                 , fillAll (lvHists (syst <> "/electrons/") "electron ") <<- first eElectrons
                 , fillAll (lvHists (syst <> "/muons/") "muon ") <<- first eMuons
@@ -126,6 +128,7 @@ eventHists syst = sequenceA [
                 , fillFirst (lvHists (syst <> "/largejet0/") "leading large-$R$ jet ") <<- first eLargeJets
                 , fillFirst (lvHists (syst <> "/electron0/") "leading electron ") <<- first eElectrons
                 , fillFirst (lvHists (syst <> "/muon0/") "leading muon ") <<- first eMuons
+                , lvHists (syst <> "/met/") "$E/{\\mathrm T}^{\\mathrm miss} " <<- first eMET
                 ] <<- (id &&& weight syst)
 
 eventSystHists :: [Text] -> Builder Event [[[YodaHistD]]]
@@ -136,7 +139,7 @@ showHist :: Text -> YodaHistD -> Text
 showHist path (YodaHist annots h) = T.unlines $
                             [ "# BEGIN YODA_HISTO1D " <> path', "Path=" <> path', "Type=Histo1D" ] ++
                             -- write annotations
-                            map (\(t, a) -> t <> "=" <> a) (M.toList annots) ++
+                            map (\(t, a) -> t <> "=" <> a) (M.toList $ M.delete "Path" annots) ++
                             [
                             "Total\tTotal\t" <> binDataToText (integral h),
                             "Underflow\tUnderflow\t" <> binDataToText (underflow h),

@@ -58,11 +58,11 @@ parseEvents evtWeights evtSystWeights branches bs = case AL.parse (event evtWeig
 
 
 parseTree :: [Text] -> [Text] -> BSL.ByteString -> Events
-parseTree evtWeights evtSystWeights bs = case AL.parse branchesTxt bs of
+parseTree weights systWeights bs = case AL.parse branchesTxt bs of
                 AL.Fail _ _ err -> error err
                 AL.Done bs' bs'' -> case eitherDecodeStrict bs'' :: Either String [(Text, Text)] of
                                         Left err -> error err
-                                        Right branches-> parseEvents evtWeights evtSystWeights (map fst branches) bs'
+                                        Right branches-> parseEvents weights systWeights (map fst branches) bs'
         where
             headerParse = manyTill anyChar (string "\"events\"") <* skipSpace <* char ':' <* skipSpace <* char '['
             branchesTxt = manyTill anyChar (string "\"branches\"") *> skipSpace *> char ':' *> skipSpace *> bracketScan '[' ']' <* headerParse
@@ -156,3 +156,48 @@ parseEvent evtWeights evtSystWeights v = Event <$>
                     fmap ptSort (parseLargeJets v) <*>
                     fmap ptSort (parseTrackJets v) <*>
                     parseMET v
+
+evtWeights :: [Text]
+evtWeights = ["weight_mc", "weight_pileup", "weight_leptonSF"]
+
+evtSystWeights :: [Text]
+evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN",
+                  "weight_leptonSF_EL_SF_Trigger_UP", "weight_leptonSF_EL_SF_Trigger_DOWN",
+                  "weight_leptonSF_EL_SF_Reco_UP", "weight_leptonSF_EL_SF_Reco_DOWN",
+                  "weight_leptonSF_EL_SF_ID_UP", "weight_leptonSF_EL_SF_ID_DOWN",
+                  "weight_leptonSF_EL_SF_Isol_UP", "weight_leptonSF_EL_SF_Isol_DOWN",
+                  "weight_leptonSF_MU_SF_Trigger_STAT_UP", "weight_leptonSF_MU_SF_Trigger_STAT_DOWN",
+                  "weight_leptonSF_MU_SF_Trigger_SYST_UP", "weight_leptonSF_MU_SF_Trigger_SYST_DOWN",
+                  "weight_leptonSF_MU_SF_ID_STAT_UP", "weight_leptonSF_MU_SF_ID_STAT_DOWN",
+                  "weight_leptonSF_MU_SF_ID_SYST_UP", "weight_leptonSF_MU_SF_ID_SYST_DOWN",
+                  "weight_leptonSF_MU_SF_Isol_STAT_UP", "weight_leptonSF_MU_SF_Isol_STAT_DOWN",
+                  "weight_leptonSF_MU_SF_Isol_SYST_UP", "weight_leptonSF_MU_SF_Isol_SYST_DOWN",
+                  "weight_leptonSF_MU_SF_TTVA_STAT_UP", "weight_leptonSF_MU_SF_TTVA_STAT_DOWN",
+                  "weight_leptonSF_MU_SF_TTVA_SYST_UP", "weight_leptonSF_MU_SF_TTVA_SYST_DOWN",
+                  "weight_indiv_SF_EL_Trigger_UP", "weight_indiv_SF_EL_Trigger_DOWN",
+                  "weight_indiv_SF_EL_Reco_UP", "weight_indiv_SF_EL_Reco_DOWN",
+                  "weight_indiv_SF_EL_ID_UP", "weight_indiv_SF_EL_ID_DOWN",
+                  "weight_indiv_SF_EL_Isol_UP", "weight_indiv_SF_EL_Isol_DOWN",
+                  "weight_indiv_SF_MU_Trigger_STAT_UP", "weight_indiv_SF_MU_Trigger_STAT_DOWN",
+                  "weight_indiv_SF_MU_Trigger_SYST_UP", "weight_indiv_SF_MU_Trigger_SYST_DOWN",
+                  "weight_indiv_SF_MU_ID_STAT_UP", "weight_indiv_SF_MU_ID_STAT_DOWN",
+                  "weight_indiv_SF_MU_ID_SYST_UP", "weight_indiv_SF_MU_ID_SYST_DOWN",
+                  "weight_indiv_SF_MU_Isol_STAT_UP", "weight_indiv_SF_MU_Isol_STAT_DOWN",
+                  "weight_indiv_SF_MU_Isol_SYST_UP", "weight_indiv_SF_MU_Isol_SYST_DOWN",
+                  "weight_indiv_SF_MU_TTVA_STAT_UP", "weight_indiv_SF_MU_TTVA_STAT_DOWN",
+                  "weight_indiv_SF_MU_TTVA_SYST_UP", "weight_indiv_SF_MU_TTVA_SYST_DOWN"
+                  ]
+
+-- TODO
+-- don't know what to do with these yet.
+otherWeights :: [Text]
+otherWeights = ["weight_indiv_SF_MU_TTVA",
+                "weight_indiv_SF_MU_Isol",
+                "weight_indiv_SF_MU_ID",
+                "weight_indiv_SF_MU_Trigger",
+                "weight_indiv_SF_EL_Trigger",
+                "weight_indiv_SF_EL_Reco",
+                "weight_indiv_SF_EL_ID",
+                "weight_indiv_SF_EL_Isol"
+                ]
+
