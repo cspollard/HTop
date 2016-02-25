@@ -22,6 +22,8 @@ import Data.HEP.LorentzVector
 
 import qualified Data.Map as M
 
+import Debug.Trace (traceShowId)
+
 
 type Histo1D = Histogram Double (BinData Double)
 
@@ -90,7 +92,7 @@ instance Num a => Monoid (BinData a) where
 
 
 yodaHistBuilder :: [(Text, Text)] -> Histo1D -> Builder (Double, Double) YodaHistD
-yodaHistBuilder annots hist = premap (fst &&& toBinData) $ YodaHist (M.fromList annots) <$> histBuilder (<>) hist
+yodaHistBuilder annots hist = premap traceShowId $ premap (fst &&& toBinData) $ YodaHist (M.fromList annots) <$> histBuilder (<>) hist
 
 fillFirst :: Builder (a, b) c -> Builder ([a], b) c
 fillFirst b = foldBuilder b <<- \(xs, w) ->
