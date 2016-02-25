@@ -22,8 +22,6 @@ import Data.HEP.LorentzVector
 
 import qualified Data.Map as M
 
-import Debug.Trace (traceShowId)
-
 
 type Histo1D = Histogram Double (BinData Double)
 
@@ -92,16 +90,23 @@ instance Num a => Monoid (BinData a) where
 
 
 yodaHistBuilder :: [(Text, Text)] -> Histo1D -> Builder (Double, Double) YodaHistD
-yodaHistBuilder annots hist = premap traceShowId $ premap (fst &&& toBinData) $ YodaHist (M.fromList annots) <$> histBuilder (<>) hist
+yodaHistBuilder annots hist = premap (fst &&& toBinData) $ YodaHist (M.fromList annots) <$> histBuilder (<>) hist
 
+
+-- TODO TODO TODO
+-- the problem is here:
+-- we are explicitly binding 'b', so we only ever get the last event's
+-- fill.
 fillFirst :: Builder (a, b) c -> Builder ([a], b) c
 fillFirst b = foldBuilder b <<- \(xs, w) ->
                                     case listToMaybe xs of
                                         Just x -> Just (x, w)
                                         Nothing -> Nothing
 
+
 fillAll :: Builder (a, b) c -> Builder ([a], b) c
 fillAll b = foldBuilder b <<- (uncurry zip . (id *** repeat))
+
 
 -- suite of histograms for LorentzVectors
 -- TODO
