@@ -12,6 +12,7 @@ import qualified Data.Text as T
 import Data.Maybe (listToMaybe)
 
 import Data.Histogram
+import Data.Histogram.Bin
 import Data.Binary (Binary(..))
 import GHC.Generics (Generic)
 
@@ -23,22 +24,22 @@ import Data.HEP.LorentzVector
 import qualified Data.Map as M
 
 
-type Histo1D = Histogram Double (BinData Double)
+type Histo1D = Histogram (Bin1D Double) (BinData Double)
 
 ptHist :: Histo1D
-ptHist = histogram 50 (0, 500) mempty
+ptHist = histogram (Bin1D 50 (0, 500)) mempty
 
 eHist :: Histo1D
-eHist = histogram 50 (0, 500) mempty
+eHist = histogram (Bin1D 50 (0, 500)) mempty
 
 mHist :: Histo1D
-mHist = histogram 50 (0, 200) mempty
+mHist = histogram (Bin1D 50 (0, 200)) mempty
 
 etaHist :: Histo1D
-etaHist = histogram 50 (-3, 3) mempty
+etaHist = histogram (Bin1D 50 (-3, 3)) mempty
 
 phiHist :: Histo1D
-phiHist = histogram 50 (-pi, pi) mempty
+phiHist = histogram (Bin1D 50 (-pi, pi)) mempty
 
 
 -- a YodaHist is just a histogram with some annotations.
@@ -55,7 +56,7 @@ alterAnnots f (YodaHist yha yhh) = YodaHist (f yha) yhh
 alterHist :: (Histogram b val -> Histogram b val) -> YodaHist b val -> YodaHist b val
 alterHist f (YodaHist yha yhh) = YodaHist yha $ f yhh
 
-type YodaHistD = YodaHist Double (BinData Double)
+type YodaHistD = YodaHist (Bin1D Double) (BinData Double)
 
 -- strict in args to prevent histograms from taking up infinite space
 data BinData a = BinData {
@@ -129,10 +130,12 @@ eventHists :: Text -> Builder Event [[YodaHistD]]
 eventHists syst = sequenceA [
                   fillAll (lvHists (syst <> "/jets/") "small-$R$ jet ") <<- first eJets
                 , fillAll (lvHists (syst <> "/largejets/") "large-$R$ jet ") <<- first eLargeJets
+                , fillAll (lvHists (syst <> "/trackjets/") "track jet ") <<- first eTrackJets
                 , fillAll (lvHists (syst <> "/electrons/") "electron ") <<- first eElectrons
                 , fillAll (lvHists (syst <> "/muons/") "muon ") <<- first eMuons
                 , fillFirst (lvHists (syst <> "/jet0/") "leading small-$R$ jet ") <<- first eJets
                 , fillFirst (lvHists (syst <> "/largejet0/") "leading large-$R$ jet ") <<- first eLargeJets
+                , fillAll (lvHists (syst <> "/trackjet0/") "leading track jet ") <<- first eTrackJets
                 , fillFirst (lvHists (syst <> "/electron0/") "leading electron ") <<- first eElectrons
                 , fillFirst (lvHists (syst <> "/muon0/") "leading muon ") <<- first eMuons
                 , lvHists (syst <> "/met/") "$E/{\\mathrm T}^{\\mathrm miss} " <<- first eMET

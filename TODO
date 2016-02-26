@@ -1,8 +1,5 @@
 systematics:
 [[weight name]] -> [Events] -> [[[Hists]]]
 
-LV methods:
-dPhi, dEta, etc
-
 other object histograms:
 dPhi, dEta, dR
