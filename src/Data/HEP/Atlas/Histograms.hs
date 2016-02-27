@@ -12,6 +12,7 @@ import qualified Data.Text as T
 import Data.Maybe (listToMaybe)
 
 import Data.Histogram
+import Data.Builder
 import Data.Histogram.Bin
 import Data.Binary (Binary(..))
 import GHC.Generics (Generic)

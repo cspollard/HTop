@@ -23,6 +23,7 @@ import qualified Data.Vector as V
 import Data.Uncertain
 
 import Data.Histogram
+import Data.Builder
 import Data.HEP.Atlas.Histograms
 import Data.HEP.Atlas.Stream
 
@@ -30,9 +31,10 @@ import Data.HEP.Atlas.Stream
 
 main :: IO ()
 main = do
-        evts <- liftM (parseTree evtWeights evtSystWeights) BSL.getContents :: IO Events
+        evts <- decodeList <$> BSL.getContents :: IO Events
 
-        let hists = concatMap concat $ built $ feed' (eventSystHists ("nominal" : [] {- evtSystWeights -})) $ using evts (parBuffer 8 rseq)
+        -- let hists = concatMap concat $ built $ feed' (eventSystHists ("nominal" : [] {- evtSystWeights -})) $ using evts (parBuffer 8 rseq)
+        let hists = concatMap concat $ built $ feed' (eventSystHists ("nominal" : [] {- evtSystWeights -})) evts
         BSL.putStr . encodeList $ hists
 
 

@@ -45,8 +45,8 @@ library
     ghc-options:        -O2
     ghc-prof-options:   -O2 -prof -auto-all -caf-all
 
-executable jsonToHist
-    main-is:            app/jsonToHist.hs
+executable eventToHist
+    main-is:            app/eventToHist.hs
     build-depends:      base >=4.7 && <5.0
                       , binary >=0.7
                       , containers >=0.5
@@ -79,8 +79,8 @@ executable histToYoda
   ghc-prof-options:    -O2 -prof -auto-all -caf-all
   default-language:    Haskell2010
 
-executable jsonToBinary
-    main-is:            app/jsonToBinary.hs
+executable jsonToEvent
+    main-is:            app/jsonToEvent.hs
     build-depends:      base >=4.7 && <5.0
                       , binary >=0.7
                       , containers >=0.5
@@ -92,8 +92,8 @@ executable jsonToBinary
                       , parallel >= 0.3
                       , hhep >= 0.1.0.0
                       , htop >= 0.1.0.0
-  ghc-options:         -O2
-  ghc-prof-options:    -O2 -prof -auto-all -caf-all
+  ghc-options:          -O2 -threaded "-with-rtsopts=-N"
+  ghc-prof-options:     -O2 -threaded "-with-rtsopts=-N" -prof -auto-all -caf-all
   default-language:    Haskell2010
 
 executable combineHist
