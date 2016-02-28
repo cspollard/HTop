@@ -3,7 +3,7 @@
 module Data.HEP.Atlas.TopTree where
 
 import Data.List (sortBy)
-import Data.Ord (comparing)
+import Data.Ord (comparing, Down(..))
 import qualified Data.Map as M
 
 import Control.Applicative
@@ -135,7 +135,7 @@ parseMET val = let et = parseBranch "met_met" val in
 
 
 ptSort :: HasLorentzVector v => [v] -> [v]
-ptSort = sortBy (comparing (lvPt . toPtEtaPhiE))
+ptSort = sortBy (comparing (Down . lvPt . toPtEtaPhiE))
 
 
 parseBranchMap :: FromJSON v => [Text] -> Value -> Parser (M.Map Text v)
