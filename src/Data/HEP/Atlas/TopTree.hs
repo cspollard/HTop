@@ -55,16 +55,28 @@ parseEvents evtWeights evtSystWeights branches bs = case AL.parse (event evtWeig
                     AL.Done bs' (evt, False) -> evt : parseEvents evtWeights evtSystWeights branches bs'
                     AL.Done _ (evt, True) -> [evt]
 
+sample :: Value -> Parser (Events -> Sample)
+sample = withObject "failed to parse sumWeights." $
+            \o -> do
+                    info <- head <$> o .: "events"
+                    return $ Sample (info ! 0) (info ! 1) (info ! 2)
 
 parseSample :: [Text] -> [Text] -> BSL.ByteString -> Sample
-
+parseSample evtWeights evtSystWeights bs = case AL.parse treeTxt bs of
+                AL.Fail _ _ err -> error err
+                AL.Done bs' bs'' -> case parse sample <$> decode bs' of
+                                        Nothing -> error "could not parse sumWeights tree."
+                                        Just (Left err) -> error err
+                                        Just (Right s) -> s . Stream $ parseEvents weights systWeights (map fst branches) bs'
+        where
+            treeTxt = manyTill anyChar (string "\"sumWeights\"") *> skipSpace *> char ':' *> skipSpace *> bracketScan '{' '}'
 
 parseEventTree :: [Text] -> [Text] -> BSL.ByteString -> Events
 parseEventTree weights systWeights bs = case AL.parse branchesTxt bs of
                 AL.Fail _ _ err -> error err
                 AL.Done bs' bs'' -> case eitherDecodeStrict bs'' :: Either String [(Text, Text)] of
                                         Left err -> error err
-                                        Right branches-> parseEvents weights systWeights (map fst branches) bs'
+                                        Right branches -> parseEvents weights systWeights (map fst branches) bs'
         where
             headerParse = manyTill anyChar (string "\"events\"") <* skipSpace <* char ':' <* skipSpace <* char '['
             branchesTxt = manyTill anyChar (string "\"branches\"") *> skipSpace *> char ':' *> skipSpace *> bracketScan '[' ']' <* headerParse
