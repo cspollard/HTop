@@ -1,5 +1,4 @@
-systematics:
-[[weight name]] -> [Events] -> [[[Hists]]]
-
 other object histograms:
 dPhi, dEta, dR
+
+http://www.haskellforall.com/2016/02/auto-generate-command-line-interface.html
