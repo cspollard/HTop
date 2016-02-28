@@ -17,6 +17,8 @@ instance Binary a => Binary (Stream a) where
     put (Stream []) = putWord8 0
     put (Stream (x:xs)) = putWord8 1 >> put x >> put (Stream xs)
 
+    -- TODO
+    -- there is a memory leak here.
     get = do
             x <- decodeElem
             case x of

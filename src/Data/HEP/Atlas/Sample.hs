@@ -11,7 +11,7 @@ import Data.HEP.Atlas.Stream
 data Sample = Sample { dsid :: Int
                      , totalEventsWeighted :: Int
                      , totalEvents :: Int
-                     , events :: Stream Event
+                     , events :: Events
                      } deriving (Generic, Show)
 
 instance Binary Sample where

@@ -61,7 +61,7 @@ sample :: Value -> Parser (Events -> Sample)
 sample = withObject "failed to parse sumWeights." $
             \o -> do
                     info <- head <$> o .: "events"
-                    return $ Sample (info !! 0) (info !! 1) (info !! 2) . Stream
+                    return $ Sample (info !! 0) (info !! 1) (info !! 2)
 
 parseSample :: [Text] -> [Text] -> BSL.ByteString -> Sample
 parseSample evtWeights evtSystWeights bs = case AL.parse treeTxt bs of
