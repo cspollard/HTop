@@ -9,16 +9,21 @@ import Data.Binary.Put
 
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString as BS
-import Data.List (unfoldr)
 
 
+data Stream a = Stream { toList :: [a] }
 
-encodeList :: Binary a => [a] -> BSL.ByteString
-encodeList = runPut . encodeList'
-    where
-        encodeList' :: Binary a => [a] -> Put
-        encodeList' [] = putWord8 0
-        encodeList' (x:xs) = putWord8 1 >> put x >> encodeList' xs
+instance Binary a => Binary (Stream a) where
+    put (Stream []) = putWord8 0
+    put (Stream (x:xs)) = putWord8 1 >> put x >> put (Stream xs)
+
+    get = do
+            x <- decodeElem
+            case x of
+                Nothing -> return (Stream [])
+                Just y -> do
+                    xs <- get
+                    return (Stream (y : toList xs))
 
 
 decodeElem :: Binary a => Get (Maybe a)

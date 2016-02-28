@@ -56,9 +56,11 @@ parseEvents evtWeights evtSystWeights branches bs = case AL.parse (event evtWeig
                     AL.Done _ (evt, True) -> [evt]
 
 
+parseSample :: [Text] -> [Text] -> BSL.ByteString -> Sample
 
-parseTree :: [Text] -> [Text] -> BSL.ByteString -> Events
-parseTree weights systWeights bs = case AL.parse branchesTxt bs of
+
+parseEventTree :: [Text] -> [Text] -> BSL.ByteString -> Events
+parseEventTree weights systWeights bs = case AL.parse branchesTxt bs of
                 AL.Fail _ _ err -> error err
                 AL.Done bs' bs'' -> case eitherDecodeStrict bs'' :: Either String [(Text, Text)] of
                                         Left err -> error err
