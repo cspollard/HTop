@@ -26,6 +26,7 @@ import Data.Histogram
 import Data.Builder
 import Data.HEP.Atlas.Histograms
 import Data.HEP.Atlas.Stream
+import Data.Binary
 
 
 
@@ -35,7 +36,7 @@ main = do
 
         -- let hists = concatMap concat $ built $ feed' (eventSystHists ("nominal" : [] {- evtSystWeights -})) $ using evts (parBuffer 8 rseq)
         let hists = concatMap concat $ built $ feed' (eventSystHists ("nominal" : [] {- evtSystWeights -})) evts
-        BSL.putStr . encodeList $ hists
+        BSL.putStr . encode . Stream $ hists
 
 
 -- example cuts

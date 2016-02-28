@@ -11,7 +11,7 @@ import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString as BS
 
 
-data Stream a = Stream { toList :: [a] }
+data Stream a = Stream { unStream :: [a] } deriving (Eq, Ord, Show)
 
 instance Binary a => Binary (Stream a) where
     put (Stream []) = putWord8 0
@@ -23,7 +23,7 @@ instance Binary a => Binary (Stream a) where
                 Nothing -> return (Stream [])
                 Just y -> do
                     xs <- get
-                    return (Stream (y : toList xs))
+                    return (Stream (y : unStream xs))
 
 
 decodeElem :: Binary a => Get (Maybe a)

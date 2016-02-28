@@ -9,7 +9,7 @@ import qualified Data.Map as M
 import Control.Applicative
 
 import Data.Text (Text, unpack)
-import Data.Aeson (Value(..), withObject, eitherDecodeStrict, object, Result(..), fromJSON)
+import Data.Aeson (Value(..), withObject, eitherDecodeStrict, object, Result(..), fromJSON, decode)
 import Data.Aeson ((.:), FromJSON(..))
 import Data.Aeson.Types (Parser, parse)
 
@@ -27,6 +27,8 @@ import Data.HEP.Atlas.Event
 import Data.HEP.Atlas.Electron
 import Data.HEP.Atlas.Muon
 import Data.HEP.Atlas.Jet
+import Data.HEP.Atlas.Sample
+import Data.HEP.Atlas.Stream
 
 bracketScan :: Char -> Char -> AL.Parser BS.ByteString
 bracketScan p q = do
@@ -59,15 +61,15 @@ sample :: Value -> Parser (Events -> Sample)
 sample = withObject "failed to parse sumWeights." $
             \o -> do
                     info <- head <$> o .: "events"
-                    return $ Sample (info ! 0) (info ! 1) (info ! 2)
+                    return $ Sample (info !! 0) (info !! 1) (info !! 2) . Stream
 
 parseSample :: [Text] -> [Text] -> BSL.ByteString -> Sample
 parseSample evtWeights evtSystWeights bs = case AL.parse treeTxt bs of
                 AL.Fail _ _ err -> error err
                 AL.Done bs' bs'' -> case parse sample <$> decode bs' of
                                         Nothing -> error "could not parse sumWeights tree."
-                                        Just (Left err) -> error err
-                                        Just (Right s) -> s . Stream $ parseEvents weights systWeights (map fst branches) bs'
+                                        Just (Error err) -> error err
+                                        Just (Success s) -> s $ parseEventTree evtWeights evtSystWeights bs'
         where
             treeTxt = manyTill anyChar (string "\"sumWeights\"") *> skipSpace *> char ':' *> skipSpace *> bracketScan '{' '}'
 

@@ -1,5 +1,8 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module Data.HEP.Atlas.Sample where
 
+import GHC.Generics
 import Data.Binary
 
 import Data.HEP.Atlas.Event
