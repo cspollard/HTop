@@ -10,15 +10,16 @@ import Data.Binary.Put
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString as BS
 import Data.List (unfoldr)
-import Control.Monad (liftM2)
 
 
-encodeList' :: Binary a => [a] -> Put
-encodeList' [] = putWord8 0
-encodeList' (x:xs) = putWord8 1 >> put x >> encodeList' xs
 
 encodeList :: Binary a => [a] -> BSL.ByteString
 encodeList = runPut . encodeList'
+    where
+        encodeList' :: Binary a => [a] -> Put
+        encodeList' [] = putWord8 0
+        encodeList' (x:xs) = putWord8 1 >> put x >> encodeList' xs
+
 
 decodeElem :: Binary a => Get (Maybe a)
 decodeElem =  do
@@ -30,12 +31,15 @@ decodeElem =  do
 
 
 -- TODO
--- this is probably suboptimal: converting between lazy and strict
--- bytestrings over and over
--- look for a solution using pushCheck instead of pushChecks...
+-- is this efficient?
 decodeList :: Binary a => BSL.ByteString -> [a]
-decodeList bs = case runGetIncremental decodeElem `pushChunks` bs of
+decodeList bs = decodeList' (runGetIncremental decodeElem) (BSL.toChunks bs)
+    where
+        decodeList' :: Binary a => Decoder (Maybe a) -> [BS.ByteString] -> [a]
+        decodeList' _ [] = []
+        decodeList' d (bs':bss) = case d `pushChunk` bs' of
                     Fail _ _ err -> error err
                     Done _ _ Nothing -> []
-                    Done bs' _ (Just x) -> x : decodeList (BSL.fromStrict bs')
-                    _ -> error "incomplete inputs."
+                    Done bs'' _ (Just x) -> x : decodeList' (runGetIncremental decodeElem) (bs'':bss)
+                    -- Partial
+                    p -> decodeList' p bss
