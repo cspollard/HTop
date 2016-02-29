@@ -2,12 +2,10 @@
 
 module Data.HEP.Atlas.Tree where
 
-import Data.Conduit
-import Data.Conduit.Attoparsec
+import Control.Arrow (first)
+import Data.Attoparsec.Lazy (parse, Parser(..), Result(..), choice)
 
-import Data.Attoparsec.Types (Parser)
-
-import Data.Attoparsec.ByteString.Char8 (skipSpace, char, string, manyTill, takeWhile1, anyChar)
+import Data.Attoparsec.ByteString.Char8 (skipSpace, char, string, manyTill, takeWhile1, anyChar, option)
 
 import Control.Applicative (many, (<$>), (<*>), (<|>))
 
@@ -19,7 +17,7 @@ import Data.Text (Text(..), unpack)
 import Data.Aeson (Value(..), withObject, object, Result(..), fromJSON, decodeStrict)
 import Data.Aeson.Parser (value)
 
-bracketScan :: Char -> Char -> Parser BS.ByteString BS.ByteString
+bracketScan :: Char -> Char -> Parser BS.ByteString
 bracketScan p q = do
                     _ <- char p
                     mid <- fmap BS.concat . many $ bracketScan p q <|> takeWhile1 isNotBracket
@@ -28,8 +26,8 @@ bracketScan p q = do
             where isNotBracket c = c /= p && c /= q
 
 
-branches :: Monad m => Conduit BS.ByteString m (Either ParseError (PositionRange, [Text]))
-branches = conduitParserEither $ do
+branches :: Parser [Text]
+branches = do
     b <- go
     case decodeStrict b of
         Nothing -> fail "error parsing branches."
@@ -39,24 +37,35 @@ branches = conduitParserEither $ do
 
 
 -- Decode an event as an Aeson Value
-event :: Monad m =>
-            [Text] -> Conduit BS.ByteString m (Either ParseError (PositionRange, Value))
-event branches = conduitParserEither $ do
+event :: [Text] -> Parser Value
+event branches = do
                     mv <- fmap (object . zip branches) <$> decodeStrict <$> bracketScan '[' ']'
                     case mv of
                         Nothing -> fail "error parsing branches."
                         Just v -> return v
 
 
-parseTree :: Monad m => Conduit BS.ByteString m (Either ParseError (PositionRange, [Value]))
-parseTree = conduitParserEither $ do
-                branches <- decodeStrict <$> parseBranches
-
-                case branches of
+-- this brings the list-building outside of the (strict) Parser monad
+parseMany :: Parser a -> BSL.ByteString -> ([a], BSL.ByteString)
+parseMany p bs = case parse p bs of
                     Fail bs' _ _ -> ([], bs')
-                    Done bs' Nothing -> ([], bs')
-                    Done bs' (Just branches) -> parseMany (event branches <* skipSpace) bs'
+                    Done bs' x -> first (x:) $ parseMany p bs'
+
+
+-- get the list of events from a tree
+parseTree :: BSL.ByteString -> ([Value], BSL.ByteString)
+parseTree bs = case parse (skipSpace *> branches <* skipSpace <* eventsHeader) bs of
+                    Fail bs' _ _ -> ([], bs')
+                    Done bs' branches -> parseMany (event' branches) bs'
 
         where
-            parseBranches = char '{' *> skipSpace *> 
--}
+            eventsHeader = do
+                            string "\"events\"" <* skipSpace
+                            char ':' <* skipSpace
+                            char '[' <* skipSpace
+
+
+            event' brs = do
+                            evt <- event brs <* skipSpace
+                            choice [char ',', char ']']
+                            return evt

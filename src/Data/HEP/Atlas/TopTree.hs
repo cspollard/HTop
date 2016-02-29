@@ -27,47 +27,10 @@ import Data.HEP.Atlas.Event
 import Data.HEP.Atlas.Electron
 import Data.HEP.Atlas.Muon
 import Data.HEP.Atlas.Jet
-
-bracketScan :: Char -> Char -> AL.Parser BS.ByteString
-bracketScan p q = do
-                    _ <- char p
-                    mid <- fmap BS.concat . many $ bracketScan p q <|> takeWhile1 isNotBracket
-                    _ <- char q
-                    return $ (p `BS.cons` mid) `BS.snoc` q
-            where isNotBracket c = c /= p && c /= q
+import Data.HEP.Atlas.Sample
 
 
--- return event and whether it is the last one
-event :: [Text] -> [Text] -> [Text] -> AL.Parser (Event, Bool)
-event evtWeights evtSystWeights branches = do
-            skipSpace
-            evtTxt <- bracketScan '[' ']'
-            case eitherDecodeStrict evtTxt of
-                Left err -> fail err
-                Right evtVals -> case parse (parseEvent evtWeights evtSystWeights) (object (zip branches evtVals)) of
-                                        Error s -> fail s
-                                        Success evt -> ((,) evt . (/= ',')) <$> (skipSpace *> anyChar )
-
-
-parseEvents :: [Text] -> [Text] -> [Text] -> BSL.ByteString -> Events
-parseEvents evtWeights evtSystWeights branches bs = case AL.parse (event evtWeights evtSystWeights branches) bs of
-                    AL.Fail _ _ err -> error err
-                    AL.Done bs' (evt, False) -> evt : parseEvents evtWeights evtSystWeights branches bs'
-                    AL.Done _ (evt, True) -> [evt]
-
-
-
-parseTree :: [Text] -> [Text] -> BSL.ByteString -> Events
-parseTree weights systWeights bs = case AL.parse branchesTxt bs of
-                AL.Fail _ _ err -> error err
-                AL.Done bs' bs'' -> case eitherDecodeStrict bs'' :: Either String [(Text, Text)] of
-                                        Left err -> error err
-                                        Right branches-> parseEvents weights systWeights (map fst branches) bs'
-        where
-            headerParse = manyTill anyChar (string "\"events\"") <* skipSpace <* char ':' <* skipSpace <* char '['
-            branchesTxt = manyTill anyChar (string "\"branches\"") *> skipSpace *> char ':' *> skipSpace *> bracketScan '[' ']' <* headerParse
-
-
+parseTopSample :: BSL.ByteString -> (Sample, BSL.ByteString)
 
 parseBranch :: FromJSON a => Text -> Value -> Parser a
 parseBranch name = withObject
