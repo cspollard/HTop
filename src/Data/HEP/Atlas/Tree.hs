@@ -12,7 +12,7 @@ import Control.Applicative (many, (<$>), (<*>), (<|>))
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
 
-import Data.Text (Text(..), unpack)
+import Data.Text (Text(..), pack)
 
 import Data.Aeson (Value(..), withObject, object, Result(..), fromJSON, decodeStrict)
 import Data.Aeson.Parser (value)
@@ -53,12 +53,20 @@ parseMany p bs = case parse p bs of
 
 
 -- get the list of events from a tree
-parseTree :: BSL.ByteString -> ([Value], BSL.ByteString)
-parseTree bs = case parse (skipSpace *> branches <* skipSpace <* eventsHeader) bs of
-                    Fail bs' _ _ -> ([], bs')
-                    Done bs' branches -> parseMany (event' branches) bs'
+parseTree :: BSL.ByteString -> (Maybe (Text, [Value]), BSL.ByteString)
+parseTree bs = case parse header bs of
+                    Fail bs' _ _ -> (Nothing, bs')
+                    Done bs' (title, branches) ->
+                                let (evts, bs'') =  parseMany (event' branches) bs' in
+                                    (Just (title, evts), bs'')
 
         where
+            header = do
+                        title <- pack <$> (char '"' *> manyTill anyChar (char '"'))
+                        skipSpace <* char ':' <* skipSpace <* char '{'
+                        branches <- skipSpace *> branches <* skipSpace <* eventsHeader
+                        return (title, branches)
+
             eventsHeader = do
                             string "\"events\"" <* skipSpace
                             char ':' <* skipSpace
@@ -69,3 +77,16 @@ parseTree bs = case parse (skipSpace *> branches <* skipSpace <* eventsHeader) b
                             evt <- event brs <* skipSpace
                             choice [char ',', char ']']
                             return evt
+
+
+{-
+-- TODO
+-- eventually parse entire file
+parseFile :: BSL.ByteString -> [(Text, [Value])]
+parseFile bs = case parse fileHeader bs of
+                    Fail _ _ _ -> []
+                    Done bs' _ -> let (x, bs'') = parseTree bs' in 
+    where
+        fileHeader = skipSpace *> char '{' <* skipSpace
+        fileFooter = skipSpace *> char '}' <* skipSpace
+-}

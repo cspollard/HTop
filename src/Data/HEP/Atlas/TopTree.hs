@@ -11,7 +11,7 @@ import Control.Applicative
 import Data.Text (Text, unpack)
 import Data.Aeson (Value(..), withObject, eitherDecodeStrict, object, Result(..), fromJSON)
 import Data.Aeson ((.:), FromJSON(..))
-import Data.Aeson.Types (Parser, parse)
+import Data.Aeson.Types (Parser, parse, parseMaybe)
 
 import qualified Data.ByteString.Lazy.Char8 as BSL
 import qualified Data.ByteString.Char8 as BS
@@ -21,16 +21,33 @@ import Data.Attoparsec.ByteString.Char8 (skipSpace, char, string, manyTill, take
 
 import Data.Monoid ((<>))
 import Control.Monad (forM)
+import Data.Maybe (maybeToList)
 
 import Data.HEP.LorentzVector
 import Data.HEP.Atlas.Event
 import Data.HEP.Atlas.Electron
 import Data.HEP.Atlas.Muon
 import Data.HEP.Atlas.Jet
-import Data.HEP.Atlas.Sample
+import Data.HEP.Atlas.Tree
 
 
-parseTopSample :: BSL.ByteString -> (Sample, BSL.ByteString)
+-- TODO
+-- should parse a Sample eventually.
+-- import Data.HEP.Atlas.Sample
+parseTopSample :: [Text] -> [Text] -> BSL.ByteString -> [Maybe Event]
+parseTopSample weights sysWeights bs = case AL.parse fileHeader bs of
+                    AL.Fail _ _ _ -> error "failed to parse file header."
+                    AL.Done bs' _ -> case parseTree bs' of
+                                    (Just ("sumWeights", x:_), bs'') ->
+                                        case parseTree bs'' of
+                                            (Just ("nominal", vals), _) ->
+                                                    map (parseMaybe $ parseEvent weights sysWeights) vals
+                                            _ -> error "failed to parse nominal."
+                                    _ -> error "failed to parse sumWeights."
+    where
+        fileHeader = skipSpace *> char '{' <* skipSpace
+        fileFooter = skipSpace *> char '}' <* skipSpace
+
 
 parseBranch :: FromJSON a => Text -> Value -> Parser a
 parseBranch name = withObject
