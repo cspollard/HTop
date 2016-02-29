@@ -36,7 +36,7 @@ import Data.HEP.Atlas.Tree
 -- import Data.HEP.Atlas.Sample
 parseTopSample :: [Text] -> [Text] -> BSL.ByteString -> [Maybe Event]
 parseTopSample weights sysWeights bs = case AL.parse fileHeader bs of
-                    AL.Fail _ _ _ -> error "failed to parse file header."
+                    AL.Fail _ ss s -> error $ "failed to parse file header." ++ concatMap (++ " ") ss ++ s
                     AL.Done bs' _ -> case parseTree bs' of
                                     (Just ("sumWeights", x:_), bs'') ->
                                         case parseTree bs'' of

@@ -3,7 +3,7 @@
 module Data.HEP.Atlas.Tree where
 
 import Control.Arrow (first)
-import Data.Attoparsec.Lazy (parse, Parser(..), Result(..), choice)
+import Data.Attoparsec.Lazy (parse, Parser(..), Result(..), choice, (<?>))
 
 import Data.Attoparsec.ByteString.Char8 (skipSpace, char, string, manyTill, takeWhile1, anyChar, option)
 
@@ -15,7 +15,11 @@ import qualified Data.ByteString.Lazy.Char8 as BSL
 import Data.Text (Text(..), pack)
 
 import Data.Aeson (Value(..), withObject, object, Result(..), fromJSON, decodeStrict)
+import qualified Data.Aeson.Types as AT
 import Data.Aeson.Parser (value)
+
+
+import Debug.Trace (traceShow, traceShowId)
 
 bracketScan :: Char -> Char -> Parser BS.ByteString
 bracketScan p q = do
@@ -27,21 +31,21 @@ bracketScan p q = do
 
 
 branches :: Parser [Text]
-branches = do
+branches = named "branches" $ do
     b <- go
     case decodeStrict b of
         Nothing -> fail "error parsing branches."
-        Just bs -> return bs
+        Just bs -> return $ (fmap head) bs
 
     where go = string "\"branches\"" *> skipSpace *> char ':' *> skipSpace *> bracketScan '[' ']'
 
 
 -- Decode an event as an Aeson Value
 event :: [Text] -> Parser Value
-event branches = do
-                    mv <- fmap (object . zip branches) <$> decodeStrict <$> bracketScan '[' ']'
+event bs = named "event" $ do
+                    mv <- fmap (object . zip bs) <$> decodeStrict <$> bracketScan '[' ']'
                     case mv of
-                        Nothing -> fail "error parsing branches."
+                        Nothing -> fail "error parsing event/branches."
                         Just v -> return v
 
 
@@ -52,33 +56,38 @@ parseMany p bs = case parse p bs of
                     Done bs' x -> first (x:) $ parseMany p bs'
 
 
+named :: String -> Parser a -> Parser a
+named s p = p <?> s
+
 -- get the list of events from a tree
 parseTree :: BSL.ByteString -> (Maybe (Text, [Value]), BSL.ByteString)
 parseTree bs = case parse header bs of
-                    Fail bs' _ _ -> (Nothing, bs')
+                    Fail bs' ss s -> traceShow (s, ss) $ (Nothing, bs')
                     Done bs' (title, branches) ->
                                 let (evts, bs'') =  parseMany (event' branches) bs' in
                                     (Just (title, evts), bs'')
 
         where
-            header = do
+            header = named "header" $ do
                         title <- pack <$> (char '"' *> manyTill anyChar (char '"'))
                         skipSpace <* char ':' <* skipSpace <* char '{'
-                        branches <- skipSpace *> branches <* skipSpace <* eventsHeader
-                        return (title, branches)
+                        brs <- skipSpace *> branches <* skipSpace <* eventsHeader
+                        return (title, brs)
 
-            eventsHeader = do
-                            string "\"events\"" <* skipSpace
+            eventsHeader = named "eventsHeader" $ do
+                            char ',' *> skipSpace *> string "\"events\"" <* skipSpace
                             char ':' <* skipSpace
                             char '[' <* skipSpace
 
 
-            event' brs = do
+            event' brs = named "event'" $ do
                             evt <- event brs <* skipSpace
                             -- TODO
+                            -- HERE: broken
                             -- this is not very precise
                             -- we can end the tree dictionary here!
-                            choice [char ',', char ']', char '}']
+                            choice [char ',' <* skipSpace,
+                                    char ']' <* skipSpace <* char '}' <* skipSpace <* option ',' (char ',' <* skipSpace)]
                             return evt
 
 
