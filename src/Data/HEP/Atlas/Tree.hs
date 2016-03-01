@@ -83,7 +83,6 @@ parseTree bs = case parse header bs of
             event' brs = named "event'" $ do
                             evt <- event brs <* skipSpace
                             -- TODO
-                            -- HERE: broken
                             -- this is not very precise
                             -- we can end the tree dictionary here!
                             choice [char ',' <* skipSpace,

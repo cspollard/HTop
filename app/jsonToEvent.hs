@@ -13,4 +13,6 @@ import Data.Maybe (fromJust)
 main :: IO ()
 main = do
     evts <- parseTopSample evtWeights evtSystWeights <$> BSL.getContents
+    -- this should fail if fromJust fails: an event was not parsed
+    -- correctly
     BSL.putStr . encodeList . map fromJust $ using evts (parBuffer 8 rseq)

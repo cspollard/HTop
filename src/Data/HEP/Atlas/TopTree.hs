@@ -29,19 +29,19 @@ import Data.HEP.Atlas.Electron
 import Data.HEP.Atlas.Muon
 import Data.HEP.Atlas.Jet
 import Data.HEP.Atlas.Tree
+import Data.HEP.Atlas.Sample
 
 
 -- TODO
 -- should parse a Sample eventually.
--- import Data.HEP.Atlas.Sample
-parseTopSample :: [Text] -> [Text] -> BSL.ByteString -> [Maybe Event]
-parseTopSample weights sysWeights bs = case AL.parse fileHeader bs of
+parseTopSample :: [Text] -> [Text] -> CrossSectionInfo -> BSL.ByteString -> [Maybe Event]
+parseTopSample weights sysWeights cs bs = case AL.parse fileHeader bs of
                     AL.Fail _ ss s -> error $ "failed to parse file header." ++ concatMap (++ " ") ss ++ s
                     AL.Done bs' _ -> case parseTree bs' of
                                     (Just ("sumWeights", x:_), bs'') ->
                                         case parseTree bs'' of
-                                            (Just ("nominal", vals), _) ->
-                                                    map (parseMaybe $ parseEvent weights sysWeights) vals
+                                            (Just ("nominal", vals), _) -> let ds = (x ! "dsid") in
+                                                    SingleSample ds (x ! "totalEventsWeighted") (x ! "totalEvents") (cs ! ds) $ map (parseMaybe $ parseEvent weights sysWeights) vals
                                             _ -> error "failed to parse nominal."
                                     _ -> error "failed to parse sumWeights."
     where
