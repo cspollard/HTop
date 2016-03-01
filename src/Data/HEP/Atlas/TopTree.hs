@@ -5,6 +5,9 @@ module Data.HEP.Atlas.TopTree where
 import Data.List (sortBy)
 import Data.Ord (comparing, Down(..))
 import qualified Data.Map as M
+import qualified Data.IntMap as IM
+import qualified Data.HashMap.Strict as HM
+import Data.Maybe (fromJust)
 
 import Control.Applicative
 
@@ -30,24 +33,33 @@ import Data.HEP.Atlas.Muon
 import Data.HEP.Atlas.Jet
 import Data.HEP.Atlas.Tree
 import Data.HEP.Atlas.Sample
+import Data.HEP.Atlas.CrossSections
 
+import Control.Parallel.Strategies (using, rseq, parBuffer)
 
 -- TODO
--- should parse a Sample eventually.
-parseTopSample :: [Text] -> [Text] -> CrossSectionInfo -> BSL.ByteString -> [Maybe Event]
+-- this uses parallel evaluation of events by default
+parseTopSample :: [Text] -> [Text] -> CrossSectionInfo -> BSL.ByteString -> Sample
 parseTopSample weights sysWeights cs bs = case AL.parse fileHeader bs of
                     AL.Fail _ ss s -> error $ "failed to parse file header." ++ concatMap (++ " ") ss ++ s
                     AL.Done bs' _ -> case parseTree bs' of
-                                    (Just ("sumWeights", x:_), bs'') ->
+                                    (Just ("sumWeights", v:_), bs'') ->
                                         case parseTree bs'' of
-                                            (Just ("nominal", vals), _) -> let ds = (x ! "dsid") in
-                                                    SingleSample ds (x ! "totalEventsWeighted") (x ! "totalEvents") (cs ! ds) $ map (parseMaybe $ parseEvent weights sysWeights) vals
+                                            (Just ("nominal", vals), _) ->
+                                                    -- this should fail if not all Maybe Event s are Just Event s
+                                                    fromJust (parseMaybe (sample cs) v) . flip using (parBuffer 8 rseq) $ map (fromJust . parseMaybe (parseEvent weights sysWeights)) vals
                                             _ -> error "failed to parse nominal."
                                     _ -> error "failed to parse sumWeights."
     where
         fileHeader = skipSpace *> char '{' <* skipSpace
         fileFooter = skipSpace *> char '}' <* skipSpace
-
+        sample :: CrossSectionInfo -> Value -> Parser (Events -> Sample)
+        sample cs v = do
+                        ds <- parseBranch "dsid" v
+                        SingleSample ds <$>
+                                parseBranch "totalEvents" v <*>
+                                parseBranch "totalEventsWeighted" v <*>
+                                return (cs IM.! ds)
 
 parseBranch :: FromJSON a => Text -> Value -> Parser a
 parseBranch name = withObject
