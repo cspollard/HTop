@@ -38,6 +38,9 @@ library
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , conduit >= 1.2
+                      , conduit-extra >= 1.1
+                      , exceptions >= 0.8
                       , parallel >= 0.3
                       , unordered-containers >= 0.2.6
                       , hhep >= 0.1.0.0
@@ -57,6 +60,9 @@ executable eventToHist
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , conduit >= 1.2
+                      , conduit-extra >= 1.1
+                      , exceptions >= 0.8
                       , parallel >= 0.3
                       , unordered-containers >= 0.2.6
                       , hhep >= 0.1.0.0
@@ -75,6 +81,9 @@ executable histToYoda
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , conduit >= 1.2
+                      , conduit-extra >= 1.1
+                      , exceptions >= 0.8
                       , parallel >= 0.3
                       , unordered-containers >= 0.2.6
                       , hhep >= 0.1.0.0
@@ -93,6 +102,9 @@ executable jsonToEvent
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , conduit >= 1.2
+                      , conduit-extra >= 1.1
+                      , exceptions >= 0.8
                       , parallel >= 0.3
                       , unordered-containers >= 0.2.6
                       , hhep >= 0.1.0.0
@@ -111,6 +123,9 @@ executable combineHist
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , conduit >= 1.2
+                      , conduit-extra >= 1.1
+                      , exceptions >= 0.8
                       , parallel >= 0.3
                       , unordered-containers >= 0.2.6
                       , hhep >= 0.1.0.0
@@ -129,6 +144,9 @@ executable printEvents
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , conduit >= 1.2
+                      , conduit-extra >= 1.1
+                      , exceptions >= 0.8
                       , parallel >= 0.3
                       , unordered-containers >= 0.2.6
                       , hhep >= 0.1.0.0
