@@ -2,85 +2,78 @@
 
 module Data.HEP.Atlas.Tree where
 
-import Control.Arrow (first)
-import Data.Attoparsec.Lazy (parse, Parser(..), Result(..), choice, (<?>))
-
-import Data.Attoparsec.ByteString.Char8 (skipSpace, char, string, manyTill, takeWhile1, anyChar, option)
-
-import Control.Applicative (many, (<$>), (<*>), (<|>))
-
+import Data.ByteString (ByteString(..))
 import qualified Data.ByteString.Char8 as BS
-import qualified Data.ByteString.Lazy.Char8 as BSL
 
-import Data.Text (Text(..), pack)
+import Data.Text (Text(..))
+import qualified Data.Text as T
 
-import Data.Aeson (Value(..), withObject, object, Result(..), fromJSON, decodeStrict)
-import qualified Data.Aeson.Types as AT
-import Data.Aeson.Parser (value)
+import Control.Applicative
+
+import Data.Attoparsec.ByteString.Char8 -- (parse, Parser(..), Result(..), eitherResult, char, string, skipSpace, takeWhile1)
+
+import Data.Aeson (decodeStrict, Value, object)
+
+import Data.Conduit
+import Data.Conduit.Attoparsec
+
+import Control.Monad.Catch (MonadThrow(..))
+
+bracketScan :: MonadThrow m => Char -> Char -> Sink ByteString m ByteString
+bracketScan p q = sinkParser go
+            where
+                go = do
+                        char p
+                        mid <- fmap BS.concat . many $ go <|> takeWhile1 isNotBracket
+                        char q
+                        return $ (p `BS.cons` mid) `BS.snoc` q
+
+                isNotBracket c = c /= p && c /= q
 
 
-import Debug.Trace (traceShow, traceShowId)
+branches :: MonadThrow m => Sink ByteString m [Text]
+branches = do
+            _ <- sinkParser $ string "\"branches\"" *> skipSpace *> char ':' *> skipSpace *> return []
+            bs <- bracketScan '[' ']'
+            case decodeStrict bs of
+                Nothing -> fail "error parsing branches."
+                Just bs -> return $ (fmap head) bs
 
-bracketScan :: Char -> Char -> Parser BS.ByteString
-bracketScan p q = do
-                    _ <- char p
-                    mid <- fmap BS.concat . many $ bracketScan p q <|> takeWhile1 isNotBracket
-                    _ <- char q
-                    return $ (p `BS.cons` mid) `BS.snoc` q
-            where isNotBracket c = c /= p && c /= q
-
-
-branches :: Parser [Text]
-branches = named "branches" $ do
-    b <- go
-    case decodeStrict b of
-        Nothing -> fail "error parsing branches."
-        Just bs -> return $ (fmap head) bs
-
-    where go = string "\"branches\"" *> skipSpace *> char ':' *> skipSpace *> bracketScan '[' ']'
 
 
 -- Decode an event as an Aeson Value
-event :: [Text] -> Parser Value
-event bs = named "event" $ do
-                    mv <- fmap (object . zip bs) <$> decodeStrict <$> bracketScan '[' ']'
-                    case mv of
-                        Nothing -> fail "error parsing event/branches."
-                        Just v -> return v
+event :: MonadThrow m => [Text] -> Conduit ByteString m (Maybe Value)
+event bs = yield =<< fmap (object . zip bs) <$> decodeStrict <$> toConsumer (bracketScan '[' ']')
 
-
--- this brings the list-building outside of the (strict) Parser monad
-parseMany :: Parser a -> BSL.ByteString -> ([a], BSL.ByteString)
-parseMany p bs = case parse p bs of
-                    Fail bs' _ _ -> ([], bs')
-                    Done bs' x -> first (x:) $ parseMany p bs'
-
-
-named :: String -> Parser a -> Parser a
-named s p = p <?> s
-
+-- TODO
+-- currently does not return the title of the tree.
 -- get the list of events from a tree
-parseTree :: BSL.ByteString -> (Maybe (Text, [Value]), BSL.ByteString)
-parseTree bs = case parse header bs of
+parseTree :: MonadThrow m => Conduit ByteString m (Maybe Value)
+parseTree = do
+                title <- sinkParser $ T.pack <$> (char '"' *> manyTill anyChar (char '"')) <* skipSpace <* char ':' <* skipSpace <* char '{' <* skipSpace
+                bs <- toConsumer (branches)
+                event bs
+
+                {-
                     Fail bs' ss s -> traceShow (s, ss) $ (Nothing, bs')
                     Done bs' (title, branches) ->
                                 let (evts, bs'') =  parseMany (event' branches) bs' in
                                     (Just (title, evts), bs'')
 
         where
-            header = named "header" $ do
+            header = do
                         title <- pack <$> (char '"' *> manyTill anyChar (char '"'))
                         skipSpace <* char ':' <* skipSpace <* char '{'
                         brs <- skipSpace *> branches <* skipSpace <* eventsHeader
                         return (title, brs)
 
-            eventsHeader = named "eventsHeader" $ do
+            eventsHeader = do
                             char ',' *> skipSpace *> string "\"events\"" <* skipSpace
                             char ':' <* skipSpace
                             char '[' <* skipSpace
 
 
-            event' brs = named "event'" $ do
+            event' brs = do
                             evt <- event brs <* skipSpace
                             -- TODO
                             -- this is not very precise
@@ -88,7 +81,7 @@ parseTree bs = case parse header bs of
                             choice [char ',' <* skipSpace,
                                     char ']' <* skipSpace <* char '}' <* skipSpace <* option ',' (char ',' <* skipSpace)]
                             return evt
-
+                            -}
 
 {-
 -- TODO
@@ -101,3 +94,4 @@ parseFile bs = case parse fileHeader bs of
         fileHeader = skipSpace *> char '{' <* skipSpace
         fileFooter = skipSpace *> char '}' <* skipSpace
 -}
+
