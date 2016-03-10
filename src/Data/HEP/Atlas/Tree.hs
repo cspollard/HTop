@@ -19,16 +19,14 @@ import Data.Conduit.Attoparsec
 
 import Control.Monad.Catch (MonadThrow(..))
 
-bracketScan :: MonadThrow m => Char -> Char -> Sink ByteString m ByteString
-bracketScan p q = sinkParser go
-            where
-                go = do
-                        char p
-                        mid <- fmap BS.concat . many $ go <|> takeWhile1 isNotBracket
-                        char q
-                        return $ (p `BS.cons` mid) `BS.snoc` q
 
-                isNotBracket c = c /= p && c /= q
+toAttoparsec :: AT.FromJSON a => String -> Parser a
+toAttoparsec s = do
+                x <- json
+                case fromJSON x of
+                    AT.Success y -> return y
+                    _            -> fail s
+
 
 
 branches :: MonadThrow m => Sink ByteString m [Text]
