@@ -27,14 +27,17 @@ decodeSample bs = case runGetOrFail (getWord8) bs of
                     0 -> case runGetOrFail (SingleSample <$> get <*> get <*> get <*> get) bs of
                             Right (bs', _, f) -> f $ decodeList bs'
                             Left _ -> error "can't decode sample."
+                    1 -> 
 
 
+{-
         getSample :: Get (BSL.ByteString -> Sample)
         getSample = do
                         x <- getWord8
                         case x of
                             0 -> fmap (. decodeList) $ SingleSample <$> get <*> get <*> get <*> get
                             1 -> CombinedSample . decodeList
+-}
 
 dsids :: Sample -> [Int]
 dsids (SingleSample x _ _ _ _) = [x]
