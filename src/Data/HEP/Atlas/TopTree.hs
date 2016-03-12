@@ -29,6 +29,7 @@ import Data.HEP.Atlas.Sample
 import Data.Conduit
 import qualified Data.Conduit.List as CL
 import Data.Binary
+import Data.Binary.Get
 import Data.ByteString.Char8 (ByteString)
 import Data.ByteString.Lazy.Char8 (toStrict)
 import Control.Monad.Catch (MonadThrow)
@@ -173,3 +174,21 @@ sampleInfo = tree =$= CL.fold (<>) mempty
 
 conduitEncode :: (Monad m, Binary a) => Conduit a m ByteString
 conduitEncode = CL.map (toStrict . encode)
+
+conduitDecode :: (Monad m, Binary a) => Conduit ByteString m a
+conduitDecode = go (runGetIncremental get)
+    where
+        go (Done rest _ x) = do
+                                leftover rest
+                                yield x
+
+                                -- TODO
+                                -- peek ahead to see if there's any more input
+                                -- better way?
+                                y <- CL.peek
+                                case y of
+                                    Nothing -> return ()
+                                    Just z -> conduitDecode
+
+        go (Fail _ _ s) = fail s
+        go (Partial f) = go =<< f <$> await
