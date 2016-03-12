@@ -24,7 +24,7 @@ library
                       , Data.HEP.Atlas.Histograms
                       , Data.HEP.Atlas.Jet
                       , Data.HEP.Atlas.Muon
-                      -- , Data.HEP.Atlas.Sample
+                      , Data.HEP.Atlas.Sample
                       , Data.HEP.Atlas.Stream
                       , Data.HEP.Atlas.TopTree
                       , Data.HEP.Atlas.Tree

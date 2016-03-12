@@ -1,6 +1,8 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, RankNTypes #-}
 
 module Data.HEP.Atlas.Tree where
+
+import Data.Monoid ((<>))
 
 import Data.ByteString (ByteString(..))
 import qualified Data.ByteString.Char8 as BS
@@ -8,6 +10,7 @@ import qualified Data.ByteString.Char8 as BS
 import Data.Maybe (fromJust)
 
 import qualified Data.Aeson as AT
+import Data.Aeson (Value(..), object, FromJSON(..), fromJSON)
 
 import Data.Text (Text(..))
 import qualified Data.Text as T
@@ -16,7 +19,6 @@ import Control.Applicative
 
 import Data.Attoparsec.ByteString.Char8 -- (parse, Parser(..), Result(..), eitherResult, char, string, skipSpace, takeWhile1)
 
-import Data.Aeson (decodeStrict, Value, object)
 
 import Data.Conduit
 import qualified Data.Conduit.List as CL
@@ -24,16 +26,17 @@ import Data.Conduit.Attoparsec
 
 import Control.Monad.Catch (MonadThrow(..))
 
-import Debug.Trace
+
+import Data.HEP.Atlas.Sample
 
 
 json :: AT.FromJSON a => Parser a
-json = do
-                x <- AT.json
-                case AT.fromJSON x of
-                    AT.Success y -> return y
-                    AT.Error   s -> fail s
+json = AT.json >>= (fromResult . fromJSON)
 
+
+fromResult :: Monad m => AT.Result a -> m a
+fromResult (AT.Success y) = return y
+fromResult (AT.Error s)   = fail s
 
 
 branches :: MonadThrow m => Consumer ByteString m [Text]
@@ -43,16 +46,13 @@ branches = do
 
 
 -- Decode an event as an Aeson Value
-event :: MonadThrow m => [Text] -> Conduit ByteString m Value
-event brs = (object . zip brs . snd) `mapOutput` c
-        -- this is just to force event to yield one event at a time.
-        -- should fail if not Just x (i.e. there is no more input)
-        where c = yield =<< (fromJust <$> (conduitParser json =$= await))
+event :: MonadThrow m => [Text] -> Consumer ByteString m Value
+event brs = object . zip brs <$> sinkParser json
 
 
 events :: MonadThrow m => [Text] -> Conduit ByteString m Value
 events brs = do
-        event brs
+        yield =<< event brs
         x <- sinkParser sep
         case x of
             True -> events brs
@@ -82,10 +82,10 @@ treeFooter = sinkParser $ skipSpace *> char ']' *> skipSpace *> char '}' *> skip
 
 -- TODO
 -- currently this does not return the title of the tree...
-tree :: MonadThrow m => Conduit ByteString m Value
+tree :: (MonadThrow m, FromJSON e) => Conduit ByteString m e
 tree = do
         (title, brs) <- treeHeader
-        events brs
+        events brs =$= CL.mapM (fromResult . fromJSON)
         treeFooter
 
 
@@ -99,15 +99,16 @@ trees = do
     where
         sep = (skipSpace *> char ',' *> skipSpace *> return True) <|> return False
 
--- TODO
--- currently this just loops over trees and yields all events
-file :: MonadThrow m => Conduit ByteString m Value
-file = do
-        sinkParser fileHeader
-        trees
-        sinkParser fileFooter
-        return ()
 
-    where
-        fileHeader = skipSpace *> char '{' <* skipSpace
-        fileFooter = skipSpace *> char '}' <* skipSpace
+fileHeader :: MonadThrow m => Consumer ByteString m ()
+fileHeader = sinkParser $ skipSpace *> char '{' *> skipSpace
+
+
+fileFooter :: MonadThrow m => Consumer ByteString m ()
+fileFooter = sinkParser $ skipSpace *> char '}' *> skipSpace
+
+sampleInfo :: MonadThrow m => Consumer ByteString m SampleInfo
+sampleInfo = tree =$= CL.fold (<>) mempty
+
+comma :: MonadThrow m => Consumer ByteString m ()
+comma = sinkParser (skipSpace *> char ',' *> skipSpace)

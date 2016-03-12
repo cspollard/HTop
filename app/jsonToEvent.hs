@@ -7,24 +7,31 @@ module Main where
 -- import Control.Parallel.Strategies (using, rseq, parBuffer)
 
 import qualified Data.ByteString.Lazy as BSL
-import Data.Attoparsec.ByteString.Lazy
 
 -- import Data.Binary (encode)
 -- import Data.HEP.Atlas.TopTree
 -- import Data.HEP.Atlas.CrossSections
-import Data.Maybe (fromJust)
 import System.Environment (getArgs)
 
 import Data.Conduit
 import qualified Data.Conduit.List as CL
 import Data.HEP.Atlas.Tree
+import Data.HEP.Atlas.Event
+import Data.HEP.Atlas.TopTree
 
--- TODO
--- get conduit in here
--- sourceList . toChunks <$> BSL.readFile csname
--- or something
 
 main :: IO ()
 main = do
-    csname <- head <$> getArgs
-    fmap BSL.toChunks (BSL.readFile csname) >>= (\x -> CL.sourceList x =$= file $$ CL.mapM_ print)
+    -- csname <- head <$> getArgs
+    bs <- fmap BSL.toChunks (BSL.getContents)
+    
+    (s, samp) <- CL.sourceList bs $$+ (fileHeader >> sampleInfo)
+    print samp
+
+    s $$+- tree' =$= CL.mapM_ (print :: Event -> IO ())
+
+    where
+        tree' = do
+            comma
+            tree
+            fileFooter
