@@ -5,22 +5,14 @@ module Data.HEP.Atlas.TopTree where
 import Data.List (sortBy)
 import Data.Ord (comparing, Down(..))
 import qualified Data.Map as M
-import qualified Data.IntMap as IM
-import qualified Data.HashMap.Strict as HM
 import Data.Maybe (fromJust)
 
 import Control.Applicative
 
 import Data.Text (Text, unpack)
-import Data.Aeson (Value(..), withObject, eitherDecodeStrict, object, Result(..), fromJSON)
+import Data.Aeson (Value(..), withObject)
 import Data.Aeson ((.:), FromJSON(..))
-import Data.Aeson.Types (Parser, parse, parseMaybe)
-
-import qualified Data.ByteString.Lazy.Char8 as BSL
-import qualified Data.ByteString.Char8 as BS
-import qualified Data.Attoparsec.Lazy as AL
-
-import Data.Attoparsec.ByteString.Char8 (skipSpace, char, string, manyTill, takeWhile1, anyChar)
+import Data.Aeson.Types (Parser)
 
 import Data.Monoid ((<>))
 import Control.Monad (forM)
@@ -34,8 +26,12 @@ import Data.HEP.Atlas.Jet
 import Data.HEP.Atlas.Tree
 import Data.HEP.Atlas.Sample
 
--- import Control.Parallel.Strategies (using, rseq, parBuffer)
-
+import Data.Conduit
+import qualified Data.Conduit.List as CL
+import Data.Binary
+import Data.ByteString.Char8 (ByteString)
+import Data.ByteString.Lazy.Char8 (toStrict)
+import Control.Monad.Catch (MonadThrow)
 
 parseBranch :: FromJSON a => Text -> Value -> Parser a
 parseBranch name = withObject
@@ -171,3 +167,9 @@ otherWeights = ["weight_indiv_SF_MU_TTVA",
                 "weight_indiv_SF_EL_Isol"
                 ]
 
+
+sampleInfo :: MonadThrow m => Consumer ByteString m SampleInfo
+sampleInfo = tree =$= CL.fold (<>) mempty
+
+conduitEncode :: (Monad m, Binary a) => Conduit a m ByteString
+conduitEncode = CL.map (toStrict . encode)

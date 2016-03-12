@@ -107,8 +107,5 @@ fileHeader = sinkParser $ skipSpace *> char '{' *> skipSpace
 fileFooter :: MonadThrow m => Consumer ByteString m ()
 fileFooter = sinkParser $ skipSpace *> char '}' *> skipSpace
 
-sampleInfo :: MonadThrow m => Consumer ByteString m SampleInfo
-sampleInfo = tree =$= CL.fold (<>) mempty
-
 comma :: MonadThrow m => Consumer ByteString m ()
 comma = sinkParser (skipSpace *> char ',' *> skipSpace)
