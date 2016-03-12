@@ -1,103 +1,114 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, RankNTypes #-}
 
 module Data.HEP.Atlas.Tree where
 
-import Control.Arrow (first)
-import Data.Attoparsec.Lazy (parse, Parser(..), Result(..), choice, (<?>))
+import Data.Monoid ((<>))
 
-import Data.Attoparsec.ByteString.Char8 (skipSpace, char, string, manyTill, takeWhile1, anyChar, option)
-
-import Control.Applicative (many, (<$>), (<*>), (<|>))
-
+import Data.ByteString (ByteString(..))
 import qualified Data.ByteString.Char8 as BS
-import qualified Data.ByteString.Lazy.Char8 as BSL
 
-import Data.Text (Text(..), pack)
+import Data.Maybe (fromJust)
 
-import Data.Aeson (Value(..), withObject, object, Result(..), fromJSON, decodeStrict)
-import qualified Data.Aeson.Types as AT
-import Data.Aeson.Parser (value)
+import qualified Data.Aeson as AT
+import Data.Aeson (Value(..), object, FromJSON(..), fromJSON)
 
+import Data.Text (Text(..))
+import qualified Data.Text as T
 
-import Debug.Trace (traceShow, traceShowId)
+import Control.Applicative
 
-bracketScan :: Char -> Char -> Parser BS.ByteString
-bracketScan p q = do
-                    _ <- char p
-                    mid <- fmap BS.concat . many $ bracketScan p q <|> takeWhile1 isNotBracket
-                    _ <- char q
-                    return $ (p `BS.cons` mid) `BS.snoc` q
-            where isNotBracket c = c /= p && c /= q
+import Data.Attoparsec.ByteString.Char8 -- (parse, Parser(..), Result(..), eitherResult, char, string, skipSpace, takeWhile1)
 
 
-branches :: Parser [Text]
-branches = named "branches" $ do
-    b <- go
-    case decodeStrict b of
-        Nothing -> fail "error parsing branches."
-        Just bs -> return $ (fmap head) bs
+import Data.Conduit
+import qualified Data.Conduit.List as CL
+import Data.Conduit.Attoparsec
 
-    where go = string "\"branches\"" *> skipSpace *> char ':' *> skipSpace *> bracketScan '[' ']'
+import Control.Monad.Catch (MonadThrow(..))
+
+
+import Data.HEP.Atlas.Sample
+
+
+json :: AT.FromJSON a => Parser a
+json = AT.json >>= (fromResult . fromJSON)
+
+
+fromResult :: Monad m => AT.Result a -> m a
+fromResult (AT.Success y) = return y
+fromResult (AT.Error s)   = fail s
+
+
+branches :: MonadThrow m => Consumer ByteString m [Text]
+branches = do
+            let p = string "\"branches\"" *> skipSpace *> char ':' *> skipSpace *> json :: Parser [(Text, Text)]
+            fmap fst <$> sinkParser p
 
 
 -- Decode an event as an Aeson Value
-event :: [Text] -> Parser Value
-event bs = named "event" $ do
-                    mv <- fmap (object . zip bs) <$> decodeStrict <$> bracketScan '[' ']'
-                    case mv of
-                        Nothing -> fail "error parsing event/branches."
-                        Just v -> return v
+event :: MonadThrow m => [Text] -> Consumer ByteString m Value
+event brs = object . zip brs <$> sinkParser json
 
 
--- this brings the list-building outside of the (strict) Parser monad
-parseMany :: Parser a -> BSL.ByteString -> ([a], BSL.ByteString)
-parseMany p bs = case parse p bs of
-                    Fail bs' _ _ -> ([], bs')
-                    Done bs' x -> first (x:) $ parseMany p bs'
-
-
-named :: String -> Parser a -> Parser a
-named s p = p <?> s
-
--- get the list of events from a tree
-parseTree :: BSL.ByteString -> (Maybe (Text, [Value]), BSL.ByteString)
-parseTree bs = case parse header bs of
-                    Fail bs' ss s -> traceShow (s, ss) $ (Nothing, bs')
-                    Done bs' (title, branches) ->
-                                let (evts, bs'') =  parseMany (event' branches) bs' in
-                                    (Just (title, evts), bs'')
-
-        where
-            header = named "header" $ do
-                        title <- pack <$> (char '"' *> manyTill anyChar (char '"'))
-                        skipSpace <* char ':' <* skipSpace <* char '{'
-                        brs <- skipSpace *> branches <* skipSpace <* eventsHeader
-                        return (title, brs)
-
-            eventsHeader = named "eventsHeader" $ do
-                            char ',' *> skipSpace *> string "\"events\"" <* skipSpace
-                            char ':' <* skipSpace
-                            char '[' <* skipSpace
-
-
-            event' brs = named "event'" $ do
-                            evt <- event brs <* skipSpace
-                            -- TODO
-                            -- this is not very precise
-                            -- we can end the tree dictionary here!
-                            choice [char ',' <* skipSpace,
-                                    char ']' <* skipSpace <* char '}' <* skipSpace <* option ',' (char ',' <* skipSpace)]
-                            return evt
-
-
-{-
--- TODO
--- eventually parse entire file
-parseFile :: BSL.ByteString -> [(Text, [Value])]
-parseFile bs = case parse fileHeader bs of
-                    Fail _ _ _ -> []
-                    Done bs' _ -> let (x, bs'') = parseTree bs' in 
+events :: MonadThrow m => [Text] -> Conduit ByteString m Value
+events brs = do
+        yield =<< event brs
+        x <- sinkParser sep
+        case x of
+            True -> events brs
+            False -> return ()
     where
-        fileHeader = skipSpace *> char '{' <* skipSpace
-        fileFooter = skipSpace *> char '}' <* skipSpace
--}
+        sep = (skipSpace *> char ',' *> skipSpace *> return True) <|> return False
+
+
+treeHeader :: MonadThrow m => Consumer ByteString m (Text, [Text])
+treeHeader = do
+                title <- sinkParser $ T.pack <$>
+                            (char '"' *> manyTill anyChar (char '"'))
+                            <* skipSpace <* char ':' <* skipSpace
+                            <* char '{' <* skipSpace
+
+                bs <- branches
+                _ <- sinkParser $ char ',' <* skipSpace
+                                    <* string "\"events\"" <* skipSpace
+                                    <* char ':' <* skipSpace
+                                    <* char '[' <* skipSpace
+                return (title, bs)
+
+
+treeFooter :: MonadThrow m => Consumer ByteString m ()
+treeFooter = sinkParser $ skipSpace *> char ']' *> skipSpace *> char '}' *> skipSpace
+
+
+-- TODO
+-- currently this does not return the title of the tree...
+tree :: (MonadThrow m, FromJSON e) => Conduit ByteString m e
+tree = do
+        (title, brs) <- treeHeader
+        events brs =$= CL.mapM (fromResult . fromJSON)
+        treeFooter
+
+
+trees :: MonadThrow m => Conduit ByteString m Value
+trees = do
+        tree
+        x <- sinkParser sep
+        case x of
+            True -> trees
+            False -> return ()
+    where
+        sep = (skipSpace *> char ',' *> skipSpace *> return True) <|> return False
+
+
+fileHeader :: MonadThrow m => Consumer ByteString m ()
+fileHeader = sinkParser $ skipSpace *> char '{' *> skipSpace
+
+
+fileFooter :: MonadThrow m => Consumer ByteString m ()
+fileFooter = sinkParser $ skipSpace *> char '}' *> skipSpace
+
+sampleInfo :: MonadThrow m => Consumer ByteString m SampleInfo
+sampleInfo = tree =$= CL.fold (<>) mempty
+
+comma :: MonadThrow m => Consumer ByteString m ()
+comma = sinkParser (skipSpace *> char ',' *> skipSpace)

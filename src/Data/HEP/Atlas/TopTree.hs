@@ -33,33 +33,9 @@ import Data.HEP.Atlas.Muon
 import Data.HEP.Atlas.Jet
 import Data.HEP.Atlas.Tree
 import Data.HEP.Atlas.Sample
-import Data.HEP.Atlas.CrossSections
 
-import Control.Parallel.Strategies (using, rseq, parBuffer)
+-- import Control.Parallel.Strategies (using, rseq, parBuffer)
 
--- TODO
--- this uses parallel evaluation of events by default
-parseTopSample :: [Text] -> [Text] -> CrossSectionInfo -> BSL.ByteString -> Sample
-parseTopSample weights sysWeights cs bs = case AL.parse fileHeader bs of
-                    AL.Fail _ ss s -> error $ "failed to parse file header." ++ concatMap (++ " ") ss ++ s
-                    AL.Done bs' _ -> case parseTree bs' of
-                                    (Just ("sumWeights", v:_), bs'') ->
-                                        case parseTree bs'' of
-                                            (Just ("nominal", vals), _) ->
-                                                    -- this should fail if not all Maybe Event s are Just Event s
-                                                    fromJust (parseMaybe (sample cs) v) . flip using (parBuffer 8 rseq) $ map (fromJust . parseMaybe (parseEvent weights sysWeights)) vals
-                                            _ -> error "failed to parse nominal."
-                                    _ -> error "failed to parse sumWeights."
-    where
-        fileHeader = skipSpace *> char '{' <* skipSpace
-        fileFooter = skipSpace *> char '}' <* skipSpace
-        sample :: CrossSectionInfo -> Value -> Parser (Events -> Sample)
-        sample cs v = do
-                        ds <- parseBranch "dsid" v
-                        SingleSample ds <$>
-                                parseBranch "totalEvents" v <*>
-                                parseBranch "totalEventsWeighted" v <*>
-                                return (cs IM.! ds)
 
 parseBranch :: FromJSON a => Text -> Value -> Parser a
 parseBranch name = withObject
@@ -134,8 +110,10 @@ parseBranchMap :: FromJSON v => [Text] -> Value -> Parser (M.Map Text v)
 parseBranchMap ts v = M.fromList <$> forM ts (\t -> (,) t <$> parseBranch t v)
 
 
-parseEvent :: [Text] -> [Text] -> Value -> Parser Event
-parseEvent evtWeights evtSystWeights v = Event <$>
+-- TODO
+-- orphan instance...
+instance FromJSON Event where
+    parseJSON v = Event <$>
                     parseBranch "runNumber" v <*>
                     parseBranch "eventNumber" v <*>
                     parseBranch "mcChannelNumber" v <*>

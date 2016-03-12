@@ -2,3 +2,15 @@ other object histograms:
 dPhi, dEta, dR
 
 http://www.haskellforall.com/2016/02/auto-generate-command-line-interface.html
+
+
+http://www.yesodweb.com/blog/2016/02/first-class-stream-fusion
+parseHeader :: Monad m => Sink ByteString m Header
+
+parseBody :: Monad m => Sink ByteString m Body
+I can compose these together monadically (or applicatively in this
+case) like so:
+parseHeaderAndBody :: Monad m => Sink ByteString m (Header, Body)
+parseHeaderAndBody = (,) <$> parseHeader <*> parseBody
+
+cut DSL (a ala root TTree::Project)
