@@ -134,8 +134,8 @@ parseBranchMap :: FromJSON v => [Text] -> Value -> Parser (M.Map Text v)
 parseBranchMap ts v = M.fromList <$> forM ts (\t -> (,) t <$> parseBranch t v)
 
 
-parseEvent :: [Text] -> [Text] -> Value -> Parser Event
-parseEvent evtWeights evtSystWeights v = Event <$>
+instance FromJSON Event where
+    parseJSON v = Event <$>
                     parseBranch "runNumber" v <*>
                     parseBranch "eventNumber" v <*>
                     parseBranch "mcChannelNumber" v <*>

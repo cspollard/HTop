@@ -5,6 +5,8 @@ module Data.HEP.Atlas.Tree where
 import Data.ByteString (ByteString(..))
 import qualified Data.ByteString.Char8 as BS
 
+import Data.Maybe (fromJust)
+
 import qualified Data.Aeson as AT
 
 import Data.Text (Text(..))
@@ -34,27 +36,23 @@ json = do
 
 
 
-branches :: MonadThrow m => Sink ByteString m [Text]
+branches :: MonadThrow m => Consumer ByteString m [Text]
 branches = do
             let p = string "\"branches\"" *> skipSpace *> char ':' *> skipSpace *> json :: Parser [(Text, Text)]
             fmap fst <$> sinkParser p
 
 
-
 -- Decode an event as an Aeson Value
 event :: MonadThrow m => [Text] -> Conduit ByteString m Value
-event brs = mapOutput (object . zip brs . snd) (conduitParser (json :: Parser [Value]))
+event brs = (object . zip brs . snd) `mapOutput` c
+        -- this is just to force event to yield one event at a time.
+        -- should fail if not Just x (i.e. there is no more input)
+        where c = yield =<< (fromJust <$> (conduitParser json =$= await))
 
 
--- TODO
--- I don't think this is the "correct" way to do this.
--- should not need await
 events :: MonadThrow m => [Text] -> Conduit ByteString m Value
 events brs = do
-        v <- event brs =$= await
-        case v of
-            Just v' -> yield v'
-
+        event brs
         x <- sinkParser sep
         case x of
             True -> events brs
@@ -63,35 +61,53 @@ events brs = do
         sep = (skipSpace *> char ',' *> skipSpace *> return True) <|> return False
 
 
-treeHeader :: MonadThrow m => Sink ByteString m (Text, [Text])
+treeHeader :: MonadThrow m => Consumer ByteString m (Text, [Text])
 treeHeader = do
-                title <- sinkParser $ T.pack <$> (char '"' *> manyTill anyChar (char '"')) <* skipSpace <* char ':' <* skipSpace <* char '{' <* skipSpace
-                bs <- toConsumer branches
+                title <- sinkParser $ T.pack <$>
+                            (char '"' *> manyTill anyChar (char '"'))
+                            <* skipSpace <* char ':' <* skipSpace
+                            <* char '{' <* skipSpace
+
+                bs <- branches
                 _ <- sinkParser $ char ',' <* skipSpace
                                     <* string "\"events\"" <* skipSpace
                                     <* char ':' <* skipSpace
                                     <* char '[' <* skipSpace
                 return (title, bs)
 
-treeFooter :: MonadThrow m => Sink ByteString m ()
+
+treeFooter :: MonadThrow m => Consumer ByteString m ()
 treeFooter = sinkParser $ skipSpace *> char ']' *> skipSpace *> char '}' *> skipSpace
 
-foldTree :: MonadThrow m => (a -> Value -> a) -> a -> Sink ByteString m a
-foldTree f x0 = do
-        (title, brs) <- toConsumer treeHeader
-        x <- events brs =$= CL.fold f x0
-        treeFooter >> return x
 
-{-
 -- TODO
--- eventually parse entire file
-parseFile :: BSL.ByteString -> [(Text, [Value])]
-parseFile bs = case parse fileHeader bs of
-                    Fail _ _ _ -> []
-                    Done bs' _ -> let (x, bs'') = parseTree bs' in 
+-- currently this does not return the title of the tree...
+tree :: MonadThrow m => Conduit ByteString m Value
+tree = do
+        (title, brs) <- treeHeader
+        events brs
+        treeFooter
+
+
+trees :: MonadThrow m => Conduit ByteString m Value
+trees = do
+        tree
+        x <- sinkParser sep
+        case x of
+            True -> trees
+            False -> return ()
+    where
+        sep = (skipSpace *> char ',' *> skipSpace *> return True) <|> return False
+
+-- TODO
+-- currently this just loops over trees and yields all events
+file :: MonadThrow m => Conduit ByteString m Value
+file = do
+        sinkParser fileHeader
+        trees
+        sinkParser fileFooter
+        return ()
+
     where
         fileHeader = skipSpace *> char '{' <* skipSpace
         fileFooter = skipSpace *> char '}' <* skipSpace
--}
-
-
