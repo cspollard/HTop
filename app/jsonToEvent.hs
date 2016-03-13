@@ -2,17 +2,34 @@
 
 module Main where
 
-import Control.Parallel.Strategies (using, rseq, parBuffer)
+-- TODO
+-- parallelism
+-- import Control.Parallel.Strategies (using, rseq, parBuffer)
 
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.ByteString as BS
 
-import Data.Binary
-import Data.HEP.Atlas.Stream
-import Data.HEP.Atlas.Sample
+import Data.Conduit
+import qualified Data.Conduit.List as CL
+
+import qualified Data.Conduit.Binary as B
+
+import Data.HEP.Atlas.Tree
+import Data.HEP.Atlas.Event
 import Data.HEP.Atlas.TopTree
+
+import System.IO (stdout, stdin)
 
 main :: IO ()
 main = do
-    Sample x y z evts <- parseSample evtWeights evtSystWeights <$> BSL.getContents
-    print evts
-    -- BSL.putStr . encode . Sample x y z . Stream $ using (unStream evts) (parBuffer 8 rseq)
+    (s, _) <- B.sourceHandle stdin
+                $$+ (fileHeader >> sampleInfo >>= yield)
+                =$= conduitEncode =$= B.sinkHandle stdout
+
+    s $$+- tree' =$= conduitEncode =$= B.sinkHandle stdout
+
+    where
+        tree' = do
+            comma
+            tree :: Conduit BS.ByteString IO Event
+            fileFooter

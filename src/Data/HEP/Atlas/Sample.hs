@@ -1,17 +1,32 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 
 module Data.HEP.Atlas.Sample where
 
-import GHC.Generics
 import Data.Binary
+import GHC.Generics
+import Data.Aeson
+import Data.Monoid
 
-import Data.HEP.Atlas.Event
-import Data.HEP.Atlas.Stream
+data SampleInfo = SampleInfo { dsid :: Int
+                             , numEvents :: Int
+                             , sumWeights :: Double
+                             } deriving (Show, Generic)
 
-data Sample = Sample { dsid :: Int
-                     , totalEventsWeighted :: Int
-                     , totalEvents :: Int
-                     , events :: Events
-                     } deriving (Generic, Show)
+instance Binary SampleInfo where
 
-instance Binary Sample where
+instance FromJSON SampleInfo where
+    parseJSON = withObject "cannot parse SampleInfo." $
+                    \v -> SampleInfo
+                        <$> v .: "dsid"
+                        <*> v .: "totalEvents"
+                        <*> v .: "totalEventsWeighted"
+
+-- TODO
+-- dsids should not added...
+instance Monoid SampleInfo where
+    s `mappend` s' = SampleInfo
+                        (dsid s')
+                        (numEvents s + numEvents s')
+                        (sumWeights s + sumWeights s')
+
+    mempty = SampleInfo 0 0 0

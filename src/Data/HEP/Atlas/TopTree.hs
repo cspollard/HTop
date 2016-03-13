@@ -5,85 +5,33 @@ module Data.HEP.Atlas.TopTree where
 import Data.List (sortBy)
 import Data.Ord (comparing, Down(..))
 import qualified Data.Map as M
+import Data.Maybe (fromJust)
 
 import Control.Applicative
 
 import Data.Text (Text, unpack)
-import Data.Aeson (Value(..), withObject, eitherDecodeStrict, object, Result(..), fromJSON, decode)
-import Data.Aeson ((.:), FromJSON(..))
-import Data.Aeson.Types (Parser, parse)
-
-import qualified Data.ByteString.Lazy.Char8 as BSL
-import qualified Data.ByteString.Char8 as BS
-import qualified Data.Attoparsec.Lazy as AL
-
-import Data.Attoparsec.ByteString.Char8 (skipSpace, char, string, manyTill, takeWhile1, anyChar)
+import Data.Aeson (Value(..), withObject, (.:), FromJSON(..))
+import Data.Aeson.Types (Parser)
 
 import Data.Monoid ((<>))
 import Control.Monad (forM)
+import Data.Maybe (maybeToList)
 
 import Data.HEP.LorentzVector
 import Data.HEP.Atlas.Event
 import Data.HEP.Atlas.Electron
 import Data.HEP.Atlas.Muon
 import Data.HEP.Atlas.Jet
+import Data.HEP.Atlas.Tree
 import Data.HEP.Atlas.Sample
-import Data.HEP.Atlas.Stream
 
-bracketScan :: Char -> Char -> AL.Parser BS.ByteString
-bracketScan p q = do
-                    _ <- char p
-                    mid <- fmap BS.concat . many $ bracketScan p q <|> takeWhile1 isNotBracket
-                    _ <- char q
-                    return $ (p `BS.cons` mid) `BS.snoc` q
-            where isNotBracket c = c /= p && c /= q
-
-
--- return event and whether it is the last one
-event :: [Text] -> [Text] -> [Text] -> AL.Parser (Event, Bool)
-event evtWeights evtSystWeights branches = do
-            skipSpace
-            evtTxt <- bracketScan '[' ']'
-            case eitherDecodeStrict evtTxt of
-                Left err -> fail err
-                Right evtVals -> case parse (parseEvent evtWeights evtSystWeights) (object (zip branches evtVals)) of
-                                        Error s -> fail s
-                                        Success evt -> ((,) evt . (/= ',')) <$> (skipSpace *> anyChar )
-
-
-parseEvents :: [Text] -> [Text] -> [Text] -> BSL.ByteString -> Events
-parseEvents evtWeights evtSystWeights branches bs = case AL.parse (event evtWeights evtSystWeights branches) bs of
-                    AL.Fail _ _ err -> error err
-                    AL.Done bs' (evt, False) -> evt : parseEvents evtWeights evtSystWeights branches bs'
-                    AL.Done _ (evt, True) -> [evt]
-
-sample :: Value -> Parser (Events -> Sample)
-sample = withObject "failed to parse sumWeights." $
-            \o -> do
-                    info <- head <$> o .: "events"
-                    return $ Sample (info !! 0) (info !! 1) (info !! 2)
-
-parseSample :: [Text] -> [Text] -> BSL.ByteString -> Sample
-parseSample evtWeights evtSystWeights bs = case AL.parse treeTxt bs of
-                AL.Fail _ _ err -> error err
-                AL.Done bs' bs'' -> case parse sample <$> decode bs' of
-                                        Nothing -> error "could not parse sumWeights tree."
-                                        Just (Error err) -> error err
-                                        Just (Success s) -> s $ parseEventTree evtWeights evtSystWeights bs'
-        where
-            treeTxt = manyTill anyChar (string "\"sumWeights\"") *> skipSpace *> char ':' *> skipSpace *> bracketScan '{' '}'
-
-parseEventTree :: [Text] -> [Text] -> BSL.ByteString -> Events
-parseEventTree weights systWeights bs = case AL.parse branchesTxt bs of
-                AL.Fail _ _ err -> error err
-                AL.Done bs' bs'' -> case eitherDecodeStrict bs'' :: Either String [(Text, Text)] of
-                                        Left err -> error err
-                                        Right branches -> parseEvents weights systWeights (map fst branches) bs'
-        where
-            headerParse = manyTill anyChar (string "\"events\"") <* skipSpace <* char ':' <* skipSpace <* char '['
-            branchesTxt = manyTill anyChar (string "\"branches\"") *> skipSpace *> char ':' *> skipSpace *> bracketScan '[' ']' <* headerParse
-
-
+import Data.Conduit
+import qualified Data.Conduit.List as CL
+import Data.Binary
+import Data.Binary.Get
+import Data.ByteString.Char8 (ByteString)
+import Data.ByteString.Lazy.Char8 (toStrict)
+import Control.Monad.Catch (MonadThrow(..))
 
 parseBranch :: FromJSON a => Text -> Value -> Parser a
 parseBranch name = withObject
@@ -158,8 +106,10 @@ parseBranchMap :: FromJSON v => [Text] -> Value -> Parser (M.Map Text v)
 parseBranchMap ts v = M.fromList <$> forM ts (\t -> (,) t <$> parseBranch t v)
 
 
-parseEvent :: [Text] -> [Text] -> Value -> Parser Event
-parseEvent evtWeights evtSystWeights v = Event <$>
+-- TODO
+-- orphan instance...
+instance FromJSON Event where
+    parseJSON v = Event <$>
                     parseBranch "runNumber" v <*>
                     parseBranch "eventNumber" v <*>
                     parseBranch "mcChannelNumber" v <*>
@@ -217,3 +167,25 @@ otherWeights = ["weight_indiv_SF_MU_TTVA",
                 "weight_indiv_SF_EL_Isol"
                 ]
 
+
+sampleInfo :: MonadThrow m => Consumer ByteString m SampleInfo
+sampleInfo = tree =$= CL.fold (<>) mempty
+
+conduitEncode :: (Monad m, Binary a) => Conduit a m ByteString
+conduitEncode = CL.map (toStrict . encode)
+
+conduitDecode :: (Monad m, Binary a) => Conduit ByteString m a
+conduitDecode = do mbs <- await
+                   case mbs of
+                       Nothing -> return ()
+                       -- some streams seem to return an empty
+                       -- ByteString instead of Nothing?????
+                       Just "" -> conduitDecode
+                       Just bs -> go $ runGetIncremental get `pushChunk` bs
+
+    where
+        -- TODO
+        -- fail
+        go (Fail x _ z) = fail (show x ++ " " ++ z)
+        go (Done rest _ x) = leftover rest >> yield x >> conduitDecode
+        go (Partial f) = go =<< f <$> await

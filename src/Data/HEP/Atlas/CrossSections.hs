@@ -7,8 +7,6 @@ import Data.Attoparsec.ByteString.Char8 hiding (isEndOfLine)
 import Data.IntMap
 import Data.Either (rights)
 
-import Debug.Trace
-
 isEndOfLine :: Char -> Bool
 isEndOfLine c = c == '\n' || c == '\r'
 

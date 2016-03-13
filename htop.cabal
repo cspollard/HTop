@@ -17,7 +17,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-    exposed-modules:    Data.Uncertain
+    exposed-modules:    Data.HEP.Atlas.CrossSections
                       , Data.HEP.Cut
                       , Data.HEP.Atlas.Electron
                       , Data.HEP.Atlas.Event
@@ -27,7 +27,8 @@ library
                       , Data.HEP.Atlas.Sample
                       , Data.HEP.Atlas.Stream
                       , Data.HEP.Atlas.TopTree
-                      , Data.HEP.Atlas.CrossSections
+                      , Data.HEP.Atlas.Tree
+                      , Data.Uncertain
     -- other-modules:       
     other-extensions:   DeriveGeneric, OverloadedStrings, TupleSections
     build-depends:      base >=4.7 && <5.0
@@ -38,7 +39,12 @@ library
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , conduit >= 1.2
+                      , conduit-extra >= 1.1
+                      , exceptions >= 0.8
                       , parallel >= 0.3
+                      , unordered-containers >= 0.2.6
+                      , resourcet >= 1.0
                       , hhep >= 0.1.0.0
 
     hs-source-dirs:     src
@@ -56,7 +62,12 @@ executable eventToHist
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , conduit >= 1.2
+                      , conduit-extra >= 1.1
+                      , exceptions >= 0.8
                       , parallel >= 0.3
+                      , unordered-containers >= 0.2.6
+                      , resourcet >= 1.0
                       , hhep >= 0.1.0.0
                       , htop >= 0.1.0.0
   default-language:     Haskell2010
@@ -73,7 +84,12 @@ executable histToYoda
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , conduit >= 1.2
+                      , conduit-extra >= 1.1
+                      , exceptions >= 0.8
                       , parallel >= 0.3
+                      , unordered-containers >= 0.2.6
+                      , resourcet >= 1.0
                       , hhep >= 0.1.0.0
                       , htop >= 0.1.0.0
   ghc-options:         -O2
@@ -90,7 +106,12 @@ executable jsonToEvent
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , conduit >= 1.2
+                      , conduit-extra >= 1.1
+                      , exceptions >= 0.8
                       , parallel >= 0.3
+                      , unordered-containers >= 0.2.6
+                      , resourcet >= 1.0
                       , hhep >= 0.1.0.0
                       , htop >= 0.1.0.0
   ghc-options:          -O2 -threaded "-with-rtsopts=-N"
@@ -107,7 +128,12 @@ executable combineHist
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , conduit >= 1.2
+                      , conduit-extra >= 1.1
+                      , exceptions >= 0.8
                       , parallel >= 0.3
+                      , unordered-containers >= 0.2.6
+                      , resourcet >= 1.0
                       , hhep >= 0.1.0.0
                       , htop >= 0.1.0.0
   ghc-options:         -O2
@@ -124,7 +150,34 @@ executable printEvents
                       , bytestring >=0.10
                       , aeson <= 0.9
                       , attoparsec >=0.13
+                      , conduit >= 1.2
+                      , conduit-extra >= 1.1
+                      , exceptions >= 0.8
                       , parallel >= 0.3
+                      , unordered-containers >= 0.2.6
+                      , resourcet >= 1.0
+                      , hhep >= 0.1.0.0
+                      , htop >= 0.1.0.0
+  ghc-options:         -O2
+  ghc-prof-options:    -O2 -prof -auto-all -caf-all
+  default-language:    Haskell2010
+
+executable mergeSamples
+    main-is:            app/mergeSamples.hs
+    build-depends:      base >=4.7 && <5.0
+                      , binary >=0.7
+                      , containers >=0.5
+                      , text >=1.2
+                      , vector >=0.10
+                      , bytestring >=0.10
+                      , aeson <= 0.9
+                      , attoparsec >=0.13
+                      , conduit >= 1.2
+                      , conduit-extra >= 1.1
+                      , exceptions >= 0.8
+                      , parallel >= 0.3
+                      , unordered-containers >= 0.2.6
+                      , resourcet >= 1.0
                       , hhep >= 0.1.0.0
                       , htop >= 0.1.0.0
   ghc-options:         -O2

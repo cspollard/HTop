@@ -2,42 +2,43 @@
 
 module Main where
 
-import Control.Parallel.Strategies (using, rseq, parBuffer)
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.ByteString as BS
+
+import Data.Conduit
+import qualified Data.Conduit.List as CL
+
+import qualified Data.Conduit.Binary as B
+
+import Data.HEP.Atlas.Tree
+import Data.HEP.Atlas.Sample
+import Data.HEP.Atlas.Event
+import Data.HEP.Atlas.TopTree
+import Data.HEP.Atlas.Histograms
+
+import System.IO (stdout, stdin)
 
 import Data.Maybe (fromJust)
-import Control.Arrow ((&&&))
-
-import Data.HEP.Atlas.TopTree
-import Data.HEP.Atlas.Event
-import Data.HEP.Atlas.Jet
-import Data.HEP.Cut
-import Data.HEP.LorentzVector
-
-import Control.Monad (forM_, liftM)
-import Data.Text (Text, pack)
-import qualified Data.Text as T
-import Data.Monoid
-
-import qualified Data.Vector as V
-import Data.Uncertain
 
 import Data.Histogram
 import Data.Builder
-import Data.HEP.Atlas.Histograms
-import Data.HEP.Atlas.Stream
-import Data.Binary
-
-
 
 main :: IO ()
 main = do
-        evts <- decodeList <$> BSL.getContents :: IO Events
+        (s, samp) <- B.sourceHandle stdin
+                        $$+ (conduitDecode :: Conduit BS.ByteString IO SampleInfo)
+                        =$= (fromJust <$> await)
 
-        -- let hists = concatMap concat $ built $ feed' (eventSystHists ("nominal" : [] {- evtSystWeights -})) $ using evts (parBuffer 8 rseq)
-        let hists = concatMap concat $ built $ feed' (eventSystHists ("nominal" : [] {- evtSystWeights -})) evts
-        BSL.putStr . encode . Stream $ hists
 
+        hists <- s $$+- conduitDecode
+                   =$= CL.fold build (eventSystHists ["nominal"])
+
+        let outHists = concatMap concat $ built hists
+
+        ((yield samp =$= conduitEncode) >> (CL.sourceList outHists =$= conduitEncode))
+            $$ B.sinkHandle stdout
+
+{-
 
 -- example cuts
 minPt :: HasLorentzVector a => Double -> Cut a
@@ -51,3 +52,4 @@ minMV2c20 x = (> x) . jMV2c20
 
 nBtags :: Event -> Int
 nBtags = nJets $ minPt 25000 `cAnd` maxAbsEta 2.5 `cAnd` minMV2c20 0.7
+-}
