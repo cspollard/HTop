@@ -23,19 +23,20 @@ import Data.Maybe (fromJust)
 import Data.Histogram
 import Data.Builder
 
-import Debug.Trace
-
 main :: IO ()
 main = do
         (s, samp) <- B.sourceHandle stdin
                         $$+ (conduitDecode :: Conduit BS.ByteString IO SampleInfo)
                         =$= (fromJust <$> await)
 
+
         hists <- s $$+- conduitDecode
                    =$= CL.fold build (eventSystHists ["nominal"])
 
-        CL.sourceList (concatMap concat $ built hists)
-            $$ conduitEncode =$= B.sinkHandle stdout
+        let outHists = concatMap concat $ built hists
+
+        ((yield samp =$= conduitEncode) >> (CL.sourceList outHists =$= conduitEncode))
+            $$ B.sinkHandle stdout
 
 {-
 
