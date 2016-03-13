@@ -32,7 +32,9 @@ import Data.Binary
 import Data.Binary.Get
 import Data.ByteString.Char8 (ByteString)
 import Data.ByteString.Lazy.Char8 (toStrict)
-import Control.Monad.Catch (MonadThrow)
+import Control.Monad.Catch (MonadThrow(..))
+
+import Debug.Trace
 
 parseBranch :: FromJSON a => Text -> Value -> Parser a
 parseBranch name = withObject
@@ -176,19 +178,17 @@ conduitEncode :: (Monad m, Binary a) => Conduit a m ByteString
 conduitEncode = CL.map (toStrict . encode)
 
 conduitDecode :: (Monad m, Binary a) => Conduit ByteString m a
-conduitDecode = go (runGetIncremental get)
+conduitDecode = do mbs <- await
+                   case mbs of
+                       Nothing -> return ()
+                       -- some streams seem to return an empty
+                       -- ByteString instead of Nothing?????
+                       Just "" -> conduitDecode
+                       Just bs -> go $ runGetIncremental get `pushChunk` bs
+
     where
-        go (Done rest _ x) = do
-                                leftover rest
-                                yield x
-
-                                -- TODO
-                                -- peek ahead to see if there's any more input
-                                -- better way?
-                                y <- CL.peek
-                                case y of
-                                    Nothing -> return ()
-                                    Just z -> conduitDecode
-
-        go (Fail _ _ s) = fail s
+        -- TODO
+        -- fail
+        go (Fail x _ z) = fail (show x ++ " " ++ z)
+        go (Done rest _ x) = leftover rest >> yield x >> conduitDecode
         go (Partial f) = go =<< f <$> await
