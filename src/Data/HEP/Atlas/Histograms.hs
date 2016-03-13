@@ -19,6 +19,8 @@ import GHC.Generics (Generic)
 
 import Data.Traversable (sequenceA)
 
+import Data.Maybe (fromJust)
+
 import Data.HEP.Atlas.Event
 import Data.HEP.LorentzVector
 
@@ -83,6 +85,9 @@ scaleW (BinData (Sum w) (Sum w2) (Sum wx) (Sum wx2) n) k =
 -- make BinData out of a (val, weight) tuple
 toBinData :: Num a => (a, a) -> BinData a
 toBinData (x, w) = BinData (Sum w) (Sum (w*w)) (Sum (w*x)) (Sum (w*x*x)) (Sum 1)
+
+haddUnsafe :: YodaHistD -> YodaHistD -> YodaHistD
+haddUnsafe (YodaHist an h) (YodaHist an' h') = YodaHist an' (fromJust $ h `hadd` h')
 
 instance Num a => Monoid (BinData a) where
     mempty = BinData mempty mempty mempty mempty mempty
