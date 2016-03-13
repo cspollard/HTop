@@ -31,7 +31,7 @@ main = do
                         $$+ (conduitDecode :: Conduit BS.ByteString IO SampleInfo)
                         =$= (fromJust <$> await)
 
-        hists <- s $$+- conduitDecode =$= CL.map traceShowId
+        hists <- s $$+- conduitDecode
                    =$= CL.fold build (eventSystHists ["nominal"])
 
         CL.sourceList (concatMap concat $ built hists)

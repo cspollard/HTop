@@ -34,8 +34,6 @@ import Data.ByteString.Char8 (ByteString)
 import Data.ByteString.Lazy.Char8 (toStrict)
 import Control.Monad.Catch (MonadThrow(..))
 
-import Debug.Trace
-
 parseBranch :: FromJSON a => Text -> Value -> Parser a
 parseBranch name = withObject
                         ("parseBranch: the item with key " <> unpack name <> " is not an object.")

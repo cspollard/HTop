@@ -20,15 +20,13 @@ import Data.HEP.Atlas.TopTree
 
 import System.IO (stdout, stdin)
 
-import Debug.Trace
-
 main :: IO ()
 main = do
     (s, _) <- B.sourceHandle stdin
                 $$+ (fileHeader >> sampleInfo >>= yield)
                 =$= conduitEncode =$= B.sinkHandle stdout
 
-    s $$+- tree' =$= CL.map traceShowId =$= conduitEncode =$= B.sinkHandle stdout
+    s $$+- tree' =$= conduitEncode =$= B.sinkHandle stdout
 
     where
         tree' = do
