@@ -54,7 +54,7 @@ instance (Binary val, Binary b) => Binary (YodaHist b val) where
 alterAnnots :: (M.Map Text Text -> M.Map Text Text) -> YodaHist b val -> YodaHist b val
 alterAnnots f (YodaHist yha yhh) = YodaHist (f yha) yhh
 
-alterHist :: (Histogram b val -> Histogram b val) -> YodaHist b val -> YodaHist b val
+alterHist :: (Histogram b val -> Histogram b val') -> YodaHist b val -> YodaHist b val'
 alterHist f (YodaHist yha yhh) = YodaHist yha $ f yhh
 
 type YodaHistD = YodaHist (Bin1D Double) (BinData Double)
@@ -76,10 +76,13 @@ instance (Binary a) => Binary (Sum a) where
 instance (Binary a) => Binary (BinData a) where
 
 
+scaleW :: Num a => BinData a -> a -> BinData a
+scaleW (BinData (Sum w) (Sum w2) (Sum wx) (Sum wx2) n) k =
+            BinData (Sum $ w*k) (Sum $ w2*k*k) (Sum $ wx*k) (Sum $ wx2*k) n
+
 -- make BinData out of a (val, weight) tuple
 toBinData :: Num a => (a, a) -> BinData a
-toBinData (x, w) = BinData (Sum w) (Sum (w*w)) (Sum (w*x)) (Sum (w*w*x*x)) (Sum 1)
-
+toBinData (x, w) = BinData (Sum w) (Sum (w*w)) (Sum (w*x)) (Sum (w*x*x)) (Sum 1)
 
 instance Num a => Monoid (BinData a) where
     mempty = BinData mempty mempty mempty mempty mempty
@@ -95,10 +98,6 @@ yodaHistBuilder :: [(Text, Text)] -> Histo1D -> Builder (Double, Double) YodaHis
 yodaHistBuilder annots hist = premap (fst &&& toBinData) $ YodaHist (M.fromList annots) <$> histBuilder (<>) hist
 
 
--- TODO TODO TODO
--- the problem is here:
--- we are explicitly binding 'b', so we only ever get the last event's
--- fill.
 fillFirst :: Builder (a, b) c -> Builder ([a], b) c
 fillFirst b = foldBuilder b <<- \(xs, w) ->
                                     case listToMaybe xs of
