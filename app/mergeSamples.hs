@@ -48,9 +48,8 @@ main = do
         -- this can cause an error
         let (samp, hists) = foldl1 addSamp samps
 
-        let hists' = fmap (alterHist (fmap (flip scaleW (1.0 / sumWeights samp)))) hists :: [YodaHistD]
-
-        CL.sourceList hists' $$ CL.mapM_ (putStr . T.unpack . showHist "/HTop/")
+        ((yield samp =$= conduitEncode) >> (CL.sourceList hists =$= conduitEncode))
+            $$ B.sinkHandle stdout
 
     where
         addSamp :: (SampleInfo, [YodaHistD]) -> (SampleInfo, [YodaHistD]) -> (SampleInfo, [YodaHistD])
