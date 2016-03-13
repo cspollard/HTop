@@ -121,7 +121,7 @@ lvHists :: HasLorentzVector a => Text -> Text -> Builder (a, Double) [YodaHistD]
 lvHists path xtitle = sequenceA [
                       yodaHistBuilder [("Path", path <> "pt"), ("XLabel", xtitle <> "$p_{\\mathrm T}$ [GeV]")] ptHist <<- first ((/ 1e3) . lvPt)
                     , yodaHistBuilder [("Path", path <> "E"), ("XLabel", xtitle <> "$E$ [GeV]")] eHist <<- first ((/ 1e3) . lvE)
-                    , yodaHistBuilder [("Path", path <> "mass"), ("XLabel", xtitle <> "mass [GeV]$")] mHist <<- first ((/ 1e3) . lvM)
+                    , yodaHistBuilder [("Path", path <> "mass"), ("XLabel", xtitle <> "mass [GeV]")] mHist <<- first ((/ 1e3) . lvM)
                     , yodaHistBuilder [("Path", path <> "eta"), ("XLabel", xtitle <> "$\\eta$")] etaHist <<- first lvEta
                     , yodaHistBuilder [("Path", path <> "phi"), ("XLabel", xtitle <> "$\\phi$")] phiHist <<- first lvPhi
                     ] <<- first toPtEtaPhiE
@@ -143,7 +143,7 @@ eventHists syst = sequenceA [
                 , fillAll (lvHists (syst <> "/trackjet0/") "leading track jet ") <<- first eTrackJets
                 , fillFirst (lvHists (syst <> "/electron0/") "leading electron ") <<- first eElectrons
                 , fillFirst (lvHists (syst <> "/muon0/") "leading muon ") <<- first eMuons
-                , lvHists (syst <> "/met/") "$E/{\\mathrm T}^{\\mathrm miss} " <<- first eMET
+                , lvHists (syst <> "/met/") "$E_{\\mathrm T}^{\\mathrm miss} " <<- first eMET
                 ] <<- (id &&& weight syst)
 
 eventSystHists :: [Text] -> Builder Event [[[YodaHistD]]]
