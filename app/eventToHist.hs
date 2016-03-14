@@ -6,9 +6,10 @@ import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString as BS
 
 import Data.Conduit
+import Data.Conduit.Binary
+import Data.Conduit.Zlib (gzip, ungzip)
 import qualified Data.Conduit.List as CL
 
-import qualified Data.Conduit.Binary as B
 
 import Data.HEP.Atlas.Tree
 import Data.HEP.Atlas.Sample
@@ -25,7 +26,7 @@ import Data.Builder
 
 main :: IO ()
 main = do
-        (s, samp) <- B.sourceHandle stdin
+        (s, samp) <- sourceHandle stdin =$= ungzip
                         $$+ (conduitDecode :: Conduit BS.ByteString IO SampleInfo)
                         =$= (fromJust <$> await)
 
@@ -36,7 +37,7 @@ main = do
         let outHists = concatMap concat $ built hists
 
         ((yield samp =$= conduitEncode) >> (CL.sourceList outHists =$= conduitEncode))
-            $$ B.sinkHandle stdout
+            $$ gzip =$= sinkHandle stdout
 
 {-
 

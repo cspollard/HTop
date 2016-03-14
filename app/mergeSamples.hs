@@ -7,8 +7,9 @@ import qualified Data.ByteString as BS
 import qualified Data.Text as T
 
 import Data.Conduit
+import Data.Conduit.Binary
+import Data.Conduit.Zlib (gzip, ungzip)
 import qualified Data.Conduit.List as CL
-import qualified Data.Conduit.Binary as B
 
 import Data.HEP.Atlas.Sample
 import Data.HEP.Atlas.TopTree
@@ -42,16 +43,15 @@ decodeSample = do samp <- conduitDecode =$= (fromJust <$> await)
 
 main :: IO ()
 main = do 
-        samps <- mapM (\fn -> runResourceT $ B.sourceFile fn $$ decodeSample) =<< getArgs
+        samps <- mapM (\fn -> runResourceT $ sourceFile fn =$= ungzip $$ decodeSample) =<< getArgs
 
         -- TODO
         -- this can cause an error
         let (samp, hists) = foldl1 addSamp samps
 
         ((yield samp =$= conduitEncode) >> (CL.sourceList hists =$= conduitEncode))
-            $$ B.sinkHandle stdout
+            $$ gzip =$= sinkHandle stdout
 
     where
         addSamp :: (SampleInfo, [YodaHistD]) -> (SampleInfo, [YodaHistD]) -> (SampleInfo, [YodaHistD])
         addSamp (ss, hs) (ss', hs') = (ss <> ss', zipWith haddUnsafe hs hs')
-

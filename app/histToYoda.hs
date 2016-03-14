@@ -7,8 +7,9 @@ import qualified Data.ByteString as BS
 import qualified Data.Text as T
 
 import Data.Conduit
+import Data.Conduit.Binary
+import Data.Conduit.Zlib (ungzip)
 import qualified Data.Conduit.List as CL
-import qualified Data.Conduit.Binary as B
 
 import Data.HEP.Atlas.Sample
 import Data.HEP.Atlas.TopTree
@@ -25,7 +26,7 @@ main = do
         -- TODO
         -- this only works for one file at a time.
         -- cat many files in?
-        (s, samp) <- B.sourceHandle stdin
+        (s, samp) <- sourceHandle stdin =$= ungzip
                         $$+ (conduitDecode :: Conduit BS.ByteString IO SampleInfo)
                         =$= (fromJust <$> await)
 

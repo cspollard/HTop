@@ -10,9 +10,8 @@ import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString as BS
 
 import Data.Conduit
-import qualified Data.Conduit.List as CL
-
-import qualified Data.Conduit.Binary as B
+import Data.Conduit.Binary
+import Data.Conduit.Zlib (gzip, ungzip)
 
 import Data.HEP.Atlas.Tree
 import Data.HEP.Atlas.Event
@@ -20,13 +19,14 @@ import Data.HEP.Atlas.TopTree
 
 import System.IO (stdout, stdin)
 
+
 main :: IO ()
 main = do
-    (s, _) <- B.sourceHandle stdin
+    (s, _) <- sourceHandle stdin =$= ungzip
                 $$+ (fileHeader >> sampleInfo >>= yield)
-                =$= conduitEncode =$= B.sinkHandle stdout
+                =$= conduitEncode =$= gzip =$= sinkHandle stdout
 
-    s $$+- tree' =$= conduitEncode =$= B.sinkHandle stdout
+    s $$+- tree' =$= conduitEncode =$= gzip =$= sinkHandle stdout
 
     where
         tree' = do
