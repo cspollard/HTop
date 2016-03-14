@@ -143,7 +143,7 @@ eventHists syst = sequenceA [
                 , fillAll (lvHists (syst <> "/trackjet0/") "leading track jet ") <<- first eTrackJets
                 , fillFirst (lvHists (syst <> "/electron0/") "leading electron ") <<- first eElectrons
                 , fillFirst (lvHists (syst <> "/muon0/") "leading muon ") <<- first eMuons
-                , lvHists (syst <> "/met/") "$E_{\\mathrm T}^{\\mathrm miss} " <<- first eMET
+                , lvHists (syst <> "/met/") "$E_{\\mathrm T}^{\\mathrm miss}$ " <<- first eMET
                 ] <<- (id &&& weight syst)
 
 eventSystHists :: [Text] -> Builder Event [[[YodaHistD]]]

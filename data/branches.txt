@@ -4,8 +4,11 @@ el_phi
 el_e
 el_cl_eta
 el_charge
-el_d0sig
 el_ptvarcone20
+el_d0sig
+el_d0
+el_z0
+el_z0sig
 
 mu_pt
 mu_eta
@@ -13,8 +16,11 @@ mu_phi
 mu_e
 mu_charge
 mu_d0sig
-mu_ptvarcone30
+mu_d0
+mu_z0
+mu_z0sig
 
+mu_ptvarcone30
 jet_pt
 jet_eta
 jet_phi
@@ -28,12 +34,36 @@ ljet_phi
 ljet_e
 ljet_m
 ljet_sd12
+ljet_tau32
+ljet_tau32_wta
+ljet_tau21
+ljet_tau21_wta
+ljet_ghosttrackjet_idx
 
 tjet_pt
 tjet_eta
 tjet_phi
 tjet_e
 tjet_mv2c20
+tjet_label
+tjet_numConstituents
+tjet_bTagSF_70
+tjet_bTagSF_70_eigen_B_up
+tjet_bTagSF_70_eigen_B_down
+tjet_bTagSF_70_eigen_C_up
+tjet_bTagSF_70_eigen_C_down
+tjet_bTagSF_70_eigen_Light_up
+tjet_bTagSF_70_eigen_Light_down
+tjet_bTagSF_70_syst_B_up
+tjet_bTagSF_70_syst_B_down
+tjet_bTagSF_70_syst_C_up
+tjet_bTagSF_70_syst_C_down
+tjet_bTagSF_70_syst_Light_up
+tjet_bTagSF_70_syst_Light_down
+tjet_bTagSF_70_syst_extrapolation_up
+tjet_bTagSF_70_syst_extrapolation_down
+tjet_bTagSF_70_syst_extrapolation_from_charm_up
+tjet_bTagSF_70_syst_extrapolation_from_charm_down
 
 met_met
 met_phi
@@ -42,6 +72,20 @@ runNumber
 eventNumber
 mcChannelNumber
 mu
+lumiblock
+npv
+vtxz
+
+xe80_HLT
+HLT_e60_lhmedium
+HLT_e24_lhmedium_L1EM18VH
+HLT_e120_lhloose
+HLT_mu20_iloose_L1MU15_OR_HLT_mu50
+el_trigMatch_HLT_e60_lhmedium
+el_trigMatch_HLT_e24_lhmedium_L1EM18VH
+el_trigMatch_HLT_e120_lhloose
+mu_trigMatch_HLT_mu20_iloose_L1MU15_OR_HLT_mu50
+
 
 weight_mc
 weight_pileup
