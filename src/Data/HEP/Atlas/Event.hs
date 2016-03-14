@@ -12,6 +12,8 @@ import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Text (Text)
 
+import qualified Data.Vector as V
+
 import Data.Binary
 import GHC.Generics (Generic)
 
@@ -32,15 +34,15 @@ data Event = Event {
     eMET :: PtEtaPhiE
     } deriving (Show, Generic)
 
-instance Binary Event
+instance Binary Event where
 
 type Events = [Event]
 
 nJets :: Cut Jet -> Event -> Int
-nJets c = length . filter c . eJets
+nJets c = length . V.filter c . eJets
 
 nLargeJets :: Cut LargeJet -> Event -> Int
-nLargeJets c = length . filter c . eLargeJets
+nLargeJets c = length . V.filter c . eLargeJets
 
 weight :: Text -> Event -> Double
 weight t evt = M.foldr (*) 1 (eEventWeights evt) * (M.!) (eWeightVariations evt) t

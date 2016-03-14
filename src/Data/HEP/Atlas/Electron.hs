@@ -3,6 +3,8 @@
 module Data.HEP.Atlas.Electron where
 
 import Data.HEP.LorentzVector
+
+import Data.Vector (Vector(..))
  
 import Data.Binary
 import GHC.Generics (Generic)
@@ -20,4 +22,4 @@ instance Binary Electron
 instance HasLorentzVector Electron where
     lv = fromLV . ePtEtaPhiE
 
-type Electrons = [Electron]
+type Electrons = Vector Electron

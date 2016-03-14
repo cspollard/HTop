@@ -19,7 +19,6 @@ import Data.HEP.Atlas.TopTree
 
 import System.IO (stdout, stdin)
 
-
 main :: IO ()
 main = do
     (s, _) <- sourceHandle stdin =$= ungzip

@@ -4,6 +4,8 @@ module Data.HEP.Atlas.Muon where
 
 import Data.HEP.LorentzVector
 
+import Data.Vector (Vector(..))
+
 import Data.Binary
 import GHC.Generics (Generic)
 
@@ -19,4 +21,4 @@ instance Binary Muon
 instance HasLorentzVector Muon where
     lv = fromLV . mPtEtaPhiE
 
-type Muons = [Muon]
+type Muons = Vector Muon

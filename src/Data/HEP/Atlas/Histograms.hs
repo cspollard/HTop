@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, FlexibleContexts, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings, FlexibleContexts, DeriveGeneric, TupleSections #-}
 
 module Data.HEP.Atlas.Histograms where
 
@@ -10,6 +10,8 @@ import Data.Text (Text)
 import qualified Data.Text as T
 
 import Data.Maybe (listToMaybe)
+
+import Data.Foldable (Foldable(..), toList)
 
 import Data.Histogram
 import Data.Builder
@@ -103,15 +105,15 @@ yodaHistBuilder :: [(Text, Text)] -> Histo1D -> Builder (Double, Double) YodaHis
 yodaHistBuilder annots hist = premap (fst &&& toBinData) $ YodaHist (M.fromList annots) <$> histBuilder (<>) hist
 
 
-fillFirst :: Builder (a, b) c -> Builder ([a], b) c
+fillFirst :: Foldable f => Builder (a, b) c -> Builder (f a, b) c
 fillFirst b = foldBuilder b <<- \(xs, w) ->
-                                    case listToMaybe xs of
+                                    case listToMaybe . toList $ xs of
                                         Just x -> Just (x, w)
                                         Nothing -> Nothing
 
 
-fillAll :: Builder (a, b) c -> Builder ([a], b) c
-fillAll b = foldBuilder b <<- (uncurry zip . (id *** repeat))
+fillAll :: (Foldable f, Functor f) => Builder (a, b) c -> Builder (f a, b) c
+fillAll b = foldBuilder b <<- \(xs, w) -> fmap (, w) xs
 
 
 -- suite of histograms for LorentzVectors

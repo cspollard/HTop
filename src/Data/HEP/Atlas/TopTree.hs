@@ -8,6 +8,8 @@ import qualified Data.Map as M
 import Data.Maybe (fromJust)
 
 import Control.Applicative
+import Data.Vector (Vector(..))
+import qualified Data.Vector as V
 
 import Data.Text (Text, unpack)
 import Data.Aeson (Value(..), withObject, (.:), FromJSON(..))
@@ -33,18 +35,18 @@ import Data.ByteString.Char8 (ByteString)
 import Data.ByteString.Lazy.Char8 (toStrict)
 import Control.Monad.Catch (MonadThrow(..))
 
+
 parseBranch :: FromJSON a => Text -> Value -> Parser a
 parseBranch name = withObject
                         ("parseBranch: the item with key " <> unpack name <> " is not an object.")
                         (.: name)
 
 
+zipWithA :: (Applicative m) => m (Vector (a -> b)) -> m (Vector a) -> m (Vector b)
+zipWithA = liftA2 (V.zipWith ($))
 
-zipWithA :: (Applicative m) => m ([(a -> b)]) -> m ([a]) -> m ([b])
-zipWithA = liftA2 (zipWith ($))
 
-
-parsePtEtaPhiEs :: Text -> Value -> Parser PtEtaPhiEs
+parsePtEtaPhiEs :: Text -> Value -> Parser (Vector PtEtaPhiE)
 parsePtEtaPhiEs prefix val = fmap PtEtaPhiE `fmap`
                                 parseBranch (prefix <> "pt") val `zipWithA`
                                 parseBranch (prefix <> "eta") val `zipWithA`
@@ -81,7 +83,11 @@ parseLargeJets :: Value -> Parser LargeJets
 parseLargeJets val = fmap LargeJet `fmap`
                             parsePtEtaPhiEs "ljet_" val `zipWithA`
                             parseBranch "ljet_m" val `zipWithA`
-                            parseBranch "ljet_sd12" val
+                            parseBranch "ljet_sd12" val `zipWithA`
+                            parseBranch "ljet_tau21" val `zipWithA`
+                            parseBranch "ljet_tau32" val `zipWithA`
+                            parseBranch "ljet_ghosttrackjet_idx" val
+
 
 parseTrackJets :: Value -> Parser TrackJets
 parseTrackJets val = fmap TrackJet `fmap`
@@ -98,8 +104,8 @@ parseMET val = let et = parseBranch "met_met" val in
                     et
 
 
-ptSort :: HasLorentzVector v => [v] -> [v]
-ptSort = sortBy (comparing (Down . lvPt . toPtEtaPhiE))
+ptSort :: HasLorentzVector v => Vector v -> Vector v
+ptSort = V.fromList . sortBy (comparing (Down . lvPt . toPtEtaPhiE)) . V.toList
 
 
 parseBranchMap :: FromJSON v => [Text] -> Value -> Parser (M.Map Text v)
