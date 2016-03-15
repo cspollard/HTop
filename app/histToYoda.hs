@@ -19,8 +19,6 @@ import System.IO (stdout, stdin)
 
 import Data.Maybe (fromJust)
 
-import Debug.Trace
-
 main :: IO ()
 main = do
         -- TODO
