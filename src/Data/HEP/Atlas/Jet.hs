@@ -49,8 +49,7 @@ data LargeJet = LargeJet {
     ljM :: Double,
     ljSD12 :: Double,
     ljTau21 :: SafeDouble,
-    ljTau32 :: SafeDouble,
-    ljTJets :: Vector TrackJet
+    ljTau32 :: SafeDouble
     } deriving (Show, Generic)
 
 instance Binary LargeJet

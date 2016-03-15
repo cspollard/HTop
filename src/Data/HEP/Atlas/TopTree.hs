@@ -79,31 +79,25 @@ parseJets val = fmap Jet `fmap`
                     parseBranch "jet_jvt" val
 
 
-parseLargeJets :: Vector TrackJet -> Value -> Parser LargeJets
-parseLargeJets tjs val = do
-                            tjs' <- fmap (V.backpermute tjs) <$> parseBranch "ljet_ghosttrackjet_idx" val
-
-                            fmap LargeJet `fmap`
-                                parsePtEtaPhiEs "ljet_" val `zipWithA`
-                                parseBranch "ljet_m" val `zipWithA`
-                                parseBranch "ljet_sd12" val `zipWithA`
-                                parseBranch "ljet_tau21" val `zipWithA`
-                                parseBranch "ljet_tau32" val `zipWithA`
-                                return tjs'
+parseLargeJets :: Value -> Parser LargeJets
+parseLargeJets val = fmap LargeJet `fmap`
+                        parsePtEtaPhiEs "ljet_" val `zipWithA`
+                        parseBranch "ljet_m" val `zipWithA`
+                        parseBranch "ljet_sd12" val `zipWithA`
+                        parseBranch "ljet_tau21" val `zipWithA`
+                        parseBranch "ljet_tau32" val
 
 
 parseTrackJets :: Value -> Parser TrackJets
 parseTrackJets val = fmap TrackJet `fmap`
-                            parsePtEtaPhiEs "tjet_" val `zipWithA`
-                            parseBranch "tjet_mv2c20" val `zipWithA`
-                            (sequenceA <$> parseBranch "tjet_label" val)
+                        parsePtEtaPhiEs "tjet_" val `zipWithA`
+                        parseBranch "tjet_mv2c20" val `zipWithA`
+                        (sequenceA <$> parseBranch "tjet_label" val)
 
 
 parseMET :: Value -> Parser PtEtaPhiE
-parseMET val = do
-                et <- parseBranch "met_met" val
-                flip (PtEtaPhiE et 0) et <$>
-                    parseBranch "met_phi" val
+parseMET val = do et <- parseBranch "met_met" val
+                  flip (PtEtaPhiE et 0) et <$> parseBranch "met_phi" val
 
 
 ptSort :: HasLorentzVector v => Vector v -> Vector v
@@ -118,7 +112,6 @@ parseBranchMap ts v = M.fromList <$> forM ts (\t -> (,) t <$> parseBranch t v)
 -- orphan instance...
 instance FromJSON Event where
     parseJSON v = do
-                    tjs <- parseTrackJets v
     
                     Event <$>
                         parseBranch "runNumber" v <*>
@@ -130,8 +123,8 @@ instance FromJSON Event where
                         fmap ptSort (parseElectrons v) <*>
                         fmap ptSort (parseMuons v) <*>
                         fmap ptSort (parseJets v) <*>
-                        fmap ptSort (parseLargeJets tjs v) <*>
-                        fmap ptSort (return tjs) <*>
+                        fmap ptSort (parseLargeJets v) <*>
+                        fmap ptSort (parseTrackJets v) <*>
                         parseMET v
 
 evtWeights :: [Text]
