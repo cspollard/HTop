@@ -26,6 +26,7 @@ import Data.Builder
 
 import Debug.Trace
 
+
 -- TODO
 -- this is doing absolutely nothing.
 -- the sample is parsed correctly,
@@ -37,9 +38,9 @@ main :: IO ()
 main = do
         (s, samp) <- sourceHandle stdin =$= ungzip
                         $$+ (conduitDecode :: Conduit BS.ByteString IO SampleInfo)
-                        =$= (fromJust <$> await)
+                        =$= (traceShowId . fromJust <$> await)
 
-        hists <- s $$+- conduitDecode =$= CL.map traceShowId
+        hists <- s $$+- CL.map traceShowId =$= conduitDecode =$= CL.map traceShowId
                    =$= CL.fold build (eventSystHists ["nominal"])
 
         let outHists = concatMap concat $ built hists
