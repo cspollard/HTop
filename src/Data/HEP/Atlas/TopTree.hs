@@ -79,29 +79,31 @@ parseJets val = fmap Jet `fmap`
                     parseBranch "jet_jvt" val
 
 
-parseLargeJets :: Value -> Parser LargeJets
-parseLargeJets val = fmap LargeJet `fmap`
-                            parsePtEtaPhiEs "ljet_" val `zipWithA`
-                            parseBranch "ljet_m" val `zipWithA`
-                            parseBranch "ljet_sd12" val `zipWithA`
-                            parseBranch "ljet_tau21" val `zipWithA`
-                            parseBranch "ljet_tau32" val `zipWithA`
-                            parseBranch "ljet_ghosttrackjet_idx" val
+parseLargeJets :: Vector TrackJet -> Value -> Parser LargeJets
+parseLargeJets tjs val = do
+                            tjs' <- fmap (V.backpermute tjs) <$> parseBranch "ljet_ghosttrackjet_idx" val
+
+                            fmap LargeJet `fmap`
+                                parsePtEtaPhiEs "ljet_" val `zipWithA`
+                                parseBranch "ljet_m" val `zipWithA`
+                                parseBranch "ljet_sd12" val `zipWithA`
+                                parseBranch "ljet_tau21" val `zipWithA`
+                                parseBranch "ljet_tau32" val `zipWithA`
+                                return tjs'
 
 
 parseTrackJets :: Value -> Parser TrackJets
 parseTrackJets val = fmap TrackJet `fmap`
                             parsePtEtaPhiEs "tjet_" val `zipWithA`
-                            parseBranch "tjet_mv2c20" val
+                            parseBranch "tjet_mv2c20" val `zipWithA`
+                            (sequenceA <$> parseBranch "tjet_label" val)
 
 
 parseMET :: Value -> Parser PtEtaPhiE
-parseMET val = let et = parseBranch "met_met" val in
-                PtEtaPhiE <$>
-                    et <*>
-                    return 0.0 <*>
-                    parseBranch "met_phi" val <*>
-                    et
+parseMET val = do
+                et <- parseBranch "met_met" val
+                flip (PtEtaPhiE et 0) et <$>
+                    parseBranch "met_phi" val
 
 
 ptSort :: HasLorentzVector v => Vector v -> Vector v
@@ -115,19 +117,22 @@ parseBranchMap ts v = M.fromList <$> forM ts (\t -> (,) t <$> parseBranch t v)
 -- TODO
 -- orphan instance...
 instance FromJSON Event where
-    parseJSON v = Event <$>
-                    parseBranch "runNumber" v <*>
-                    parseBranch "eventNumber" v <*>
-                    parseBranch "mcChannelNumber" v <*>
-                    parseBranchMap evtWeights v <*>
-                    fmap (M.insert "nominal" 1.0) (parseBranchMap evtSystWeights v) <*>
-                    parseBranch "mu" v <*>
-                    fmap ptSort (parseElectrons v) <*>
-                    fmap ptSort (parseMuons v) <*>
-                    fmap ptSort (parseJets v) <*>
-                    fmap ptSort (parseLargeJets v) <*>
-                    fmap ptSort (parseTrackJets v) <*>
-                    parseMET v
+    parseJSON v = do
+                    tjs <- parseTrackJets v
+    
+                    Event <$>
+                        parseBranch "runNumber" v <*>
+                        parseBranch "eventNumber" v <*>
+                        parseBranch "mcChannelNumber" v <*>
+                        parseBranchMap evtWeights v <*>
+                        fmap (M.insert "nominal" 1.0) (parseBranchMap evtSystWeights v) <*>
+                        parseBranch "mu" v <*>
+                        fmap ptSort (parseElectrons v) <*>
+                        fmap ptSort (parseMuons v) <*>
+                        fmap ptSort (parseJets v) <*>
+                        fmap ptSort (parseLargeJets tjs v) <*>
+                        fmap ptSort (return tjs) <*>
+                        parseMET v
 
 evtWeights :: [Text]
 evtWeights = ["weight_mc", "weight_pileup", "weight_leptonSF"]
@@ -160,18 +165,6 @@ evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN",
                   "weight_indiv_SF_MU_TTVA_SYST_UP", "weight_indiv_SF_MU_TTVA_SYST_DOWN"
                   ]
 
--- TODO
--- don't know what to do with these yet.
-otherWeights :: [Text]
-otherWeights = ["weight_indiv_SF_MU_TTVA",
-                "weight_indiv_SF_MU_Isol",
-                "weight_indiv_SF_MU_ID",
-                "weight_indiv_SF_MU_Trigger",
-                "weight_indiv_SF_EL_Trigger",
-                "weight_indiv_SF_EL_Reco",
-                "weight_indiv_SF_EL_ID",
-                "weight_indiv_SF_EL_Isol"
-                ]
 
 
 sampleInfo :: MonadThrow m => Consumer ByteString m SampleInfo

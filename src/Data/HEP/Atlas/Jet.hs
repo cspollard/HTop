@@ -50,7 +50,7 @@ data LargeJet = LargeJet {
     ljSD12 :: Double,
     ljTau21 :: SafeDouble,
     ljTau32 :: SafeDouble,
-    ljTJets :: Vector Int
+    ljTJets :: Vector TrackJet
     } deriving (Show, Generic)
 
 instance Binary LargeJet
@@ -62,7 +62,9 @@ type LargeJets = Vector LargeJet
 
 data TrackJet = TrackJet {
     tjPtEtaPhiE :: PtEtaPhiE,
-    tjMV2c20 :: Double
+    tjMV2c20 :: Double,
+    -- this won't be present in data.
+    tjLabel :: Maybe Int
     } deriving (Show, Generic)
 
 instance Binary TrackJet
