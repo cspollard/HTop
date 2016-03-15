@@ -19,16 +19,17 @@ import Data.HEP.Atlas.TopTree
 
 import System.IO (stdout, stdin)
 
+
 main :: IO ()
 main = do
-    (s, _) <- sourceHandle stdin =$= ungzip
-                $$+ (fileHeader >> sampleInfo >>= yield)
-                =$= conduitEncode =$= gzip =$= sinkHandle stdout
-
-    s $$+- tree' =$= conduitEncode =$= gzip =$= sinkHandle stdout
+    sourceHandle stdin =$= ungzip
+            =$= (sampleInfo' >> tree')
+            $$  gzip =$= sinkHandle stdout
 
     where
+        sampleInfo' = (fileHeader >> sampleInfo >>= yield) =$= conduitEncode
+
         tree' = do
             comma
-            tree :: Conduit BS.ByteString IO Event
+            (tree :: Conduit BS.ByteString IO Event) =$= conduitEncode
             fileFooter

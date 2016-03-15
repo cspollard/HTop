@@ -27,26 +27,18 @@ import Data.Builder
 import Debug.Trace
 
 
--- TODO
--- this is doing absolutely nothing.
--- the sample is parsed correctly,
--- but there are no fills on the histograms.
--- no events are printed to log.
--- I suspect it's the new Binary instance for vectors
--- or the FromJSON instance of SafeDouble?
-main :: IO ()
-main = do
-        (s, samp) <- sourceHandle stdin =$= ungzip
-                        $$+ (conduitDecode :: Conduit BS.ByteString IO SampleInfo)
-                        =$= (traceShowId . fromJust <$> await)
+sample :: Conduit BS.ByteString IO BS.ByteString
+sample = do
+        (conduitDecode :: Conduit BS.ByteString IO SampleInfo) =$= CL.isolate 1 =$= conduitEncode
 
-        hists <- s $$+- CL.map traceShowId =$= conduitDecode =$= CL.map traceShowId
-                   =$= CL.fold build (eventSystHists ["nominal"])
-
+        hists <- conduitDecode =$= CL.fold build (eventSystHists ["nominal"])
         let outHists = concatMap concat $ built hists
+        CL.sourceList outHists =$= conduitEncode
 
-        ((yield samp =$= conduitEncode) >> (CL.sourceList outHists =$= conduitEncode))
-            $$ gzip =$= sinkHandle stdout
+        
+
+main :: IO ()
+main = sourceHandle stdin =$= ungzip =$= sample =$= gzip $$ sinkHandle stdout
 
 {-
 
