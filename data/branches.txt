@@ -76,17 +76,17 @@ lumiblock
 npv
 vtxz
 
-HLT_xe70
-HLT_e60_lhmedium
-HLT_e24_lhmedium_L1EM18VH
-HLT_e120_lhloose
-HLT_mu20_iloose_L1MU15
-HLT_mu50
-el_trigMatch_HLT_e60_lhmedium
-el_trigMatch_HLT_e24_lhmedium_L1EM18VH
-el_trigMatch_HLT_e120_lhloose
-mu_trigMatch_HLT_mu20_iloose_L1MU15
-mu_trigMatch_HLT_mu50
+# HLT_xe70
+# HLT_e60_lhmedium
+# HLT_e24_lhmedium_L1EM18VH
+# HLT_e120_lhloose
+# HLT_mu20_iloose_L1MU15
+# HLT_mu50
+# el_trigMatch_HLT_e60_lhmedium
+# el_trigMatch_HLT_e24_lhmedium_L1EM18VH
+# el_trigMatch_HLT_e120_lhloose
+# mu_trigMatch_HLT_mu20_iloose_L1MU15
+# mu_trigMatch_HLT_mu50
 
 
 weight_mc
