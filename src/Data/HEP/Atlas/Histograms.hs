@@ -6,6 +6,8 @@ import Control.Applicative ((<$>))
 import Control.Arrow
 import Data.Monoid
 
+import qualified Data.Vector as V
+
 import Data.Text (Text)
 import qualified Data.Text as T
 
@@ -150,6 +152,22 @@ eventHists syst = sequenceA [
 
 eventSystHists :: [Text] -> Builder Event [[[YodaHistD]]]
 eventSystHists = traverse eventHists
+
+
+channel :: Text -> (Event -> Bool) -> [Text] -> Builder Event (Text, [[[YodaHistD]]])
+channel n f systs = fmap (n,) $ foldBuilder (eventSystHists systs) <<- \e -> if f e then Just e else Nothing
+
+
+-- TODO
+-- event categorization could be cleaner.
+channelSystHists :: [Text] -> Builder Event [(Text, [[[YodaHistD]]])]
+channelSystHists systs = sequenceA [ channel "elelJ/" (\e -> V.length (eElectrons e) == 2 && V.length (eMuons e) == 0) systs
+                                   , channel "elmuJ/" (\e -> V.length (eElectrons e) == 1 && V.length (eMuons e) == 1) systs
+                                   , channel "elnuJ/" (\e -> V.length (eElectrons e) == 1 && V.length (eMuons e) == 0) systs
+                                   , channel "mumuJ/" (\e -> V.length (eElectrons e) == 0 && V.length (eMuons e) == 2) systs
+                                   , channel "munuJ/" (\e -> V.length (eElectrons e) == 0 && V.length (eMuons e) == 1) systs
+                                   , channel "nunuJ/" (\e -> V.length (eElectrons e) == 0 && V.length (eMuons e) == 0) systs
+                                   ]
 
 
 showHist :: Text -> YodaHistD -> Text
