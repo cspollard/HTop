@@ -18,7 +18,7 @@ import Data.Foldable (Foldable(..), toList)
 import Data.Histogram
 import Data.Builder
 import Data.Histogram.Bin
-import Data.Binary (Binary(..))
+import Data.Serialize (Serialize(..))
 import GHC.Generics (Generic)
 
 import Data.Traversable (sequenceA)
@@ -55,7 +55,7 @@ data YodaHist b val = YodaHist {
                     yhHist :: !(Histogram b val)
                     } deriving (Generic, Show)
 
-instance (Binary val, Binary b) => Binary (YodaHist b val) where
+instance (Serialize val, Serialize b) => Serialize (YodaHist b val) where
 
 alterAnnots :: (M.Map Text Text -> M.Map Text Text) -> YodaHist b val -> YodaHist b val
 alterAnnots f (YodaHist yha yhh) = YodaHist (f yha) yhh
@@ -75,11 +75,7 @@ data BinData a = BinData {
                     } deriving (Show, Eq, Ord, Generic)
 
 
-instance (Binary a) => Binary (Sum a) where
-    put = put . getSum
-    get = Sum <$> get
-
-instance (Binary a) => Binary (BinData a) where
+instance (Serialize a) => Serialize (BinData a) where
 
 
 scaleW :: Num a => BinData a -> a -> BinData a

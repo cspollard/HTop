@@ -9,14 +9,9 @@ import qualified Data.Vector as V
 import Data.Aeson (FromJSON(..))
 import Control.Applicative ((<|>))
 
-import Data.Binary
+import Data.Serialize
+import Data.Serialize.Vector
 import GHC.Generics (Generic)
-
--- TODO
--- move out of this file
-instance Binary a => Binary (Vector a) where
-    put v = put (V.length v :: Int) >> V.mapM_ put v
-    get = (get :: Get Int) >>= flip V.replicateM get
 
 
 data Jet = Jet {
@@ -25,7 +20,7 @@ data Jet = Jet {
     jJVT :: Double
     } deriving (Show, Generic)
 
-instance Binary Jet
+instance Serialize Jet
 
 instance HasLorentzVector Jet where
     lv = fromLV . jPtEtaPhiE
@@ -33,11 +28,13 @@ instance HasLorentzVector Jet where
 type Jets = Vector Jet
 
 
+-- necessary for tauXY variables, which can be NaN
 data SafeDouble = Doub { toDouble :: Double }
                   | NaN
                   deriving (Eq, Show, Read, Generic)
 
-instance Binary SafeDouble where
+
+instance Serialize SafeDouble where
 
 
 instance FromJSON SafeDouble where
@@ -52,7 +49,7 @@ data LargeJet = LargeJet {
     ljTau32 :: SafeDouble
     } deriving (Show, Generic)
 
-instance Binary LargeJet
+instance Serialize LargeJet
 
 instance HasLorentzVector LargeJet where
     lv = fromLV . ljPtEtaPhiE
@@ -66,7 +63,7 @@ data TrackJet = TrackJet {
     tjLabel :: Maybe Int
     } deriving (Show, Generic)
 
-instance Binary TrackJet
+instance Serialize TrackJet
 
 instance HasLorentzVector TrackJet where
     lv = fromLV . tjPtEtaPhiE

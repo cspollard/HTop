@@ -6,7 +6,7 @@ import Data.HEP.LorentzVector
 
 import Data.Vector (Vector(..))
 
-import Data.Binary
+import Data.Serialize
 import GHC.Generics (Generic)
 
 data Muon = Muon {
@@ -16,7 +16,7 @@ data Muon = Muon {
     mPtVarCone30 :: Double
     } deriving (Show, Generic)
 
-instance Binary Muon
+instance Serialize Muon
 
 instance HasLorentzVector Muon where
     lv = fromLV . mPtEtaPhiE

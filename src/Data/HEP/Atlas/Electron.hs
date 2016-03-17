@@ -6,7 +6,7 @@ import Data.HEP.LorentzVector
 
 import Data.Vector (Vector(..))
  
-import Data.Binary
+import Data.Serialize
 import GHC.Generics (Generic)
 
 data Electron = Electron {
@@ -17,7 +17,7 @@ data Electron = Electron {
     ePtVarCone20 :: Double
     } deriving (Show, Generic)
 
-instance Binary Electron
+instance Serialize Electron where
 
 instance HasLorentzVector Electron where
     lv = fromLV . ePtEtaPhiE

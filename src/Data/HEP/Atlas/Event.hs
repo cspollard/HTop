@@ -14,8 +14,10 @@ import Data.Text (Text)
 
 import qualified Data.Vector as V
 
-import Data.Binary
+import Data.Serialize
 import GHC.Generics (Generic)
+
+import Data.Serialize.Text ()
 
 -- TODO
 -- How do we want to deal with syst weights?
@@ -34,15 +36,9 @@ data Event = Event {
     eMET :: PtEtaPhiE
     } deriving (Show, Generic)
 
-instance Binary Event where
+instance Serialize Event where
 
 type Events = [Event]
-
-nJets :: Cut Jet -> Event -> Int
-nJets c = length . V.filter c . eJets
-
-nLargeJets :: Cut LargeJet -> Event -> Int
-nLargeJets c = length . V.filter c . eLargeJets
 
 weight :: Text -> Event -> Double
 weight t evt = M.foldr (*) 1 (eEventWeights evt) * (M.!) (eWeightVariations evt) t

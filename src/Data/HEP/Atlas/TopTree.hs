@@ -5,7 +5,7 @@ module Data.HEP.Atlas.TopTree where
 import Data.List (sortBy)
 import Data.Ord (comparing, Down(..))
 import qualified Data.Map as M
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, fromMaybe)
 
 import Control.Applicative
 import Data.Vector (Vector(..))
@@ -29,10 +29,9 @@ import Data.HEP.Atlas.Sample
 
 import Data.Conduit
 import qualified Data.Conduit.List as CL
-import Data.Binary
-import Data.Binary.Get
+import Data.Serialize
+import Data.Serialize.Get
 import Data.ByteString.Char8 (ByteString)
-import Data.ByteString.Lazy.Char8 (toStrict)
 import Control.Monad.Catch (MonadThrow(..))
 
 
@@ -160,24 +159,26 @@ evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN",
 
 
 
+-- TODO
+-- move this stuff.
 sampleInfo :: MonadThrow m => Consumer ByteString m SampleInfo
 sampleInfo = tree =$= CL.fold (<>) mempty
 
-conduitEncode :: (Monad m, Binary a) => Conduit a m ByteString
-conduitEncode = CL.map (toStrict . encode)
+conduitEncode :: (Monad m, Serialize a) => Conduit a m ByteString
+conduitEncode = CL.map encode
 
-conduitDecode :: (Monad m, Binary a) => Conduit ByteString m a
+conduitDecode :: (Monad m, Serialize a) => Conduit ByteString m a
 conduitDecode = do mbs <- await
                    case mbs of
                        Nothing -> return ()
                        -- some streams seem to return an empty
                        -- ByteString instead of Nothing?????
                        Just "" -> conduitDecode
-                       Just bs -> go $ runGetIncremental get `pushChunk` bs
+                       Just bs -> go $ runGetPartial get bs
 
     where
         -- TODO
         -- fail
-        go (Fail x _ z) = fail (show x ++ " " ++ z)
-        go (Done rest _ x) = leftover rest >> yield x >> conduitDecode
-        go (Partial f) = go =<< f <$> await
+        go (Fail x z) = fail (x ++ " " ++ show z)
+        go (Done x rest) = leftover rest >> yield x >> conduitDecode
+        go (Partial f) = go =<< (f . fromMaybe "") <$> await

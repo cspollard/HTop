@@ -2,7 +2,7 @@
 
 module Data.HEP.Atlas.Sample where
 
-import Data.Binary
+import Data.Serialize
 import GHC.Generics
 import Data.Aeson
 import Data.Monoid
@@ -12,7 +12,7 @@ data SampleInfo = SampleInfo { dsid :: Int
                              , sumWeights :: Double
                              } deriving (Show, Generic)
 
-instance Binary SampleInfo where
+instance Serialize SampleInfo where
 
 instance FromJSON SampleInfo where
     parseJSON = withObject "cannot parse SampleInfo." $

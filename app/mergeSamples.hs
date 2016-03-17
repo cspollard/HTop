@@ -19,7 +19,7 @@ import System.IO (stdout, stdin)
 
 import Data.Maybe (fromJust)
 
-import Data.Binary
+import Data.Serialize
 import Data.Histogram
 import Data.Builder
 
@@ -35,7 +35,7 @@ import System.Environment (getArgs)
 
 import Control.Monad.Trans.Resource (MonadResource, runResourceT)
 
-decodeSample :: (MonadThrow m, Binary h)
+decodeSample :: (MonadThrow m, Serialize h)
                 => Consumer BS.ByteString m (SampleInfo, [h])
 decodeSample = do samp <- conduitDecode =$= (fromJust <$> await)
                   hists <- conduitDecode =$= CL.consume
