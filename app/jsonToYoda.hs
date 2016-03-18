@@ -2,8 +2,7 @@
 
 module Main where
 
-import qualified Data.ByteString.Lazy as BSL
-import qualified Data.ByteString as BS
+import Data.ByteString (ByteString)
 import qualified Data.Text as T
 
 import Data.Conduit
@@ -34,12 +33,20 @@ import Data.HEP.Atlas.Histograms
 
 addSample :: MonadThrow m
           => (SampleInfo, Builder Event h)
-          -> Consumer BS.ByteString m (SampleInfo, Builder Event h)
+          -> Consumer ByteString m (SampleInfo, Builder Event h)
 addSample (s, b) = do
-        s' <- conduitDecode =$= (fromJust <$> await)
-        b' <- conduitDecode =$= CL.fold build b
+        s' <- sampleInfo' =$= (fromJust <$> await)
+        b' <- tree' =$= CL.fold build b
 
         return (s <> s', b')
+
+    where
+        sampleInfo' = (fileHeader >> sampleInfo >>= yield)
+
+        tree' = do
+            comma
+            tree :: (MonadThrow m) => Conduit ByteString m Event
+            fileFooter
 
 
 main :: IO ()
@@ -58,4 +65,6 @@ main = do
         mapM_ (\(n, hs) -> mapM_ (putStr . T.unpack . showHist ("/HTop/" <> n)) hs) scaledHists
 
 
-    where def = (SampleInfo 0 0 0, channelSystHists ["nominal"])
+    where
+        def = (SampleInfo 0 0 0, channelSystHists ["nominal"])
+
