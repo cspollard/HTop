@@ -3,8 +3,4 @@ dPhi, dEta, dR
 
 http://www.haskellforall.com/2016/02/auto-generate-command-line-interface.html
 
-
-http://www.yesodweb.com/blog/2016/02/first-class-stream-fusion
-parseHeader :: Monad m => Sink ByteString m Header
-
 cut DSL (a ala root TTree::Project)
