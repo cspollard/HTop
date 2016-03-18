@@ -1,6 +1,9 @@
 other object histograms:
 dPhi, dEta, dR
 
+CLI
 http://www.haskellforall.com/2016/02/auto-generate-command-line-interface.html
+
+optionally read in cross section info
 
 cut DSL (a ala root TTree::Project)
