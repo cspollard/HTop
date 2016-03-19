@@ -29,7 +29,7 @@ sample :: Conduit BS.ByteString IO BS.ByteString
 sample = do
         (conduitDecode :: Conduit BS.ByteString IO SampleInfo) =$= CL.isolate 1 =$= conduitEncode
 
-        hists <- conduitDecode =$= CL.fold build (eventSystHists ["nominal"])
+        hists <- conduitDecode =$= CL.fold build (eventSystHistos ["nominal"])
         let outHists = concatMap concat $ built hists
         CL.sourceList outHists =$= conduitEncode
 
