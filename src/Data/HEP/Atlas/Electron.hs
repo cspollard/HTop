@@ -2,12 +2,12 @@
 
 module Data.HEP.Atlas.Electron where
 
-import Data.HEP.LorentzVector
 
-import Data.Vector (Vector(..))
- 
-import Data.Serialize
 import GHC.Generics (Generic)
+import Data.Vector (Vector)
+import Data.Serialize
+import Data.HEP.LorentzVector
+ 
 
 data Electron = Electron {
     ePtEtaPhiE :: PtEtaPhiE,

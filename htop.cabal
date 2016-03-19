@@ -51,68 +51,9 @@ library
 
   hs-source-dirs:      src
   default-language:    Haskell2010
-  ghc-options:         -fwarn-unused-imports
-  ghc-prof-options:    -prof -auto-all -caf-all
+  ghc-options:         -Wall
+  ghc-prof-options:    -Wall -prof -auto-all -caf-all
 
-executable eventToHist
-  main-is:             app/eventToHist.hs
-  build-depends:       base >=4.8 && <4.9
-                     , attoparsec >=0.13 && <0.14
-                     , containers >=0.5 && <0.6
-                     , vector >=0.11
-                     , text >=1.2
-                     , aeson >=0.9 && <= 0.10 || >=0.11
-                     , conduit >=1.2
-                     , conduit-extra >=1.1
-                     , bytestring >=0.10
-                     , exceptions >=0.8
-                     , cereal >=0.5
-                     , cereal-text >=0.1
-                     , hhep >=0.1
-                     , htop >=0.1
-  default-language:    Haskell2010
-  ghc-options:         -fwarn-unused-imports
-  ghc-prof-options:    -prof -auto-all -caf-all
-
-executable histToYoda
-  main-is:             app/histToYoda.hs
-  build-depends:       base >=4.8 && <4.9
-                     , attoparsec >=0.13 && <0.14
-                     , containers >=0.5 && <0.6
-                     , vector >=0.11
-                     , text >=1.2
-                     , aeson >=0.9 && <= 0.10 || >=0.11
-                     , conduit >=1.2
-                     , conduit-extra >=1.1
-                     , bytestring >=0.10
-                     , exceptions >=0.8
-                     , cereal >=0.5
-                     , cereal-text >=0.1
-                     , hhep >=0.1
-                     , htop >=0.1
-  default-language:    Haskell2010
-  ghc-options:         -fwarn-unused-imports
-  ghc-prof-options:    -prof -auto-all -caf-all
-
-executable jsonToEvent
-  main-is:             app/jsonToEvent.hs
-  build-depends:       base >=4.8 && <4.9
-                     , attoparsec >=0.13 && <0.14
-                     , containers >=0.5 && <0.6
-                     , vector >=0.11
-                     , text >=1.2
-                     , aeson >=0.9 && <= 0.10 || >=0.11
-                     , conduit >=1.2
-                     , conduit-extra >=1.1
-                     , bytestring >=0.10
-                     , exceptions >=0.8
-                     , cereal >=0.5
-                     , cereal-text >=0.1
-                     , hhep >=0.1
-                     , htop >=0.1
-  default-language:    Haskell2010
-  ghc-options:         -fwarn-unused-imports
-  ghc-prof-options:    -prof -auto-all -caf-all
 
 executable jsonToYoda
   main-is:             app/jsonToYoda.hs
@@ -132,46 +73,5 @@ executable jsonToYoda
                      , hhep >=0.1
                      , htop >=0.1
   default-language:    Haskell2010
-  ghc-options:         -fwarn-unused-imports
-  ghc-prof-options:    -prof -auto-all -caf-all
-
-executable combineHist
-  main-is:             app/combineHist.hs
-  build-depends:       base >=4.8 && <4.9
-                     , attoparsec >=0.13 && <0.14
-                     , containers >=0.5 && <0.6
-                     , vector >=0.11
-                     , text >=1.2
-                     , aeson >=0.9 && <= 0.10 || >=0.11
-                     , conduit >=1.2
-                     , conduit-extra >=1.1
-                     , bytestring >=0.10
-                     , exceptions >=0.8
-                     , cereal >=0.5
-                     , cereal-text >=0.1
-                     , hhep >=0.1
-                     , htop >=0.1
-  default-language:    Haskell2010
-  ghc-options:         -fwarn-unused-imports
-  ghc-prof-options:    -prof -auto-all -caf-all
-
-executable mergeSamples
-  main-is:             app/mergeSamples.hs
-  build-depends:       base >=4.8 && <4.9
-                     , attoparsec >=0.13 && <0.14
-                     , containers >=0.5 && <0.6
-                     , vector >=0.11
-                     , text >=1.2
-                     , aeson >=0.9 && <= 0.10 || >=0.11
-                     , conduit >=1.2
-                     , conduit-extra >=1.1
-                     , bytestring >=0.10
-                     , exceptions >=0.8
-                     , cereal >=0.5
-                     , cereal-text >=0.1
-                     , resourcet >=1.1
-                     , hhep >=0.1
-                     , htop >=0.1
-  default-language:    Haskell2010
-  ghc-options:         -fwarn-unused-imports
-  ghc-prof-options:    -prof -auto-all -caf-all
+  ghc-options:         -Wall
+  ghc-prof-options:    -Wall -prof -auto-all -caf-all

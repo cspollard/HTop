@@ -3,7 +3,6 @@
 module Data.HEP.Atlas.Event where
 
 import Data.HEP.LorentzVector
-import Data.HEP.Cut
 import Data.HEP.Atlas.Electron
 import Data.HEP.Atlas.Muon
 import Data.HEP.Atlas.Jet
@@ -11,8 +10,6 @@ import Data.HEP.Atlas.Jet
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Text (Text)
-
-import qualified Data.Vector as V
 
 import Data.Serialize
 import GHC.Generics (Generic)

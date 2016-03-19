@@ -5,10 +5,10 @@ module Data.HEP.Atlas.TopTree where
 import Data.List (sortBy)
 import Data.Ord (comparing, Down(..))
 import qualified Data.Map as M
-import Data.Maybe (fromJust, fromMaybe, maybeToList)
+import Data.Maybe (fromMaybe)
 
 import Control.Applicative
-import Data.Vector (Vector(..))
+import Data.Vector (Vector)
 import qualified Data.Vector as V
 
 import Data.Text (Text, unpack)
@@ -29,7 +29,7 @@ import Data.HEP.Atlas.Sample
 import Data.Conduit
 import qualified Data.Conduit.List as CL
 import Data.Serialize
-import Data.Serialize.Get
+-- import Data.Serialize.Get
 import Data.ByteString.Char8 (ByteString)
 import Control.Monad.Catch (MonadThrow(..))
 

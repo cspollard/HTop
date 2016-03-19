@@ -2,32 +2,25 @@
 
 module Data.HEP.Atlas.Tree where
 
-import Data.Monoid ((<>))
-
-import Data.ByteString (ByteString(..))
-import qualified Data.ByteString.Char8 as BS
-
-import Data.Maybe (fromJust)
+import Data.ByteString (ByteString)
 
 import qualified Data.Aeson as AT
 import Data.Aeson (Value(..), object, FromJSON(..), fromJSON)
 
-import Data.Text (Text(..))
+import Data.Text (Text)
 import qualified Data.Text as T
 
 import Control.Applicative
 
-import Data.Attoparsec.ByteString.Char8 -- (parse, Parser(..), Result(..), eitherResult, char, string, skipSpace, takeWhile1)
+import Data.Attoparsec.ByteString.Char8
 
 
 import Data.Conduit
 import qualified Data.Conduit.List as CL
 import Data.Conduit.Attoparsec
 
+import Control.Monad (when)
 import Control.Monad.Catch (MonadThrow(..))
-
-
-import Data.HEP.Atlas.Sample
 
 
 json :: AT.FromJSON a => Parser a
@@ -84,7 +77,7 @@ treeFooter = sinkParser $ skipSpace *> char ']' *> skipSpace *> char '}' *> skip
 -- currently this does not return the title of the tree...
 tree :: (MonadThrow m, FromJSON e) => Conduit ByteString m e
 tree = do
-        (title, brs) <- treeHeader
+        (_, brs) <- treeHeader
         events brs =$= CL.mapM (fromResult . fromJSON)
         treeFooter
 

@@ -2,7 +2,6 @@
 
 module Data.HEP.Atlas.Histograms where
 
-import Control.Applicative ((<$>))
 import Control.Arrow
 import Data.Monoid
 
@@ -19,8 +18,6 @@ import Data.Histogram
 
 import Data.Serialize (Serialize(..))
 import GHC.Generics (Generic)
-
-import Data.Traversable (sequenceA)
 
 import Data.HEP.Atlas.Event
 import Data.HEP.LorentzVector
@@ -64,7 +61,7 @@ type YodaHisto1D = YodaHisto (Bin1D Double) (Dist1D Double)
 -- TODO
 -- generalize
 haddUnsafe :: YodaHisto1D -> YodaHisto1D -> YodaHisto1D
-haddUnsafe (YodaHisto an h) (YodaHisto an' h') = YodaHisto an' (fromJust $ h `hadd` h')
+haddUnsafe (YodaHisto _ h) (YodaHisto an' h') = YodaHisto an' (fromJust $ h `hadd` h')
 
 
 yodaHistoBuilder :: [(Text, Text)] -> Histo1D -> Builder (Double, Double) YodaHisto1D

@@ -3,14 +3,13 @@
 module Data.HEP.Atlas.Jet where
 
 import Data.HEP.LorentzVector
-import Data.Vector (Vector(..))
-import qualified Data.Vector as V
+import Data.Vector (Vector)
 
 import Data.Aeson (FromJSON(..))
 import Control.Applicative ((<|>))
 
 import Data.Serialize
-import Data.Serialize.Vector
+import Data.Serialize.Vector ()
 import GHC.Generics (Generic)
 
 

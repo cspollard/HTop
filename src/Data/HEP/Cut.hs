@@ -1,8 +1,6 @@
 module Data.HEP.Cut where
 
-import Data.Foldable (Foldable(..))
 import qualified Data.Foldable as F
-
 import Control.Applicative
 
 -- TODO

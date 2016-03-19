@@ -5,7 +5,6 @@ module Data.HEP.Atlas.Sample where
 import Data.Serialize
 import GHC.Generics
 import Data.Aeson
-import Data.Monoid
 
 data SampleInfo = SampleInfo { dsid :: Int
                              , numEvents :: Int
