@@ -27,10 +27,8 @@ import Control.Monad (mapM)
 import Control.Monad.Catch
 import Data.Monoid ((<>))
 
-import Data.List (foldl1)
+import Data.List (foldl1, foldl')
 
-
-import Data.List (foldl')
 import System.Environment (getArgs)
 
 import Control.Monad.Trans.Resource (MonadResource, runResourceT)

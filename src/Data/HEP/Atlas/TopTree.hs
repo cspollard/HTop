@@ -5,7 +5,7 @@ module Data.HEP.Atlas.TopTree where
 import Data.List (sortBy)
 import Data.Ord (comparing, Down(..))
 import qualified Data.Map as M
-import Data.Maybe (fromJust, fromMaybe)
+import Data.Maybe (fromJust, fromMaybe, maybeToList)
 
 import Control.Applicative
 import Data.Vector (Vector(..))
@@ -17,7 +17,6 @@ import Data.Aeson.Types (Parser)
 
 import Data.Monoid ((<>))
 import Control.Monad (forM)
-import Data.Maybe (maybeToList)
 
 import Data.HEP.LorentzVector
 import Data.HEP.Atlas.Event
@@ -110,9 +109,7 @@ parseBranchMap ts v = M.fromList <$> forM ts (\t -> (,) t <$> parseBranch t v)
 -- TODO
 -- orphan instance...
 instance FromJSON Event where
-    parseJSON v = do
-    
-                    Event <$>
+    parseJSON v = Event <$>
                         parseBranch "runNumber" v <*>
                         parseBranch "eventNumber" v <*>
                         parseBranch "mcChannelNumber" v <*>

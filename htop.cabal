@@ -51,8 +51,8 @@ library
 
   hs-source-dirs:      src
   default-language:    Haskell2010
-  ghc-options:         -O
-  ghc-prof-options:    -O -prof -auto-all -caf-all
+  ghc-options:         -fwarn-unused-imports
+  ghc-prof-options:    -prof -auto-all -caf-all
 
 executable eventToHist
   main-is:             app/eventToHist.hs
@@ -71,8 +71,8 @@ executable eventToHist
                      , hhep >=0.1
                      , htop >=0.1
   default-language:    Haskell2010
-  ghc-options:         -O
-  ghc-prof-options:    -O -prof -auto-all -caf-all
+  ghc-options:         -fwarn-unused-imports
+  ghc-prof-options:    -prof -auto-all -caf-all
 
 executable histToYoda
   main-is:             app/histToYoda.hs
@@ -90,9 +90,9 @@ executable histToYoda
                      , cereal-text >=0.1
                      , hhep >=0.1
                      , htop >=0.1
-  ghc-options:         -O
-  ghc-prof-options:    -O -prof -auto-all -caf-all
   default-language:    Haskell2010
+  ghc-options:         -fwarn-unused-imports
+  ghc-prof-options:    -prof -auto-all -caf-all
 
 executable jsonToEvent
   main-is:             app/jsonToEvent.hs
@@ -110,9 +110,9 @@ executable jsonToEvent
                      , cereal-text >=0.1
                      , hhep >=0.1
                      , htop >=0.1
-  ghc-options:         -O
-  ghc-prof-options:    -O -prof -auto-all -caf-all
   default-language:    Haskell2010
+  ghc-options:         -fwarn-unused-imports
+  ghc-prof-options:    -prof -auto-all -caf-all
 
 executable jsonToYoda
   main-is:             app/jsonToYoda.hs
@@ -131,9 +131,9 @@ executable jsonToYoda
                      , resourcet >=1.1
                      , hhep >=0.1
                      , htop >=0.1
-  ghc-options:         -O
-  ghc-prof-options:    -O -prof -auto-all -caf-all
   default-language:    Haskell2010
+  ghc-options:         -fwarn-unused-imports
+  ghc-prof-options:    -prof -auto-all -caf-all
 
 executable combineHist
   main-is:             app/combineHist.hs
@@ -151,9 +151,9 @@ executable combineHist
                      , cereal-text >=0.1
                      , hhep >=0.1
                      , htop >=0.1
-  ghc-options:         -O
-  ghc-prof-options:    -O -prof -auto-all -caf-all
   default-language:    Haskell2010
+  ghc-options:         -fwarn-unused-imports
+  ghc-prof-options:    -prof -auto-all -caf-all
 
 executable mergeSamples
   main-is:             app/mergeSamples.hs
@@ -172,6 +172,6 @@ executable mergeSamples
                      , resourcet >=1.1
                      , hhep >=0.1
                      , htop >=0.1
-  ghc-options:         -O
-  ghc-prof-options:    -O -prof -auto-all -caf-all
   default-language:    Haskell2010
+  ghc-options:         -fwarn-unused-imports
+  ghc-prof-options:    -prof -auto-all -caf-all

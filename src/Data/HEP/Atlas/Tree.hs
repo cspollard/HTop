@@ -54,9 +54,9 @@ events :: MonadThrow m => [Text] -> Conduit ByteString m Value
 events brs = do
         yield =<< event brs
         x <- sinkParser sep
-        case x of
-            True -> events brs
-            False -> return ()
+
+        when x $ events brs
+
     where
         sep = (skipSpace *> char ',' *> skipSpace *> return True) <|> return False
 
@@ -93,9 +93,8 @@ trees :: MonadThrow m => Conduit ByteString m Value
 trees = do
         tree
         x <- sinkParser sep
-        case x of
-            True -> trees
-            False -> return ()
+        when x trees
+
     where
         sep = (skipSpace *> char ',' *> skipSpace *> return True) <|> return False
 

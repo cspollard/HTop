@@ -41,7 +41,7 @@ addSample (s, b) = do
         return (s <> s', b')
 
     where
-        sampleInfo' = (fileHeader >> sampleInfo >>= yield)
+        sampleInfo' = fileHeader >> sampleInfo >>= yield
 
         tree' = do
             comma
@@ -58,7 +58,7 @@ main = do
         let b' = built b :: [(T.Text, [[[YodaHisto1D]]])]
 
         -- built b :: [(T.Text, [[[YodaHisto1D]]])]
-        let hists = fmap (concat . fmap concat) <$> built b :: [(T.Text, [YodaHisto1D])]
+        let hists = fmap (concatMap concat) <$> built b :: [(T.Text, [YodaHisto1D])]
 
         let scaledHists = fmap (map (alterHisto (fmap (`scaleW` (1.0 / sumWeights s))))) <$> hists
 

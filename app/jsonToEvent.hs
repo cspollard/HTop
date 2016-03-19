@@ -21,8 +21,7 @@ import System.IO (stdout, stdin)
 
 
 main :: IO ()
-main = do
-    sourceHandle stdin =$= ungzip
+main = sourceHandle stdin =$= ungzip
             =$= (sampleInfo' >> tree')
             $$  gzip =$= sinkHandle stdout
 

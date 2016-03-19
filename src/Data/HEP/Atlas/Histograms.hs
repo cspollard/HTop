@@ -11,7 +11,7 @@ import qualified Data.Vector as V
 import Data.Text (Text)
 import qualified Data.Text as T
 
-import Data.Maybe (listToMaybe)
+import Data.Maybe (listToMaybe, fromJust)
 
 import Data.Foldable (Foldable(..), toList)
 
@@ -21,8 +21,6 @@ import Data.Serialize (Serialize(..))
 import GHC.Generics (Generic)
 
 import Data.Traversable (sequenceA)
-
-import Data.Maybe (fromJust)
 
 import Data.HEP.Atlas.Event
 import Data.HEP.LorentzVector
@@ -70,7 +68,7 @@ haddUnsafe (YodaHisto an h) (YodaHisto an' h') = YodaHisto an' (fromJust $ h `ha
 
 
 yodaHistoBuilder :: [(Text, Text)] -> Histo1D -> Builder (Double, Double) YodaHisto1D
-yodaHistoBuilder annots hist = fmap (YodaHisto (M.fromList annots)) $ distBuilder hist <<- (id *** (Z :.))
+yodaHistoBuilder annots hist = fmap (YodaHisto (M.fromList annots)) $ distBuilder hist <<- second (Z :.)
 
 
 fillFirst :: Foldable f => Builder (a, b) c -> Builder (a, f b) c
