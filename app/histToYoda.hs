@@ -28,4 +28,4 @@ main = do
                         $$+ (conduitDecode :: Conduit BS.ByteString IO SampleInfo)
                         =$= (fromJust <$> await)
 
-        s $$+- conduitDecode =$= CL.mapM_ (putStr . T.unpack . showHist "/HTop/")
+        s $$+- conduitDecode =$= CL.mapM_ (putStr . T.unpack . showHisto "/HTop/")

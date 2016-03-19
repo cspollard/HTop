@@ -55,16 +55,16 @@ main = do
                         =<< getArgs
 
 
-        let b' = built b :: [(T.Text, [[[YodaHistD]]])]
+        let b' = built b :: [(T.Text, [[[YodaHisto1D]]])]
 
-        -- built b :: [(T.Text, [[[YodaHistD]]])]
-        let hists = fmap (concat . fmap concat) <$> built b :: [(T.Text, [YodaHistD])]
+        -- built b :: [(T.Text, [[[YodaHisto1D]]])]
+        let hists = fmap (concat . fmap concat) <$> built b :: [(T.Text, [YodaHisto1D])]
 
-        let scaledHists = fmap (map (alterHist (fmap (`scaleW` (1.0 / sumWeights s))))) <$> hists
+        let scaledHists = fmap (map (alterHisto (fmap (`scaleW` (1.0 / sumWeights s))))) <$> hists
 
-        mapM_ (\(n, hs) -> mapM_ (putStr . T.unpack . showHist ("/HTop/" <> n)) hs) scaledHists
+        mapM_ (\(n, hs) -> mapM_ (putStr . T.unpack . showHisto ("/HTop/" <> n)) hs) scaledHists
 
 
     where
-        def = (SampleInfo 0 0 0, channelSystHists ["nominal"])
+        def = (SampleInfo 0 0 0, channelSystHistos ["nominal"])
 

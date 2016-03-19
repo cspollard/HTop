@@ -53,5 +53,5 @@ main = do
             $$ gzip =$= sinkHandle stdout
 
     where
-        addSamp :: (SampleInfo, [YodaHistD]) -> (SampleInfo, [YodaHistD]) -> (SampleInfo, [YodaHistD])
+        addSamp :: (SampleInfo, [YodaHisto1D]) -> (SampleInfo, [YodaHisto1D]) -> (SampleInfo, [YodaHisto1D])
         addSamp (ss, hs) (ss', hs') = (ss <> ss', zipWith haddUnsafe hs hs')
