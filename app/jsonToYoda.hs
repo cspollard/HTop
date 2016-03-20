@@ -51,9 +51,9 @@ sample = do
 main :: IO ()
 main = do
         (s, b) <- foldM combine def
-               =<< {- (withStrategy (parList rpar) <$> -}
-               mapM (\fn -> runResourceT $ (sourceFile fn =$= ungzip $$ sample))
-               =<< getArgs
+                    =<< (fmap (withStrategy (parList rpar))
+                            <$> mapM (\fn -> runResourceT $ (sourceFile fn =$= ungzip $$ sample)))
+                    =<< getArgs
 
 
         let scaledHists = fmap (map (alterHisto (fmap (`scaleW` (1.0 / sumWeights s))))) <$> b
