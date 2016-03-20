@@ -4,6 +4,8 @@ dPhi, dEta, dR
 CLI
 http://www.haskellforall.com/2016/02/auto-generate-command-line-interface.html
 
-optionally read in cross section info
+read in cross section info
+
+deal with data
 
 cut DSL (a ala root TTree::Project)
