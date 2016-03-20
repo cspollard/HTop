@@ -49,6 +49,9 @@ data YodaHisto b val = YodaHisto {
 
 instance (Serialize val, Serialize b) => Serialize (YodaHisto b val) where
 
+instance Functor (YodaHisto b) where
+    fmap f (YodaHisto ann h) = YodaHisto ann $ fmap f h
+
 alterAnnots :: (M.Map Text Text -> M.Map Text Text) -> YodaHisto b val -> YodaHisto b val
 alterAnnots f (YodaHisto yha yhh) = YodaHisto (f yha) yhh
 
@@ -96,8 +99,8 @@ lvHistos path xtitle = sequenceA [
 -- TODO
 -- we call, e.g. eJets twice per event.
 -- could be cleaned up.
-eventHistos :: Text -> Builder Event [[YodaHisto1D]]
-eventHistos syst = sequenceA [
+eventHistos :: Text -> Builder Event [YodaHisto1D]
+eventHistos syst = fmap concat $ sequenceA [
                   fillAll (lvHistos (syst <> "/jets/") "small-$R$ jet ") <<- second eJets
                 , fillAll (lvHistos (syst <> "/largejets/") "large-$R$ jet ") <<- second eLargeJets
                 , fillAll (lvHistos (syst <> "/trackjets/") "track jet ") <<- second eTrackJets
@@ -111,17 +114,17 @@ eventHistos syst = sequenceA [
                 , lvHistos (syst <> "/met/") "$E_{\\mathrm T}^{\\mathrm miss}$ " <<- second eMET
                 ] <<- (weight syst &&& id)
 
-eventSystHistos :: [Text] -> Builder Event [[[YodaHisto1D]]]
-eventSystHistos = traverse eventHistos
+eventSystHistos :: [Text] -> Builder Event [YodaHisto1D]
+eventSystHistos = fmap concat . traverse eventHistos
 
 
-channel :: Text -> (Event -> Bool) -> [Text] -> Builder Event (Text, [[[YodaHisto1D]]])
+channel :: Text -> (Event -> Bool) -> [Text] -> Builder Event (Text, [YodaHisto1D])
 channel n f systs = fmap (n,) $ foldBuilder (eventSystHistos systs) <<- \e -> if f e then Just e else Nothing
 
 
 -- TODO
 -- event categorization could be cleaner.
-channelSystHistos :: [Text] -> Builder Event [(Text, [[[YodaHisto1D]]])]
+channelSystHistos :: [Text] -> Builder Event [(Text, [YodaHisto1D])]
 channelSystHistos systs = sequenceA [ channel "elelJ/" (\e -> V.length (eElectrons e) == 2 && V.length (eMuons e) == 0) systs
                                    , channel "elmuJ/" (\e -> V.length (eElectrons e) == 1 && V.length (eMuons e) == 1) systs
                                    , channel "elnuJ/" (\e -> V.length (eElectrons e) == 1 && V.length (eMuons e) == 0) systs

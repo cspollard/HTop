@@ -7,21 +7,20 @@ import qualified Data.Text as T
 
 import Data.Conduit
 import Data.Conduit.Binary hiding (mapM_)
-import Data.Conduit.Zlib (gzip, ungzip)
+import Data.Conduit.Zlib (ungzip)
 import qualified Data.Conduit.List as CL
 
-import Control.Monad (foldM, mapM_)
-import Control.Monad.Trans.Resource (MonadResource, runResourceT)
+import Control.Monad (foldM)
+import Control.Monad.Trans.Resource (runResourceT)
 import Control.Monad.Catch (MonadThrow)
 
-import System.IO (stdout, stdin)
+-- import System.IO (stdout, stdin)
 
 import Data.Maybe (fromJust)
 import Data.Monoid
 import System.Environment (getArgs)
 
 import Data.Histogram
-import Data.Builder
 
 import Data.HEP.Atlas.Tree
 import Data.HEP.Atlas.Sample
@@ -29,16 +28,16 @@ import Data.HEP.Atlas.Event
 import Data.HEP.Atlas.TopTree
 import Data.HEP.Atlas.Histograms
 
+import Control.Parallel.Strategies (rpar, withStrategy, parList)
 
 
-addSample :: MonadThrow m
-          => (SampleInfo, Builder Event h)
-          -> Consumer ByteString m (SampleInfo, Builder Event h)
-addSample (s, b) = do
-        s' <- sampleInfo' =$= (fromJust <$> await)
-        b' <- tree' =$= CL.fold build b
+sample :: MonadThrow m
+          => Consumer ByteString m (SampleInfo, [(T.Text, [YodaHisto1D])])
+sample = do
+        s <- sampleInfo' =$= (fromJust <$> await)
+        hs <- fmap built $ tree' =$= CL.fold build (channelSystHistos ["nominal"])
 
-        return (s <> s', b')
+        return (s, hs)
 
     where
         sampleInfo' = fileHeader >> sampleInfo >>= yield
@@ -51,20 +50,22 @@ addSample (s, b) = do
 
 main :: IO ()
 main = do
-        (s, b) <- foldM (\s fn -> runResourceT $ sourceFile fn =$= ungzip $$ addSample s) def
-                        =<< getArgs
+        (s, b) <- foldM combine def
+               =<< {- (withStrategy (parList rpar) <$> -}
+               mapM (\fn -> runResourceT $ (sourceFile fn =$= ungzip $$ sample))
+               =<< getArgs
 
 
-        let b' = built b :: [(T.Text, [[[YodaHisto1D]]])]
-
-        -- built b :: [(T.Text, [[[YodaHisto1D]]])]
-        let hists = fmap (concatMap concat) <$> built b :: [(T.Text, [YodaHisto1D])]
-
-        let scaledHists = fmap (map (alterHisto (fmap (`scaleW` (1.0 / sumWeights s))))) <$> hists
+        let scaledHists = fmap (map (alterHisto (fmap (`scaleW` (1.0 / sumWeights s))))) <$> b
 
         mapM_ (\(n, hs) -> mapM_ (putStr . T.unpack . showHisto ("/HTop/" <> n)) hs) scaledHists
 
-
     where
-        def = (SampleInfo 0 0 0, channelSystHistos ["nominal"])
+        def = (SampleInfo 0 0 0, built $ channelSystHistos ["nominal"])
+
+        combine :: (SampleInfo, [(T.Text, [YodaHisto1D])])
+                -> (SampleInfo, [(T.Text, [YodaHisto1D])])
+                -> IO (SampleInfo, [(T.Text, [YodaHisto1D])])
+        combine (ss, hs) (ss', hs') = return (ss <> ss', zipWith combineChan hs hs')
+        combineChan (t, hs) (_, hs') = (t, zipWith haddUnsafe hs hs')
 
