@@ -14,8 +14,6 @@ import Control.Monad (foldM)
 import Control.Monad.Trans.Resource (runResourceT)
 import Control.Monad.Catch (MonadThrow)
 
--- import System.IO (stdout, stdin)
-
 import Data.Maybe (fromJust)
 import Data.Monoid
 import System.Environment (getArgs)
@@ -28,8 +26,9 @@ import Data.HEP.Atlas.Event
 import Data.HEP.Atlas.TopTree
 import Data.HEP.Atlas.Histograms
 
-import Control.Parallel.Strategies (rpar, withStrategy, parList)
+import Control.Parallel.Strategies (withStrategy, parBuffer, rseq)
 
+import Debug.Trace
 
 sample :: MonadThrow m
           => Consumer ByteString m (SampleInfo, [(T.Text, [YodaHisto1D])])
@@ -50,11 +49,9 @@ sample = do
 
 main :: IO ()
 main = do
-        (s, b) <- foldM combine def
-                    =<< (fmap (withStrategy (parList rpar))
-                            <$> mapM (\fn -> runResourceT $ (sourceFile fn =$= ungzip $$ sample)))
-                    =<< getArgs
-
+        fns <- getArgs
+        samps <- sequence . withStrategy (parBuffer 8 rseq) . map (\fn -> traceShow fn $ runResourceT $ sourceFile fn =$= ungzip $$ sample) $ fns
+        (s, b) <- foldM combine def samps
 
         let scaledHists = fmap (map (alterHisto (fmap (`scaleW` (1.0 / sumWeights s))))) <$> b
 
