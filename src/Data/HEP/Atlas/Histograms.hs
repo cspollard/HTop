@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, FlexibleContexts, DeriveGeneric, TupleSections, TypeOperators #-}
+{-# LANGUAGE OverloadedStrings, FlexibleContexts, DeriveGeneric, TupleSections, TypeOperators, TypeFamilies, RankNTypes #-}
 
 module Data.HEP.Atlas.Histograms where
 
@@ -24,6 +24,14 @@ import Data.HEP.LorentzVector
 
 import qualified Data.Map as M
 
+import Data.Conduit
+import qualified Data.Conduit.List as CL
+import Control.Monad.Catch (MonadThrow)
+
+
+import Data.HEP.Atlas.Jet
+import Data.HEP.Atlas.Electron
+import Data.HEP.Atlas.Muon
 
 ptHisto :: Histo1D
 ptHisto = histogram (bin1D 50 (0, 500)) mempty
@@ -42,65 +50,129 @@ phiHisto = histogram (bin1D 50 (-pi, pi)) mempty
 
 
 -- a YodaHisto is just a histogram with some annotations.
-data YodaHisto b val = YodaHisto {
-                    yhAnnots :: M.Map Text Text, 
-                    yhHisto :: !(Histogram b val)
-                    } deriving (Generic, Show)
-
-instance (Serialize val, Serialize b) => Serialize (YodaHisto b val) where
-
-instance Functor (YodaHisto b) where
-    fmap f (YodaHisto ann h) = YodaHisto ann $ fmap f h
-
-alterAnnots :: (M.Map Text Text -> M.Map Text Text) -> YodaHisto b val -> YodaHisto b val
-alterAnnots f (YodaHisto yha yhh) = YodaHisto (f yha) yhh
-
-alterHisto :: (Histogram b val -> Histogram b val') -> YodaHisto b val -> YodaHisto b val'
-alterHisto f (YodaHisto yha yhh) = YodaHisto yha $ f yhh
+data YodaHisto b val = YodaHisto { path :: Text
+                                 , xLabel :: Text
+                                 , yLabel :: Text
+                                 , yhHisto :: !(Histogram b val)
+                                 } deriving (Generic, Show)
 
 type YodaHisto1D = YodaHisto (Bin1D Double) (Dist1D Double)
 
+instance (Serialize val, Serialize b) => Serialize (YodaHisto b val) where
+
+alterHisto :: (Histogram b val -> Histogram b val') -> YodaHisto b val -> YodaHisto b val'
+alterHisto f (YodaHisto p xl yl h) = YodaHisto p xl yl $ f h
+
+instance Functor (YodaHisto b) where
+    -- fmap f (YodaHisto p xl yl h) = YodaHisto p xl yl $ fmap f h
+    fmap f = alterHisto (fmap f)
+
+instance ScaleW val => ScaleW (YodaHisto b val) where
+    type W (YodaHisto b val) = W val
+    yh `scaleW` w = (`scaleW` w) `alterHisto` yh
+
+instance (Distribution val, Bin b, BinValue b ~ X val) => Distribution (YodaHisto b val) where
+    type X (YodaHisto b val) = X val
+    yh `fill` (w, x) = flip fill (w, x) `alterHisto` yh
+
+
+xlPrefix :: Text -> YodaHisto b val -> YodaHisto b val
+xlPrefix pre (YodaHisto p xl yl h) = YodaHisto p (pre <> xl) yl h
+
+ylPrefix :: Text -> YodaHisto b val -> YodaHisto b val
+ylPrefix pre (YodaHisto p xl yl h) = YodaHisto p xl (pre <> yl) h
+
+pathPrefix :: Text -> YodaHisto b val -> YodaHisto b val
+pathPrefix pre (YodaHisto p xl yl h) = YodaHisto (pre <> p) xl yl h
 
 -- TODO
 -- generalize
-haddUnsafe :: YodaHisto1D -> YodaHisto1D -> YodaHisto1D
-haddUnsafe (YodaHisto _ h) (YodaHisto an' h') = YodaHisto an' (fromJust $ h `hadd` h')
+haddUnsafe :: (Eq b, Monoid val) => YodaHisto b val -> YodaHisto b val -> YodaHisto b val
+haddUnsafe (YodaHisto _ _ _ h) (YodaHisto p xl yl h') = YodaHisto p xl yl (fromJust $ h `hadd` h')
 
 
-yodaHistoBuilder :: [(Text, Text)] -> Histo1D -> Builder (Double, Double) YodaHisto1D
-yodaHistoBuilder annots hist = fmap (YodaHisto (M.fromList annots)) $ distBuilder hist <<- second (Z :.)
+premap :: MonadThrow m => (i -> j) -> ConduitM j o m r -> ConduitM i o m r
+premap f c = CL.map f =$= c
+
+(<<-) :: MonadThrow m => ConduitM j o m r -> (i -> j) -> ConduitM i o m r
+(<<-) = flip premap
 
 
-fillFirst :: Foldable f => Builder (a, b) c -> Builder (a, f b) c
-fillFirst b = foldBuilder b <<- \(w, xs) ->
-                                    case listToMaybe . toList $ xs of
-                                        Just x -> Just (w, x)
-                                        Nothing -> Nothing
+distSink :: (MonadThrow m, Distribution d) => d -> Consumer (W d, X d) m d
+distSink = CL.fold fill
 
+distSinkAll :: (MonadThrow m, Functor f, Foldable f)
+            => Consumer (Double, a) m r -> Consumer (Double, f a) m r
+distSinkAll c = CL.mapFoldable (\(w, v) -> fmap (w,) v) =$= c
 
-fillAll :: (Foldable f, Functor f) => Builder (a, b) c -> Builder (a, f b) c
-fillAll b = foldBuilder b <<- \(w, xs) -> fmap (w,) xs
+-- TODO
+-- need to figure out how to only fill first item.
+{-
+distSinkFirst :: (MonadThrow m, Foldable f)
+            => Consumer (Double, a) m r -> Consumer (Double, f a) m r
+distSinkFirst c = do
+                    wv <- await
+                    case wv of
+                        Nothing -> yield Nothing >>= c
+                        Just (w, v) -> case listToMaybe $ toList v of
+                                            Nothing -> distSinkFirst c
+                                            Just x -> distSinkFirst (yield (w, x) >>= c)
+-}
+
+-- TODO
+-- still tons of boilerplate
+-- TODO
+-- instance Num b => Num (a -> b) where
+ptHistoSink, eHistoSink, mHistoSink, etaHistoSink, phiHistoSink :: (LorentzVector l, MonadThrow m) => Consumer (Double, l) m YodaHisto1D
+ptHistoSink = distSink (YodaHisto "pT" "$\\frac{d\\sigma}{d\\mathrm{GeV}}$" "$p_{\\mathrm T}$ [GeV]" ptHisto) <<- second ((Z :.) . (/ 1e3) . lvPt)
+eHistoSink = distSink (YodaHisto "E" "$\\frac{d\\sigma}{d\\mathrm{GeV}}$" "$E$ [GeV]" eHisto) <<- second ((Z :.) . (/ 1e3) . lvE)
+mHistoSink = distSink (YodaHisto "mass" "$\\frac{d\\sigma}{d\\mathrm{GeV}}$" "mass [GeV]" mHisto) <<- second ((Z :.) . (/ 1e3) . lvM)
+etaHistoSink = distSink (YodaHisto "eta" "$\\frac{d\\sigma}{d\\eta}$" "$\\eta$" etaHisto) <<- second ((Z :.) . lvEta)
+phiHistoSink = distSink (YodaHisto "phi" "$\\frac{d\\sigma}{d\\phi}$" "$\\phi$" phiHisto) <<- second ((Z :.) . lvPhi)
 
 
 -- suite of histograms for LorentzVectors
--- TODO
--- instance Num b => Num (a -> b) where
-lvHistos :: HasLorentzVector a => Text -> Text -> Builder (Double, a) [YodaHisto1D]
-lvHistos path xtitle = sequenceA [
-                      yodaHistoBuilder [("Path", path <> "pt"), ("XLabel", xtitle <> "$p_{\\mathrm T}$ [GeV]")] ptHisto <<- second ((/ 1e3) . lvPt)
-                    , yodaHistoBuilder [("Path", path <> "E"), ("XLabel", xtitle <> "$E$ [GeV]")] eHisto <<- second ((/ 1e3) . lvE)
-                    , yodaHistoBuilder [("Path", path <> "mass"), ("XLabel", xtitle <> "mass [GeV]")] mHisto <<- second ((/ 1e3) . lvM)
-                    , yodaHistoBuilder [("Path", path <> "eta"), ("XLabel", xtitle <> "$\\eta$")] etaHisto <<- second lvEta
-                    , yodaHistoBuilder [("Path", path <> "phi"), ("XLabel", xtitle <> "$\\phi$")] phiHisto <<- second lvPhi
-                    ] <<- second toPtEtaPhiE
+lvHistos :: (HasLorentzVector a, MonadThrow m) => Consumer (Double, a) m [YodaHisto1D]
+lvHistos = sequenceConduits [ptHistoSink, eHistoSink, mHistoSink, etaHistoSink, phiHistoSink]
+                <<- second (lv :: HasLorentzVector a => a -> PtEtaPhiE)
 
+jetHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
+jetHistos = (fmap (pathPrefix "/jets/" . xlPrefix "small-$R$ jet ") . concat)
+                <$> sequenceConduits [distSinkAll lvHistos] <<- second eJets
 
+ljetHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
+ljetHistos = (fmap (pathPrefix "/ljets/" . xlPrefix "large-$R$ jet ") . concat)
+                <$> sequenceConduits [distSinkAll lvHistos] <<- second eLargeJets
 
--- TODO
--- we call, e.g. eJets twice per event.
--- could be cleaned up.
-eventHistos :: Text -> Builder Event [YodaHisto1D]
-eventHistos syst = fmap concat $ sequenceA [
+tjetHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
+tjetHistos = (fmap (pathPrefix "/tjets/" . xlPrefix "track jet ") . concat)
+                <$> sequenceConduits [distSinkAll lvHistos] <<- second eTrackJets
+
+electronHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
+electronHistos = (fmap (pathPrefix "/electrons/" . xlPrefix "electron ") . concat)
+                <$> sequenceConduits [distSinkAll lvHistos] <<- second eElectrons
+
+muonHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
+muonHistos = (fmap (pathPrefix "/muons/" . xlPrefix "muon ") . concat)
+                <$> sequenceConduits [distSinkAll lvHistos] <<- second eMuons
+
+metHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
+metHistos = fmap (pathPrefix "/met/" . xlPrefix "$E_{\\mathrm{T}}^{\\mathrm{miss}}$ ")
+                <$> lvHistos <<- second eMET
+
+eventHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
+eventHistos = fmap concat $ sequenceConduits [ jetHistos
+                                      , ljetHistos
+                                      , tjetHistos
+                                      , electronHistos
+                                      , muonHistos
+                                      , metHistos
+                                      ]
+
+nominalHistos :: MonadThrow m => Consumer Event m [YodaHisto1D]
+nominalHistos = eventHistos <<- (weight "nominal" &&& id)
+
+{-
                   fillAll (lvHistos (syst <> "/jets/") "small-$R$ jet ") <<- second eJets
                 , fillAll (lvHistos (syst <> "/largejets/") "large-$R$ jet ") <<- second eLargeJets
                 , fillAll (lvHistos (syst <> "/trackjets/") "track jet ") <<- second eTrackJets
@@ -114,6 +186,7 @@ eventHistos syst = fmap concat $ sequenceA [
                 , lvHistos (syst <> "/met/") "$E_{\\mathrm T}^{\\mathrm miss}$ " <<- second eMET
                 ] <<- (weight syst &&& id)
 
+
 eventSystHistos :: [Text] -> Builder Event [YodaHisto1D]
 eventSystHistos = fmap concat . traverse eventHistos
 
@@ -125,7 +198,7 @@ channel n f systs = fmap (n,) $ foldBuilder (eventSystHistos systs) <<- \e -> if
 -- TODO
 -- event categorization could be cleaner.
 channelSystHistos :: [Text] -> Builder Event [(Text, [YodaHisto1D])]
-channelSystHistos systs = sequenceA [ channel "elelJ/" (\e -> V.length (eElectrons e) == 2 && V.length (eMuons e) == 0) systs
+channelSystHistos systs = sequenceConduits [ channel "elelJ/" (\e -> V.length (eElectrons e) == 2 && V.length (eMuons e) == 0) systs
                                    , channel "elmuJ/" (\e -> V.length (eElectrons e) == 1 && V.length (eMuons e) == 1) systs
                                    , channel "elnuJ/" (\e -> V.length (eElectrons e) == 1 && V.length (eMuons e) == 0) systs
                                    , channel "mumuJ/" (\e -> V.length (eElectrons e) == 0 && V.length (eMuons e) == 2) systs
@@ -133,22 +206,20 @@ channelSystHistos systs = sequenceA [ channel "elelJ/" (\e -> V.length (eElectro
                                    , channel "nunuJ/" (\e -> V.length (eElectrons e) == 0 && V.length (eMuons e) == 0) systs
                                    ]
 
+-}
 
-showHisto :: Text -> YodaHisto1D -> Text
-showHisto path (YodaHisto annots h) = T.unlines $
-                            [ "# BEGIN YODA_HISTO1D " <> path', "Path=" <> path', "Type=Histo1D" ] ++
-                            -- write annotations
-                            map (\(t, a) -> t <> "=" <> a) (M.toList $ M.delete "Path" annots) ++
-                            [
-                            "Total\tTotal\t" <> distToText (integral h),
-                            "Underflow\tUnderflow\t" <> distToText (underflow h),
-                            "Overflow\tOverflow\t" <> distToText (overflow h)
+showHisto :: YodaHisto1D -> Text
+showHisto (YodaHisto p xl yl h) = T.unlines $
+                            [ "# BEGIN YODA_HISTO1D " <> p, "Path=" <> p, "Type=Histo1D"
+                            , "XLabel=" <> xl, "YLabel=" <> yl
+                            , "Total\tTotal\t" <> distToText (integral h)
+                            , "Underflow\tUnderflow\t" <> distToText (underflow h)
+                            , "Overflow\tOverflow\t" <> distToText (overflow h)
                             ] ++
                             map (\((Z :. xmin, Z :. xmax), b) -> T.pack (show xmin ++ "\t" ++ show xmax ++ "\t") <> distToText b) (toTuples h) ++
                             [ "# END YODA_HISTO1D", "" ]
 
                             where
-                                path' = path <> (M.!) annots "Path"
                                 distToText (Dist0 sw sw2 ne :. DistWX swx swx2) = T.pack $
                                                 show sw ++ "\t" ++
                                                 show sw2 ++ "\t" ++

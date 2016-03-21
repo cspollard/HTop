@@ -31,10 +31,10 @@ import Control.Parallel.Strategies (withStrategy, parBuffer, rseq)
 import Debug.Trace
 
 sample :: MonadThrow m
-          => Consumer ByteString m (SampleInfo, [(T.Text, [YodaHisto1D])])
+          => Consumer ByteString m (SampleInfo, [YodaHisto1D])
 sample = do
         s <- sampleInfo' =$= (fromJust <$> await)
-        hs <- fmap built $ tree' =$= CL.fold build (channelSystHistos ["nominal"])
+        hs <- tree' =$= nominalHistos
 
         return (s, hs)
 
@@ -51,18 +51,15 @@ main :: IO ()
 main = do
         fns <- getArgs
         samps <- sequence . withStrategy (parBuffer 8 rseq) . map (\fn -> traceShow fn $ runResourceT $ sourceFile fn =$= ungzip $$ sample) $ fns
-        (s, b) <- foldM combine def samps
 
-        let scaledHists = fmap (map (alterHisto (fmap (`scaleW` (1.0 / sumWeights s))))) <$> b
+        hs <- CL.sourceNull $$ nominalHistos
+        (s, hs') <- foldM combine (SampleInfo 0 0 0, hs) samps
 
-        mapM_ (\(n, hs) -> mapM_ (putStr . T.unpack . showHisto ("/HTop/" <> n)) hs) scaledHists
+        let scaledHists = map (`scaleW` (1.0 / sumWeights s)) hs'
+
+        mapM_ (putStr . T.unpack . showHisto) scaledHists
 
     where
-        def = (SampleInfo 0 0 0, built $ channelSystHistos ["nominal"])
 
-        combine :: (SampleInfo, [(T.Text, [YodaHisto1D])])
-                -> (SampleInfo, [(T.Text, [YodaHisto1D])])
-                -> IO (SampleInfo, [(T.Text, [YodaHisto1D])])
-        combine (ss, hs) (ss', hs') = return (ss <> ss', zipWith combineChan hs hs')
-        combineChan (t, hs) (_, hs') = (t, zipWith haddUnsafe hs hs')
+        combine (ss, hs) (ss', hs') = return (ss <> ss', zipWith haddUnsafe hs hs')
 
