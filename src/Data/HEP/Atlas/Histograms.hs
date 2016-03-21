@@ -34,19 +34,19 @@ import Data.HEP.Atlas.Electron
 import Data.HEP.Atlas.Muon
 
 ptHisto :: Histo1D
-ptHisto = histogram (bin1D 50 (0, 500)) mempty
+ptHisto = histogram (bin1D 25 (0, 1000)) mempty
 
 eHisto :: Histo1D
-eHisto = histogram (bin1D 50 (0, 500)) mempty
+eHisto = histogram (bin1D 25 (0, 1000)) mempty
 
 mHisto :: Histo1D
-mHisto = histogram (bin1D 50 (0, 200)) mempty
+mHisto = histogram (bin1D 25 (0, 400)) mempty
 
 etaHisto :: Histo1D
-etaHisto = histogram (bin1D 50 (-3, 3)) mempty
+etaHisto = histogram (bin1D 25 (-3, 3)) mempty
 
 phiHisto :: Histo1D
-phiHisto = histogram (bin1D 50 (-pi, pi)) mempty
+phiHisto = histogram (bin1D 25 (-pi, pi)) mempty
 
 
 -- a YodaHisto is just a histogram with some annotations.
