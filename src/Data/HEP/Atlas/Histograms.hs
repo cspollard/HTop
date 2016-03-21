@@ -124,11 +124,11 @@ distSinkFirst c = do
 -- TODO
 -- instance Num b => Num (a -> b) where
 ptHistoSink, eHistoSink, mHistoSink, etaHistoSink, phiHistoSink :: (LorentzVector l, MonadThrow m) => Consumer (Double, l) m YodaHisto1D
-ptHistoSink = distSink (YodaHisto "pT" "$\\frac{d\\sigma}{d\\mathrm{GeV}}$" "$p_{\\mathrm T}$ [GeV]" ptHisto) <<- second ((Z :.) . (/ 1e3) . lvPt)
-eHistoSink = distSink (YodaHisto "E" "$\\frac{d\\sigma}{d\\mathrm{GeV}}$" "$E$ [GeV]" eHisto) <<- second ((Z :.) . (/ 1e3) . lvE)
-mHistoSink = distSink (YodaHisto "mass" "$\\frac{d\\sigma}{d\\mathrm{GeV}}$" "mass [GeV]" mHisto) <<- second ((Z :.) . (/ 1e3) . lvM)
-etaHistoSink = distSink (YodaHisto "eta" "$\\frac{d\\sigma}{d\\eta}$" "$\\eta$" etaHisto) <<- second ((Z :.) . lvEta)
-phiHistoSink = distSink (YodaHisto "phi" "$\\frac{d\\sigma}{d\\phi}$" "$\\phi$" phiHisto) <<- second ((Z :.) . lvPhi)
+ptHistoSink = distSink (YodaHisto "/pt" "$\\frac{d\\sigma}{d\\mathrm{GeV}}$" "$p_{\\mathrm T}$ [GeV]" ptHisto) <<- second ((Z :.) . (/ 1e3) . lvPt)
+eHistoSink = distSink (YodaHisto "/E" "$\\frac{d\\sigma}{d\\mathrm{GeV}}$" "$E$ [GeV]" eHisto) <<- second ((Z :.) . (/ 1e3) . lvE)
+mHistoSink = distSink (YodaHisto "/mass" "$\\frac{d\\sigma}{d\\mathrm{GeV}}$" "mass [GeV]" mHisto) <<- second ((Z :.) . (/ 1e3) . lvM)
+etaHistoSink = distSink (YodaHisto "/eta" "$\\frac{d\\sigma}{d\\eta}$" "$\\eta$" etaHisto) <<- second ((Z :.) . lvEta)
+phiHistoSink = distSink (YodaHisto "/phi" "$\\frac{d\\sigma}{d\\phi}$" "$\\phi$" phiHisto) <<- second ((Z :.) . lvPhi)
 
 
 -- suite of histograms for LorentzVectors
@@ -137,54 +137,42 @@ lvHistos = sequenceConduits [ptHistoSink, eHistoSink, mHistoSink, etaHistoSink, 
                 <<- second (lv :: HasLorentzVector a => a -> PtEtaPhiE)
 
 jetHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
-jetHistos = (fmap (pathPrefix "/jets/" . xlPrefix "small-$R$ jet ") . concat)
+jetHistos = (fmap (pathPrefix "/jets" . xlPrefix "small-$R$ jet ") . concat)
                 <$> sequenceConduits [distSinkAll lvHistos] <<- second eJets
 
 ljetHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
-ljetHistos = (fmap (pathPrefix "/ljets/" . xlPrefix "large-$R$ jet ") . concat)
+ljetHistos = (fmap (pathPrefix "/ljets" . xlPrefix "large-$R$ jet ") . concat)
                 <$> sequenceConduits [distSinkAll lvHistos] <<- second eLargeJets
 
 tjetHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
-tjetHistos = (fmap (pathPrefix "/tjets/" . xlPrefix "track jet ") . concat)
+tjetHistos = (fmap (pathPrefix "/tjets" . xlPrefix "track jet ") . concat)
                 <$> sequenceConduits [distSinkAll lvHistos] <<- second eTrackJets
 
 electronHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
-electronHistos = (fmap (pathPrefix "/electrons/" . xlPrefix "electron ") . concat)
+electronHistos = (fmap (pathPrefix "/electrons" . xlPrefix "electron ") . concat)
                 <$> sequenceConduits [distSinkAll lvHistos] <<- second eElectrons
 
 muonHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
-muonHistos = (fmap (pathPrefix "/muons/" . xlPrefix "muon ") . concat)
+muonHistos = (fmap (pathPrefix "/muons" . xlPrefix "muon ") . concat)
                 <$> sequenceConduits [distSinkAll lvHistos] <<- second eMuons
 
 metHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
-metHistos = fmap (pathPrefix "/met/" . xlPrefix "$E_{\\mathrm{T}}^{\\mathrm{miss}}$ ")
+metHistos = fmap (pathPrefix "/met" . xlPrefix "$E_{\\mathrm{T}}^{\\mathrm{miss}}$ ")
                 <$> lvHistos <<- second eMET
 
 eventHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
 eventHistos = fmap concat $ sequenceConduits [ jetHistos
-                                      , ljetHistos
-                                      , tjetHistos
-                                      , electronHistos
-                                      , muonHistos
-                                      , metHistos
-                                      ]
+                                             , ljetHistos
+                                             , tjetHistos
+                                             , electronHistos
+                                             , muonHistos
+                                             , metHistos
+                                             ]
 
 nominalHistos :: MonadThrow m => Consumer Event m [YodaHisto1D]
 nominalHistos = eventHistos <<- (weight "nominal" &&& id)
 
 {-
-                  fillAll (lvHistos (syst <> "/jets/") "small-$R$ jet ") <<- second eJets
-                , fillAll (lvHistos (syst <> "/largejets/") "large-$R$ jet ") <<- second eLargeJets
-                , fillAll (lvHistos (syst <> "/trackjets/") "track jet ") <<- second eTrackJets
-                , fillAll (lvHistos (syst <> "/electrons/") "electron ") <<- second eElectrons
-                , fillAll (lvHistos (syst <> "/muons/") "muon ") <<- second eMuons
-                , fillFirst (lvHistos (syst <> "/jet0/") "leading small-$R$ jet ") <<- second eJets
-                , fillFirst (lvHistos (syst <> "/largejet0/") "leading large-$R$ jet ") <<- second eLargeJets
-                , fillAll (lvHistos (syst <> "/trackjet0/") "leading track jet ") <<- second eTrackJets
-                , fillFirst (lvHistos (syst <> "/electron0/") "leading electron ") <<- second eElectrons
-                , fillFirst (lvHistos (syst <> "/muon0/") "leading muon ") <<- second eMuons
-                , lvHistos (syst <> "/met/") "$E_{\\mathrm T}^{\\mathrm miss}$ " <<- second eMET
-                ] <<- (weight syst &&& id)
 
 
 eventSystHistos :: [Text] -> Builder Event [YodaHisto1D]

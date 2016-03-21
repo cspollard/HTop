@@ -28,38 +28,38 @@ import Data.HEP.Atlas.Histograms
 
 import Control.Parallel.Strategies (withStrategy, parBuffer, rseq)
 
-import Debug.Trace
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as M
+
+import Control.Arrow (second, (&&&))
+
+-- TODO
+-- map of dsids to hists
+-- group dsids by process
 
 sample :: MonadThrow m
           => Consumer ByteString m (SampleInfo, [YodaHisto1D])
 sample = do
-        s <- sampleInfo' =$= (fromJust <$> await)
-        hs <- tree' =$= nominalHistos
+        fileHeader
+        s <- sampleInfo
+        comma
+        hs <- tree =$= nominalHistos
+        fileFooter
 
-        return (s, hs)
-
-    where
-        sampleInfo' = fileHeader >> sampleInfo >>= yield
-
-        tree' = do
-            comma
-            tree :: (MonadThrow m) => Conduit ByteString m Event
-            fileFooter
+        return (s, fmap (pathPrefix $ T.pack $ '/' : show (dsid s)) hs)
 
 
 main :: IO ()
 main = do
         fns <- getArgs
-        samps <- sequence . withStrategy (parBuffer 8 rseq) . map (\fn -> traceShow fn $ runResourceT $ sourceFile fn =$= ungzip $$ sample) $ fns
+        samps <- sequence . withStrategy (parBuffer 8 rseq) . map (\fn -> runResourceT $ sourceFile fn =$= ungzip $$ sample) $ fns
 
-        hs <- CL.sourceNull $$ nominalHistos
-        (s, hs') <- foldM combine (SampleInfo 0 0 0, hs) samps
+        let m = M.fromListWith combine $ map ((dsid . fst) &&& id) samps
 
-        let scaledHists = map (`scaleW` (1.0 / sumWeights s)) hs'
+        let scaledHists = fmap (\(s, hs) -> fmap (flip scaleW (1.0 / sumWeights s)) hs) m
 
-        mapM_ (putStr . T.unpack . showHisto) scaledHists
+        mapM_ (mapM_ $ putStr . T.unpack . showHisto) scaledHists
 
     where
-
-        combine (ss, hs) (ss', hs') = return (ss <> ss', zipWith haddUnsafe hs hs')
-
+        combine :: (SampleInfo, [YodaHisto1D]) -> (SampleInfo, [YodaHisto1D]) -> (SampleInfo, [YodaHisto1D])
+        combine (ss, hs) (ss', hs') = (ss <> ss', zipWith haddUnsafe hs hs')
