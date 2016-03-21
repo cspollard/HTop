@@ -125,11 +125,20 @@ distSinkFirst c = do
 -- instance Num b => Num (a -> b) where
 ptHistoSink, eHistoSink, mHistoSink, etaHistoSink, phiHistoSink :: (LorentzVector l, MonadThrow m) => Consumer (Double, l) m YodaHisto1D
 
-ptHistoSink = distSink (YodaHisto "/pt" "$p_{\\mathrm T}$ [GeV]" "$\\frac{d\\sigma}{d\\mathrm{GeV}}$" ptHisto) <<- second ((Z :.) . (/ 1e3) . lvPt)
-eHistoSink = distSink (YodaHisto "/E" "$E$ [GeV]" "$\\frac{d\\sigma}{d\\mathrm{GeV}}$" eHisto) <<- second ((Z :.) . (/ 1e3) . lvE)
-mHistoSink = distSink (YodaHisto "/mass" "mass [GeV]" "$\\frac{d\\sigma}{d\\mathrm{GeV}}$" mHisto) <<- second ((Z :.) . (/ 1e3) . lvM)
-etaHistoSink = distSink (YodaHisto "/eta" "$\\eta$" "$\\frac{d\\sigma}{d\\eta}$" etaHisto) <<- second ((Z :.) . lvEta)
-phiHistoSink = distSink (YodaHisto "/phi" "$\\phi$" "$\\frac{d\\sigma}{d\\phi}$" phiHisto) <<- second ((Z :.) . lvPhi)
+ptHistoSink = distSink (YodaHisto "/pt" "$p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) ptHisto) <<- second ((Z :.) . (/ 1e3) . lvPt)
+eHistoSink = distSink (YodaHisto "/E" "$E$ [GeV]" (dsigdXpbY "E" gev) eHisto) <<- second ((Z :.) . (/ 1e3) . lvE)
+mHistoSink = distSink (YodaHisto "/mass" "mass [GeV]" (dsigdXpbY "m" gev) mHisto) <<- second ((Z :.) . (/ 1e3) . lvM)
+etaHistoSink = distSink (YodaHisto "/eta" "$\\eta$" (dsigdXpbY "\\eta" rad) etaHisto) <<- second ((Z :.) . lvEta)
+phiHistoSink = distSink (YodaHisto "/phi" "$\\phi$" (dsigdXpbY "\\phi" rad) phiHisto) <<- second ((Z :.) . lvPhi)
+
+
+dsigdXpbY :: Text -> Text -> Text
+dsigdXpbY x y = "$\\frac{d\\sigma}{d" <> x <> "} \\frac{\\mathrm{pb}}{" <> y <> "}$"
+
+gev, rad, pt :: Text
+gev = "\\mathrm{GeV}"
+rad = "\\mathrm{rad}"
+pt = "p_{\\mathrm{T}}"
 
 
 -- suite of histograms for LorentzVectors
