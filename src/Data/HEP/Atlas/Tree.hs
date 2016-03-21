@@ -19,7 +19,7 @@ import Data.Conduit
 import qualified Data.Conduit.List as CL
 import Data.Conduit.Attoparsec
 
-import Control.Monad (when)
+import Control.Monad (unless)
 import Control.Monad.Catch (MonadThrow(..))
 
 
@@ -43,20 +43,20 @@ event :: MonadThrow m => [Text] -> Consumer ByteString m Value
 event brs = object . zip brs <$> sinkParser json
 
 
+-- TODO
+-- we're checking if we're done *every time*
+-- could be better...
 events :: MonadThrow m => [Text] -> Conduit ByteString m Value
-events brs = do
-        yield =<< event brs
-        x <- sinkParser sep
-
-        when x $ events brs
+events brs = do done <- sinkParser finished
+                unless done $ event brs >>= yield >> sinkParser sep >> events brs
 
     where
-        sep = (skipSpace *> char ',' *> skipSpace *> return True) <|> return False
+        finished = skipSpace *> ((char ']' *> return True) <|> return False)
+        sep = skipSpace *> ((char ',' *> return True) <|> return False)
 
 
 treeHeader :: MonadThrow m => Consumer ByteString m (Text, [Text])
-treeHeader = do
-                title <- sinkParser $ T.pack <$>
+treeHeader = do title <- sinkParser $ T.pack <$>
                             (char '"' *> manyTill anyChar (char '"'))
                             <* skipSpace <* char ':' <* skipSpace
                             <* char '{' <* skipSpace
@@ -70,7 +70,7 @@ treeHeader = do
 
 
 treeFooter :: MonadThrow m => Consumer ByteString m ()
-treeFooter = sinkParser $ skipSpace *> char ']' *> skipSpace *> char '}' *> skipSpace
+treeFooter = sinkParser $ skipSpace <* char '}'
 
 
 -- TODO
@@ -80,16 +80,6 @@ tree = do
         (_, brs) <- treeHeader
         events brs =$= CL.mapM (fromResult . fromJSON)
         treeFooter
-
-
-trees :: MonadThrow m => Conduit ByteString m Value
-trees = do
-        tree
-        x <- sinkParser sep
-        when x trees
-
-    where
-        sep = (skipSpace *> char ',' *> skipSpace *> return True) <|> return False
 
 
 fileHeader :: MonadThrow m => Consumer ByteString m ()
