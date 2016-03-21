@@ -74,6 +74,7 @@ executable jsonToYoda
                      , resourcet >=1.1
                      , parallel >=3.0
                      , optparse-generic >=1.0
+                     , directory >=1.2
                      , hhep >=0.1
                      , htop >=0.1
 

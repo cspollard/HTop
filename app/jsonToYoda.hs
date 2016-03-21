@@ -14,7 +14,7 @@ import Data.Conduit.Zlib (ungzip)
 import Data.Conduit.Attoparsec
 import qualified Data.Conduit.List as CL
 
-import Control.Monad (foldM)
+import Control.Monad (foldM, forM_)
 import Control.Monad.Trans.Resource (runResourceT)
 import Control.Monad.Catch (MonadThrow)
 
@@ -23,6 +23,8 @@ import Data.Monoid
 import System.Environment (getArgs)
 
 import Data.Histogram
+
+import System.Directory
 
 import Data.HEP.Atlas.Tree
 import Data.HEP.Atlas.Sample
@@ -49,7 +51,7 @@ import GHC.Generics
 -- at some point this all needs to be moved into library functions.
 -- only basic conduits (and args?) should be left here.
 
-data Args = Args { outfile :: String
+data Args = Args { outfolder :: String
                  , infiles :: String
                  , xsecfile :: String
                  } deriving (Show, Generic)
@@ -73,7 +75,8 @@ sample = do fileHeader
 
 main :: IO ()
 main = do args <- getRecord "jsonToYoda" :: IO Args
-          let fout = outfile args
+          let outfname = outfolder args
+
           fins <- runResourceT $ sourceFile (infiles args) =$= CB.lines =$= CL.map (T.unpack . T.decodeUtf8) $$ CL.consume
           xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
 
@@ -83,9 +86,11 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
 
           let scaledHists = fmap (\(s, hs) -> fmap (flip scaleW $ (xsecs IM.! dsid s) * (1.0 / sumWeights s)) hs) m
 
-          let mergedHists = M.mapWithKey (\s -> fmap (pathPrefix $ T.cons '/' s)) $ M.mapKeysWith (zipWith haddUnsafe) processTitle scaledHists
+          let mergedHists = M.mapKeysWith (zipWith haddUnsafe) processTitle scaledHists
 
-          runResourceT $ yield mergedHists =$= CL.concat =$= CL.mapFoldable (fmap showHisto) $$ CL.map T.encodeUtf8 =$= sinkFile fout
+          createDirectoryIfMissing True outfname
+        
+          forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ CL.sourceList hs $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
 
     where
         combine :: (SampleInfo, [YodaHisto1D]) -> (SampleInfo, [YodaHisto1D]) -> (SampleInfo, [YodaHisto1D])
