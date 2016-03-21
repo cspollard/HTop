@@ -8,6 +8,8 @@ import qualified Data.Text.Encoding as T
 
 import Data.Conduit
 import Data.Conduit.Binary hiding (mapM_)
+import qualified Data.Conduit.Binary as CB
+
 import Data.Conduit.Zlib (ungzip)
 import Data.Conduit.Attoparsec
 import qualified Data.Conduit.List as CL
@@ -48,7 +50,7 @@ import GHC.Generics
 -- only basic conduits (and args?) should be left here.
 
 data Args = Args { outfile :: String
-                 , infiles :: [String]
+                 , infiles :: String
                  , xsecfile :: String
                  } deriving (Show, Generic)
 
@@ -72,7 +74,7 @@ sample = do fileHeader
 main :: IO ()
 main = do args <- getRecord "jsonToYoda" :: IO Args
           let fout = outfile args
-          let fins = infiles args
+          fins <- runResourceT $ sourceFile (infiles args) =$= CB.lines =$= CL.map (T.unpack . T.decodeUtf8) $$ CL.consume
           xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
 
           samps <- sequence . withStrategy (parBuffer 1 rseq) . map (\fn -> runResourceT $ sourceFile fn =$= ungzip $$ sample) $ fins
