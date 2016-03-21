@@ -17,6 +17,7 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Data.Uncertain
+                     , Data.OrdBy
                      , Data.HEP.Cut
                      , Data.HEP.Atlas.CrossSections
                      , Data.HEP.Atlas.Electron
@@ -24,6 +25,7 @@ library
                      , Data.HEP.Atlas.Histograms
                      , Data.HEP.Atlas.Jet
                      , Data.HEP.Atlas.Muon
+                     , Data.HEP.Atlas.ProcessInfo
                      , Data.HEP.Atlas.Sample
                      , Data.HEP.Atlas.TopTree
                      , Data.HEP.Atlas.Tree
@@ -71,8 +73,10 @@ executable jsonToYoda
                      , cereal-text >=0.1
                      , resourcet >=1.1
                      , parallel >=3.0
+                     , optparse-generic >=1.0
                      , hhep >=0.1
                      , htop >=0.1
+
   default-language:    Haskell2010
   ghc-options:         -Wall -threaded
   ghc-prof-options:    -Wall -threaded -prof -auto-all -caf-all
