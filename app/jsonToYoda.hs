@@ -37,8 +37,8 @@ import qualified Data.IntMap.Strict as IM
 import Control.Arrow ((&&&))
 
 import Options.Generic
-
 import Data.Aeson (FromJSON)
+import Data.SGList
 
 -- TODO
 -- at some point this all needs to be moved into library functions.

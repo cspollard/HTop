@@ -18,6 +18,7 @@ cabal-version:       >=1.10
 library
   exposed-modules:     Data.Uncertain
                      , Data.OrdBy
+                     , Data.SGList
                      , Data.HEP.Cut
                      , Data.HEP.YodaHisto
                      , Data.HEP.Atlas.CrossSections

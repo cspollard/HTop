@@ -1,11 +1,4 @@
-{-# LANGUAGE OverloadedStrings
-           , DeriveGeneric
-           , TupleSections
-           , TypeOperators
-           , TypeFamilies
-           , GeneralizedNewtypeDeriving
-           , DeriveTraversable
-           , RankNTypes #-}
+{-# LANGUAGE OverloadedStrings, TupleSections, TypeOperators, TypeFamilies, RankNTypes #-}
 
 module Data.HEP.Atlas.Histograms where
 
@@ -14,11 +7,8 @@ import Data.Semigroup
 
 import Data.Text (Text)
 
-
+import Data.SGList
 import Data.Histogram
-
-import Data.Serialize (Serialize(..))
-import GHC.Generics (Generic)
 
 import Data.HEP.Atlas.Event
 import Data.HEP.LorentzVector
@@ -73,6 +63,9 @@ distSinkAll :: (MonadThrow m, Functor f, Foldable f)
             => Consumer (Double, a) m r -> Consumer (Double, f a) m r
 distSinkAll c = CL.mapFoldable (\(w, v) -> fmap (w,) v) =$= c
 
+
+-- TODO
+-- still need to do leading...
 {-
 distSinkFirst :: (MonadThrow m, Foldable f)
             => Consumer (Double, a) m r -> Consumer (Double, f a) m r
@@ -84,47 +77,17 @@ distSinkFirst c = do wv <- await
                             x : _ -> distSinkFirst (yield (w, x) =$= c)
 -}
 
--- TODO
--- still tons of boilerplate
+
 -- TODO
 -- instance Num b => Num (a -> b) where
-ptHistoSink, eHistoSink, mHistoSink, etaHistoSink, phiHistoSink :: (LorentzVector l, MonadThrow m) => Consumer (Double, l) m YodaHisto1D
-
-ptHistoSink = distSink ptHisto <<- second ((Z :.) . (/ 1e3) . lvPt)
-eHistoSink = distSink eHisto <<- second ((Z :.) . (/ 1e3) . lvE)
-mHistoSink = distSink mHisto <<- second ((Z :.) . (/ 1e3) . lvM)
-etaHistoSink = distSink etaHisto <<- second ((Z :.) . lvEta)
-phiHistoSink = distSink phiHisto <<- second ((Z :.) . lvPhi)
-
-
--- TODO
--- move to its own file
-
--- TODO
--- this should wrap all foldables if possible.
-
--- a list wrapper that is a semigroup *based on its inner type*, not
--- (++).
--- some things don't work that well, but it's "easy" for now.
-newtype SGList h = SGList { fromSGList :: [h] }
-                    deriving (Show, Generic, Foldable, Traversable, Functor)
-
-instance Serialize h => Serialize (SGList h) where
-
-liftSG :: ([a] -> [b]) -> SGList a -> SGList b
-liftSG f (SGList xs) = SGList (f xs)
-
-instance Semigroup h => Semigroup (SGList h) where
-    SGList xs <> SGList xs' = SGList $ zipWith (<>) xs xs'
-
-instance ScaleW h => ScaleW (SGList h) where
-    type W (SGList h) = W h
-    scaleW hs w = fmap (flip scaleW w) hs
-
 -- suite of histograms for LorentzVectors
 lvHistos :: (HasLorentzVector a, MonadThrow m) => Consumer (Double, a) m [YodaHisto1D]
-lvHistos = sequenceConduits [ptHistoSink, eHistoSink, mHistoSink, etaHistoSink, phiHistoSink]
-                <<- second (lv :: HasLorentzVector a => a -> PtEtaPhiE)
+lvHistos = sequenceConduits [ distSink ptHisto <<- second ((Z :.) . (/ 1e3) . lvPt)
+                            , distSink eHisto <<- second ((Z :.) . (/ 1e3) . lvE)
+                            , distSink mHisto <<- second ((Z :.) . (/ 1e3) . lvM)
+                            , distSink etaHisto <<- second ((Z :.) . lvEta)
+                            , distSink phiHisto <<- second ((Z :.) . lvPhi)
+                            ] <<- second (lv :: HasLorentzVector a => a -> PtEtaPhiE)
 
 jetHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
 jetHistos = (fmap (pathPrefix "/jets" . xlPrefix "small-$R$ jet ") . concat)
