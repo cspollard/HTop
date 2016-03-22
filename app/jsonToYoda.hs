@@ -48,6 +48,8 @@ import GHC.Generics
 
 import Data.Aeson (FromJSON)
 
+import Debug.Trace
+
 -- TODO
 -- at some point this all needs to be moved into library functions.
 -- only basic conduits (and args?) should be left here.
@@ -78,7 +80,7 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           fins <- runResourceT $ sourceFile (infiles args) =$= CB.lines =$= CL.map (T.unpack . T.decodeUtf8) $$ CL.consume
           xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
 
-          samps <- sequence . withStrategy (parBuffer 1 rseq) . map (\fn -> runResourceT $ sourceFile fn =$= ungzip $$ project nominalHistos) $ fins
+          samps <- sequence . withStrategy (parBuffer 1 rseq) . map (\fn -> traceShow fn $ runResourceT $ sourceFile fn =$= ungzip $$ project nominalHistos) $ fins
 
           let m = M.fromListWith combine $ map ((dsid . fst) &&& id) samps
 

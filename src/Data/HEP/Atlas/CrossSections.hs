@@ -12,8 +12,9 @@ isEndOfLine c = c == '\n' || c == '\r'
 
 type CrossSectionInfo = IntMap Double
 
+-- the first bit guarantees that data always has a cross section of 1.
 crossSectionInfo :: Parser CrossSectionInfo
-crossSectionInfo = fromList . rights <$>
+crossSectionInfo = fromList . ((0, 1.0) :) . rights <$>
                     (skipSpace *> many (eitherP comment xsecline) <* endOfInput)
     where
         comment = char '#' *> takeTill isEndOfLine *> skipSpace
