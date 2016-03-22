@@ -6,9 +6,11 @@ import Data.ByteString (ByteString)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
-import Data.Conduit
-import Data.Conduit.Binary hiding (mapM_)
-import qualified Data.Conduit.Binary as CB
+-- import Data.Conduit
+-- import Data.Conduit.Binary hiding (mapM_)
+-- import qualified Data.Conduit.Binary as CB
+
+import Conduit
 
 import Data.Conduit.Zlib (ungzip)
 import Data.Conduit.Attoparsec
