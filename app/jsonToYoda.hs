@@ -46,6 +46,8 @@ import Control.Arrow ((&&&))
 import Options.Generic
 import GHC.Generics
 
+import Data.Aeson (FromJSON)
+
 -- TODO
 -- at some point this all needs to be moved into library functions.
 -- only basic conduits (and args?) should be left here.
@@ -58,28 +60,25 @@ data Args = Args { outfolder :: String
 instance ParseRecord Args where
 
 
--- TODO
--- group dsids by process
+project :: (FromJSON a, MonadThrow m)
+          => Consumer a m h
+          -> Consumer ByteString m (SampleInfo, h)
+project c = do fileHeader
+               s <- sampleInfo
+               comma
+               h <- tree =$= c
+               fileFooter
 
-sample :: MonadThrow m
-          => Consumer ByteString m (SampleInfo, [YodaHisto1D])
-sample = do fileHeader
-            s <- sampleInfo
-            comma
-            hs <- tree =$= nominalHistos
-            fileFooter
-
-            return (s, hs)
+               return (s, h)
 
 
 main :: IO ()
 main = do args <- getRecord "jsonToYoda" :: IO Args
-          let outfname = outfolder args
 
           fins <- runResourceT $ sourceFile (infiles args) =$= CB.lines =$= CL.map (T.unpack . T.decodeUtf8) $$ CL.consume
           xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
 
-          samps <- sequence . withStrategy (parBuffer 1 rseq) . map (\fn -> runResourceT $ sourceFile fn =$= ungzip $$ sample) $ fins
+          samps <- sequence . withStrategy (parBuffer 1 rseq) . map (\fn -> runResourceT $ sourceFile fn =$= ungzip $$ project nominalHistos) $ fins
 
           let m = M.fromListWith combine $ map ((dsid . fst) &&& id) samps
 
@@ -87,6 +86,7 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
 
           let mergedHists = M.mapKeysWith (zipWith haddUnsafe) processTitle scaledHists
 
+          let outfname = outfolder args
           createDirectoryIfMissing True outfname
         
           forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ CL.sourceList hs $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
