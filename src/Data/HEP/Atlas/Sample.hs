@@ -1,10 +1,13 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings, TypeFamilies #-}
 
 module Data.HEP.Atlas.Sample where
 
 import Data.Serialize
 import GHC.Generics
 import Data.Aeson
+import Data.Semigroup
+
+import Data.Histogram.Distribution
 
 data SampleInfo = SampleInfo { dsid :: Int
                              , numEvents :: Int
@@ -22,10 +25,17 @@ instance FromJSON SampleInfo where
 
 -- TODO
 -- dsids should not added...
-instance Monoid SampleInfo where
-    s `mappend` s' = SampleInfo
-                        (dsid s')
-                        (numEvents s + numEvents s')
-                        (sumWeights s + sumWeights s')
+instance Semigroup SampleInfo where
+    s <> s' = SampleInfo
+                (dsid s')
+                (numEvents s + numEvents s')
+                (sumWeights s + sumWeights s')
 
-    mempty = SampleInfo 0 0 0
+
+type Sample h = (SampleInfo, h)
+
+-- normalize h to a cross section and drop SampleInfo
+-- we can't combine histograms from the same process correctly after
+-- this step.
+freezeSample :: (ScaleW h, Double ~ W h) => Sample h -> Double -> h
+freezeSample (si, h) xsec = h `scaleW` (xsec * 1.0 / sumWeights si)

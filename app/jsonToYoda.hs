@@ -19,7 +19,7 @@ import Control.Monad.Trans.Resource (runResourceT)
 import Control.Monad.Catch (MonadThrow)
 
 import Data.Maybe (fromJust)
-import Data.Monoid
+import Data.Semigroup
 import System.Environment (getArgs)
 
 import Data.Histogram
@@ -62,7 +62,7 @@ instance ParseRecord Args where
 
 project :: (FromJSON a, MonadThrow m)
           => Consumer a m h
-          -> Consumer ByteString m (SampleInfo, h)
+          -> Consumer ByteString m (Sample h)
 project c = do fileHeader
                s <- sampleInfo
                comma
@@ -80,16 +80,16 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
 
           samps <- sequence . withStrategy (parBuffer 1 rseq) . map (\fn -> runResourceT $ sourceFile fn =$= ungzip $$ project nominalHistos) $ fins
 
-          let m = M.fromListWith combine $ map ((dsid . fst) &&& id) samps
+          let m = M.fromListWith (<>) $ map ((dsid . fst) &&& id) (samps :: [Sample (SGList YodaHisto1D)])
 
-          let scaledHists = fmap (\(s, hs) -> fmap (flip scaleW $ (xsecs IM.! dsid s) * (1.0 / sumWeights s)) hs) m
+          let scaledHists = fmap (\ss@(s, _) -> freezeSample ss (xsecs IM.! dsid s)) m
 
-          let mergedHists = M.mapKeysWith (zipWith haddUnsafe) processTitle scaledHists
+          let mergedHists = M.mapKeysWith (<>) processTitle scaledHists
 
           let outfname = outfolder args
           createDirectoryIfMissing True outfname
         
-          forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ CL.sourceList hs $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
+          forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ CL.sourceList (fromSGList hs) $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
 
     where
         combine :: (SampleInfo, [YodaHisto1D]) -> (SampleInfo, [YodaHisto1D]) -> (SampleInfo, [YodaHisto1D])
