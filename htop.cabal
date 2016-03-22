@@ -19,6 +19,7 @@ library
   exposed-modules:     Data.Uncertain
                      , Data.OrdBy
                      , Data.HEP.Cut
+                     , Data.HEP.YodaHisto
                      , Data.HEP.Atlas.CrossSections
                      , Data.HEP.Atlas.Electron
                      , Data.HEP.Atlas.Event

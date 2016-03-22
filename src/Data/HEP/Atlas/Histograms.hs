@@ -1,4 +1,11 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric, TupleSections, TypeOperators, TypeFamilies, RankNTypes #-}
+{-# LANGUAGE OverloadedStrings
+           , DeriveGeneric
+           , TupleSections
+           , TypeOperators
+           , TypeFamilies
+           , GeneralizedNewtypeDeriving
+           , DeriveTraversable
+           , RankNTypes #-}
 
 module Data.HEP.Atlas.Histograms where
 
@@ -34,19 +41,19 @@ rad = "\\mathrm{rad}"
 pt = "p_{\\mathrm{T}}"
 
 
-ptHisto :: Histo1D
+ptHisto :: YodaHisto1D
 ptHisto = YodaHisto "/pt" "$p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histogram (constBin1D 25 (0, 1000)) mempty
 
-eHisto :: Histo1D
+eHisto :: YodaHisto1D
 eHisto = YodaHisto "/E" "$E$ [GeV]" (dsigdXpbY "E" gev) $ histogram (constBin1D 25 (0, 1000)) mempty
 
-mHisto :: Histo1D
+mHisto :: YodaHisto1D
 mHisto = YodaHisto "/mass" "mass [GeV]" (dsigdXpbY "m" gev) $ histogram (constBin1D 30 (0, 300)) mempty
 
-etaHisto :: Histo1D
+etaHisto :: YodaHisto1D
 etaHisto = YodaHisto "/eta" "$\\eta$" (dsigdXpbY "\\eta" rad) $ histogram (constBin1D 25 (-3, 3)) mempty
 
-phiHisto :: Histo1D
+phiHisto :: YodaHisto1D
 phiHisto = YodaHisto "/phi" "$\\phi$" (dsigdXpbY "\\phi" rad) $ histogram (constBin1D 25 (-pi, pi)) mempty
 
 
@@ -99,25 +106,16 @@ phiHistoSink = distSink phiHisto <<- second ((Z :.) . lvPhi)
 -- a list wrapper that is a semigroup *based on its inner type*, not
 -- (++).
 -- some things don't work that well, but it's "easy" for now.
-newtype SGF h = SGList { fromSGList :: [h] }
-                    deriving (Show, Generic)
+newtype SGList h = SGList { fromSGList :: [h] }
+                    deriving (Show, Generic, Foldable, Traversable, Functor)
 
-instance Serialize h => Serialize (SHList h) where
+instance Serialize h => Serialize (SGList h) where
 
 liftSG :: ([a] -> [b]) -> SGList a -> SGList b
 liftSG f (SGList xs) = SGList (f xs)
 
-instance Functor SGList where
-    fmap f = liftSG (fmap f)
-
 instance Semigroup h => Semigroup (SGList h) where
     SGList xs <> SGList xs' = SGList $ zipWith (<>) xs xs'
-
-instance Foldable SGList where
-    foldr f x0 (SGList xs) = foldr f x0 xs
-
-instance Traversable SGList where
-    traverse f (SGList xs) = SGList <$> (traverse f xs)
 
 instance ScaleW h => ScaleW (SGList h) where
     type W (SGList h) = W h

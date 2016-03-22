@@ -6,9 +6,9 @@ import Data.ByteString (ByteString)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
--- import Data.Conduit
--- import Data.Conduit.Binary hiding (mapM_)
--- import qualified Data.Conduit.Binary as CB
+import Data.HEP.YodaHisto
+
+import qualified Data.Conduit.Binary as CB
 
 import Conduit
 
@@ -16,21 +16,14 @@ import Data.Conduit.Zlib (ungzip)
 import Data.Conduit.Attoparsec
 import qualified Data.Conduit.List as CL
 
-import Control.Monad (foldM, forM_)
-import Control.Monad.Trans.Resource (runResourceT)
-import Control.Monad.Catch (MonadThrow)
+import Control.Monad (forM_)
 
-import Data.Maybe (fromJust)
 import Data.Semigroup
-import System.Environment (getArgs)
-
-import Data.Histogram
 
 import System.Directory
 
 import Data.HEP.Atlas.Tree
 import Data.HEP.Atlas.Sample
-import Data.HEP.Atlas.Event
 import Data.HEP.Atlas.TopTree
 import Data.HEP.Atlas.Histograms
 import Data.HEP.Atlas.CrossSections
@@ -38,15 +31,12 @@ import Data.HEP.Atlas.ProcessInfo
 
 import Control.Parallel.Strategies (withStrategy, parBuffer, rseq)
 
-import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
-import Data.IntMap.Strict (IntMap)
 import qualified Data.IntMap.Strict as IM
 
 import Control.Arrow ((&&&))
 
 import Options.Generic
-import GHC.Generics
 
 import Data.Aeson (FromJSON)
 
@@ -92,7 +82,3 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           createDirectoryIfMissing True outfname
         
           forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ CL.sourceList (fromSGList hs) $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
-
-    where
-        combine :: (SampleInfo, [YodaHisto1D]) -> (SampleInfo, [YodaHisto1D]) -> (SampleInfo, [YodaHisto1D])
-        combine (ss, hs) (ss', hs') = (ss <> ss', zipWith haddUnsafe hs hs')
