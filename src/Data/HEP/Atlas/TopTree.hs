@@ -15,7 +15,7 @@ import Data.Text (Text, unpack)
 import Data.Aeson (Value(..), withObject, (.:), FromJSON(..))
 import Data.Aeson.Types (Parser)
 
-import Data.Monoid ((<>))
+import Data.Semigroup
 import Control.Monad (forM)
 
 import Data.HEP.LorentzVector
@@ -159,7 +159,9 @@ evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN",
 -- TODO
 -- move this stuff.
 sampleInfo :: MonadThrow m => Consumer ByteString m SampleInfo
-sampleInfo = tree =$= CL.fold (<>) mempty
+-- TODO
+-- SampleInfo should be Monoid?
+sampleInfo = tree =$= CL.fold (<>) (SampleInfo 0 0 0)
 
 conduitEncode :: (Monad m, Serialize a) => Conduit a m ByteString
 conduitEncode = CL.map encode

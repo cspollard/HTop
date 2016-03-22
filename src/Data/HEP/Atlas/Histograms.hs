@@ -3,7 +3,7 @@
 module Data.HEP.Atlas.Histograms where
 
 import Control.Arrow
-import Data.Monoid
+import Data.Semigroup
 
 import qualified Data.Vector as V
 
@@ -32,6 +32,10 @@ import Control.Monad.Catch (MonadThrow)
 import Data.HEP.Atlas.Jet
 import Data.HEP.Atlas.Electron
 import Data.HEP.Atlas.Muon
+
+
+-- TODO
+-- all of these lists should turn into (:.) lists for type checking
 
 ptHisto :: Histo1D
 ptHisto = histogram (bin1D 25 (0, 1000)) mempty
@@ -75,6 +79,9 @@ instance (Distribution val, Bin b, BinValue b ~ X val) => Distribution (YodaHist
     type X (YodaHisto b val) = X val
     yh `fill` (w, x) = flip fill (w, x) `alterHisto` yh
 
+instance (Eq b, Semigroup val) => Semigroup (YodaHisto b val) where
+    (<>) = haddUnsafe
+
 
 xlPrefix :: Text -> YodaHisto b val -> YodaHisto b val
 xlPrefix pre (YodaHisto p xl yl h) = YodaHisto p (pre <> xl) yl h
@@ -87,7 +94,7 @@ pathPrefix pre (YodaHisto p xl yl h) = YodaHisto (pre <> p) xl yl h
 
 -- TODO
 -- generalize
-haddUnsafe :: (Eq b, Monoid val) => YodaHisto b val -> YodaHisto b val -> YodaHisto b val
+haddUnsafe :: (Eq b, Semigroup val) => YodaHisto b val -> YodaHisto b val -> YodaHisto b val
 haddUnsafe (YodaHisto _ _ _ h) (YodaHisto p xl yl h') = YodaHisto p xl yl (fromJust $ h `hadd` h')
 
 
@@ -140,6 +147,33 @@ gev = "\\mathrm{GeV}"
 rad = "\\mathrm{rad}"
 pt = "p_{\\mathrm{T}}"
 
+-- TODO
+-- move to its own file
+--
+-- a list wrapper that is a semigroup *based on its inner type*, not
+-- (++).
+-- some things don't work that well, but it's "easy" for now.
+newtype SGList h = SGList { fromSGList :: [h] }
+                    deriving (Show, Generic)
+
+liftSG :: ([a] -> [b]) -> SGList a -> SGList b
+liftSG f (SGList xs) = SGList (f xs)
+
+instance Functor SGList where
+    fmap f = liftSG (fmap f)
+
+instance Semigroup h => Semigroup (SGList h) where
+    SGList xs <> SGList xs' = SGList $ zipWith (<>) xs xs'
+
+instance Foldable SGList where
+    foldr f x0 (SGList xs) = foldr f x0 xs
+
+instance Traversable SGList where
+    traverse f (SGList xs) = SGList <$> (traverse f xs)
+
+instance ScaleW h => ScaleW (SGList h) where
+    type W (SGList h) = W h
+    scaleW hs w = fmap (flip scaleW w) hs
 
 -- suite of histograms for LorentzVectors
 lvHistos :: (HasLorentzVector a, MonadThrow m) => Consumer (Double, a) m [YodaHisto1D]
@@ -179,8 +213,10 @@ eventHistos = fmap concat $ sequenceConduits [ jetHistos
                                              , metHistos
                                              ]
 
-nominalHistos :: MonadThrow m => Consumer Event m [YodaHisto1D]
-nominalHistos = eventHistos <<- (1.0,)
+nominalHistos :: MonadThrow m => Consumer Event m (SGList YodaHisto1D)
+nominalHistos = SGList <$> eventHistos <<- (1.0,)
+
+
 
 {-
 
