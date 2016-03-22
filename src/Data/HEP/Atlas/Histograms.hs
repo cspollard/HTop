@@ -180,7 +180,7 @@ eventHistos = fmap concat $ sequenceConduits [ jetHistos
                                              ]
 
 nominalHistos :: MonadThrow m => Consumer Event m [YodaHisto1D]
-nominalHistos = eventHistos <<- (weight "nominal" &&& id)
+nominalHistos = eventHistos <<- (1.0,)
 
 {-
 

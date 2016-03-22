@@ -108,20 +108,20 @@ parseBranchMap ts v = M.fromList <$> forM ts (\t -> (,) t <$> parseBranch t v)
 
 -- TODO
 -- orphan instance...
+-- but I have to move all functions above to Event, or move below
+-- functions out of TopTree, otherwise imports will break.
 instance FromJSON Event where
-    parseJSON v = Event <$>
-                        parseBranch "runNumber" v <*>
-                        parseBranch "eventNumber" v <*>
-                        parseBranch "mcChannelNumber" v <*>
-                        parseBranchMap evtWeights v <*>
-                        fmap (M.insert "nominal" 1.0) (parseBranchMap evtSystWeights v) <*>
-                        parseBranch "mu" v <*>
-                        fmap ptSort (parseElectrons v) <*>
-                        fmap ptSort (parseMuons v) <*>
-                        fmap ptSort (parseJets v) <*>
-                        fmap ptSort (parseLargeJets v) <*>
-                        fmap ptSort (parseTrackJets v) <*>
-                        parseMET v
+    parseJSON v = Event
+                <$> parseBranch "runNumber" v
+                <*> parseBranch "eventNumber" v
+                <*> parseBranch "mu" v
+                <*> fmap ptSort (parseElectrons v)
+                <*> fmap ptSort (parseMuons v)
+                <*> fmap ptSort (parseJets v)
+                <*> fmap ptSort (parseLargeJets v)
+                <*> fmap ptSort (parseTrackJets v)
+                <*> parseMET v
+
 
 evtWeights :: [Text]
 evtWeights = ["weight_mc", "weight_pileup", "weight_leptonSF"]

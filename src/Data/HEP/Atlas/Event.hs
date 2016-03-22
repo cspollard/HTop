@@ -16,14 +16,9 @@ import GHC.Generics (Generic)
 
 import Data.Serialize.Text ()
 
--- TODO
--- How do we want to deal with syst weights?
 data Event = Event {
     eRunNumber :: Int,
     eEventNumber :: Int,
-    eMCChannelNumber :: Maybe Int,
-    eEventWeights :: Map Text Double,
-    eWeightVariations :: Map Text Double,
     eMu :: Double,
     eElectrons :: Electrons,
     eMuons :: Muons,
@@ -37,5 +32,9 @@ instance Serialize Event where
 
 type Events = [Event]
 
-weight :: Text -> Event -> Double
-weight t evt = M.foldr (*) 1 (eEventWeights evt) * (M.!) (eWeightVariations evt) t
+-- TODO
+-- How do we want to deal with syst weights?
+type EventWeights = Map Text Double
+
+weight :: EventWeights -> [Text] -> Double
+weight ew ts = product $ map (ew M.!) ts
