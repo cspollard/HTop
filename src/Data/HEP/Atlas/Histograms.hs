@@ -1,101 +1,52 @@
-{-# LANGUAGE OverloadedStrings, FlexibleContexts, DeriveGeneric, TupleSections, TypeOperators, TypeFamilies, RankNTypes #-}
+{-# LANGUAGE OverloadedStrings, TupleSections, TypeOperators, TypeFamilies, RankNTypes #-}
 
 module Data.HEP.Atlas.Histograms where
 
 import Control.Arrow
 import Data.Semigroup
 
-import qualified Data.Vector as V
-
 import Data.Text (Text)
-import qualified Data.Text as T
 
-import Data.Maybe (listToMaybe, fromJust)
-
-import Data.Foldable (Foldable(..), toList)
-
+import Data.SGList
 import Data.Histogram
-
-import Data.Serialize (Serialize(..))
-import GHC.Generics (Generic)
 
 import Data.HEP.Atlas.Event
 import Data.HEP.LorentzVector
-
-import qualified Data.Map as M
+import Data.HEP.YodaHisto
 
 import Data.Conduit
 import qualified Data.Conduit.List as CL
 import Control.Monad.Catch (MonadThrow)
 
 
-import Data.HEP.Atlas.Jet
-import Data.HEP.Atlas.Electron
-import Data.HEP.Atlas.Muon
-
-
 -- TODO
--- all of these lists should turn into (:.) lists for type checking
+-- all of these lists should probably turn into (:.) lists for type checking
 
-ptHisto :: Histo1D
-ptHisto = histogram (bin1D 25 (0, 1000)) mempty
+dsigdXpbY :: Text -> Text -> Text
+dsigdXpbY x y = "$\\frac{d\\sigma}{d" <> x <> "} \\frac{\\mathrm{pb}}{" <> y <> "}$"
 
-eHisto :: Histo1D
-eHisto = histogram (bin1D 25 (0, 1000)) mempty
-
-mHisto :: Histo1D
-mHisto = histogram (bin1D 25 (0, 400)) mempty
-
-etaHisto :: Histo1D
-etaHisto = histogram (bin1D 25 (-3, 3)) mempty
-
-phiHisto :: Histo1D
-phiHisto = histogram (bin1D 25 (-pi, pi)) mempty
+gev, rad, pt :: Text
+gev = "\\mathrm{GeV}"
+rad = "\\mathrm{rad}"
+pt = "p_{\\mathrm{T}}"
 
 
--- a YodaHisto is just a histogram with some annotations.
-data YodaHisto b val = YodaHisto { path :: Text
-                                 , xLabel :: Text
-                                 , yLabel :: Text
-                                 , yhHisto :: !(Histogram b val)
-                                 } deriving (Generic, Show)
+ptHisto :: YodaHisto1D
+ptHisto = YodaHisto "/pt" "$p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histogram (constBin1D 25 (0, 1000)) mempty
 
-type YodaHisto1D = YodaHisto (Bin1D Double) (Dist1D Double)
+eHisto :: YodaHisto1D
+eHisto = YodaHisto "/E" "$E$ [GeV]" (dsigdXpbY "E" gev) $ histogram (constBin1D 25 (0, 1000)) mempty
 
-instance (Serialize val, Serialize b) => Serialize (YodaHisto b val) where
+mHisto :: YodaHisto1D
+mHisto = YodaHisto "/mass" "mass [GeV]" (dsigdXpbY "m" gev) $ histogram (constBin1D 30 (0, 300)) mempty
 
-alterHisto :: (Histogram b val -> Histogram b val') -> YodaHisto b val -> YodaHisto b val'
-alterHisto f (YodaHisto p xl yl h) = YodaHisto p xl yl $ f h
+etaHisto :: YodaHisto1D
+etaHisto = YodaHisto "/eta" "$\\eta$" (dsigdXpbY "\\eta" rad) $ histogram (constBin1D 25 (-3, 3)) mempty
 
-instance Functor (YodaHisto b) where
-    -- fmap f (YodaHisto p xl yl h) = YodaHisto p xl yl $ fmap f h
-    fmap f = alterHisto (fmap f)
-
-instance ScaleW val => ScaleW (YodaHisto b val) where
-    type W (YodaHisto b val) = W val
-    yh `scaleW` w = (`scaleW` w) `alterHisto` yh
-
-instance (Distribution val, Bin b, BinValue b ~ X val) => Distribution (YodaHisto b val) where
-    type X (YodaHisto b val) = X val
-    yh `fill` (w, x) = flip fill (w, x) `alterHisto` yh
-
-instance (Eq b, Semigroup val) => Semigroup (YodaHisto b val) where
-    (<>) = haddUnsafe
+phiHisto :: YodaHisto1D
+phiHisto = YodaHisto "/phi" "$\\phi$" (dsigdXpbY "\\phi" rad) $ histogram (constBin1D 25 (-pi, pi)) mempty
 
 
-xlPrefix :: Text -> YodaHisto b val -> YodaHisto b val
-xlPrefix pre (YodaHisto p xl yl h) = YodaHisto p (pre <> xl) yl h
-
-ylPrefix :: Text -> YodaHisto b val -> YodaHisto b val
-ylPrefix pre (YodaHisto p xl yl h) = YodaHisto p xl (pre <> yl) h
-
-pathPrefix :: Text -> YodaHisto b val -> YodaHisto b val
-pathPrefix pre (YodaHisto p xl yl h) = YodaHisto (pre <> p) xl yl h
-
--- TODO
--- generalize
-haddUnsafe :: (Eq b, Semigroup val) => YodaHisto b val -> YodaHisto b val -> YodaHisto b val
-haddUnsafe (YodaHisto _ _ _ h) (YodaHisto p xl yl h') = YodaHisto p xl yl (fromJust $ h `hadd` h')
 
 
 premap :: MonadThrow m => (i -> j) -> ConduitM j o m r -> ConduitM i o m r
@@ -112,73 +63,31 @@ distSinkAll :: (MonadThrow m, Functor f, Foldable f)
             => Consumer (Double, a) m r -> Consumer (Double, f a) m r
 distSinkAll c = CL.mapFoldable (\(w, v) -> fmap (w,) v) =$= c
 
+
 -- TODO
--- need to figure out how to only fill first item.
+-- still need to do leading...
 {-
 distSinkFirst :: (MonadThrow m, Foldable f)
             => Consumer (Double, a) m r -> Consumer (Double, f a) m r
-distSinkFirst c = do
-                    wv <- await
-                    case wv of
-                        Nothing -> yield Nothing >>= c
-                        Just (w, v) -> case listToMaybe $ toList v of
-                                            Nothing -> distSinkFirst c
-                                            Just x -> distSinkFirst (yield (w, x) >>= c)
+distSinkFirst c = do wv <- await
+                     case wv of
+                        Nothing -> c
+                        Just (w, v) -> case toList v of
+                            []    -> distSinkFirst c
+                            x : _ -> distSinkFirst (yield (w, x) =$= c)
 -}
 
--- TODO
--- still tons of boilerplate
+
 -- TODO
 -- instance Num b => Num (a -> b) where
-ptHistoSink, eHistoSink, mHistoSink, etaHistoSink, phiHistoSink :: (LorentzVector l, MonadThrow m) => Consumer (Double, l) m YodaHisto1D
-
-ptHistoSink = distSink (YodaHisto "/pt" "$p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) ptHisto) <<- second ((Z :.) . (/ 1e3) . lvPt)
-eHistoSink = distSink (YodaHisto "/E" "$E$ [GeV]" (dsigdXpbY "E" gev) eHisto) <<- second ((Z :.) . (/ 1e3) . lvE)
-mHistoSink = distSink (YodaHisto "/mass" "mass [GeV]" (dsigdXpbY "m" gev) mHisto) <<- second ((Z :.) . (/ 1e3) . lvM)
-etaHistoSink = distSink (YodaHisto "/eta" "$\\eta$" (dsigdXpbY "\\eta" rad) etaHisto) <<- second ((Z :.) . lvEta)
-phiHistoSink = distSink (YodaHisto "/phi" "$\\phi$" (dsigdXpbY "\\phi" rad) phiHisto) <<- second ((Z :.) . lvPhi)
-
-
-dsigdXpbY :: Text -> Text -> Text
-dsigdXpbY x y = "$\\frac{d\\sigma}{d" <> x <> "} \\frac{\\mathrm{pb}}{" <> y <> "}$"
-
-gev, rad, pt :: Text
-gev = "\\mathrm{GeV}"
-rad = "\\mathrm{rad}"
-pt = "p_{\\mathrm{T}}"
-
--- TODO
--- move to its own file
---
--- a list wrapper that is a semigroup *based on its inner type*, not
--- (++).
--- some things don't work that well, but it's "easy" for now.
-newtype SGList h = SGList { fromSGList :: [h] }
-                    deriving (Show, Generic)
-
-liftSG :: ([a] -> [b]) -> SGList a -> SGList b
-liftSG f (SGList xs) = SGList (f xs)
-
-instance Functor SGList where
-    fmap f = liftSG (fmap f)
-
-instance Semigroup h => Semigroup (SGList h) where
-    SGList xs <> SGList xs' = SGList $ zipWith (<>) xs xs'
-
-instance Foldable SGList where
-    foldr f x0 (SGList xs) = foldr f x0 xs
-
-instance Traversable SGList where
-    traverse f (SGList xs) = SGList <$> (traverse f xs)
-
-instance ScaleW h => ScaleW (SGList h) where
-    type W (SGList h) = W h
-    scaleW hs w = fmap (flip scaleW w) hs
-
 -- suite of histograms for LorentzVectors
 lvHistos :: (HasLorentzVector a, MonadThrow m) => Consumer (Double, a) m [YodaHisto1D]
-lvHistos = sequenceConduits [ptHistoSink, eHistoSink, mHistoSink, etaHistoSink, phiHistoSink]
-                <<- second (lv :: HasLorentzVector a => a -> PtEtaPhiE)
+lvHistos = sequenceConduits [ distSink ptHisto <<- second ((Z :.) . (/ 1e3) . lvPt)
+                            , distSink eHisto <<- second ((Z :.) . (/ 1e3) . lvE)
+                            , distSink mHisto <<- second ((Z :.) . (/ 1e3) . lvM)
+                            , distSink etaHisto <<- second ((Z :.) . lvEta)
+                            , distSink phiHisto <<- second ((Z :.) . lvPhi)
+                            ] <<- second (lv :: HasLorentzVector a => a -> PtEtaPhiE)
 
 jetHistos :: MonadThrow m => Consumer (Double, Event) m [YodaHisto1D]
 jetHistos = (fmap (pathPrefix "/jets" . xlPrefix "small-$R$ jet ") . concat)
@@ -241,22 +150,3 @@ channelSystHistos systs = sequenceConduits [ channel "elelJ/" (\e -> V.length (e
                                    ]
 
 -}
-
-showHisto :: YodaHisto1D -> Text
-showHisto (YodaHisto p xl yl h) = T.unlines $
-                            [ "# BEGIN YODA_HISTO1D " <> p, "Path=" <> p, "Type=Histo1D"
-                            , "XLabel=" <> xl, "YLabel=" <> yl
-                            , "Total\tTotal\t" <> distToText (integral h)
-                            , "Underflow\tUnderflow\t" <> distToText (underflow h)
-                            , "Overflow\tOverflow\t" <> distToText (overflow h)
-                            ] ++
-                            map (\((Z :. xmin, Z :. xmax), b) -> T.pack (show xmin ++ "\t" ++ show xmax ++ "\t") <> distToText b) (toTuples h) ++
-                            [ "# END YODA_HISTO1D", "" ]
-
-                            where
-                                distToText (Dist0 sw sw2 ne :. DistWX swx swx2) = T.pack $
-                                                show sw ++ "\t" ++
-                                                show sw2 ++ "\t" ++
-                                                show swx ++ "\t" ++
-                                                show swx2 ++ "\t" ++
-                                                show ne
