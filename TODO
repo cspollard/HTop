@@ -1,14 +1,10 @@
 other object histograms:
 dPhi, dEta, dR
 
-deal with data
-
 cut DSL (a ala root TTree::Project)
 
 TopTree and Histograms need cleanup
 
-over- and underflos are not working.
-
 more complicated plots, e.g. mll
 
-is data being scaled?
+profiling is claiming faster performance than $ time.
