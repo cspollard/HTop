@@ -89,5 +89,18 @@ fileHeader = sinkParser $ skipSpace *> char '{' *> skipSpace
 fileFooter :: MonadThrow m => Consumer ByteString m ()
 fileFooter = sinkParser $ skipSpace *> char '}' *> skipSpace
 
+
 comma :: MonadThrow m => Consumer ByteString m ()
 comma = sinkParser (skipSpace *> char ',' *> skipSpace)
+
+
+project :: (FromJSON a, MonadThrow m)
+          => Consumer a m h
+          -> Consumer ByteString m (Sample h)
+project c = do fileHeader
+               s <- sampleInfo
+               comma
+               h <- tree =$= c
+               fileFooter
+
+               return (s, h)

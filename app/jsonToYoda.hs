@@ -55,18 +55,6 @@ data Args = Args { outfolder :: String
 instance ParseRecord Args where
 
 
-project :: (FromJSON a, MonadThrow m)
-          => Consumer a m h
-          -> Consumer ByteString m (Sample h)
-project c = do fileHeader
-               s <- sampleInfo
-               comma
-               h <- tree =$= c
-               fileFooter
-
-               return (s, h)
-
-
 main :: IO ()
 main = do args <- getRecord "jsonToYoda" :: IO Args
 
