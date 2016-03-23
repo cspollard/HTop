@@ -37,5 +37,7 @@ type Sample h = (SampleInfo, h)
 -- normalize h to a cross section and drop SampleInfo
 -- we can't combine histograms from the same process correctly after
 -- this step.
-freezeSample :: (ScaleW h, Double ~ W h) => Sample h -> Double -> h
-freezeSample (si, h) xsec = h `scaleW` (xsec * 1.0 / sumWeights si)
+freezeSample :: (ScaleW h, Double ~ W h) => Sample h -> h
+freezeSample (si, h) = case dsid si of
+                                0 -> h
+                                _ -> h `scaleW` (1.0 / sumWeights si)

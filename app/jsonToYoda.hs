@@ -7,6 +7,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
 import Data.HEP.YodaHisto
+import Data.Histogram
 
 import qualified Data.Conduit.Binary as CB
 
@@ -76,7 +77,7 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
 
           let m = M.fromListWith (<>) $ map ((dsid . fst) &&& id) (samps :: [Sample (SGList YodaHisto1D)])
 
-          let scaledHists = fmap (\ss@(s, _) -> freezeSample ss (xsecs IM.! dsid s)) m
+          let scaledHists = fmap (\ss@(s, _) -> freezeSample ss `scaleW` (xsecs IM.! dsid s)) m
 
           let mergedHists = M.mapKeysWith (<>) processTitle scaledHists
 
