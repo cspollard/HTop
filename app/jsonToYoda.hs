@@ -30,7 +30,7 @@ import Data.HEP.Atlas.Histograms
 import Data.HEP.Atlas.CrossSections
 import Data.HEP.Atlas.ProcessInfo
 
-import Control.Parallel.Strategies (withStrategy, parBuffer, rseq)
+import Control.Parallel.Strategies (withStrategy, parList, rseq)
 
 import qualified Data.Map.Strict as M
 import qualified Data.IntMap.Strict as IM
@@ -61,7 +61,7 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           fins <- runResourceT $ sourceFile (infiles args) =$= CB.lines =$= CL.map (T.unpack . T.decodeUtf8) $$ CL.consume
           xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
 
-          samps <- sequence . withStrategy (parBuffer 1 rseq) . map (\fn -> traceShow fn $ runResourceT $ sourceFile fn =$= ungzip $$ project nominalHistos) $ fins
+          samps <- sequence . withStrategy (parList rseq) . map (\fn -> traceShow fn $ runResourceT $ sourceFile fn =$= ungzip $$ project nominalHistos) $ fins
 
           let m = M.fromListWith (<>) $ map ((dsid . fst) &&& id) (samps :: [Sample (SGList YodaHisto1D)])
 

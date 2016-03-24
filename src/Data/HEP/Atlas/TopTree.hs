@@ -158,10 +158,6 @@ evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN",
 
 -- TODO
 -- move this stuff.
-sampleInfo :: MonadThrow m => Consumer ByteString m SampleInfo
--- TODO
--- SampleInfo should be Monoid?
-sampleInfo = tree =$= CL.fold (<>) (SampleInfo 0 0 0)
 
 conduitEncode :: (Monad m, Serialize a) => Conduit a m ByteString
 conduitEncode = CL.map encode

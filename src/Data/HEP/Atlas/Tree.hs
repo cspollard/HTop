@@ -2,6 +2,8 @@
 
 module Data.HEP.Atlas.Tree where
 
+import Data.Semigroup
+
 import Data.ByteString (ByteString)
 
 import qualified Data.Aeson as AT
@@ -21,6 +23,8 @@ import Data.Conduit.Attoparsec
 
 import Control.Monad (unless)
 import Control.Monad.Catch (MonadThrow(..))
+
+import Data.HEP.Atlas.Sample
 
 
 json :: AT.FromJSON a => Parser a
@@ -92,6 +96,12 @@ fileFooter = sinkParser $ skipSpace *> char '}' *> skipSpace
 
 comma :: MonadThrow m => Consumer ByteString m ()
 comma = sinkParser (skipSpace *> char ',' *> skipSpace)
+
+
+sampleInfo :: MonadThrow m => Consumer ByteString m SampleInfo
+-- TODO
+-- SampleInfo should be Monoid?
+sampleInfo = tree =$= CL.fold (<>) (SampleInfo 0 0 0)
 
 
 project :: (FromJSON a, MonadThrow m)
