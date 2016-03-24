@@ -38,10 +38,7 @@ import qualified Data.IntMap.Strict as IM
 import Control.Arrow ((&&&))
 
 import Options.Generic
-import Data.Aeson (FromJSON)
 import Data.SGList
-
-import Debug.Trace
 
 -- TODO
 -- at some point this all needs to be moved into library functions.
@@ -61,7 +58,7 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           fins <- runResourceT $ sourceFile (infiles args) =$= CB.lines =$= CL.map (T.unpack . T.decodeUtf8) $$ CL.consume
           xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
 
-          samps <- sequence . withStrategy (parList rseq) . map (\fn -> traceShow fn $ runResourceT $ sourceFile fn =$= ungzip $$ project nominalHistos) $ fins
+          samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> runResourceT (sourceFile fn =$= ungzip $$ project nominalHistos)) $ fins
 
           let m = M.fromListWith (<>) $ map ((dsid . fst) &&& id) (samps :: [Sample (SGList YodaHisto1D)])
 
