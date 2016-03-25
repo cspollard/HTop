@@ -110,16 +110,17 @@ parseBranchMap ts v = M.fromList <$> forM ts (\t -> (,) t <$> parseBranch t v)
 -- orphan instance...
 -- but I have to move all functions above to Event, or move below
 -- functions out of TopTree, otherwise imports will break.
+-- I probably should make newtypes for Electrons, Jets, etc.
 instance FromJSON Event where
     parseJSON v = Event
                 <$> parseBranch "runNumber" v
                 <*> parseBranch "eventNumber" v
                 <*> parseBranch "mu" v
-                <*> fmap ptSort (parseElectrons v)
-                <*> fmap ptSort (parseMuons v)
-                <*> fmap ptSort (parseJets v)
-                <*> fmap ptSort (parseLargeJets v)
-                <*> fmap ptSort (parseTrackJets v)
+                <*> parseElectrons v
+                <*> parseMuons v
+                <*> parseJets v
+                <*> parseLargeJets v
+                <*> parseTrackJets v
                 <*> parseMET v
 
 

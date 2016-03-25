@@ -53,11 +53,16 @@ instance ParseRecord Args where
 
 
 main :: IO ()
+          -- read in cmd line args
 main = do args <- getRecord "jsonToYoda" :: IO Args
 
+          -- get the list of input files
           fins <- runResourceT $ sourceFile (infiles args) =$= CB.lines =$= CL.map (T.unpack . T.decodeUtf8) $$ CL.consume
+
+          -- read in the sample cross sectinos
           xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
 
+          -- project the samples onto the nominal histos (in parallel)
           samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> runResourceT (sourceFile fn =$= ungzip $$ project nominalHistos)) $ fins
 
           let m = M.fromListWith (<>) $ map ((dsid . fst) &&& id) (samps :: [Sample (SGList YodaHisto1D)])
