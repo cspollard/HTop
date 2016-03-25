@@ -1,11 +1,11 @@
 {-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 
-module Data.HEP.Atlas.Event where
+module Data.Atlas.Event where
 
 import Data.HEP.LorentzVector
-import Data.HEP.Atlas.Electron
-import Data.HEP.Atlas.Muon
-import Data.HEP.Atlas.Jet
+import Data.Atlas.Electron
+import Data.Atlas.Muon
+import Data.Atlas.Jet
 
 import Data.Map (Map)
 import qualified Data.Map as M

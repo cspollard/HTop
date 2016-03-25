@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.HEP.Atlas.CrossSections where
+module Data.Atlas.CrossSections where
 
 import Control.Applicative
 import Data.Attoparsec.ByteString.Char8 hiding (isEndOfLine)

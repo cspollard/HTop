@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.HEP.Atlas.TopTree where
+module Data.Atlas.TopTree where
 
 import Data.List (sortBy)
 import Data.Ord (comparing, Down(..))
@@ -19,12 +19,12 @@ import Data.Semigroup
 import Control.Monad (forM)
 
 import Data.HEP.LorentzVector
-import Data.HEP.Atlas.Event
-import Data.HEP.Atlas.Electron
-import Data.HEP.Atlas.Muon
-import Data.HEP.Atlas.Jet
-import Data.HEP.Atlas.Tree
-import Data.HEP.Atlas.Sample
+import Data.Atlas.Event
+import Data.Atlas.Electron
+import Data.Atlas.Muon
+import Data.Atlas.Jet
+import Data.Atlas.Tree
+import Data.Atlas.Sample
 
 import Data.Conduit
 import qualified Data.Conduit.List as CL

@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric, OverloadedStrings, TypeFamilies #-}
 
-module Data.HEP.Atlas.Sample where
+module Data.Atlas.Sample where
 
 import Data.Serialize
 import GHC.Generics

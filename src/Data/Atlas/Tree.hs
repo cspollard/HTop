@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, RankNTypes #-}
 
-module Data.HEP.Atlas.Tree where
+module Data.Atlas.Tree where
 
 import Data.Semigroup
 
@@ -24,7 +24,7 @@ import Data.Conduit.Attoparsec
 import Control.Monad (unless)
 import Control.Monad.Catch (MonadThrow(..))
 
-import Data.HEP.Atlas.Sample
+import Data.Atlas.Sample
 
 
 json :: AT.FromJSON a => Parser a

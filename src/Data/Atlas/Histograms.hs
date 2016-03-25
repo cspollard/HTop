@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, TupleSections, TypeOperators, TypeFamilies, RankNTypes #-}
 
-module Data.HEP.Atlas.Histograms where
+module Data.Atlas.Histograms where
 
 import Control.Arrow
 import Data.Semigroup
@@ -10,8 +10,8 @@ import Data.Text (Text)
 import Data.SGList
 import Data.Histogram
 
-import Data.HEP.Atlas.Event
-import Data.HEP.Atlas.Jet
+import Data.Atlas.Event
+import Data.Atlas.Jet
 import Data.HEP.LorentzVector
 import Data.HEP.YodaHisto
 

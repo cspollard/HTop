@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.HEP.Atlas.ProcessInfo where
+module Data.Atlas.ProcessInfo where
 
 import Data.Text (Text)
 

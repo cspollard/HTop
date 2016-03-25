@@ -21,16 +21,16 @@ library
                      , Data.SGList
                      , Data.HEP.Cut
                      , Data.HEP.YodaHisto
-                     , Data.HEP.Atlas.CrossSections
-                     , Data.HEP.Atlas.Electron
-                     , Data.HEP.Atlas.Event
-                     , Data.HEP.Atlas.Histograms
-                     , Data.HEP.Atlas.Jet
-                     , Data.HEP.Atlas.Muon
-                     , Data.HEP.Atlas.ProcessInfo
-                     , Data.HEP.Atlas.Sample
-                     , Data.HEP.Atlas.TopTree
-                     , Data.HEP.Atlas.Tree
+                     , Data.Atlas.CrossSections
+                     , Data.Atlas.Electron
+                     , Data.Atlas.Event
+                     , Data.Atlas.Histograms
+                     , Data.Atlas.Jet
+                     , Data.Atlas.Muon
+                     , Data.Atlas.ProcessInfo
+                     , Data.Atlas.Sample
+                     , Data.Atlas.TopTree
+                     , Data.Atlas.Tree
 
   -- other-modules:       
   other-extensions:    OverloadedStrings

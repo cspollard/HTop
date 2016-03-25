@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module Data.HEP.Atlas.Electron where
+module Data.Atlas.Electron where
 
 
 import GHC.Generics (Generic)
