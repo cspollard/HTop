@@ -23,12 +23,12 @@ import Data.Semigroup
 
 import System.Directory
 
-import Data.HEP.Atlas.Tree
-import Data.HEP.Atlas.Sample
-import Data.HEP.Atlas.TopTree
-import Data.HEP.Atlas.Histograms
-import Data.HEP.Atlas.CrossSections
-import Data.HEP.Atlas.ProcessInfo
+import Data.Atlas.Tree
+import Data.Atlas.Sample
+import Data.Atlas.TopTree
+import Data.Atlas.Histograms
+import Data.Atlas.CrossSections
+import Data.Atlas.ProcessInfo
 
 import Control.Parallel.Strategies (withStrategy, parList, rseq)
 
