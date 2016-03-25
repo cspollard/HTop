@@ -7,4 +7,4 @@ TopTree and Histograms need cleanup
 
 more complicated plots, e.g. mll
 
-profiling is claiming faster performance than $ time.
+split library and executable.
