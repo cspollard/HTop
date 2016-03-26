@@ -116,6 +116,13 @@ ljetHistos = fmap (pathPrefix "/ljet0" . xlPrefix "leading large-$R$ jet ")
                     =:= (filling sd12Histo <<- second ((Z :.) . (ljSD12 / 1e3)))
                     =:= lvHistos
 
+-- TODO
+-- this calculates the leading largeR jet twice.
+eljetHistos :: Monad m => Consumer (Double, Event) m YodaHisto1D
+eljetHistos = (pathPrefix "/elljet0" . xlPrefix "electron-leading large-$R$ jet ")
+                <$> folding (folding (filling dRHisto <<- second (Z :.)))
+                <<- second (\evt -> fmap (flip minDR (eElectrons evt)) . leading . V.filter (ljetSelection $ eElectrons evt) $ eLargeJets evt)
+
 tjetHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
 tjetHistos = fmap (pathPrefix "/tjets" . xlPrefix "track jet ")
                 <$> folding lvHistos <<- second eTrackJets
@@ -133,13 +140,9 @@ metHistos = fmap (pathPrefix "/met" . xlPrefix "$E_{\\mathrm{T}}^{\\mathrm{miss}
                 <$> lvHistos <<- second eMET
 
 eventHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
-eventHistos = fmap concat $ sequenceConduits [ jetHistos
-                                             , ljetHistos
-                                             , tjetHistos
-                                             , electronHistos
-                                             , muonHistos
-                                             , metHistos
-                                             ]
+eventHistos = eljetHistos =:= jetHistos =++= ljetHistos
+                          =++= tjetHistos =++= electronHistos
+                          =++= muonHistos =++= metHistos
 
 nominalHistos :: Monad m => Consumer Event m (SGList YodaHisto1D)
 nominalHistos = SGList <$> eventHistos <<- (1.0,)
