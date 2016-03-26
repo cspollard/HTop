@@ -13,6 +13,7 @@ import Data.Histogram
 
 import Data.Atlas.Event
 import Data.Atlas.Jet
+import Data.Atlas.Electron
 import Data.HEP.LorentzVector
 import Data.HEP.YodaHisto
 
@@ -99,14 +100,17 @@ infixr 3 =++=
 cs =++= cs' = getZipConduit $ liftA2 (++) (ZipConduit cs) (ZipConduit cs')
 
 
-ljetSelection :: Event -> LargeJet -> Bool
-ljetSelection evt lj = let es = eElectrons evt in
-                            V.null es || minimum (sequenceA (fmap lvDR es) lj) > 1.0
+minDR :: (HasLorentzVector a, HasLorentzVector b, Foldable f, Functor f) => a -> f b -> Maybe Double
+minDR v vs = if null vs then Nothing else Just . minimum $ fmap (lvDR v) vs
+
+
+ljetSelection :: Electrons -> LargeJet -> Bool
+ljetSelection els lj = maybe True (> 1.0) $ minDR lj els
 
 
 ljetHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
 ljetHistos = fmap (pathPrefix "/ljet0" . xlPrefix "leading large-$R$ jet ")
-                <$> folding ljetHs <<- second (\evt -> leading . V.filter (ljetSelection evt) $ eLargeJets evt)
+                <$> folding ljetHs <<- second (\evt -> leading . V.filter (ljetSelection $ eElectrons evt) $ eLargeJets evt)
 
     where ljetHs = (filling mHisto <<- second ((Z :.) . (ljM / 1e3)))
                     =:= (filling sd12Histo <<- second ((Z :.) . (ljSD12 / 1e3)))
