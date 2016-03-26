@@ -19,8 +19,9 @@ import Data.HEP.YodaHisto
 import Conduit
 import qualified Data.Conduit.List as CL
 
-import Data.NumInstances ()
+import qualified Data.Vector as V
 
+import Data.NumInstances ()
 
 -- TODO
 -- all of these lists should probably turn into (:.) lists for type checking
@@ -66,24 +67,22 @@ premap f c = CL.map f =$= c
 (<<-) = flip premap
 
 
-type Fill i r = forall m. Monad m => Consumer i m r
 
-filling :: Distribution d => d -> Fill (W d, X d) d
+filling :: (Monad m, Distribution d) => d -> Consumer (W d, X d) m d
 filling = CL.fold fill
 
-folding :: (Monad m, Functor f, Foldable f)
-            => Consumer (Double, a) m r -> Consumer (Double, f a) m r
+folding :: (Monad m, Functor f, Foldable f) => Consumer (Double, a) m r -> Consumer (Double, f a) m r
 folding c = CL.mapFoldable (\(w, v) -> fmap (w,) v) =$= c
 
 
 -- common histograms for LorentzVectors
-lvHistos :: HasLorentzVector a => Fill (Double, a) [YodaHisto1D]
+lvHistos :: (Monad m, HasLorentzVector a) => Consumer (Double, a) m [YodaHisto1D]
 lvHistos = sequenceConduits [ filling ptHisto <<- second ((Z :.) . (/ 1e3) . lvPt)
                             , filling etaHisto <<- second ((Z :.) . lvEta)
                             ] <<- second toPtEtaPhiE
 
 
-jetHistos :: Fill (Double, Event) [YodaHisto1D]
+jetHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
 jetHistos = fmap (pathPrefix "/jets" . xlPrefix "small-$R$ jet ")
                 <$> folding lvHistos <<- second eJets
 
@@ -93,20 +92,25 @@ infixr 3 =:=
 (=:=) :: Monad m => ConduitM i o m r -> ConduitM i o m [r] -> ConduitM i o m [r]
 c =:= cs = getZipConduit $ liftA2 (:) (ZipConduit c) (ZipConduit cs)
 
+-- TODO
+-- not sure about this fixity.
+infixr 3 =++=
+(=++=) :: Monad m => ConduitM i o m [r] -> ConduitM i o m [r] -> ConduitM i o m [r]
+cs =++= cs' = getZipConduit $ liftA2 (++) (ZipConduit cs) (ZipConduit cs')
 
-ljetHistos :: Fill (Double, Event) [YodaHisto1D]
+
+ljetSelection :: Event -> LargeJet -> Bool
+ljetSelection evt lj = let es = eElectrons evt in
+                            V.null es || minimum (sequenceA (fmap lvDR es) lj) > 1.0
+
+
+ljetHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
 ljetHistos = fmap (pathPrefix "/ljet0" . xlPrefix "leading large-$R$ jet ")
-                <$> folding ljetHs <<- second (leading . eLargeJets)
+                <$> folding ljetHs <<- second (\evt -> leading . V.filter (ljetSelection evt) $ eLargeJets evt)
 
     where ljetHs = (filling mHisto <<- second ((Z :.) . (ljM / 1e3)))
                     =:= (filling sd12Histo <<- second ((Z :.) . (ljSD12 / 1e3)))
                     =:= lvHistos
-    {-
-    where ljetHs = [ lvHistos,
-                     sequenceConduits [ distSink mHisto <<- second ((Z :.) . (/ 1e3) . ljM)
-                                      , distSink sd12Histo <<- second ((Z :.) . (/ 1e3) . ljSD12) ]
-                   ]
-    -}
 
 tjetHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
 tjetHistos = fmap (pathPrefix "/tjets" . xlPrefix "track jet ")
