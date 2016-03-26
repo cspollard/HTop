@@ -144,9 +144,12 @@ eventHistos = eljetHistos =:= jetHistos =++= ljetHistos
                           =++= tjetHistos =++= electronHistos
                           =++= muonHistos =++= metHistos
 
-nominalHistos :: Monad m => Consumer Event m (SGList YodaHisto1D)
-nominalHistos = SGList <$> eventHistos <<- (1.0,)
+nLep :: Event -> Int
+nLep = (V.length . eElectrons) + (V.length . eMuons)
 
+
+nominalHistos :: Monad m => Consumer Event m (SGList YodaHisto1D)
+nominalHistos = CL.filter ((== 2) . nLep) =$= SGList <$> eventHistos <<- (1.0,)
 
 {-
 
