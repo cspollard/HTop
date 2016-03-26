@@ -53,6 +53,7 @@ library
                      , cereal >=0.5
                      , cereal-text >=0.1
                      , semigroups >=0.15
+                     , NumInstances >=1.0
                      , hhep >=0.1
 
   hs-source-dirs:      src

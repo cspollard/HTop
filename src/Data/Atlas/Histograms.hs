@@ -3,6 +3,7 @@
 module Data.Atlas.Histograms where
 
 import Control.Arrow
+import Control.Applicative (liftA2)
 import Data.Semigroup
 
 import Data.Text (Text)
@@ -17,6 +18,8 @@ import Data.HEP.YodaHisto
 
 import Conduit
 import qualified Data.Conduit.List as CL
+
+import Data.NumInstances ()
 
 
 -- TODO
@@ -58,53 +61,64 @@ nObjHisto = YodaHisto "/n" "multiplicity" (dsigdXpbY "n" "\\mathrm{unit}") $ his
 premap :: Monad m => (i -> j) -> ConduitM j o m r -> ConduitM i o m r
 premap f c = CL.map f =$= c
 
+
 (<<-) :: Monad m => ConduitM j o m r -> (i -> j) -> ConduitM i o m r
 (<<-) = flip premap
 
 
-distSink :: (Monad m, Distribution d) => d -> Consumer (W d, X d) m d
-distSink = CL.fold fill
+type Fill i r = forall m. Monad m => Consumer i m r
 
-distSinkAll :: (Monad m, Functor f, Foldable f)
+filling :: Distribution d => d -> Fill (W d, X d) d
+filling = CL.fold fill
+
+folding :: (Monad m, Functor f, Foldable f)
             => Consumer (Double, a) m r -> Consumer (Double, f a) m r
-distSinkAll c = CL.mapFoldable (\(w, v) -> fmap (w,) v) =$= c
+folding c = CL.mapFoldable (\(w, v) -> fmap (w,) v) =$= c
 
 
--- TODO
--- instance Num b => Num (a -> b) where
--- suite of histograms for LorentzVectors
-lvHistos :: (HasLorentzVector a, Monad m) => Consumer (Double, a) m [YodaHisto1D]
-lvHistos = sequenceConduits [ distSink ptHisto <<- second ((Z :.) . (/ 1e3) . lvPt)
-                            -- , distSink eHisto <<- second ((Z :.) . (/ 1e3) . lvE)
-                            -- , distSink mHisto <<- second ((Z :.) . (/ 1e3) . lvM)
-                            , distSink etaHisto <<- second ((Z :.) . lvEta)
-                            -- , distSink phiHisto <<- second ((Z :.) . lvPhi)
+-- common histograms for LorentzVectors
+lvHistos :: HasLorentzVector a => Fill (Double, a) [YodaHisto1D]
+lvHistos = sequenceConduits [ filling ptHisto <<- second ((Z :.) . (/ 1e3) . lvPt)
+                            , filling etaHisto <<- second ((Z :.) . lvEta)
                             ] <<- second toPtEtaPhiE
 
-jetHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
+
+jetHistos :: Fill (Double, Event) [YodaHisto1D]
 jetHistos = fmap (pathPrefix "/jets" . xlPrefix "small-$R$ jet ")
-                <$> distSinkAll lvHistos <<- second eJets
+                <$> folding lvHistos <<- second eJets
 
-ljetHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
-ljetHistos = (fmap (pathPrefix "/ljet0" . xlPrefix "leading large-$R$ jet ") . concat)
-                <$> distSinkAll (sequenceConduits ljetHs) <<- second (leading . eLargeJets)
+-- TODO
+-- not sure about this fixity.
+infixr 3 =:=
+(=:=) :: Monad m => ConduitM i o m r -> ConduitM i o m [r] -> ConduitM i o m [r]
+c =:= cs = getZipConduit $ liftA2 (:) (ZipConduit c) (ZipConduit cs)
 
+
+ljetHistos :: Fill (Double, Event) [YodaHisto1D]
+ljetHistos = fmap (pathPrefix "/ljet0" . xlPrefix "leading large-$R$ jet ")
+                <$> folding ljetHs <<- second (leading . eLargeJets)
+
+    where ljetHs = (filling mHisto <<- second ((Z :.) . (ljM / 1e3)))
+                    =:= (filling sd12Histo <<- second ((Z :.) . (ljSD12 / 1e3)))
+                    =:= lvHistos
+    {-
     where ljetHs = [ lvHistos,
                      sequenceConduits [ distSink mHisto <<- second ((Z :.) . (/ 1e3) . ljM)
                                       , distSink sd12Histo <<- second ((Z :.) . (/ 1e3) . ljSD12) ]
                    ]
+    -}
 
 tjetHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
 tjetHistos = fmap (pathPrefix "/tjets" . xlPrefix "track jet ")
-                <$> distSinkAll lvHistos <<- second eTrackJets
+                <$> folding lvHistos <<- second eTrackJets
 
 electronHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
 electronHistos = fmap (pathPrefix "/electrons" . xlPrefix "electron ")
-                <$> distSinkAll lvHistos <<- second eElectrons
+                <$> folding lvHistos <<- second eElectrons
 
 muonHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
 muonHistos = fmap (pathPrefix "/muons" . xlPrefix "muon ")
-                <$> distSinkAll lvHistos <<- second eMuons
+                <$> folding lvHistos <<- second eMuons
 
 metHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
 metHistos = fmap (pathPrefix "/met" . xlPrefix "$E_{\\mathrm{T}}^{\\mathrm{miss}}$ ")
