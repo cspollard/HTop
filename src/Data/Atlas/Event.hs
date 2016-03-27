@@ -1,11 +1,14 @@
 {-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 
-module Data.Atlas.Event where
+module Data.Atlas.Event ( Event(..), Events
+                        , EventWeights, weight
+                        , module X
+                        ) where
 
-import Data.HEP.LorentzVector
-import Data.Atlas.Electron
-import Data.Atlas.Muon
-import Data.Atlas.Jet
+import Data.HEP.LorentzVector as X
+import Data.Atlas.Electron as X
+import Data.Atlas.Muon as X
+import Data.Atlas.Jet as X
 
 import Data.Map (Map)
 import qualified Data.Map as M

@@ -25,6 +25,7 @@ import Data.Atlas.Muon
 import Data.Atlas.Jet
 import Data.Atlas.Tree
 import Data.Atlas.Sample
+import Data.Atlas.Helpers
 
 import Data.Conduit
 import qualified Data.Conduit.List as CL
@@ -112,16 +113,19 @@ parseBranchMap ts v = M.fromList <$> forM ts (\t -> (,) t <$> parseBranch t v)
 -- functions out of TopTree, otherwise imports will break.
 -- I probably should make newtypes for Electrons, Jets, etc.
 instance FromJSON Event where
-    parseJSON v = Event
-                <$> parseBranch "runNumber" v
-                <*> parseBranch "eventNumber" v
-                <*> parseBranch "mu" v
-                <*> parseElectrons v
-                <*> parseMuons v
-                <*> parseJets v
-                <*> parseLargeJets v
-                <*> parseTrackJets v
-                <*> parseMET v
+    parseJSON v = do els <- parseElectrons v
+                     ljs <- parseLargeJets v
+                     Event <$> parseBranch "runNumber" v
+                           <*> parseBranch "eventNumber" v
+                           <*> parseBranch "mu" v
+                           <*> return els
+                           <*> parseMuons v
+                           <*> parseJets v
+                           <*> return (V.filter (ljetSelection els) ljs)
+                           <*> parseTrackJets v
+                           <*> parseMET v
+
+
 
 
 evtWeights :: [Text]

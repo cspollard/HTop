@@ -10,12 +10,10 @@ import Data.Text (Text)
 
 import Data.SGList
 import Data.Histogram
+import Data.HEP.YodaHisto
 
 import Data.Atlas.Event
-import Data.Atlas.Jet
-import Data.Atlas.Electron
-import Data.HEP.LorentzVector
-import Data.HEP.YodaHisto
+import Data.Atlas.Helpers
 
 import Conduit
 import qualified Data.Conduit.List as CL
@@ -100,17 +98,9 @@ infixr 3 =++=
 cs =++= cs' = getZipConduit $ liftA2 (++) (ZipConduit cs) (ZipConduit cs')
 
 
-minDR :: (HasLorentzVector a, HasLorentzVector b, Foldable f, Functor f) => a -> f b -> Maybe Double
-minDR v vs = if null vs then Nothing else Just . minimum $ fmap (lvDR v) vs
-
-
-ljetSelection :: Electrons -> LargeJet -> Bool
-ljetSelection els lj = maybe True (> 1.0) $ minDR lj els
-
-
 ljetHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
 ljetHistos = fmap (pathPrefix "/ljet0" . xlPrefix "leading large-$R$ jet ")
-                <$> folding ljetHs <<- second (\evt -> leading . V.filter (ljetSelection $ eElectrons evt) $ eLargeJets evt)
+                <$> folding ljetHs <<- second eLargeJets
 
     where ljetHs = (filling mHisto <<- second ((Z :.) . (ljM / 1e3)))
                     =:= (filling sd12Histo <<- second ((Z :.) . (ljSD12 / 1e3)))
@@ -144,12 +134,9 @@ eventHistos = eljetHistos =:= jetHistos =++= ljetHistos
                           =++= tjetHistos =++= electronHistos
                           =++= muonHistos =++= metHistos
 
-nLep :: Event -> Int
-nLep = (V.length . eElectrons) + (V.length . eMuons)
-
 
 nominalHistos :: Monad m => Consumer Event m (SGList YodaHisto1D)
-nominalHistos = CL.filter ((== 2) . nLep) =$= SGList <$> eventHistos <<- (1.0,)
+nominalHistos = evtSelection =$= SGList <$> eventHistos <<- (1.0,)
 
 {-
 
@@ -165,12 +152,12 @@ channel n f systs = fmap (n,) $ foldBuilder (eventSystHistos systs) <<- \e -> if
 -- TODO
 -- event categorization could be cleaner.
 channelSystHistos :: [Text] -> Builder Event [(Text, [YodaHisto1D])]
-channelSystHistos systs = sequenceConduits [ channel "elelJ/" (\e -> V.length (eElectrons e) == 2 && V.length (eMuons e) == 0) systs
-                                   , channel "elmuJ/" (\e -> V.length (eElectrons e) == 1 && V.length (eMuons e) == 1) systs
-                                   , channel "elnuJ/" (\e -> V.length (eElectrons e) == 1 && V.length (eMuons e) == 0) systs
-                                   , channel "mumuJ/" (\e -> V.length (eElectrons e) == 0 && V.length (eMuons e) == 2) systs
-                                   , channel "munuJ/" (\e -> V.length (eElectrons e) == 0 && V.length (eMuons e) == 1) systs
-                                   , channel "nunuJ/" (\e -> V.length (eElectrons e) == 0 && V.length (eMuons e) == 0) systs
+channelSystHistos systs = sequenceConduits [ channel "elelJ/" (\e -> length (eElectrons e) == 2 && length (eMuons e) == 0) systs
+                                   , channel "elmuJ/" (\e -> length (eElectrons e) == 1 && length (eMuons e) == 1) systs
+                                   , channel "elnuJ/" (\e -> length (eElectrons e) == 1 && length (eMuons e) == 0) systs
+                                   , channel "mumuJ/" (\e -> length (eElectrons e) == 0 && length (eMuons e) == 2) systs
+                                   , channel "munuJ/" (\e -> length (eElectrons e) == 0 && length (eMuons e) == 1) systs
+                                   , channel "nunuJ/" (\e -> length (eElectrons e) == 0 && length (eMuons e) == 0) systs
                                    ]
 
 -}

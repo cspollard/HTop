@@ -24,6 +24,7 @@ library
                      , Data.Atlas.CrossSections
                      , Data.Atlas.Electron
                      , Data.Atlas.Event
+                     , Data.Atlas.Helpers
                      , Data.Atlas.Histograms
                      , Data.Atlas.Jet
                      , Data.Atlas.Muon
