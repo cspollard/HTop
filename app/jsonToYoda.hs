@@ -8,6 +8,7 @@ import qualified Data.Text.Encoding as T
 
 import Data.HEP.YodaHisto
 import Data.Histogram
+import Graphics.Histo
 
 import qualified Data.Conduit.Binary as CB
 
@@ -39,6 +40,8 @@ import Control.Arrow ((&&&))
 
 import Options.Generic
 import Data.SGList
+
+import Data.List
 
 -- TODO
 -- at some point this all needs to be moved into library functions.
@@ -75,3 +78,7 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           createDirectoryIfMissing True outfname
         
           forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ CL.sourceList (fromSGList hs) $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
+
+          forM_ (transpose . fmap (fromSGList . snd) . M.toList $ mergedHists) (\hs@(h:_) -> createDirectoryIfMissing True (cleanPath . dropWhileEnd (/= '/') $ T.unpack (path h)) >> renderHistos ((cleanPath . T.unpack . path $ h) <> ".tex") 1000 (fmap yhHisto $ hs))
+
+    where cleanPath = dropWhile (== '/')
