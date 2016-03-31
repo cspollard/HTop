@@ -136,19 +136,20 @@ eventHistos = eljetHistos =:= jetHistos =++= ljetHistos
 
 
 nominalHistos :: Monad m => Consumer Event m [YodaHisto1D]
-nominalHistos = evtSelection =$= eventHistos <<- (1.0,)
+nominalHistos = eventHistos <<- (1.0,)
 
-channel :: Text -> (Event -> Bool) -> Consumer Event [YodaHisto1D]
-channel n f systs = fmap (xlPrefix n) <$> nominalHistos <<- \e -> if f e then Just e else Nothing
+channel :: Monad m => Text -> (Event -> Bool) -> Consumer Event m [YodaHisto1D]
+channel n f = fmap (fmap (pathPrefix n)) $ filterC f =$= nominalHistos
 
-channelHistos :: Builder Event [YodaHisto1D]
-channelHistos = concatMap <$> sequenceConduits [ channel "elelJ/" (\e -> length (eElectrons e) == 2 && length (eMuons e) == 0)
-                                             , channel "elmuJ/" (\e -> length (eElectrons e) == 1 && length (eMuons e) == 1)
-                                             , channel "elnuJ/" (\e -> length (eElectrons e) == 1 && length (eMuons e) == 0)
-                                             , channel "mumuJ/" (\e -> length (eElectrons e) == 0 && length (eMuons e) == 2)
-                                             , channel "munuJ/" (\e -> length (eElectrons e) == 0 && length (eMuons e) == 1)
-                                             , channel "nunuJ/" (\e -> length (eElectrons e) == 0 && length (eMuons e) == 0)
-                                             ]
+channelHistos :: Monad m => Consumer Event m (SGList YodaHisto1D)
+channelHistos = SGList . concat <$> sequenceConduits [ channel "elelJ/" (\e -> length (eElectrons e) == 2 && length (eMuons e) == 0)
+                                                     , channel "elmuJ/" (\e -> length (eElectrons e) == 1 && length (eMuons e) == 1)
+                                                     , channel "elnuJ/" (\e -> length (eElectrons e) == 1 && length (eMuons e) == 0)
+                                                     , channel "mumuJ/" (\e -> length (eElectrons e) == 0 && length (eMuons e) == 2)
+                                                     , channel "munuJ/" (\e -> length (eElectrons e) == 0 && length (eMuons e) == 1)
+                                                     , channel "nunuJ/" (\e -> length (eElectrons e) == 0 && length (eMuons e) == 0)
+                                                     ]
+
 
 {-
 
