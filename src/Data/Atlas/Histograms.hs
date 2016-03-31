@@ -142,23 +142,10 @@ channel :: Monad m => Text -> (Event -> Bool) -> Consumer Event m [YodaHisto1D]
 channel n f = fmap (fmap (pathPrefix n)) $ filterC f =$= nominalHistos
 
 channelHistos :: Monad m => Consumer Event m (SGList YodaHisto1D)
-channelHistos = SGList . concat <$> sequenceConduits [ channel "elelJ/" (\e -> length (eElectrons e) == 2 && length (eMuons e) == 0)
-                                                     , channel "elmuJ/" (\e -> length (eElectrons e) == 1 && length (eMuons e) == 1)
-                                                     , channel "elnuJ/" (\e -> length (eElectrons e) == 1 && length (eMuons e) == 0)
-                                                     , channel "mumuJ/" (\e -> length (eElectrons e) == 0 && length (eMuons e) == 2)
-                                                     , channel "munuJ/" (\e -> length (eElectrons e) == 0 && length (eMuons e) == 1)
-                                                     , channel "nunuJ/" (\e -> length (eElectrons e) == 0 && length (eMuons e) == 0)
+channelHistos = SGList . concat <$> sequenceConduits [ channel "/elelJ" elelJ
+                                                     , channel "/elmuJ" elmuJ
+                                                     , channel "/elnuJ" elmuJ
+                                                     , channel "/mumuJ" mumuJ
+                                                     , channel "/munuJ" munuJ
+                                                     , channel "/nunuJ" nunuJ
                                                      ]
-
-
-{-
-
-
-eventSystHistos :: [Text] -> Builder Event [YodaHisto1D]
-eventSystHistos = fmap concat . traverse eventHistos
-
-
-
-
-
--}

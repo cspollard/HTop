@@ -150,3 +150,10 @@ weight_indiv_SF_MU_TTVA_STAT_UP
 weight_indiv_SF_MU_TTVA_STAT_DOWN
 weight_indiv_SF_MU_TTVA_SYST_UP
 weight_indiv_SF_MU_TTVA_SYST_DOWN
+
+elelJ
+elmuJ
+mumuJ
+elnuJ
+munuJ
+nunuJ

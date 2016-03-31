@@ -124,6 +124,12 @@ instance FromJSON Event where
                            <*> return (V.filter (ljetSelection els) ljs)
                            <*> parseTrackJets v
                            <*> parseMET v
+                           <*> parseBranch "elelJ" v
+                           <*> parseBranch "mumuJ" v
+                           <*> parseBranch "elmuJ" v
+                           <*> parseBranch "elnuJ" v
+                           <*> parseBranch "munuJ" v
+                           <*> parseBranch "nunuJ" v
 
 
 

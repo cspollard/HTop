@@ -19,17 +19,22 @@ import GHC.Generics (Generic)
 
 import Data.Serialize.Text ()
 
-data Event = Event {
-    eRunNumber :: Int,
-    eEventNumber :: Int,
-    eMu :: Double,
-    eElectrons :: Electrons,
-    eMuons :: Muons,
-    eJets :: Jets,
-    eLargeJets :: LargeJets,
-    eTrackJets :: TrackJets,
-    eMET :: PtEtaPhiE
-    } deriving (Show, Generic)
+data Event = Event { eRunNumber :: Int
+                   , eEventNumber :: Int
+                   , eMu :: Double
+                   , eElectrons :: Electrons
+                   , eMuons :: Muons
+                   , eJets :: Jets
+                   , eLargeJets :: LargeJets
+                   , eTrackJets :: TrackJets
+                   , eMET :: PtEtaPhiE
+                   , elelJ :: Bool
+                   , mumuJ :: Bool
+                   , elmuJ :: Bool
+                   , elnuJ :: Bool
+                   , munuJ :: Bool
+                   , nunuJ :: Bool
+                   } deriving (Show, Generic)
 
 instance Serialize Event where
 
