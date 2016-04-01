@@ -22,8 +22,11 @@ import qualified Data.Vector as V
 
 import Data.NumInstances ()
 
+
 -- TODO
 -- all of these lists should probably turn into (:.) lists for type checking
+
+type Weighted a = (Double, a)
 
 dsigdXpbY :: Text -> Text -> Text
 dsigdXpbY x y = "$\\frac{d\\sigma}{d" <> x <> "} \\frac{\\mathrm{pb}}{" <> y <> "}$"
@@ -70,18 +73,18 @@ premap f c = CL.map f =$= c
 filling :: (Monad m, Distribution d) => d -> Consumer (W d, X d) m d
 filling = CL.fold fill
 
-folding :: (Monad m, Functor f, Foldable f) => Consumer (Double, a) m r -> Consumer (Double, f a) m r
+folding :: (Monad m, Functor f, Foldable f) => Consumer (Weighted a) m r -> Consumer (Weighted (f a)) m r
 folding c = CL.mapFoldable (\(w, v) -> fmap (w,) v) =$= c
 
 
 -- common histograms for LorentzVectors
-lvHistos :: (Monad m, HasLorentzVector a) => Consumer (Double, a) m [YodaHisto1D]
+lvHistos :: (Monad m, HasLorentzVector a) => Consumer (Weighted a) m [YodaHisto1D]
 lvHistos = sequenceConduits [ filling ptHisto <<- second ((Z :.) . (/ 1e3) . lvPt)
                             , filling etaHisto <<- second ((Z :.) . lvEta)
                             ] <<- second toPtEtaPhiE
 
 
-jetHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
+jetHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
 jetHistos = fmap (pathPrefix "/jets" . xlPrefix "small-$R$ jet ")
                 <$> folding lvHistos <<- second eJets
 
@@ -98,7 +101,7 @@ infixr 3 =++=
 cs =++= cs' = getZipConduit $ liftA2 (++) (ZipConduit cs) (ZipConduit cs')
 
 
-ljetHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
+ljetHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
 ljetHistos = fmap (pathPrefix "/ljet0" . xlPrefix "leading large-$R$ jet ")
                 <$> folding ljetHs <<- second eLargeJets
 
@@ -106,42 +109,38 @@ ljetHistos = fmap (pathPrefix "/ljet0" . xlPrefix "leading large-$R$ jet ")
                     =:= (filling sd12Histo <<- second ((Z :.) . (ljSD12 / 1e3)))
                     =:= lvHistos
 
--- TODO
--- this calculates the leading largeR jet twice.
-eljetHistos :: Monad m => Consumer (Double, Event) m YodaHisto1D
+eljetHistos :: Monad m => Consumer (Weighted Event) m YodaHisto1D
 eljetHistos = (pathPrefix "/elljet0" . xlPrefix "electron-leading large-$R$ jet ")
                 <$> folding (folding (filling dRHisto <<- second (Z :.)))
-                <<- second (\evt -> fmap (flip minDR (eElectrons evt)) . leading . V.filter (ljetSelection $ eElectrons evt) $ eLargeJets evt)
+                <<- second (\evt -> fmap (flip minDR (eElectrons evt)) . leading $ eLargeJets evt)
 
-tjetHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
+tjetHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
 tjetHistos = fmap (pathPrefix "/tjets" . xlPrefix "track jet ")
                 <$> folding lvHistos <<- second eTrackJets
 
-electronHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
+electronHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
 electronHistos = fmap (pathPrefix "/electrons" . xlPrefix "electron ")
                 <$> folding lvHistos <<- second eElectrons
 
-muonHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
+muonHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
 muonHistos = fmap (pathPrefix "/muons" . xlPrefix "muon ")
                 <$> folding lvHistos <<- second eMuons
 
-metHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
+metHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
 metHistos = fmap (pathPrefix "/met" . xlPrefix "$E_{\\mathrm{T}}^{\\mathrm{miss}}$ ")
                 <$> lvHistos <<- second eMET
 
-eventHistos :: Monad m => Consumer (Double, Event) m [YodaHisto1D]
+eventHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
 eventHistos = eljetHistos =:= jetHistos =++= ljetHistos
                           =++= tjetHistos =++= electronHistos
                           =++= muonHistos =++= metHistos
 
 
-nominalHistos :: Monad m => Consumer Event m [YodaHisto1D]
-nominalHistos = eventHistos <<- (1.0,)
+channel :: Monad m => Text -> (Event -> Bool) -> Consumer (Weighted Event) m [YodaHisto1D]
+channel n f = fmap (fmap (pathPrefix n)) $ filterC (f . snd) =$= eventHistos
 
-channel :: Monad m => Text -> (Event -> Bool) -> Consumer Event m [YodaHisto1D]
-channel n f = fmap (fmap (pathPrefix n)) $ filterC f =$= nominalHistos
 
-channelHistos :: Monad m => Consumer Event m (SGList YodaHisto1D)
+channelHistos :: Monad m => Consumer (Weighted Event) m (SGList YodaHisto1D)
 channelHistos = SGList . concat <$> sequenceConduits [ channel "/elelJ" elelJ
                                                      , channel "/elmuJ" elmuJ
                                                      , channel "/elnuJ" elmuJ

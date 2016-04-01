@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, TupleSections #-}
 
 module Data.Atlas.TopTree where
 
@@ -20,11 +20,6 @@ import Control.Monad (forM)
 
 import Data.HEP.LorentzVector
 import Data.Atlas.Event
-import Data.Atlas.Electron
-import Data.Atlas.Muon
-import Data.Atlas.Jet
-import Data.Atlas.Tree
-import Data.Atlas.Sample
 import Data.Atlas.Helpers
 
 import Data.Conduit
@@ -32,7 +27,6 @@ import qualified Data.Conduit.List as CL
 import Data.Serialize
 -- import Data.Serialize.Get
 import Data.ByteString.Char8 (ByteString)
-import Control.Monad.Catch (MonadThrow(..))
 
 
 parseBranch :: FromJSON a => Text -> Value -> Parser a
@@ -107,6 +101,7 @@ parseBranchMap :: FromJSON v => [Text] -> Value -> Parser (M.Map Text v)
 parseBranchMap ts v = M.fromList <$> forM ts (\t -> (,) t <$> parseBranch t v)
 
 
+
 -- TODO
 -- orphan instance...
 -- but I have to move all functions above to Event, or move below
@@ -130,7 +125,6 @@ instance FromJSON Event where
                            <*> parseBranch "elnuJ" v
                            <*> parseBranch "munuJ" v
                            <*> parseBranch "nunuJ" v
-
 
 
 

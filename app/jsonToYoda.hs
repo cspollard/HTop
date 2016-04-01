@@ -66,7 +66,7 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
 
           -- project the samples onto the nominal histos (in parallel)
-          samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> runResourceT (sourceFile fn =$= ungzip $$ project channelHistos)) $ fins
+          samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> runResourceT (sourceFile fn =$= ungzip $$ project ["weight_mc", "weight_pileup", "weight_leptonSF"] channelHistos)) $ fins
 
           let m = M.fromListWith (<>) $ map ((dsid . fst) &&& id) (samps :: [Sample (SGList YodaHisto1D)])
 

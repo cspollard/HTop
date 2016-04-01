@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, RankNTypes #-}
+{-# LANGUAGE OverloadedStrings, RankNTypes, TupleSections #-}
 
 module Data.Atlas.Tree where
 
@@ -7,6 +7,7 @@ import Data.Semigroup
 import Data.ByteString (ByteString)
 
 import qualified Data.Aeson as AT
+import qualified Data.Aeson.Types as AT
 import Data.Aeson (Value(..), object, FromJSON(..), fromJSON)
 
 import Data.Text (Text)
@@ -25,10 +26,21 @@ import Control.Monad (unless)
 import Control.Monad.Catch (MonadThrow(..))
 
 import Data.Atlas.Sample
+import Data.Atlas.TopTree
 
 
-json :: AT.FromJSON a => Parser a
-json = AT.json >>= (fromResult . fromJSON)
+type Weighted a = (Double, a)
+
+parseWeighted :: FromJSON a => [Text] -> Value -> AT.Parser (Double, a)
+parseWeighted ws v = do w <- foldr (*) 1.0 <$> mapM (flip parseBranch v) ws
+                        (w,) <$> parseJSON v
+
+
+json' :: (Value -> AT.Parser a) -> Parser a
+json' f = AT.json >>= (fromResult . AT.parse f)
+
+json :: FromJSON a => Parser a
+json = json' parseJSON
 
 
 fromResult :: Monad m => AT.Result a -> m a
@@ -79,11 +91,10 @@ treeFooter = sinkParser $ skipSpace <* char '}'
 
 -- TODO
 -- currently this does not return the title of the tree...
-tree :: (MonadThrow m, FromJSON e) => Conduit ByteString m e
-tree = do
-        (_, brs) <- treeHeader
-        events brs =$= CL.mapM (fromResult . fromJSON)
-        treeFooter
+tree :: (MonadThrow m) => (Value -> AT.Parser e) -> Conduit ByteString m e
+tree f = do (_, brs) <- treeHeader
+            events brs =$= CL.mapM (fromResult . AT.parse f)
+            treeFooter
 
 
 fileHeader :: MonadThrow m => Consumer ByteString m ()
@@ -101,16 +112,17 @@ comma = sinkParser (skipSpace *> char ',' *> skipSpace)
 sampleInfo :: MonadThrow m => Consumer ByteString m SampleInfo
 -- TODO
 -- SampleInfo should be Monoid?
-sampleInfo = tree =$= CL.fold (<>) (SampleInfo 0 0 0)
+sampleInfo = tree parseJSON =$= CL.fold (<>) (SampleInfo 0 0 0)
 
 
 project :: (FromJSON a, MonadThrow m)
-          => Consumer a m h
+          => [Text]
+          -> Consumer (Weighted a) m h
           -> Consumer ByteString m (Sample h)
-project c = do fileHeader
-               s <- sampleInfo
-               comma
-               h <- tree =$= c
-               fileFooter
+project ws c = do fileHeader
+                  s <- sampleInfo
+                  comma
+                  h <- tree (parseWeighted ws) =$= c
+                  fileFooter
 
-               return (s, h)
+                  return (s, h)
