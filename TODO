@@ -3,7 +3,7 @@ dPhi, dEta, dR
 
 cut DSL (a ala root TTree::Project)
 
-TopTree and Histograms need cleanup
+TopTree, Histograms, Tree need cleanup
 
 more complicated plots, e.g. mll
 
