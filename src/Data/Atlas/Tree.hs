@@ -122,7 +122,8 @@ project :: (FromJSON a, MonadThrow m)
 project ws c = do fileHeader
                   s <- sampleInfo
                   comma
-                  h <- tree (parseWeighted ws) =$= c
+                  let ws' = if dsid s == 0 then [] else ws
+                  h <- tree (parseWeighted ws') =$= c
                   fileFooter
 
                   return (s, h)

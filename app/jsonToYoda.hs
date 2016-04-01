@@ -66,7 +66,7 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
 
           -- project the samples onto the nominal histos (in parallel)
-          samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> runResourceT (sourceFile fn =$= ungzip $$ project ["weight_mc", "weight_pileup", "weight_leptonSF"] channelHistos)) $ fins
+          samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> runResourceT (sourceFile fn =$= ungzip $$ project mcWs channelHistos)) $ fins
 
           let m = M.fromListWith (<>) $ map ((dsid . fst) &&& id) (samps :: [Sample (SGList YodaHisto1D)])
 
@@ -82,3 +82,4 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           forM_ (transpose . fmap (fromSGList . snd) . M.toList $ mergedHists) (\hs@(h:_) -> createDirectoryIfMissing True (cleanPath . dropWhileEnd (/= '/') $ T.unpack (path h)) >> renderHistos ((cleanPath . T.unpack . path $ h) <> ".tex") 1000 (fmap yhHisto $ hs))
 
     where cleanPath = dropWhile (== '/')
+          mcWs = ["weight_mc", "weight_pileup", "weight_leptonSF"]
