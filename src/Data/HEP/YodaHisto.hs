@@ -29,7 +29,7 @@ data YodaHisto b val = YodaHisto { path :: Text
                                  , yhHisto :: !(Histogram b val)
                                  } deriving (Generic, Show)
 
-type YodaHisto1D = YodaHisto (Bin1D Double) (Dist1D Double)
+type YodaHisto1D = YodaHisto (ConstBin1D Double) (Dist1D Double)
 
 instance (Serialize val, Serialize b) => Serialize (YodaHisto b val) where
 
