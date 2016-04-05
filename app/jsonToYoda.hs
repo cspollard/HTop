@@ -69,6 +69,7 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> runResourceT (sourceFile fn =$= ungzip $$ project mcWs channelHistos)) $ fins
 
           let m = M.fromListWith (<>) $ map ((dsid . fst) &&& id) (samps :: [Sample (SGList YodaHisto1D)])
+          mapM_ print $ M.toList m
 
           let scaledHists = fmap (\ss@(s, _) -> freezeSample ss `scaleW` (let ds = dsid s in if ds /= 0 then (xsecs IM.! ds) * 3210 else 1)) m
 
