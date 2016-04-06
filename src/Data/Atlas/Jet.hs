@@ -29,8 +29,8 @@ type Jets = Vector Jet
 
 -- necessary for tauXY variables, which can be NaN
 data SafeDouble = Doub { toDouble :: Double }
-                  | NaN
-                  deriving (Eq, Show, Read, Generic)
+                | NaN
+                deriving (Eq, Show, Read, Generic)
 
 
 instance Serialize SafeDouble where
@@ -40,13 +40,13 @@ instance FromJSON SafeDouble where
     parseJSON v = (Doub <$> parseJSON v) <|> (read <$> parseJSON v)
 
 
-data LargeJet = LargeJet {
-    ljPtEtaPhiE :: PtEtaPhiE,
-    ljM :: Double,
-    ljSD12 :: Double,
-    ljTau21 :: SafeDouble,
-    ljTau32 :: SafeDouble
-    } deriving (Show, Generic)
+data LargeJet = LargeJet
+              { ljPtEtaPhiE :: PtEtaPhiE
+              , ljM :: Double
+              , ljSD12 :: Double
+              , ljTau21 :: SafeDouble
+              , ljTau32 :: SafeDouble
+              } deriving (Show, Generic)
 
 instance Serialize LargeJet
 
@@ -54,6 +54,7 @@ instance HasLorentzVector LargeJet where
     lv = fromLV . ljPtEtaPhiE
 
 type LargeJets = Vector LargeJet
+
 
 data TrackJet = TrackJet {
     tjPtEtaPhiE :: PtEtaPhiE,
