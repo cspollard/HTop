@@ -8,4 +8,4 @@ extra-deps:
 - diagrams-pgf-0.1.0.3
 - optparse-generic-1.1.0
 - texrunner-0.0.1.0
-resolver: lts-5.8
+resolver: lts-5.15
