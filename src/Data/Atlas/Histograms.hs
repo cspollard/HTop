@@ -141,7 +141,8 @@ channel n f = fmap (fmap (pathPrefix n)) $ filterC (f . snd) =$= eventHistos
 
 
 channelHistos :: Monad m => Consumer (Weighted Event) m (SGList YodaHisto1D)
-channelHistos = SGList . concat <$> sequenceConduits [ channel "/elelJ" elelJ
+channelHistos = SGList . concat <$> sequenceConduits [ channel "/elelJ/inclusive" elelJ
+                                                     , channel "/elelJ/0tag0addtag" (and . sequenceA [elelJ, (== 0) . nTags])
                                                      , channel "/elmuJ" elmuJ
                                                      , channel "/elnuJ" elmuJ
                                                      , channel "/mumuJ" mumuJ

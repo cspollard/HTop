@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 
 module Data.Atlas.Event ( Event(..), Events
-                        , EventWeights, weight
+                        , EventWeights, weight, nTags
                         , module X
                         ) where
 
@@ -12,6 +12,7 @@ import Data.Atlas.Jet as X
 
 import Data.Map (Map)
 import qualified Data.Map as M
+import Data.Vector (toList)
 import Data.Text (Text)
 
 import Data.Serialize
@@ -46,3 +47,6 @@ type EventWeights = Map Text Double
 
 weight :: EventWeights -> [Text] -> Double
 weight ew ts = product $ map (ew M.!) ts
+
+nTags :: Event -> Int
+nTags = length . filter bTagged . toList . eTrackJets

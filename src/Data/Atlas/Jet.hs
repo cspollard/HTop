@@ -3,7 +3,7 @@
 module Data.Atlas.Jet where
 
 import Data.HEP.LorentzVector
-import Data.Vector (Vector)
+import Data.Vector (Vector, (!))
 
 import Data.Aeson (FromJSON(..))
 import Control.Applicative ((<|>))
@@ -49,6 +49,9 @@ data LargeJet = LargeJet
               , ljGhostTJs :: [Int]
               } deriving (Show, Generic)
 
+nGhostTags :: TrackJets -> LargeJet -> Int
+nGhostTags tjs = length . filter bTagged . map (tjs !) . ljGhostTJs
+
 instance Serialize LargeJet
 
 instance HasLorentzVector LargeJet where
@@ -63,6 +66,10 @@ data TrackJet = TrackJet {
     -- this won't be present in data.
     tjLabel :: Maybe Int
     } deriving (Show, Generic)
+
+
+bTagged :: TrackJet -> Bool
+bTagged = (> -0.3098) . tjMV2c20
 
 instance Serialize TrackJet
 
