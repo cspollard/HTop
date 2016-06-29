@@ -46,6 +46,7 @@ data LargeJet = LargeJet
               , ljSD12 :: Double
               , ljTau21 :: SafeDouble
               , ljTau32 :: SafeDouble
+              , ljGhostTJs :: [Int]
               } deriving (Show, Generic)
 
 instance Serialize LargeJet

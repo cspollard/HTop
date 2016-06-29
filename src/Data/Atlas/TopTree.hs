@@ -78,7 +78,8 @@ parseLargeJets val = fmap LargeJet `fmap`
                         parseBranch "ljet_m" val `zipWithA`
                         parseBranch "ljet_sd12" val `zipWithA`
                         parseBranch "ljet_tau21" val `zipWithA`
-                        parseBranch "ljet_tau32" val
+                        parseBranch "ljet_tau32" val `zipWithA`
+                        parseBranch "ljet_ghosttrackjet_idx" val
 
 
 parseTrackJets :: Value -> Parser TrackJets
