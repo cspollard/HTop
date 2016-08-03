@@ -10,8 +10,6 @@ import GHC.Generics
 import Data.Semigroup
 import Data.Serialize
 
-import Data.Histogram.Distribution
-
 -- TODO
 -- this should wrap all foldables if possible.
 --

@@ -7,8 +7,6 @@ import Conduit
 import qualified Data.Conduit.List as CL
 import Data.Atlas.Event
 
-import Data.NumInstances ()
-
 cut :: Monad m => (a -> Bool) -> Conduit a m a
 cut = CL.filter
 

@@ -9,7 +9,6 @@ import Data.Aeson (FromJSON(..))
 import Control.Applicative ((<|>))
 
 import Data.Serialize
-import Data.Serialize.Vector ()
 import GHC.Generics (Generic)
 
 

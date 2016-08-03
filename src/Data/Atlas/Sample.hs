@@ -7,8 +7,6 @@ import GHC.Generics
 import Data.Aeson
 import Data.Semigroup
 
-import Data.Histogram.Distribution
-
 data SampleInfo = SampleInfo { dsid :: Int
                              , numEvents :: Int
                              , sumWeights :: Double

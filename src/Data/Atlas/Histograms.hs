@@ -20,8 +20,6 @@ import qualified Data.Conduit.List as CL
 
 import qualified Data.Vector as V
 
-import Data.NumInstances ()
-
 
 -- TODO
 -- all of these lists should probably turn into (:.) lists for type checking
