@@ -21,8 +21,6 @@ cOr = liftA2 (||)
 cAnd :: Cut a -> Cut a -> Cut a
 cAnd = liftA2 (&&)
 
--- TODO
--- make work for any Foldable
 cAny :: Foldable t => t (Cut a) -> Cut a
 cAny = F.foldr cOr cFail
 
