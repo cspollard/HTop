@@ -4,6 +4,8 @@
 
 module Data.Atlas.Sample where
 
+import Control.Lens
+
 import Data.Serialize
 import GHC.Generics
 import Data.Aeson
@@ -43,4 +45,4 @@ type Sample h = (SampleInfo, [h])
 freezeSample :: Sample YodaHisto1D -> [YodaHisto1D]
 freezeSample (si, hs) = case dsid si of
                                 0 -> hs
-                                _ -> map (`scaleBy` (1.0 / sumWeights si)) hs
+                                _ -> fmap (over yhHisto (`scaleBy` (1.0 / sumWeights si))) hs

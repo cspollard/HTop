@@ -18,7 +18,7 @@ import Data.Atlas.Helpers
 import Conduit
 import qualified Data.Conduit.List as CL
 
-import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as V
 
 
 -- TODO
@@ -35,44 +35,36 @@ rad = "\\mathrm{rad}"
 pt = "p_{\\mathrm{T}}"
 
 
+histo1D :: Int -> Double -> Double
+histo1D n mn mx = histogram (binD mn n mx) (V.replicate n 0)
+
 ptHisto :: YodaHisto1D
-ptHisto = YodaHisto "/pt" "$p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histogram (constBin1D 25 (0, 1000)) mempty
+ptHisto = YodaHisto "/pt" "$p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D 25 0 1000
 
 eHisto :: YodaHisto1D
-eHisto = YodaHisto "/E" "$E$ [GeV]" (dsigdXpbY "E" gev) $ histogram (constBin1D 25 (0, 1000)) mempty
+eHisto = YodaHisto "/E" "$E$ [GeV]" (dsigdXpbY "E" gev) $ histo1D 25 0 1000
 
 mHisto :: YodaHisto1D
-mHisto = YodaHisto "/mass" "mass [GeV]" (dsigdXpbY "m" gev) $ histogram (constBin1D 30 (0, 300)) mempty
+mHisto = YodaHisto "/mass" "mass [GeV]" (dsigdXpbY "m" gev) $ histo1D 30 0 300
 
 etaHisto :: YodaHisto1D
-etaHisto = YodaHisto "/eta" "$\\eta$" (dsigdXpbY "\\eta" rad) $ histogram (constBin1D 30 (-3, 3)) mempty
+etaHisto = YodaHisto "/eta" "$\\eta$" (dsigdXpbY "\\eta" rad) $ histo1D 30 (-3) 3
 
 phiHisto :: YodaHisto1D
-phiHisto = YodaHisto "/phi" "$\\phi$" (dsigdXpbY "\\phi" rad) $ histogram (constBin1D 30 (-pi, pi)) mempty
+phiHisto = YodaHisto "/phi" "$\\phi$" (dsigdXpbY "\\phi" rad) $ histo1D 30 (-pi) pi
 
 sd12Histo :: YodaHisto1D
-sd12Histo = YodaHisto "/sd12" "$\\sqrt{d_{12}}$ [GeV]" (dsigdXpbY "\\sqrt{d_{12}}" gev) $ histogram (constBin1D 30 (0, 300)) mempty
+sd12Histo = YodaHisto "/sd12" "$\\sqrt{d_{12}}$ [GeV]" (dsigdXpbY "\\sqrt{d_{12}}" gev) $ histo1D 30 0 300
 
 dRHisto :: YodaHisto1D
-dRHisto = YodaHisto "/deltaR" "$\\Delta R$" (dsigdXpbY "\\Delta R" "rad") $ histogram (constBin1D 25 (0, 5)) mempty
+dRHisto = YodaHisto "/deltaR" "$\\Delta R$" (dsigdXpbY "\\Delta R" "rad") $ histo1D 25 0 5
 
 nObjHisto :: YodaHisto1D
-nObjHisto = YodaHisto "/n" "multiplicity" (dsigdXpbY "n" "\\mathrm{unit}") $ histogram (constBin1D 25 (0, 5)) mempty
-
-premap :: Monad m => (i -> j) -> ConduitM j o m r -> ConduitM i o m r
-premap f c = CL.map f =$= c
+nObjHisto = YodaHisto "/n" "multiplicity" (dsigdXpbY "n" "\\mathrm{unit}") $ histo1D 25 0 5
 
 
-(<<-) :: Monad m => ConduitM j o m r -> (i -> j) -> ConduitM i o m r
-(<<-) = flip premap
-
-
-
-filling :: (Monad m, Distribution d) => d -> Consumer (W d, X d) m d
-filling = CL.fold fill
-
-folding :: (Monad m, Functor f, Foldable f) => Consumer (Weighted a) m r -> Consumer (Weighted (f a)) m r
-folding c = CL.mapFoldable (\(w, v) -> fmap (w,) v) =$= c
+histConsumerWeighted :: (Monad m, Num v, BinValue b ~ a) => Histogram b v -> Consumer (a, v) m (Histogram b v)
+histConsumerWeighted h = 
 
 
 -- common histograms for LorentzVectors
@@ -85,18 +77,6 @@ lvHistos = sequenceConduits [ filling ptHisto <<- second ((Z :.) . (/ 1e3) . lvP
 jetHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
 jetHistos = fmap (pathPrefix "/jets" . xlPrefix "small-$R$ jet ")
                 <$> folding lvHistos <<- second eJets
-
--- TODO
--- not sure about this fixity.
-infixr 3 =:=
-(=:=) :: Monad m => ConduitM i o m r -> ConduitM i o m [r] -> ConduitM i o m [r]
-c =:= cs = getZipConduit $ liftA2 (:) (ZipConduit c) (ZipConduit cs)
-
--- TODO
--- not sure about this fixity.
-infixr 3 =++=
-(=++=) :: Monad m => ConduitM i o m [r] -> ConduitM i o m [r] -> ConduitM i o m [r]
-cs =++= cs' = getZipConduit $ liftA2 (++) (ZipConduit cs) (ZipConduit cs')
 
 
 ljetHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]

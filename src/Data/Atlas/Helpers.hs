@@ -19,7 +19,7 @@ ljetSelection els lj = maybe True (> 1.0) $ minDR lj els
 
 
 nLep :: Event -> Int
-nLep = (length . eElectrons) + (length . eMuons)
+nLep = (+) <$> (length . eElectrons) <*> (length . eMuons)
 
 evtSelection :: Monad m => Conduit Event m Event
 evtSelection = cut ((== 2) . nLep) =$= cut ((>= 1) . length . eLargeJets)

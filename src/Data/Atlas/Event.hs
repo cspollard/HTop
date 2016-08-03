@@ -13,6 +13,7 @@ import Data.Atlas.Jet as X
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Vector (toList)
+import Data.Vector.Serialize ()
 import Data.Text (Text)
 
 import Data.Serialize
