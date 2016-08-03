@@ -1,7 +1,7 @@
-{-# LANGUAGE DeriveGeneric
-           , TypeFamilies
-           , GeneralizedNewtypeDeriving
-           , DeriveTraversable #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveTraversable #-}
 
 module Data.SGList where
 

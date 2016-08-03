@@ -10,7 +10,7 @@ import Data.Text (Text)
 
 import Data.SGList
 import Data.Histogram
-import Data.HEP.YodaHisto
+import Data.Histogram.Funcs
 
 import Data.Atlas.Event
 import Data.Atlas.Helpers
