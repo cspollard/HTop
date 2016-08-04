@@ -6,9 +6,8 @@ import Data.ByteString (ByteString)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
-import Data.HEP.YodaHisto
-import Data.Histogram
-import Graphics.Histo
+import qualified Data.Histogram as H
+import Data.Histogram.Funcs
 
 import qualified Data.Conduit.Binary as CB
 
@@ -71,16 +70,14 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           let m = M.fromListWith (<>) $ map ((dsid . fst) &&& id) (samps :: [Sample (SGList YodaHisto1D)])
           mapM_ print $ M.toList m
 
-          let scaledHists = fmap (\ss@(s, _) -> freezeSample ss `scaleW` (let ds = dsid s in if ds /= 0 then (xsecs IM.! ds) * 3210 else 1)) m
+          let scaledHists = fmap (\ss@(s, _) -> freezeSample ss `scaleBy` (let ds = dsid s in if ds /= 0 then (xsecs IM.! ds) * 3210 else 1)) m
 
           let mergedHists = M.mapKeysWith (<>) processTitle scaledHists
 
           let outfname = outfolder args
           createDirectoryIfMissing True outfname
         
-          forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ CL.sourceList (fromSGList hs) $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
-
-          forM_ (transpose . fmap (fromSGList . snd) . M.toList $ mergedHists) (\hs@(h:_) -> createDirectoryIfMissing True (cleanPath . dropWhileEnd (/= '/') $ T.unpack (path h)) >> renderHistos ((cleanPath . T.unpack . path $ h) <> ".tex") 1000 (fmap yhHisto $ hs))
+          -- forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ CL.sourceList (fromSGList hs) $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
 
     where cleanPath = dropWhile (== '/')
           mcWs = ["weight_mc", "weight_pileup", "weight_leptonSF"]
