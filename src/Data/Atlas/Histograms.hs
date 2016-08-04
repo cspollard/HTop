@@ -10,6 +10,7 @@ import Data.Text (Text)
 
 import Data.SGList
 import Data.Histogram
+import Data.Histogram.Fill
 import Data.Histogram.Funcs
 
 import Data.Atlas.Event
@@ -35,37 +36,38 @@ rad = "\\mathrm{rad}"
 pt = "p_{\\mathrm{T}}"
 
 
-histo1D :: Int -> Double -> Double
-histo1D n mn mx = histogram (binD mn n mx) (V.replicate n 0)
+ptHisto :: Monad m => Consumer (Double, Double) m YodaHisto1D
+ptHisto = YodaHisto "/pt" "$p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) <$> histCW (binD 0 25 1000)
 
-ptHisto :: YodaHisto1D
-ptHisto = YodaHisto "/pt" "$p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D 25 0 1000
+eHisto :: Monad m => Consumer (Double, Double) m YodaHisto1D
+eHisto = YodaHisto "/E" "<$>E<$> [GeV]" (dsigdXpbY "E" gev) <$> histCW (binD 0 25 1000)
 
-eHisto :: YodaHisto1D
-eHisto = YodaHisto "/E" "$E$ [GeV]" (dsigdXpbY "E" gev) $ histo1D 25 0 1000
+mHisto :: Monad m => Consumer (Double, Double) m YodaHisto1D
+mHisto = YodaHisto "/mass" "mass [GeV]" (dsigdXpbY "m" gev) <$> histCW (binD 0 30 300)
 
-mHisto :: YodaHisto1D
-mHisto = YodaHisto "/mass" "mass [GeV]" (dsigdXpbY "m" gev) $ histo1D 30 0 300
+etaHisto :: Monad m => Consumer (Double, Double) m YodaHisto1D
+etaHisto = YodaHisto "/eta" "<$>\\eta<$>" (dsigdXpbY "\\eta" rad) <$> histCW (binD (-3) 30 3)
 
-etaHisto :: YodaHisto1D
-etaHisto = YodaHisto "/eta" "$\\eta$" (dsigdXpbY "\\eta" rad) $ histo1D 30 (-3) 3
+phiHisto :: Monad m => Consumer (Double, Double) m YodaHisto1D
+phiHisto = YodaHisto "/phi" "<$>\\phi<$>" (dsigdXpbY "\\phi" rad) <$> histCW (binD (-pi) 30 pi)
 
-phiHisto :: YodaHisto1D
-phiHisto = YodaHisto "/phi" "$\\phi$" (dsigdXpbY "\\phi" rad) $ histo1D 30 (-pi) pi
+sd12Histo :: Monad m => Consumer (Double, Double) m YodaHisto1D
+sd12Histo = YodaHisto "/sd12" "<$>\\sqrt{d_{12}}<$> [GeV]" (dsigdXpbY "\\sqrt{d_{12}}" gev) <$> histCW (binD 0 30 300)
 
-sd12Histo :: YodaHisto1D
-sd12Histo = YodaHisto "/sd12" "$\\sqrt{d_{12}}$ [GeV]" (dsigdXpbY "\\sqrt{d_{12}}" gev) $ histo1D 30 0 300
+dRHisto :: Monad m => Consumer (Double, Double) m YodaHisto1D
+dRHisto = YodaHisto "/deltaR" "<$>\\Delta R<$>" (dsigdXpbY "\\Delta R" "rad") <$> histCW (binD 0 25 5)
 
-dRHisto :: YodaHisto1D
-dRHisto = YodaHisto "/deltaR" "$\\Delta R$" (dsigdXpbY "\\Delta R" "rad") $ histo1D 25 0 5
-
-nObjHisto :: YodaHisto1D
-nObjHisto = YodaHisto "/n" "multiplicity" (dsigdXpbY "n" "\\mathrm{unit}") $ histo1D 25 0 5
+nObjHisto :: Monad m => Consumer (Int, Double) m (YodaHisto BinI Double)
+nObjHisto = YodaHisto "/n" "multiplicity" (dsigdXpbY "n" "\\mathrm{unit}") <$> histCW (binI 0 5)
 
 
-histConsumerWeighted :: (Monad m, Num v, BinValue b ~ a) => Histogram b v -> Consumer (a, v) m (Histogram b v)
-histConsumerWeighted h = 
-
+histCW :: (Monad m, Num v, V.Unbox v, Bin b) => b -> Consumer (BinValue b, v) m (Histogram b v)
+histCW bin = let h = histogram bin (V.replicate (nBins bin) 0)
+             in  go h
+    where go h' = do x <- await
+                     case x of
+                        Just y -> go (fill (+) y h')
+                        Nothing -> return h'
 
 -- common histograms for LorentzVectors
 lvHistos :: (Monad m, HasLorentzVector a) => Consumer (Weighted a) m [YodaHisto1D]

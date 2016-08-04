@@ -17,6 +17,7 @@ import Data.List (mapAccumL)
 import qualified Data.Vector.Generic as G
 import Data.Vector.Unboxed (Vector, Unbox)
 import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Unboxed.Mutable as MV
 
 import Data.Text (Text)
 
@@ -24,7 +25,7 @@ import Data.Serialize (Serialize(..))
 import GHC.Generics (Generic)
 
 import Data.Histogram (Histogram)
-import Data.Histogram.Bin (Bin)
+import Data.Histogram.Bin (Bin, BinValue)
 import qualified Data.Histogram as H
 
 
@@ -60,6 +61,15 @@ h `scaleBy` x = mapPoints (*x) h
 hadd :: (Unbox v, Num v, Bin b, Eq b) => Histogram b v -> Histogram b v -> Histogram b v
 hadd h h' | H.bins h == H.bins h' = over histData (V.zipWith (+) (view histData h')) h
 hadd _ _                          = error "attempt to add histograms with different binning."
+
+
+modify' :: Unbox b => (b -> b) -> Int -> Vector b -> Vector b
+modify' f i = V.modify $ \v -> do y <- MV.read v i
+                                  MV.write v i $! f y
+
+
+fill :: (Unbox v, Bin b) => (a -> v -> v) -> (BinValue b, a) -> Histogram b v -> Histogram b v
+fill f (x, w) h = over histData (modify' (f w) (view bins h `H.toIndex` x)) h 
 
 
 -- a YodaHisto is just a histogram with some annotations.
