@@ -8,7 +8,7 @@ import Data.ByteString (ByteString)
 
 import qualified Data.Aeson as AT
 import qualified Data.Aeson.Types as AT
-import Data.Aeson (Value(..), object, FromJSON(..), fromJSON)
+import Data.Aeson (Value(..), object, FromJSON(..))
 
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -117,7 +117,7 @@ sampleInfo = tree parseJSON =$= CL.fold (<>) (SampleInfo 0 0 0)
 
 project :: (FromJSON a, MonadThrow m)
           => [Text]
-          -> Consumer (Weighted a) m h
+          -> Consumer (Weighted a) m [h]
           -> Consumer ByteString m (Sample h)
 project ws c = do fileHeader
                   s <- sampleInfo
