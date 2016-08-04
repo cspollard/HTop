@@ -68,8 +68,8 @@ modify' f i = V.modify $ \v -> do y <- MV.read v i
                                   MV.write v i $! f y
 
 
-fill :: (Unbox v, Bin b) => (a -> v -> v) -> (BinValue b, a) -> Histogram b v -> Histogram b v
-fill f (x, w) h = over histData (modify' (f w) (view bins h `H.toIndex` x)) h 
+fill :: (Unbox v, Bin b) => (a -> v -> v) -> (a, BinValue b) -> Histogram b v -> Histogram b v
+fill f (w, x) h = over histData (modify' (f w) (view bins h `H.toIndex` x)) h 
 
 
 -- a YodaHisto is just a histogram with some annotations.
