@@ -33,6 +33,10 @@ data SafeDouble = Doub { toDouble :: Double }
                 deriving (Eq, Show, Read, Generic)
 
 
+sdToMaybe :: SafeDouble -> Maybe Double
+sdToMaybe (Doub d) = Just d
+sdToMaybe _ = Nothing
+
 instance Serialize SafeDouble where
 
 

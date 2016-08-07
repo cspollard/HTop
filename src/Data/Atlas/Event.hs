@@ -12,7 +12,7 @@ import Data.Atlas.Jet as X
 
 import Data.Map (Map)
 import qualified Data.Map as M
-import Data.Vector (toList)
+import Data.Vector (toList, (!?))
 import Data.Text (Text)
 
 import Data.Serialize
@@ -48,5 +48,8 @@ type EventWeights = Map Text Double
 weight :: EventWeights -> [Text] -> Double
 weight ew ts = product $ map (ew M.!) ts
 
-nTags :: Event -> Int
-nTags = length . filter bTagged . toList . eTrackJets
+nTags :: Event -> (Int, Int)
+nTags e = (nljt, nt - nljt)
+    where tjs = eTrackJets e
+          nljt = maybe 0 (nGhostTags tjs) (eLargeJets e !? 0)
+          nt   = length . filter bTagged . toList $ tjs
