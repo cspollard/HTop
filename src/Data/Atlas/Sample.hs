@@ -1,13 +1,18 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings, TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Data.Atlas.Sample where
+
+import Control.Lens
 
 import Data.Serialize
 import GHC.Generics
 import Data.Aeson
+
 import Data.Semigroup
 
-import Data.Histogram.Distribution
+import Data.Histogram.Funcs
 
 data SampleInfo = SampleInfo { dsid :: Int
                              , numEvents :: Int
@@ -32,12 +37,12 @@ instance Semigroup SampleInfo where
                 (sumWeights s + sumWeights s')
 
 
-type Sample h = (SampleInfo, h)
+type Sample h = (SampleInfo, [h])
 
 -- normalize h to a cross section and drop SampleInfo
 -- we can't combine histograms from the same process correctly after
 -- this step.
-freezeSample :: (ScaleW h, Double ~ W h) => Sample h -> h
-freezeSample (si, h) = case dsid si of
-                                0 -> h
-                                _ -> h `scaleW` (1.0 / sumWeights si)
+freezeSample :: Sample YodaHisto1D -> [YodaHisto1D]
+freezeSample (si, hs) = case dsid si of
+                                0 -> hs
+                                _ -> fmap (over yhHisto (`scaleBy` (1.0 / sumWeights si))) hs

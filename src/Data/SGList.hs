@@ -1,7 +1,7 @@
-{-# LANGUAGE DeriveGeneric
-           , TypeFamilies
-           , GeneralizedNewtypeDeriving
-           , DeriveTraversable #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveTraversable #-}
 
 module Data.SGList where
 
@@ -9,8 +9,6 @@ import GHC.Generics
 
 import Data.Semigroup
 import Data.Serialize
-
-import Data.Histogram.Distribution
 
 -- TODO
 -- this should wrap all foldables if possible.
@@ -28,7 +26,3 @@ liftSG f (SGList xs) = SGList (f xs)
 
 instance Semigroup h => Semigroup (SGList h) where
     SGList xs <> SGList xs' = SGList $ zipWith (<>) xs xs'
-
-instance ScaleW h => ScaleW (SGList h) where
-    type W (SGList h) = W h
-    scaleW hs w = fmap (flip scaleW w) hs
