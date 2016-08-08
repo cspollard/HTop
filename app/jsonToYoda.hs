@@ -6,7 +6,7 @@ import Data.ByteString (ByteString)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
-import qualified Data.Histogram as H
+import qualified Data.Histogram.Fill as H
 import Data.Histogram.Funcs
 
 import qualified Data.Conduit.Binary as CB
@@ -61,14 +61,14 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           -- get the list of input files
           fins <- runResourceT $ sourceFile (infiles args) =$= CB.lines =$= CL.map (T.unpack . T.decodeUtf8) $$ CL.consume
 
-          -- read in the sample cross sectinos
-          xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
-
           -- project the samples onto the nominal histos (in parallel)
           samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> runResourceT (sourceFile fn =$= ungzip $$ project mcWs channelHistos)) $ fins
 
           let m = M.fromListWith (<>) $ map ((dsid . fst) &&& id) (samps :: [Sample (SGList YodaHisto1D)])
           mapM_ print $ M.toList m
+
+          -- read in the sample cross sections
+          xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
 
           let scaledHists = fmap (\ss@(s, _) -> freezeSample ss `scaleBy` (let ds = dsid s in if ds /= 0 then (xsecs IM.! ds) * 3210 else 1)) m
 
@@ -77,7 +77,7 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           let outfname = outfolder args
           createDirectoryIfMissing True outfname
         
-          -- forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ CL.sourceList (fromSGList hs) $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
+          forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ CL.sourceList (fromSGList hs) $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
 
     where cleanPath = dropWhile (== '/')
-          mcWs = ["weight_mc", "weight_pileup", "weight_leptonSF"]
+          mcWs = ["weight_mc", "weight_pileup"]

@@ -12,6 +12,7 @@ import Data.Aeson
 
 import Data.Semigroup
 
+import Data.SGList
 import Data.Histogram.Funcs
 
 data SampleInfo = SampleInfo { dsid :: Int
@@ -37,12 +38,12 @@ instance Semigroup SampleInfo where
                 (sumWeights s + sumWeights s')
 
 
-type Sample h = (SampleInfo, [h])
+type Sample h = (SampleInfo, h)
 
 -- normalize h to a cross section and drop SampleInfo
 -- we can't combine histograms from the same process correctly after
 -- this step.
-freezeSample :: Sample YodaHisto1D -> [YodaHisto1D]
+freezeSample :: Sample (SGList YodaHisto1D) -> SGList YodaHisto1D
 freezeSample (si, hs) = case dsid si of
                                 0 -> hs
                                 _ -> fmap (over yhHisto (`scaleBy` (1.0 / sumWeights si))) hs

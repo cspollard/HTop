@@ -61,10 +61,10 @@ sd12Histo :: YodaHisto1D
 sd12Histo = YodaHisto "/sd12" "$\\sqrt{d_{12}}$ [GeV]" (dsigdXpbY "\\sqrt{d_{12}}" gev) $ histo1D (binD 0 30 300)
 
 tau21Histo :: YodaHisto1D
-tau21Histo = YodaHisto "/tau21" "$\\tau_{21}$" (dsigdXpbY "\\tau_{21}" "1") $ histogram (constBin1D 30 (0, 30)) mempty
+tau21Histo = YodaHisto "/tau21" "$\\tau_{21}$" (dsigdXpbY "\\tau_{21}" "1") $ histo1D (binD 0 30 30)
 
 tau32Histo :: YodaHisto1D
-tau32Histo = YodaHisto "/tau32" "$\\tau_{32}$" (dsigdXpbY "\\tau_{32}" "1") $ histogram (constBin1D 30 (0, 30)) mempty
+tau32Histo = YodaHisto "/tau32" "$\\tau_{32}$" (dsigdXpbY "\\tau_{32}" "1") $ histo1D (binD 0 30 30)
 
 dRHisto :: YodaHisto1D
 dRHisto = YodaHisto "/deltaR" "$\\Delta R$" (dsigdXpbY "\\Delta R" "rad") $ histo1D (binD 0 25 5)
@@ -150,14 +150,6 @@ ljet0Histos = fmap ((path %~ ("/ljet0" <>)) . (xLabel %~ ("leading large-$R$ jet
 ljetHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
 ljetHistos = (ljetsHistos =++= ljet0Histos) <=$= CL.map (fmap eLargeJets)
 
-<<<<<<< HEAD
-    where ljetHs = (filling mHisto <<- second ((Z :.) . (ljM / 1e3)))
-                    =:= (filling sd12Histo <<- second ((Z :.) . (ljSD12 / 1e3)))
-                    -- TODO
-                    -- tau21 and tau32
-                    =:= lvHistos
-=======
->>>>>>> 333cb6ca67ff6bf2e1a4d5f34570130006db5dab
 
 eljetHisto :: Monad m => Consumer (Weighted Event) m YodaHisto1D
 eljetHisto = ((path %~ ("/elljet0" <>)) . (xLabel %~ ("electron-large-$R$ jet " <>)))

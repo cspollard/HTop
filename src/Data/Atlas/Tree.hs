@@ -117,7 +117,7 @@ sampleInfo = tree parseJSON =$= CL.fold (<>) (SampleInfo 0 0 0)
 
 project :: (FromJSON a, MonadThrow m)
           => [Text]
-          -> Consumer (Weighted a) m [h]
+          -> Consumer (Weighted a) m h
           -> Consumer ByteString m (Sample h)
 project ws c = do fileHeader
                   s <- sampleInfo

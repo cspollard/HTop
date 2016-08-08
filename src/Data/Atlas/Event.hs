@@ -5,6 +5,8 @@ module Data.Atlas.Event ( Event(..), Events
                         , module X
                         ) where
 
+import Control.Lens
+
 import Data.HEP.LorentzVector as X
 import Data.Atlas.Electron as X
 import Data.Atlas.Muon as X
@@ -52,5 +54,5 @@ weight ew ts = product $ map (ew M.!) ts
 nTags :: Event -> (Int, Int)
 nTags e = (nljt, nt - nljt)
     where tjs = eTrackJets e
-          nljt = maybe 0 (nGhostTags tjs) (eLargeJets e !? 0)
+          nljt = maybe 0 (nGhostTags tjs) (eLargeJets e ^? ix 0)
           nt   = length . filter bTagged . toList $ tjs

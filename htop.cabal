@@ -27,6 +27,8 @@ library
                      , Data.Atlas.Sample
                      , Data.Atlas.TopTree
                      , Data.Atlas.Tree
+                     , Data.Histogram.Funcs
+                     , Data.SGList
 
   -- other-modules:       
   other-extensions:    OverloadedStrings
@@ -81,6 +83,7 @@ executable jsonToYoda
                      , optparse-generic >=1.0
                      , directory >=1.2
                      , semigroups >=0.15
+                     , histogram-fill >=0.8 && <0.9
                      , hhep >=0.1
                      , htop >=0.1
 
