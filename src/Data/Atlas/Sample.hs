@@ -12,8 +12,9 @@ import Data.Aeson
 
 import Data.Semigroup
 
-import Data.SGList
 import Data.Histogram.Funcs
+
+import Control.Applicative
 
 data SampleInfo = SampleInfo { dsid :: Int
                              , numEvents :: Int
@@ -45,7 +46,7 @@ type Sample h = (SampleInfo, h)
 -- normalize h to a cross section and drop SampleInfo
 -- we can't combine histograms from the same process correctly after
 -- this step.
-normToXsec :: SampleInfo -> SGList YodaHisto1D -> SGList YodaHisto1D
+normToXsec :: SampleInfo -> ZipList YodaHisto1D -> ZipList YodaHisto1D
 normToXsec si hs = case dsid si of
                         0 -> hs
                         _ -> fmap (over yhHisto (`scaleBy` (1.0 / sumWeights si))) hs

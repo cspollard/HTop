@@ -38,7 +38,6 @@ import qualified Data.IntMap.Strict as IM
 import Control.Arrow (first, second)
 
 import Options.Generic
-import Data.SGList
 import Data.Orded
 
 -- TODO
@@ -79,6 +78,6 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           let outfname = outfolder args
           createDirectoryIfMissing True outfname
         
-          forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ CL.sourceList (fromSGList hs) $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
+          forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ mapM_ yield hs $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
 
     where mcWs = ["weight_mc", "weight_pileup"]

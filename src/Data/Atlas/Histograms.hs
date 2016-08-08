@@ -6,13 +6,12 @@ import Control.Lens
 import Data.Maybe (listToMaybe)
 import Data.Foldable (toList)
 
-import Control.Applicative (liftA2)
+import Control.Applicative (liftA2, ZipList(..))
 
 import Data.Semigroup
 
 import Data.Text (Text)
 
-import Data.SGList
 import Data.Histogram
 import Data.Histogram.Funcs
 
@@ -188,8 +187,8 @@ both :: (Bool, Bool) -> Bool
 both = uncurry (&&)
 
 
-channelHistos :: Monad m => Consumer (Weighted Event) m (SGList YodaHisto1D)
-channelHistos = SGList . concat <$> sequenceConduits [ channel "/elelJ/inclusive" elelJ
+channelHistos :: Monad m => Consumer (Weighted Event) m (ZipList YodaHisto1D)
+channelHistos = ZipList . concat <$> sequenceConduits [ channel "/elelJ/inclusive" elelJ
                                                      , channel "/elelJ/0tag0addtag" (and . sequenceA [elelJ, (== (0, 0)) . nTags])
                                                      , channel "/elelJ/1tag0addtag" (and . sequenceA [elelJ, (== (1, 0)) . nTags])
                                                      , channel "/elelJ/2tag0addtag" (and . sequenceA [elelJ, (== (2, 0)) . nTags])

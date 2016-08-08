@@ -28,7 +28,6 @@ library
                      , Data.Atlas.TopTree
                      , Data.Atlas.Tree
                      , Data.Histogram.Funcs
-                     , Data.SGList
                      , Data.Orded
 
   -- other-modules:       
