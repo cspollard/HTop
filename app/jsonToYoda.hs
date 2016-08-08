@@ -2,11 +2,11 @@
 
 module Main where
 
-import Data.ByteString (ByteString)
+import Control.Lens
+
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
-import qualified Data.Histogram.Fill as H
 import Data.Histogram.Funcs
 
 import qualified Data.Conduit.Binary as CB
@@ -18,6 +18,7 @@ import Data.Conduit.Attoparsec
 import qualified Data.Conduit.List as CL
 
 import Control.Monad (forM_)
+import Control.Applicative (liftA2)
 
 import Data.Semigroup
 
@@ -25,7 +26,6 @@ import System.Directory
 
 import Data.Atlas.Tree
 import Data.Atlas.Sample
-import Data.Atlas.TopTree
 import Data.Atlas.Histograms
 import Data.Atlas.CrossSections
 import Data.Atlas.ProcessInfo
@@ -35,12 +35,11 @@ import Control.Parallel.Strategies (withStrategy, parList, rseq)
 import qualified Data.Map.Strict as M
 import qualified Data.IntMap.Strict as IM
 
-import Control.Arrow ((&&&))
+import Control.Arrow (first, second)
 
 import Options.Generic
 import Data.SGList
-
-import Data.List
+import Data.Orded
 
 -- TODO
 -- at some point this all needs to be moved into library functions.
@@ -64,23 +63,22 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           -- project the samples onto the nominal histos (in parallel)
           samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> runResourceT (sourceFile fn =$= ungzip $$ project mcWs channelHistos)) $ fins
 
-          -- TODO
-          -- hadd works on Histogram
-          -- not on YodaHist
-          let m = M.fromListWith hadd $ map ((dsid . fst) &&& id) (samps :: [Sample (SGList YodaHisto1D)])
-          mapM_ print $ M.toList m
+          let m = M.fromListWith (liftA2 haddYH) $ map (first $ ordedBy dsid) samps
+          mapM_ (print . second (fmap showHisto)) $ M.toList m
 
           -- read in the sample cross sections
           xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
 
-          let scaledHists = fmap (\ss@(s, _) -> freezeSample ss `scaleBy` (let ds = dsid s in if ds /= 0 then (xsecs IM.! ds) * 3210 else 1)) m
+          let scaledHists = flip M.mapWithKey m $
+                                (\(Orded ds s) hs -> case ds of
+                                                         0 -> hs
+                                                         _ -> over (traverse . yhHisto) (flip scaleBy $ (xsecs IM.! ds) * 3210 / sumWeights s) hs)
 
-          let mergedHists = M.mapKeysWith (<>) processTitle scaledHists
+          let mergedHists = M.mapKeysWith (liftA2 haddYH) (processTitle . orded) scaledHists
 
           let outfname = outfolder args
           createDirectoryIfMissing True outfname
         
           forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ CL.sourceList (fromSGList hs) $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
 
-    where cleanPath = dropWhile (== '/')
-          mcWs = ["weight_mc", "weight_pileup"]
+    where mcWs = ["weight_mc", "weight_pileup"]

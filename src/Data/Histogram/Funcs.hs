@@ -27,7 +27,7 @@ import Data.Serialize (Serialize(..))
 import GHC.Generics (Generic)
 
 import Data.Histogram (Histogram)
-import Data.Histogram.Bin (Bin, BinValue, binsList)
+import Data.Histogram.Bin (Bin, BinValue, binsList, BinEq(..))
 import qualified Data.Histogram as H
 
 
@@ -60,9 +60,9 @@ scaleBy :: (Num v, Unbox v, Bin b) => Histogram b v -> v -> Histogram b v
 h `scaleBy` x = mapPoints (*x) h
 
 
-hadd :: (Unbox v, Num v, Bin b, Eq b) => Histogram b v -> Histogram b v -> Histogram b v
-hadd h h' | H.bins h == H.bins h' = over histData (V.zipWith (+) (view histData h')) h
-hadd _ _                          = error "attempt to add histograms with different binning."
+hadd :: (Unbox v, Num v, Bin b, BinEq b) => Histogram b v -> Histogram b v -> Histogram b v
+hadd h h' | H.bins h `binEq` H.bins h' = over histData (V.zipWith (+) (view histData h')) h
+hadd _ _                               = error "attempt to add histograms with different binning."
 
 
 modify' :: Unbox b => (b -> b) -> Int -> Vector b -> Vector b
@@ -81,7 +81,12 @@ data YodaHisto b val = YodaHisto { _path :: Text
                                  , _yhHisto :: !(Histogram b val)
                                  } deriving Generic
 
+
 makeLenses ''YodaHisto
+
+haddYH :: (Unbox v, Num v, Bin b, BinEq b)
+       => YodaHisto b v -> YodaHisto b v -> YodaHisto b v
+haddYH yh yh' = over yhHisto (hadd $ view yhHisto yh') yh
 
 
 type YodaHisto1D = YodaHisto H.BinD Double

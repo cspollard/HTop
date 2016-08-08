@@ -20,6 +20,7 @@ data SampleInfo = SampleInfo { dsid :: Int
                              , sumWeights :: Double
                              } deriving (Show, Generic)
 
+
 instance Serialize SampleInfo where
 
 instance FromJSON SampleInfo where
@@ -40,10 +41,11 @@ instance Semigroup SampleInfo where
 
 type Sample h = (SampleInfo, h)
 
+
 -- normalize h to a cross section and drop SampleInfo
 -- we can't combine histograms from the same process correctly after
 -- this step.
-freezeSample :: Sample (SGList YodaHisto1D) -> SGList YodaHisto1D
-freezeSample (si, hs) = case dsid si of
-                                0 -> hs
-                                _ -> fmap (over yhHisto (`scaleBy` (1.0 / sumWeights si))) hs
+normToXsec :: SampleInfo -> SGList YodaHisto1D -> SGList YodaHisto1D
+normToXsec si hs = case dsid si of
+                        0 -> hs
+                        _ -> fmap (over yhHisto (`scaleBy` (1.0 / sumWeights si))) hs

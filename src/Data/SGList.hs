@@ -26,3 +26,7 @@ liftSG f (SGList xs) = SGList (f xs)
 
 instance Semigroup h => Semigroup (SGList h) where
     SGList xs <> SGList xs' = SGList $ zipWith (<>) xs xs'
+
+instance Applicative SGList where
+    pure = SGList . pure
+    SGList fs <*> SGList xs = SGList $ zipWith ($) fs xs

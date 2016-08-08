@@ -29,6 +29,7 @@ library
                      , Data.Atlas.Tree
                      , Data.Histogram.Funcs
                      , Data.SGList
+                     , Data.Orded
 
   -- other-modules:       
   other-extensions:    OverloadedStrings
@@ -55,6 +56,7 @@ library
                      , histogram-fill-cereal >=0.6 && <0.7
                      , semigroups >=0.15
                      , lens >=4.0 && <5.0
+                     , bifunctors >=5.0 && <6.0
                      , hhep >=0.1
 
   hs-source-dirs:      src
@@ -84,6 +86,7 @@ executable jsonToYoda
                      , directory >=1.2
                      , semigroups >=0.15
                      , histogram-fill >=0.8 && <0.9
+                     , lens >=4.0 && <5.0
                      , hhep >=0.1
                      , htop >=0.1
 
