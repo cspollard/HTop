@@ -64,7 +64,10 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           -- project the samples onto the nominal histos (in parallel)
           samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> runResourceT (sourceFile fn =$= ungzip $$ project mcWs channelHistos)) $ fins
 
-          let m = M.fromListWith (<>) $ map ((dsid . fst) &&& id) (samps :: [Sample (SGList YodaHisto1D)])
+          -- TODO
+          -- hadd works on Histogram
+          -- not on YodaHist
+          let m = M.fromListWith hadd $ map ((dsid . fst) &&& id) (samps :: [Sample (SGList YodaHisto1D)])
           mapM_ print $ M.toList m
 
           -- read in the sample cross sections

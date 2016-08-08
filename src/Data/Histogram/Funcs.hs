@@ -8,6 +8,7 @@
 module Data.Histogram.Funcs where
 
 import Control.Lens
+import Data.Monoid ((<>))
 
 import Data.Serialize.Text ()
 import Data.Histogram.Cereal ()
@@ -20,12 +21,13 @@ import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
 
 import Data.Text (Text)
+import qualified Data.Text as T
 
 import Data.Serialize (Serialize(..))
 import GHC.Generics (Generic)
 
 import Data.Histogram (Histogram)
-import Data.Histogram.Bin (Bin, BinValue)
+import Data.Histogram.Bin (Bin, BinValue, binsList)
 import qualified Data.Histogram as H
 
 
@@ -88,25 +90,18 @@ instance (Serialize val, Bin b, Serialize b, G.Vector V.Vector val)
          => Serialize (YodaHisto b val) where
 
 
-{-
 showHisto :: YodaHisto1D -> Text
 showHisto (YodaHisto p xl yl h) = T.unlines $
                             [ "# BEGIN YODA_HISTO1D " <> p, "Path=" <> p, "Type=Histo1D"
                             , "XLabel=" <> xl, "YLabel=" <> yl
                             , "Total\tTotal\t" <> distToText (view integral h)
                             , case view overflows h of
-                                Nothing -> ""
-                                Just (u, o) = "Underflow\tUnderflow\t" <> u <>
-                                              "Overflow\tOverflow\t" <> o
-                            ] ++
-                            map (\((Z :. xmin, Z :. xmax), b) -> T.pack (show xmin ++ "\t" ++ show xmax ++ "\t") <> distToText b) (toTuples h) ++
+                                   Nothing -> ""
+                                   Just (u, o) -> "Underflow\tUnderflow\t" <> T.pack (show u) <>
+                                                  "Overflow\tOverflow\t" <> T.pack (show o)
+                            ] ++ map f (zip bs (toListOf histData h)) ++
                             [ "# END YODA_HISTO1D", "" ]
 
-                            where
-                                distToText (Dist0 sw sw2 ne :. DistWX swx swx2) = T.pack $
-                                                show sw ++ "\t" ++
-                                                show sw2 ++ "\t" ++
-                                                show swx ++ "\t" ++
-                                                show swx2 ++ "\t" ++
-                                                show ne
--}
+                            where f ((xmin, xmax), d) = T.pack (show xmin ++ "\t" ++ show xmax ++ "\t") <> distToText d
+                                  distToText d = T.pack (show d) <> "\t0.0\t0.0\t0.0\t0.0"
+                                  bs = V.toList (binsList $ view bins h :: Vector (Double, Double))
