@@ -115,6 +115,6 @@ showHisto (YodaHisto p xl yl h) = T.unlines $
                             ] ++ zipWith f bs (V.toList $ view histData h) ++
                             [ "# END YODA_HISTO1D", "" ]
 
-                            where f ((xmin, xmax), d) = T.pack (show xmin ++ "\t" ++ show xmax ++ "\t") <> distToText d
+                            where f (xmin, xmax) d = T.pack (show xmin ++ "\t" ++ show xmax ++ "\t") <> distToText d
                                   distToText d = T.pack (show d) <> "\t0.0\t0.0\t0.0\t0.0"
                                   bs = V.toList (binsList $ view bins h :: Vector (Double, Double))
