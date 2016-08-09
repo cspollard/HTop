@@ -68,10 +68,18 @@ hadd _ _                               = error "attempt to add histograms with d
 modify' :: Unbox b => (b -> b) -> Int -> Vector b -> Vector b
 modify' f i = V.modify $ \v -> do y <- MV.read v i
                                   MV.write v i $! f y
+                                  return ()
 
 
 fill :: (Unbox v, Bin b) => (a -> v -> v) -> (a, BinValue b) -> Histogram b v -> Histogram b v
-fill f (w, x) h = over histData (modify' (f w) (view bins h `H.toIndex` x)) h 
+fill f (w, x) h = over histData (maybe id (modify' (f w)) ixH) h 
+    where b = view bins h
+          ou = view overflows h
+          n = H.nBins b
+          i = H.toIndex b x
+          ixH | i < 0     = const n <$> ou     -- underflow
+              | i >= n    = const (n+1) <$> ou -- overflow
+              | otherwise = Just i
 
 
 -- a YodaHisto is just a histogram with some annotations.
