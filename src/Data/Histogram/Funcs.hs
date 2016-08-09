@@ -104,7 +104,7 @@ showHisto (YodaHisto p xl yl h) = T.unlines $
                                    Nothing -> ""
                                    Just (u, o) -> "Underflow\tUnderflow\t" <> T.pack (show u) <>
                                                   "Overflow\tOverflow\t" <> T.pack (show o)
-                            ] ++ map f (zip bs (toListOf histData h)) ++
+                            ] ++ zipWith f bs (V.toList $ view histData h) ++
                             [ "# END YODA_HISTO1D", "" ]
 
                             where f ((xmin, xmax), d) = T.pack (show xmin ++ "\t" ++ show xmax ++ "\t") <> distToText d
