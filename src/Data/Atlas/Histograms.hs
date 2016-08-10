@@ -183,10 +183,6 @@ channel n f = fmap (fmap (path %~ (n <>))) $ filterC (f . snd) =$= eventHistos
 
 
 
-both :: (Bool, Bool) -> Bool
-both = uncurry (&&)
-
-
 channelHistos :: Monad m => Consumer (Weighted Event) m (ZipList YodaHisto1D)
 channelHistos = ZipList . concat <$> sequenceConduits [ channel "/elelJ/inclusive" elelJ
                                                      , channel "/elelJ/0tag0addtag" (and . sequenceA [elelJ, (== (0, 0)) . nTags])

@@ -37,7 +37,7 @@ import Control.Parallel.Strategies (withStrategy, parList, rseq)
 import qualified Data.Map.Strict as M
 import qualified Data.IntMap.Strict as IM
 
-import Control.Arrow (first, second)
+import Control.Arrow (first)
 
 import Options.Generic
 import Data.Orded
@@ -81,6 +81,7 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
         
           forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ mapM_ yield hs $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
 
-          runResourceT $ CC.sourcePut (put mergedHists) =$= gzip $$ sinkFile (outfname ++ "hists.gz")
+          let forOutput (YodaHisto p xl yl h) = ([p, xl, yl], h)
+          runResourceT $ CC.sourcePut (put $ (fmap . fmap) forOutput mergedHists) =$= gzip $$ sinkFile (outfname ++ "hists.gz")
 
     where mcWs = ["weight_mc", "weight_pileup"]
