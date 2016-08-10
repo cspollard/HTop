@@ -9,16 +9,18 @@ import qualified Data.Text.Encoding as T
 
 import Data.Histogram.Funcs
 
-import qualified Data.Conduit.Binary as CB
-
 import Conduit
-
-import Data.Conduit.Zlib (ungzip)
-import Data.Conduit.Attoparsec
+import qualified Data.Conduit.Binary as CB
+import qualified Data.Conduit.Cereal as CC
 import qualified Data.Conduit.List as CL
 
+import Data.Serialize (put)
+
+import Data.Conduit.Zlib (ungzip, gzip)
+import Data.Conduit.Attoparsec
+
 import Control.Monad (forM_)
-import Control.Applicative (liftA2)
+import Control.Applicative (liftA2, getZipList)
 
 import Data.Semigroup
 
@@ -63,7 +65,6 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
           samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> runResourceT (sourceFile fn =$= ungzip $$ project mcWs channelHistos)) $ fins
 
           let m = M.fromListWith (liftA2 haddYH) $ map (first $ ordedBy dsid) samps
-          mapM_ (print . second (fmap showHisto)) $ M.toList m
 
           -- read in the sample cross sections
           xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
@@ -73,11 +74,13 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
                                                          0 -> hs
                                                          _ -> over (traverse . yhHisto) (flip scaleBy $ (xsecs IM.! ds) * 3210 / sumWeights s) hs)
 
-          let mergedHists = M.mapKeysWith (liftA2 haddYH) (processTitle . orded) scaledHists
+          let mergedHists = M.mapKeysWith (liftA2 haddYH) (processTitle . orded) scaledHists & fmap getZipList
 
           let outfname = outfolder args
           createDirectoryIfMissing True outfname
         
           forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ mapM_ yield hs $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
+
+          runResourceT $ CC.sourcePut (put mergedHists) =$= gzip $$ sinkFile (outfname ++ "hists.gz")
 
     where mcWs = ["weight_mc", "weight_pileup"]
