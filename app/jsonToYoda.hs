@@ -81,7 +81,6 @@ main = do args <- getRecord "jsonToYoda" :: IO Args
         
           forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ mapM_ yield hs $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
 
-          let forOutput (YodaHisto p xl yl h) = ([p, xl, yl], h)
-          runResourceT $ CC.sourcePut (put $ (fmap . fmap) forOutput mergedHists) =$= gzip $$ sinkFile (outfname ++ "hists.gz")
+          runResourceT $ CC.sourcePut (put mergedHists) =$= gzip $$ sinkFile (outfname ++ "hists.gz")
 
     where mcWs = ["weight_mc", "weight_pileup"]
