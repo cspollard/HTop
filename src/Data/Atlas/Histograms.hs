@@ -13,7 +13,7 @@ import Data.Semigroup
 import Data.Text (Text)
 
 import Data.Histogram
-import Data.Histogram.Funcs
+import Data.Histogram.Extra
 
 import Data.Atlas.Event
 import Data.Atlas.Helpers

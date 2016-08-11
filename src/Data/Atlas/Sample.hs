@@ -12,7 +12,7 @@ import Data.Aeson
 
 import Data.Semigroup
 
-import Data.Histogram.Funcs
+import Data.Histogram.Extra
 
 import Control.Applicative
 
