@@ -7,7 +7,7 @@ import Control.Lens
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
-import Data.Histogram.Funcs
+import Data.Histogram.Extra
 
 import Conduit
 import qualified Data.Conduit.Binary as CB
