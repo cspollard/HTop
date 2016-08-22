@@ -22,3 +22,9 @@ instance Ord a => Ord (Orded a b) where
 
 instance Functor (Orded a) where
     f `fmap` Orded x y = Orded x (f y)
+
+instance Foldable (Orded a) where
+    foldr f x (Orded _ y) = f y x
+
+instance Traversable (Orded a) where
+    traverse f (Orded x y) = Orded x <$> f y
