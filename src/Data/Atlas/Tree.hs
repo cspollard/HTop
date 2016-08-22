@@ -49,9 +49,8 @@ fromResult (AT.Error s)   = fail s
 
 
 branches :: MonadThrow m => Consumer ByteString m [Text]
-branches = do
-            let p = string "\"branches\"" *> skipSpace *> char ':' *> skipSpace *> json :: Parser [(Text, Text)]
-            fmap fst <$> sinkParser p
+branches = do let p = string "\"branches\"" *> skipSpace *> char ':' *> skipSpace *> json :: Parser [(Text, Text)]
+              fmap fst <$> sinkParser p
 
 
 -- Decode an event as an Aeson Value
