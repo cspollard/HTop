@@ -23,6 +23,8 @@ import GHC.Generics (Generic)
 
 import Data.Serialize.Text ()
 
+import Data.TTree
+
 data Event = Event { eRunNumber :: Int
                    , eEventNumber :: Int
                    , eMu :: Double
@@ -41,6 +43,7 @@ data Event = Event { eRunNumber :: Int
                    } deriving (Show, Generic)
 
 instance Serialize Event where
+
 
 type Events = [Event]
 

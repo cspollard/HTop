@@ -22,4 +22,4 @@ nLep :: Event -> Int
 nLep = (+) <$> (length . eElectrons) <*> (length . eMuons)
 
 evtSelection :: Monad m => Conduit Event m Event
-evtSelection = cut ((== 2) . nLep) =$= cut ((>= 1) . length . eLargeJets)
+evtSelection = cut ((== 2) . nLep) =$= cut (not . null . length . eLargeJets)
