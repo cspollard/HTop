@@ -3,80 +3,76 @@
 module Data.Atlas.Jet where
 
 import Data.HEP.LorentzVector
-import Data.Vector (Vector, (!))
-
-import Data.Aeson (FromJSON(..))
-import Control.Applicative ((<|>))
 
 import Data.Serialize
 import GHC.Generics (Generic)
 
+import Data.Atlas.LorentzVector
+import Data.TTree
 
-data Jet = Jet {
-    jPtEtaPhiE :: PtEtaPhiE,
-    jMV2c20 :: Double,
-    jJVT :: Double
-    } deriving (Show, Generic)
+
+data Jet = Jet { jPtEtaPhiE :: PtEtaPhiE
+               , jMV2c10 :: Float
+               , jJVT :: Float
+               } deriving (Show, Generic)
 
 instance Serialize Jet
 
 instance HasLorentzVector Jet where
     lv = fromLV . jPtEtaPhiE
 
-type Jets = Vector Jet
+newtype Jets = Jets [Jet]
+
+instance FromTTree Jets where
+    fromTTree = Jets . fromZipList
+                <$> lvsFromTTree "jet"
+                <*> readBranch "jet_mv2c10"
+                <*> readBranch "jet_jvt"
 
 
--- necessary for tauXY variables, which can be NaN
-data SafeDouble = Doub { toDouble :: Double }
-                | NaN
-                deriving (Eq, Show, Read, Generic)
+data LargeJet = LargeJet { ljPtEtaPhiE :: PtEtaPhiE
+                         , ljM :: Float
+                         , ljSD12 :: Float
+                         , ljTau21 :: Float
+                         , ljTau32 :: Float
+                         -- TODO
+                         -- can't handle vec<vec<int>> yet
+                         -- , ljGhostTJs :: [Int]
+                         } deriving (Show, Generic)
 
-
-sdToMaybe :: SafeDouble -> Maybe Double
-sdToMaybe (Doub d) = Just d
-sdToMaybe _ = Nothing
-
-instance Serialize SafeDouble where
-
-
-instance FromJSON SafeDouble where
-    parseJSON v = (Doub <$> parseJSON v) <|> (read <$> parseJSON v)
-
-
-data LargeJet = LargeJet
-              { ljPtEtaPhiE :: PtEtaPhiE
-              , ljM :: Double
-              , ljSD12 :: Double
-              , ljTau21 :: SafeDouble
-              , ljTau32 :: SafeDouble
-              , ljGhostTJs :: [Int]
-              } deriving (Show, Generic)
-
-nGhostTags :: TrackJets -> LargeJet -> Int
-nGhostTags tjs = length . filter bTagged . map (tjs !) . ljGhostTJs
 
 instance Serialize LargeJet
 
 instance HasLorentzVector LargeJet where
     lv = fromLV . ljPtEtaPhiE
 
-type LargeJets = Vector LargeJet
+newtype LargeJets = LargeJets [LargeJet]
+
+instance FromTTree LargeJets where
+    fromTTree = LargeJets . fromZipList
+                <$> lvsFromTTree "ljet"
+                <*> readBranch "ljet_sd12"
+                <*> readBranch "ljet_tau21"
+                <*> readBranch "ljet_tau32"
 
 
 data TrackJet = TrackJet {
     tjPtEtaPhiE :: PtEtaPhiE,
-    tjMV2c20 :: Double,
+    tjMV2c10 :: Float,
+    -- TODO
     -- this won't be present in data.
-    tjLabel :: Maybe Int
+    -- tjLabel :: Maybe Int
     } deriving (Show, Generic)
 
-
-bTagged :: TrackJet -> Bool
-bTagged = (> -0.3098) . tjMV2c20
 
 instance Serialize TrackJet
 
 instance HasLorentzVector TrackJet where
     lv = fromLV . tjPtEtaPhiE
 
-type TrackJets = Vector TrackJet
+newtype TrackJets = TrackJets [TrackJet]
+
+instance FromTTree TrackJets where
+    fromTTree = TrackJets . fromZipList
+                <$> lvsFromTTree "tjet"
+                <*> readBranch "tjet_mv2c10"

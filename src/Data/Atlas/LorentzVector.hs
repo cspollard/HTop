@@ -1,13 +1,14 @@
-module Data.Atlas.LorentzVector ( lvFromTTree ) where
+module Data.Atlas.LorentzVector ( lvsFromTTree ) where
 
+import GHC.Float
+import Control.Applicative (ZipList(..))
 import Data.HEP.LorentzVector
 import Data.TTree
 
-newtype LorentzVectors = LorentzVectors [LorentzVector]
+newtype PtEtaPhiEs = PtEtaPhiEs [PtEtaPhiE]
 
 lvsFromTTree :: MonadIO m => String -> TTreeRead m a
-lvsFromTTree pre = fromZipList . fmap PtEtaPhiE
-                   <$> fmap float2Double (readBranch (pre ++ "_pt"))
-                   <*> fmap float2Double (readBranch (pre ++ "_eta"))
-                   <*> fmap float2Double (readBranch (pre ++ "_phi"))
-                   <*> fmap float2Double (readBranch (pre ++ "_e"))
+lvsFromTTree pre = PtEtaPhiEs . getZipList $ fmap PtEtaPhiE <$> (fmap.fmap) float2Double (readBranch (pre ++ "_pt"))
+                                                            <*> (fmap.fmap) float2Double (readBranch (pre ++ "_eta"))
+                                                            <*> (fmap.fmap) float2Double (readBranch (pre ++ "_phi"))
+                                                            <*> (fmap.fmap) float2Double (readBranch (pre ++ "_e"))

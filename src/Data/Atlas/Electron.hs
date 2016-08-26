@@ -2,7 +2,6 @@
 
 module Data.Atlas.Electron where
 
-
 import GHC.Generics (Generic)
 import Data.Vector (Vector)
 import Data.Serialize
