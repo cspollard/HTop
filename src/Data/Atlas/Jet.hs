@@ -1,13 +1,14 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Data.Atlas.Jet where
 
-import Data.HEP.LorentzVector
-
-import Data.Serialize
 import GHC.Generics (Generic)
+import Data.Serialize
+import Control.Applicative (ZipList(..))
 
-import Data.Atlas.LorentzVector
+import Data.HEP.LorentzVector
+import Data.Atlas.PtEtaPhiE
 import Data.TTree
 
 
@@ -21,14 +22,19 @@ instance Serialize Jet
 instance HasLorentzVector Jet where
     lv = fromLV . jPtEtaPhiE
 
-newtype Jets = Jets [Jet]
+newtype Jets = Jets [Jet] deriving (Show, Generic, Serialize)
 
 instance FromTTree Jets where
-    fromTTree = Jets . fromZipList
-                <$> lvsFromTTree "jet"
-                <*> readBranch "jet_mv2c10"
-                <*> readBranch "jet_jvt"
+    fromTTree = do PtEtaPhiEs tlvs <- lvsFromTTree "JetPt" "JetEta" "JetPhi" "JetE"
+                   mv2c10s <- readBranch "JetMV2c20"
+                   jvts <- readBranch "JetJvt"
+                   let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts
+                   return . Jets $ getZipList js
 
+
+{-
+ - TODO
+ - other jet collections
 
 data LargeJet = LargeJet { ljPtEtaPhiE :: PtEtaPhiE
                          , ljM :: Float
@@ -49,21 +55,21 @@ instance HasLorentzVector LargeJet where
 newtype LargeJets = LargeJets [LargeJet]
 
 instance FromTTree LargeJets where
-    fromTTree = LargeJets . fromZipList
-                <$> lvsFromTTree "ljet"
-                <*> readBranch "ljet_sd12"
-                <*> readBranch "ljet_tau21"
-                <*> readBranch "ljet_tau32"
+    fromTTree = do PtEtaPhiEs tlvs <- lvsFromTTree "ljet"
+                   sd12s <- readBranch "ljet_sd12"
+                   sd12s <- readBranch "ljet_sd12"
+                   tau21s <- readBranch "ljet_tau21"
+                   tau32s <- readBranch "ljet_tau32"
+                   let js = LargeJet <$> ZipList tlvs <*> sd12s <*> tau21s <*> tau32s
+                   return . LargeJets . getZipList $ js
 
 
-data TrackJet = TrackJet {
-    tjPtEtaPhiE :: PtEtaPhiE,
-    tjMV2c10 :: Float,
-    -- TODO
-    -- this won't be present in data.
-    -- tjLabel :: Maybe Int
-    } deriving (Show, Generic)
-
+data TrackJet = TrackJet { tjPtEtaPhiE :: PtEtaPhiE
+                         , tjMV2c10 :: Float
+                         -- TODO
+                         -- this won't be present in data.
+                         -- tjLabel :: Maybe Int
+                         } deriving (Show, Generic)
 
 instance Serialize TrackJet
 
@@ -73,6 +79,8 @@ instance HasLorentzVector TrackJet where
 newtype TrackJets = TrackJets [TrackJet]
 
 instance FromTTree TrackJets where
-    fromTTree = TrackJets . fromZipList
-                <$> lvsFromTTree "tjet"
-                <*> readBranch "tjet_mv2c10"
+    fromTTree = do PtEtaPhiE tlvs <- lvsFromTTree "tjet"
+                   mv2c10s <- readBranch "tjet_mv2c10"
+                   js <- TrackJet <$> ZipList tlvs <*> mv2c10s
+                   return . TrackJets . getZipList $ js
+-}
