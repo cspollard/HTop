@@ -24,7 +24,7 @@ instance Serialize Electron where
 instance HasLorentzVector Electron where
     lv = fromLV . ePtEtaPhiE
 
-newtype Electrons = Electrons [Electron] deriving (Show, Generic, Serialize)
+newtype Electrons = Electrons { fromElectrons :: [Electron] } deriving (Show, Generic, Serialize)
 
 instance FromTTree Electrons where
     fromTTree = do PtEtaPhiEs tlvs <- lvsFromTTree "ElecPt" "ElecEta" "ElecPhi" "ElecE"

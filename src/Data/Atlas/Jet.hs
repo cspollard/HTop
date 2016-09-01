@@ -22,7 +22,7 @@ instance Serialize Jet
 instance HasLorentzVector Jet where
     lv = fromLV . jPtEtaPhiE
 
-newtype Jets = Jets [Jet] deriving (Show, Generic, Serialize)
+newtype Jets = Jets { fromJets :: [Jet] } deriving (Show, Generic, Serialize)
 
 instance FromTTree Jets where
     fromTTree = do PtEtaPhiEs tlvs <- lvsFromTTree "JetPt" "JetEta" "JetPhi" "JetE"

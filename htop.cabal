@@ -20,7 +20,7 @@ library
                      , Data.Atlas.Electron
                      , Data.Atlas.Event
                      -- , Data.Atlas.Helpers
-                     -- , Data.Atlas.Histograms
+                     , Data.Atlas.Histograms
                      , Data.Atlas.Jet
                      , Data.Atlas.Muon
                      -- , Data.Atlas.ProcessInfo
@@ -61,8 +61,8 @@ library
   ghc-prof-options:    -Wall -prof -auto-all -caf-all
 
 
-executable jsonToYoda
-  main-is:             app/jsonToYoda.hs
+executable run-htop
+  main-is:             app/run-htop.hs
   build-depends:       base >=4.8 && <4.9
                      , attoparsec >=0.13 && <0.14
                      , containers >=0.5 && <0.6

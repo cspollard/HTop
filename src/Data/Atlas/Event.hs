@@ -1,21 +1,19 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 
 module Data.Atlas.Event ( Event(..)
+                        , module X
                         ) where
-
-import Control.Lens
 
 import Data.Serialize
 import GHC.Generics (Generic)
 
 import Data.TTree
 
-import Data.HEP.LorentzVector
-import Data.Atlas.PtEtaPhiE
-import Data.Atlas.Electron
-import Data.Atlas.Muon
-import Data.Atlas.Jet
+import Data.HEP.LorentzVector as X hiding (PtEtaPhiEs)
+import Data.Atlas.PtEtaPhiE as X
+import Data.Atlas.Electron as X
+import Data.Atlas.Muon as X
+import Data.Atlas.Jet as X
 
 
 metFromTTree :: MonadIO m => String -> String -> TTreeRead m PtEtaPhiE

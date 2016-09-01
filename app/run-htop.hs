@@ -56,7 +56,7 @@ instance ParseRecord Args where
 
 main :: IO ()
           -- read in cmd line args
-main = do args <- getRecord "jsonToYoda" :: IO Args
+main = do args <- getRecord "run-hs" :: IO Args
 
           -- get the list of input files
           fins <- runResourceT $ sourceFile (infiles args) =$= CB.lines =$= CL.map (T.unpack . T.decodeUtf8) $$ CL.consume

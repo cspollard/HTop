@@ -159,27 +159,3 @@ evtSystWeights = ["weight_pileup_UP", "weight_pileup_DOWN",
                   "weight_indiv_SF_MU_TTVA_STAT_UP", "weight_indiv_SF_MU_TTVA_STAT_DOWN",
                   "weight_indiv_SF_MU_TTVA_SYST_UP", "weight_indiv_SF_MU_TTVA_SYST_DOWN"
                   ]
-
-
-
--- TODO
--- move this stuff.
-
-conduitEncode :: (Monad m, Serialize a) => Conduit a m ByteString
-conduitEncode = CL.map encode
-
-conduitDecode :: (Monad m, Serialize a) => Conduit ByteString m a
-conduitDecode = do mbs <- await
-                   case mbs of
-                       Nothing -> return ()
-                       -- some streams seem to return an empty
-                       -- ByteString instead of Nothing?????
-                       Just "" -> conduitDecode
-                       Just bs -> go $ runGetPartial get bs
-
-    where
-        -- TODO
-        -- fail
-        go (Fail x z) = fail (x ++ " " ++ show z)
-        go (Done x rest) = leftover rest >> yield x >> conduitDecode
-        go (Partial f) = go =<< (f . fromMaybe "") <$> await

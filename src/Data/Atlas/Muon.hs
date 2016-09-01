@@ -24,7 +24,7 @@ instance Serialize Muon
 instance HasLorentzVector Muon where
     lv = fromLV . mPtEtaPhiE
 
-newtype Muons = Muons [Muon] deriving (Show, Generic, Serialize)
+newtype Muons = Muons { fromMuons :: [Muon] } deriving (Show, Generic, Serialize)
 
 instance FromTTree Muons where
     fromTTree = do PtEtaPhiEs tlvs <- lvsFromTTree "MuonPt" "MuonEta" "MuonPhi" "MuonE"
