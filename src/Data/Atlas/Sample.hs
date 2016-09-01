@@ -8,13 +8,12 @@ import Control.Lens
 
 import Data.Serialize
 import GHC.Generics
-import Data.Aeson
 
-import Data.Semigroup
+import Control.Applicative
 
 import Data.Histogram.Extra
 
-import Control.Applicative
+import Data.TTree
 
 data SampleInfo = SampleInfo { dsid :: Int
                              , numEvents :: Int
@@ -24,20 +23,10 @@ data SampleInfo = SampleInfo { dsid :: Int
 
 instance Serialize SampleInfo where
 
-instance FromJSON SampleInfo where
-    parseJSON = withObject "cannot parse SampleInfo." $
-                    \v -> SampleInfo
-                        <$> v .: "dsid"
-                        <*> v .: "totalEvents"
-                        <*> v .: "totalEventsWeighted"
-
--- TODO
--- dsids should not added...
-instance Semigroup SampleInfo where
-    s <> s' = SampleInfo
-                (dsid s')
-                (numEvents s + numEvents s')
-                (sumWeights s + sumWeights s')
+instance FromTTree SampleInfo where
+    fromTTree = SampleInfo <$> readBranch "dsid"
+                           <*> readBranch "numEvents"
+                           <*> readBranch "sumWeights"
 
 
 type Sample h = (SampleInfo, h)

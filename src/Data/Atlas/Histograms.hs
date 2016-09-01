@@ -16,8 +16,6 @@ import Data.Histogram
 import Data.Histogram.Extra
 
 import Data.Atlas.Event
-import Data.HEP.LorentzVector
--- import Data.Atlas.Helpers
 
 import Conduit
 import qualified Data.Conduit.List as CL

@@ -27,7 +27,7 @@ newtype Jets = Jets { fromJets :: [Jet] } deriving (Show, Generic, Serialize)
 instance FromTTree Jets where
     fromTTree = do PtEtaPhiEs tlvs <- lvsFromTTree "JetPt" "JetEta" "JetPhi" "JetE"
                    mv2c10s <- readBranch "JetMV2c20"
-                   jvts <- readBranch "JetJvt"
+                   jvts <- readBranch "JetJVT"
                    let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts
                    return . Jets $ getZipList js
 

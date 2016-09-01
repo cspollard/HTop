@@ -2,45 +2,14 @@
 
 module Main where
 
-import Control.Lens
-
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-
-import Data.Histogram.Extra
-
+import Control.Monad (forM)
 import Conduit
-import qualified Data.Conduit.Binary as CB
-import qualified Data.Conduit.Cereal as CC
-import qualified Data.Conduit.List as CL
-
-import Data.Serialize (put)
-
-import Data.Conduit.Zlib (ungzip, gzip)
-import Data.Conduit.Attoparsec
-
-import Control.Monad (forM_)
-import Control.Applicative (liftA2, getZipList)
-
-import Data.Semigroup
-
-import System.Directory
-
-import Data.Atlas.Tree
-import Data.Atlas.Sample
-import Data.Atlas.Histograms
-import Data.Atlas.CrossSections
-import Data.Atlas.ProcessInfo
-
-import Control.Parallel.Strategies (withStrategy, parList, rseq)
-
-import qualified Data.Map.Strict as M
-import qualified Data.IntMap.Strict as IM
-
-import Control.Arrow (first)
 
 import Options.Generic
-import Data.Orded
+
+import Data.TTree
+
+import Data.Atlas.Event
 
 -- TODO
 -- at some point this all needs to be moved into library functions.
@@ -57,30 +26,35 @@ instance ParseRecord Args where
 main :: IO ()
           -- read in cmd line args
 main = do args <- getRecord "run-hs" :: IO Args
-
           -- get the list of input files
-          fins <- runResourceT $ sourceFile (infiles args) =$= CB.lines =$= CL.map (T.unpack . T.decodeUtf8) $$ CL.consume
+          tins <- readFile (infiles args) >>= (mapM (ttree "nominal") . lines)
+
+          ns <- forM tins $ \t -> project t =$= mapMC (print :: Event -> IO ()) $$ lengthC
+          print (sum ns :: Int)
 
           -- project the samples onto the nominal histos (in parallel)
-          samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> runResourceT (sourceFile fn =$= ungzip $$ project mcWs channelHistos)) $ fins
+          -- samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> project) $ tins
+          return ()
 
+{-
           let m = M.fromListWith (liftA2 haddYH) $ map (first $ ordedBy dsid) samps
 
           -- read in the sample cross sections
           xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
 
           let scaledHists = flip M.mapWithKey m $
-                                (\(Orded ds s) hs -> case ds of
+                                \(Orded ds s) hs -> case ds of
                                                          0 -> hs
-                                                         _ -> over (traverse . yhHisto) (flip scaleBy $ (xsecs IM.! ds) * 3210 / sumWeights s) hs)
+                                                         _ -> over (traverse . yhHisto) (flip scaleBy $ (xsecs IM.! ds) * 3210 / sumWeights s) hs
 
           let mergedHists = M.mapKeysWith (liftA2 haddYH) (processTitle . orded) scaledHists & fmap getZipList
 
           let outfname = outfolder args
           createDirectoryIfMissing True outfname
         
-          forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ mapM_ yield hs $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : (T.unpack fout) ++ ".yoda")) 
+          forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ mapM_ yield hs $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : T.unpack fout ++ ".yoda")) 
 
           runResourceT $ CC.sourcePut (put mergedHists) =$= gzip $$ sinkFile (outfname ++ "hists.gz")
 
     where mcWs = ["weight_mc", "weight_pileup"]
+-}
