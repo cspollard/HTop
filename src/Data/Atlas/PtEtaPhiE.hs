@@ -7,7 +7,7 @@ import Data.TTree
 
 newtype PtEtaPhiEs = PtEtaPhiEs [PtEtaPhiE]
 
-lvsFromTTree :: MonadIO m => String -> String -> String -> String -> TTreeRead m PtEtaPhiEs
+lvsFromTTree :: MonadIO m => String -> String -> String -> String -> TR m PtEtaPhiEs
 lvsFromTTree ptn etan phin en = do pts <- fmap float2Double <$> readBranch ptn
                                    etas <- fmap float2Double <$> readBranch etan
                                    phis <- fmap float2Double <$> readBranch phin

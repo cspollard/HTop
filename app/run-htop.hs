@@ -1,19 +1,21 @@
-{-# LANGUAGE OverloadedStrings, Rank2Types, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TupleSections #-}
 
 module Main where
 
 import Control.Monad (forM)
+import Control.Applicative (liftA2, getZipList)
 import Conduit
+
+import qualified Data.Text as T
 
 import Options.Generic
 
 import Data.TTree
-
-import Data.Atlas.Event
-
--- TODO
--- at some point this all needs to be moved into library functions.
--- only basic conduits (and args?) should be left here.
+import Data.Atlas.Histograms
+import Data.Histogram.Extra
 
 data Args = Args { outfolder :: String
                  , infiles :: String
@@ -26,17 +28,17 @@ instance ParseRecord Args where
 main :: IO ()
           -- read in cmd line args
 main = do args <- getRecord "run-hs" :: IO Args
-          -- get the list of input files
+          -- get the list of input trees
           tins <- readFile (infiles args) >>= (mapM (ttree "nominal") . lines)
 
-          ns <- forM tins $ \t -> project t =$= mapMC (print :: Event -> IO ()) $$ lengthC
-          print (sum ns :: Int)
-
-          -- project the samples onto the nominal histos (in parallel)
-          -- samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> project) $ tins
-          return ()
+          hs <- forM tins $ \t -> project t =$= mapC (1.0,) $$ channelHistos
+          let hs' = foldl1 (liftA2 haddYH) hs
+          runResourceT $ yieldMany (getZipList hs') =$= mapC (T.unpack . showHisto) $$ sinkFile (outfolder args ++ '/' : "test.yoda")
 
 {-
+          -- project the samples onto the nominal histos (in parallel)
+          samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> project) $ tins
+
           let m = M.fromListWith (liftA2 haddYH) $ map (first $ ordedBy dsid) samps
 
           -- read in the sample cross sections

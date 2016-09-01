@@ -112,7 +112,7 @@ firstF = listToMaybe . toList
 
 -- common histograms for LorentzVectors
 lvHistos :: (Monad m, HasLorentzVector a) => Consumer (Weighted a) m [YodaHisto1D]
-lvHistos = sequenceConduits [ fillingYH ptHisto  <=$= CL.map (fmap ((/ 1e3) . lvPt))
+lvHistos = sequenceConduits [ fillingYH ptHisto  <=$= CL.map (fmap lvPt)
                             , fillingYH etaHisto <=$= CL.map (fmap lvEta)
                             ] <=$= CL.map (fmap toPtEtaPhiE)
 
@@ -130,8 +130,8 @@ jetHistos = (jetsHistos =++= jet0Histos) <=$= CL.map (fmap $ fromJets . _jets)
 
 {-
 ljetHs :: Monad m => Consumer (Weighted LargeJet) m [YodaHisto1D]
-ljetHs = (fillingYH mHisto <=$= CL.map (fmap ((/ 1e3) . ljM)))
-         =:= (fillingYH sd12Histo <=$= CL.map (fmap ((/ 1e3) . ljSD12)))
+ljetHs = (fillingYH mHisto <=$= CL.map (fmap ljM))
+         =:= (fillingYH sd12Histo <=$= CL.map (fmap ljSD12))
          =:= lvHistos
 
 
@@ -180,7 +180,6 @@ eventHistos = {- eljetHisto =:= -} metHisto =:= jetHistos
 
 channel :: Monad m => Text -> (Event -> Bool) -> Consumer (Weighted Event) m [YodaHisto1D]
 channel n f = fmap (fmap (path %~ (n <>))) $ filterC (f . snd) =$= eventHistos
-
 
 
 channelHistos :: Monad m => Consumer (Weighted Event) m (ZipList YodaHisto1D)

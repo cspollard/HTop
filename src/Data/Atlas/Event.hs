@@ -19,7 +19,7 @@ import Data.Atlas.Muon as X
 import Data.Atlas.Jet as X
 
 
-metFromTTree :: MonadIO m => String -> String -> TTreeRead m PtEtaPhiE
+metFromTTree :: MonadIO m => String -> String -> TR m PtEtaPhiE
 metFromTTree m p = do et <- readBranch m
                       phi <- readBranch p
                       return $ PtEtaPhiE et 0 phi et
