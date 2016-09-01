@@ -15,6 +15,7 @@ import Options.Generic
 
 import Data.TTree
 import Data.Atlas.Histograms
+import Data.Atlas.Sample
 import Data.Histogram.Extra
 
 data Args = Args { outfolder :: String
@@ -29,8 +30,15 @@ main :: IO ()
           -- read in cmd line args
 main = do args <- getRecord "run-hs" :: IO Args
           -- get the list of input trees
-          tins <- readFile (infiles args) >>= (mapM (ttree "nominal") . lines)
+          fs <- lines <$> readFile (infiles args)
 
+          -- get sumweights
+          sws <- mapM (ttree "sumWeights") fs
+          sumweights <- fmap sum . forM sws $ \s -> project s =$= mapC totalEventsWeighted $$ sumC
+          print sumweights
+
+          -- project trees
+          tins <- mapM (ttree "nominal") fs
           hs <- forM tins $ \t -> project t =$= mapC (1.0,) $$ channelHistos
           let hs' = foldl1 (liftA2 haddYH) hs
           runResourceT $ yieldMany (getZipList hs') =$= mapC (T.unpack . showHisto) $$ sinkFile (outfolder args ++ '/' : "test.yoda")

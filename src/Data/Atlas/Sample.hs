@@ -11,22 +11,26 @@ import GHC.Generics
 
 import Control.Applicative
 
+import Foreign.C.Types (CLong)
+
 import Data.Histogram.Extra
 
 import Data.TTree
 
+import GHC.Float
+
 data SampleInfo = SampleInfo { dsid :: Int
-                             , numEvents :: Int
-                             , sumWeights :: Double
+                             , totalEvents :: CLong
+                             , totalEventsWeighted :: Double
                              } deriving (Show, Generic)
 
 
-instance Serialize SampleInfo where
+-- instance Serialize SampleInfo where
 
 instance FromTTree SampleInfo where
     fromTTree = SampleInfo <$> readBranch "dsid"
-                           <*> readBranch "numEvents"
-                           <*> readBranch "sumWeights"
+                           <*> readBranch "totalEvents"
+                           <*> fmap float2Double (readBranch "totalEventsWeighted")
 
 
 type Sample h = (SampleInfo, h)
@@ -38,4 +42,4 @@ type Sample h = (SampleInfo, h)
 normToXsec :: SampleInfo -> ZipList YodaHisto1D -> ZipList YodaHisto1D
 normToXsec si hs = case dsid si of
                         0 -> hs
-                        _ -> fmap (over yhHisto (`scaleBy` (1.0 / sumWeights si))) hs
+                        _ -> fmap (over yhHisto (`scaleBy` (1.0 / totalEventsWeighted si))) hs

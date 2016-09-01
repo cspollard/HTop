@@ -90,5 +90,5 @@ executable run-htop
                      , htop >=0.1
 
   default-language:    Haskell2010
-  ghc-options:         -Wall -threaded -with-rtsopts=-N2
-  ghc-prof-options:    -Wall -threaded -prof -auto-all -caf-all
+  ghc-options:         -Wall
+  ghc-prof-options:    -Wall -prof -auto-all -caf-all
