@@ -20,8 +20,8 @@ import Data.Atlas.Jet as X
 
 
 metFromTTree :: MonadIO m => String -> String -> TR m PtEtaPhiE
-metFromTTree m p = do et <- readBranch m
-                      phi <- readBranch p
+metFromTTree m p = do et <- float2Double <$> readBranch m
+                      phi <- float2Double <$> readBranch p
                       return $ PtEtaPhiE et 0 phi et
 
 data Event = Event { _runNumber :: Int
