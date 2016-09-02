@@ -190,7 +190,7 @@ channel n f = fmap (fmap (path %~ (n <>))) $ filterC (f . snd) =$= eventHistos
 
 
 channelHistos :: Monad m => Consumer (Weighted Event) m (Int, ZipList YodaHisto1D)
-channelHistos = (,) <$> ZipSink lengthC <*> ZipSink (ZipList . concat <$> sequenceConduits [ channel "/elmujj/inclusive" elmujj ])
+channelHistos = getZipConduit $ (,) <$> ZipConduit lengthC <*> ZipConduit (ZipList . concat <$> sequenceConduits [ channel "/elmujj/inclusive" elmujj ])
 {-
                                                       , channel "/elelJ/0tag0addtag" (and . sequenceA [elelJ, (== (0, 0)) . nTags])
                                                       , channel "/elelJ/1tag0addtag" (and . sequenceA [elelJ, (== (1, 0)) . nTags])

@@ -49,8 +49,8 @@ main = do args <- getRecord "run-hs" :: IO Args
 
           -- project trees
           tins <- mapM (ttree "nominal") fs
-          (n, hs) <- forM tins $ \t -> project t =$= everyC 10000 printEvent =$= mapC (1.0,) $$ channelHistos
-          putStrLn (show n ++ " events analyzed.") 
+          (ns, hs) <- fmap unzip $ forM tins $ \t -> project t =$= everyC 10000 printEvent =$= mapC (1.0,) $$ channelHistos
+          putStrLn (show (sum ns) ++ " events analyzed.") 
 
           let hs' = foldl1 (liftA2 haddYH) hs
           runResourceT $ yieldMany (getZipList hs') =$= mapC (T.unpack . showHisto) $$ sinkFile (outfolder args ++ '/' : "test.yoda")
