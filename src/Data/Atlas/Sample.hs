@@ -6,7 +6,6 @@ module Data.Atlas.Sample where
 
 import Control.Lens
 
-import Data.Serialize
 import GHC.Generics
 
 import Control.Applicative

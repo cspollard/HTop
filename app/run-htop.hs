@@ -5,7 +5,7 @@
 
 module Main where
 
-import Control.Monad (forM)
+import Control.Monad (forM, when)
 import Control.Applicative (liftA2, getZipList)
 import Conduit
 
@@ -16,6 +16,7 @@ import Options.Generic
 import Data.TTree
 import Data.Atlas.Histograms
 import Data.Atlas.Sample
+import Data.Atlas.Event
 import Data.Histogram.Extra
 
 data Args = Args { outfolder :: String
@@ -25,6 +26,15 @@ data Args = Args { outfolder :: String
 
 instance ParseRecord Args where
 
+everyC :: Monad m => Int -> (Int -> a -> m ()) -> Conduit a m a
+everyC n f = loop 0
+    where loop i = do mx <- await
+                      case mx of
+                           Just x -> when (i `mod` n == 0) (lift $ f i x) >> yield x >> loop (i+1)
+                           Nothing -> return ()
+
+printEvent :: Int -> Event -> IO ()
+printEvent i x = putStrLn ("event " ++ show i ++ ":") >> print x
 
 main :: IO ()
           -- read in cmd line args
@@ -39,7 +49,7 @@ main = do args <- getRecord "run-hs" :: IO Args
 
           -- project trees
           tins <- mapM (ttree "nominal") fs
-          hs <- forM tins $ \t -> project t =$= mapC (1.0,) $$ channelHistos
+          hs <- forM tins $ \t -> project t =$= everyC 10000 printEvent =$= mapC (1.0,) $$ channelHistos
           let hs' = foldl1 (liftA2 haddYH) hs
           runResourceT $ yieldMany (getZipList hs') =$= mapC (T.unpack . showHisto) $$ sinkFile (outfolder args ++ '/' : "test.yoda")
 
