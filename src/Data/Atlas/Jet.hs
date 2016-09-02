@@ -17,6 +17,7 @@ data Jet = Jet { jPtEtaPhiE :: PtEtaPhiE
                , jMV2c10 :: Float
                , jJVT :: Float
                , jTracks :: [PtEtaPhiE]
+               , jSV1Tracks :: [PtEtaPhiE]
                } deriving (Show, Generic)
 
 instance Serialize Jet
@@ -26,21 +27,27 @@ instance HasLorentzVector Jet where
 
 newtype Jets = Jets { fromJets :: [Jet] } deriving (Show, Generic, Serialize)
 
+jetTrackTLV :: MonadIO m => String -> String -> String -> String -> TR m [[PtEtaPhiE]]
+jetTrackTLV spt seta sphi se = do trkpts <- fromVVector <$> readBranch spt
+                                  trketas <- fromVVector <$> readBranch seta
+                                  trkphis <- fromVVector <$> readBranch sphi
+                                  trkes <- fromVVector <$> readBranch se
+
+                                  let trks = V.zipWith4 (\pts etas phis es ->
+                                                          V.toList $ V.zipWith4 PtEtaPhiE pts etas phis es
+                                                         ) trkpts trketas trkphis trkes
+
+                                  return $ V.toList trks
+
+
 instance FromTTree Jets where
     fromTTree = do PtEtaPhiEs tlvs <- lvsFromTTree "JetPt" "JetEta" "JetPhi" "JetE"
                    mv2c10s <- readBranch "JetMV2c20"
                    jvts <- readBranch "JetJVT"
+                   trks <- jetTrackTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
+                   sv1trks <- jetTrackTLV "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
 
-                   trkpts <- fromVVector <$> readBranch "JetTracksPt"
-                   trketas <- fromVVector <$> readBranch "JetTracksEta"
-                   trkphis <- fromVVector <$> readBranch "JetTracksPhi"
-                   trkes <- fromVVector <$> readBranch "JetTracksE"
-
-                   let trks = V.zipWith4 (\pts etas phis es ->
-                                           V.toList $ V.zipWith4 PtEtaPhiE pts etas phis es
-                                          ) trkpts trketas trkphis trkes
-
-                   let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts <*> ZipList (V.toList trks)
+                   let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts <*> ZipList trks <*> ZipList sv1trks
                    return . Jets $ getZipList js
 
 
