@@ -3,6 +3,12 @@
 module Data.Atlas.Histograms where
 
 import Control.Lens
+
+import Conduit
+import qualified Data.Conduit.List as CL
+
+import qualified Data.Vector.Unboxed as V
+
 import Data.Maybe (listToMaybe)
 import Data.Foldable (toList)
 
@@ -12,15 +18,11 @@ import Data.Semigroup
 
 import Data.Text (Text)
 
-import Data.Histogram
+import Data.Histogram hiding (sum)
 import Data.Histogram.Extra
 
 import Data.Atlas.Event
-
-import Conduit
-import qualified Data.Conduit.List as CL
-
-import qualified Data.Vector.Unboxed as V
+import Data.Atlas.Selection
 
 
 -- TODO
@@ -42,6 +44,9 @@ histo1D bin = histogram bin (V.replicate (nBins bin) 0)
 
 ptHisto :: YodaHisto1D
 ptHisto = YodaHisto "/pt" "$p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D (binD 0 25 1000)
+
+sumTrkPtHisto :: YodaHisto1D
+sumTrkPtHisto = YodaHisto "/sumtrkpt" "$\\sum_{\\mathrm trk} p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D (binD 0 25 500)
 
 eHisto :: YodaHisto1D
 eHisto = YodaHisto "/E" "$E$ [GeV]" (dsigdXpbY "E" gev) $ histo1D (binD 0 25 1000)
@@ -116,17 +121,19 @@ lvHistos = sequenceConduits [ fillingYH ptHisto  <=$= CL.map (fmap lvPt)
                             , fillingYH etaHisto <=$= CL.map (fmap lvEta)
                             ] <=$= CL.map (fmap toPtEtaPhiE)
 
+jetTrkHistos :: Monad m => Consumer (Weighted Jet) m YodaHisto1D
+jetTrkHistos = fillingYH sumTrkPtHisto <=$= CL.map (fmap (sum . fmap lvPt . jTracks))
 
 jetsHistos :: Monad m => Consumer (Weighted [Jet]) m [YodaHisto1D]
 jetsHistos = fmap ((path %~ ("/jets" <>)) . (xLabel %~ ("small-$R$ jet " <>)))
-                <$> fillAll lvHistos
+             <$> (fillAll jetTrkHistos =:= fillAll lvHistos)
 
 jet0Histos :: Monad m => Consumer (Weighted [Jet]) m [YodaHisto1D]
 jet0Histos = fmap ((path %~ ("/jet0" <>)) . (xLabel %~ ("leading small-$R$ jet " <>)))
              <$> fillFirst lvHistos
 
 jetHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
-jetHistos = (jetsHistos =++= jet0Histos) <=$= CL.map (fmap $ fromJets . _jets)
+jetHistos = (jetsHistos =++= jet0Histos) <=$= CL.map (fmap _jets)
 
 {-
 ljetHs :: Monad m => Consumer (Weighted LargeJet) m [YodaHisto1D]
@@ -161,12 +168,12 @@ tjetHistos = fmap ((path %~ ("/tjets" <>)) . (xLabel %~ ("track jet " <>)))
 
 electronsHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
 electronsHistos = fmap ((path %~ ("/electrons" <>)) . (xLabel %~ ("electron " <>)))
-                  <$> fillAll lvHistos <=$= CL.map (fmap $ fromElectrons . _electrons)
+                  <$> fillAll lvHistos <=$= CL.map (fmap _electrons)
 
 
 muonsHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
 muonsHistos = fmap ((path %~ ("/muons" <>)) . (xLabel %~ ("muon " <>)))
-              <$> fillAll lvHistos <=$= CL.map (fmap $ fromMuons . _muons)
+              <$> fillAll lvHistos <=$= CL.map (fmap _muons)
 
 metHisto :: Monad m => Consumer (Weighted Event) m YodaHisto1D
 metHisto = ((path %~ ("/met" <>)) . (xLabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}}$ " <>)))
@@ -183,7 +190,7 @@ channel n f = fmap (fmap (path %~ (n <>))) $ filterC (f . snd) =$= eventHistos
 
 
 channelHistos :: Monad m => Consumer (Weighted Event) m (ZipList YodaHisto1D)
-channelHistos = ZipList . concat <$> sequenceConduits [ channel "/elelJ/inclusive" $ const True ]
+channelHistos = ZipList . concat <$> sequenceConduits [ channel "/elmujj/inclusive" elmujj ]
 {-
                                                       , channel "/elelJ/0tag0addtag" (and . sequenceA [elelJ, (== (0, 0)) . nTags])
                                                       , channel "/elelJ/1tag0addtag" (and . sequenceA [elelJ, (== (1, 0)) . nTags])

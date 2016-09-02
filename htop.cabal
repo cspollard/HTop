@@ -25,6 +25,7 @@ library
                      , Data.Atlas.Muon
                      , Data.Atlas.ProcessInfo
                      , Data.Atlas.Sample
+                     , Data.Atlas.Selection
                      , Data.Orded
 
   -- other-modules:       

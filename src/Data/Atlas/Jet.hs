@@ -11,10 +11,12 @@ import Data.HEP.LorentzVector
 import Data.Atlas.PtEtaPhiE
 import Data.TTree
 
+import qualified Data.Vector as V
 
 data Jet = Jet { jPtEtaPhiE :: PtEtaPhiE
                , jMV2c10 :: Float
                , jJVT :: Float
+               , jTracks :: [PtEtaPhiE]
                } deriving (Show, Generic)
 
 instance Serialize Jet
@@ -28,7 +30,17 @@ instance FromTTree Jets where
     fromTTree = do PtEtaPhiEs tlvs <- lvsFromTTree "JetPt" "JetEta" "JetPhi" "JetE"
                    mv2c10s <- readBranch "JetMV2c20"
                    jvts <- readBranch "JetJVT"
-                   let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts
+
+                   trkpts <- fromVVector <$> readBranch "JetTracksPt"
+                   trketas <- fromVVector <$> readBranch "JetTracksEta"
+                   trkphis <- fromVVector <$> readBranch "JetTracksPhi"
+                   trkes <- fromVVector <$> readBranch "JetTracksE"
+
+                   let trks = V.zipWith4 (\pts etas phis es ->
+                                           V.toList $ V.zipWith4 PtEtaPhiE pts etas phis es
+                                          ) trkpts trketas trkphis trkes
+
+                   let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts <*> ZipList (V.toList trks)
                    return . Jets $ getZipList js
 
 

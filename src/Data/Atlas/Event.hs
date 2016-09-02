@@ -27,9 +27,9 @@ metFromTTree m p = do et <- readBranch m
 data Event = Event { _runNumber :: Int
                    , _eventNumber :: Int
                    , _mu :: Float
-                   , _electrons :: Electrons
-                   , _muons :: Muons
-                   , _jets :: Jets
+                   , _electrons :: [Electron]
+                   , _muons :: [Muon]
+                   , _jets :: [Jet]
                    , _met :: PtEtaPhiE
                    } deriving (Show, Generic)
 
@@ -43,13 +43,13 @@ eventNumber = lens _eventNumber $ \e x -> e { _eventNumber = x }
 mu :: Lens' Event Float
 mu = lens _mu $ \e x -> e { _mu = x }
 
-electrons :: Lens' Event Electrons
+electrons :: Lens' Event [Electron]
 electrons = lens _electrons $ \e x -> e { _electrons = x }
 
-muons :: Lens' Event Muons
+muons :: Lens' Event [Muon]
 muons = lens _muons $ \e x -> e { _muons = x }
 
-jets :: Lens' Event Jets
+jets :: Lens' Event [Jet]
 jets = lens _jets $ \e x -> e { _jets = x }
 
 met :: Lens' Event PtEtaPhiE
@@ -62,9 +62,9 @@ instance FromTTree Event where
     fromTTree = Event <$> readBranch "Run"
                       <*> readBranch "Event"
                       <*> readBranch "Mu"
-                      <*> fromTTree
-                      <*> fromTTree
-                      <*> fromTTree
+                      <*> fmap fromElectrons fromTTree
+                      <*> fmap fromMuons fromTTree
+                      <*> fmap fromJets fromTTree
                       <*> metFromTTree "ETMiss" "ETMissPhi"
 
 -- TODO
