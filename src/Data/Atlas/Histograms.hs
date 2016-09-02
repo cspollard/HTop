@@ -52,7 +52,7 @@ sumSV1TrkPtHisto :: YodaHisto1D
 sumSV1TrkPtHisto = YodaHisto "/sumsv1trkpt" "SV1 $\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D (binD 0 25 500)
 
 bFragHisto :: YodaHisto1D
-bFragHisto = YodaHisto "/bFrag" "$z_{p_{\\mathrm T}}$" (dsigdXpbY "$z_{p_{\\mathrm T}}" "1") $ histo1D (binD 0 22 1.1)
+bFragHisto = YodaHisto "/bFrag" "$z_{p_{\\mathrm T}}$" (dsigdXpbY "$z_{p_{\\mathrm T}}$" "1") $ histo1D (binD 0 22 1.1)
 
 eHisto :: YodaHisto1D
 eHisto = YodaHisto "/E" "$E$ [GeV]" (dsigdXpbY "E" gev) $ histo1D (binD 0 25 1000)
@@ -199,4 +199,4 @@ channel n f = (fmap.fmap) (path %~ (n <>)) $ filterC (f . snd) =$= eventHistos
 
 
 channelHistos :: Monad m => Consumer (Weighted Event) m (Int, ZipList YodaHisto1D)
-channelHistos = getZipConduit $ (,) <$> ZipConduit lengthC <*> ZipConduit (ZipList . concat <$> sequenceConduits [ channel "/elmujj/inclusive" (elmujj . pruneJets) ])
+channelHistos = getZipConduit $ (,) <$> ZipConduit lengthC <*> ZipConduit (ZipList . concat <$> sequenceConduits [ CL.map (fmap pruneJets) =$= channel "/elmujj/inclusive" elmujj ])
