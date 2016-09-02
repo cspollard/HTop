@@ -14,7 +14,7 @@ import Data.TTree
 
 data Electron = Electron { ePtEtaPhiE :: PtEtaPhiE
                          , eClEta :: Float
-                         , eCharge :: Float
+                         , eCharge :: Int
                          , eD0Sig :: Float
                          , ePtVarCone20 :: Float
                          } deriving (Show, Generic)

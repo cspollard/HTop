@@ -12,12 +12,11 @@ import Data.Atlas.PtEtaPhiE
 import Data.TTree
 
 
-data Muon = Muon {
-    mPtEtaPhiE :: PtEtaPhiE,
-    mCharge :: Double,
-    mD0Sig :: Double,
-    mPtVarCone30 :: Double
-    } deriving (Show, Generic)
+data Muon = Muon { mPtEtaPhiE :: PtEtaPhiE
+                 , mCharge :: Int
+                 , mD0Sig :: Float
+                 , mPtVarCone30 :: Float
+                 } deriving (Show, Generic)
 
 instance Serialize Muon
 
