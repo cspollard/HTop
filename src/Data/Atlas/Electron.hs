@@ -5,6 +5,7 @@ module Data.Atlas.Electron where
 
 import GHC.Generics (Generic)
 import Data.Serialize
+import Data.Serialize.CTypes ()
 import Control.Applicative (ZipList(..))
 
 import Data.HEP.LorentzVector
@@ -14,7 +15,7 @@ import Data.TTree
 
 data Electron = Electron { ePtEtaPhiE :: PtEtaPhiE
                          , eClEta :: Float
-                         , eCharge :: Int
+                         , eCharge :: CInt
                          , eD0Sig :: Float
                          , ePtVarCone20 :: Float
                          } deriving (Show, Generic)

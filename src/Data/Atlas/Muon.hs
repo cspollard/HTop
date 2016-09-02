@@ -5,6 +5,7 @@ module Data.Atlas.Muon where
 
 import GHC.Generics (Generic)
 import Data.Serialize
+import Data.Serialize.CTypes ()
 import Control.Applicative (ZipList(..))
 
 import Data.HEP.LorentzVector
@@ -13,7 +14,7 @@ import Data.TTree
 
 
 data Muon = Muon { mPtEtaPhiE :: PtEtaPhiE
-                 , mCharge :: Int
+                 , mCharge :: CInt
                  , mD0Sig :: Float
                  , mPtVarCone30 :: Float
                  } deriving (Show, Generic)

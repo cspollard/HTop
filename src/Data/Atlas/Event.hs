@@ -26,8 +26,8 @@ metFromTTree m p = do et <- float2Double <$> readBranch m
                       phi <- float2Double <$> readBranch p
                       return $ PtEtaPhiE et 0 phi et
 
-data Event = Event { _runNumber :: Int
-                   , _eventNumber :: Int
+data Event = Event { _runNumber :: CInt
+                   , _eventNumber :: CInt
                    , _mu :: Float
                    , _electrons :: [Electron]
                    , _muons :: [Muon]
@@ -36,10 +36,10 @@ data Event = Event { _runNumber :: Int
                    } deriving (Show, Generic)
 
 
-runNumber :: Lens' Event Int
+runNumber :: Lens' Event CInt
 runNumber = lens _runNumber $ \e x -> e { _runNumber = x }
 
-eventNumber :: Lens' Event Int
+eventNumber :: Lens' Event CInt
 eventNumber = lens _eventNumber $ \e x -> e { _eventNumber = x }
 
 mu :: Lens' Event Float

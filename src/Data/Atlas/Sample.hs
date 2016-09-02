@@ -10,15 +10,12 @@ import GHC.Generics
 
 import Control.Applicative
 
-import Foreign.C.Types (CLong)
-
-import Data.Histogram.Extra
-
-import Data.TTree
-
 import GHC.Float
 
-data SampleInfo = SampleInfo { dsid :: Int
+import Data.Histogram.Extra
+import Data.TTree
+
+data SampleInfo = SampleInfo { dsid :: CInt
                              , totalEvents :: CLong
                              , totalEventsWeighted :: Double
                              } deriving (Show, Generic)
