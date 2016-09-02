@@ -52,7 +52,7 @@ sumSV1TrkPtHisto :: YodaHisto1D
 sumSV1TrkPtHisto = YodaHisto "/sumsv1trkpt" "SV1 $\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D (binD 0 25 500)
 
 bFragHisto :: YodaHisto1D
-bFragHisto = YodaHisto "/bFrag" "$z_{p_{\\mathrm T}}$" (dsigdXpbY "$z_{p_{\\mathrm T}}$" "1") $ histo1D (binD 0 22 1.1)
+bFragHisto = YodaHisto "/bFrag" "$z_{p_{\\mathrm T}}$" (dsigdXpbY "z_{p_{\\mathrm T}}" "1") $ histo1D (binD 0 22 1.1)
 
 eHisto :: YodaHisto1D
 eHisto = YodaHisto "/E" "$E$ [GeV]" (dsigdXpbY "E" gev) $ histo1D (binD 0 25 1000)
