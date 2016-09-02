@@ -10,6 +10,8 @@ import Control.Lens
 import Data.Serialize
 import GHC.Generics (Generic)
 
+import GHC.Float
+
 import Data.TTree
 
 import Data.HEP.LorentzVector as X hiding (PtEtaPhiEs)
