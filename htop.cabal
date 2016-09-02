@@ -26,9 +26,10 @@ library
                      , Data.Atlas.ProcessInfo
                      , Data.Atlas.Sample
                      , Data.Atlas.Selection
+
+  other-modules:       Data.Serialize.CTypes
                      , Data.Orded
 
-  -- other-modules:       
   other-extensions:    OverloadedStrings
                      , DeriveGeneric
                      , TemplateHaskell

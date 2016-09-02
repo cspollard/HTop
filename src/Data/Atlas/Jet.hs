@@ -50,6 +50,14 @@ instance FromTTree Jets where
                    let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts <*> ZipList trks <*> ZipList sv1trks
                    return . Jets $ getZipList js
 
+sumTrkPt :: Jet -> Double
+sumTrkPt = sum . fmap lvPt . jTracks
+
+sumSV1TrkPt :: Jet -> Double
+sumSV1TrkPt = sum . fmap lvPt . jSV1Tracks
+
+bFrag :: Jet -> Double
+bFrag = (/) <$> sumSV1TrkPt <*> sumTrkPt
 
 {-
  - TODO

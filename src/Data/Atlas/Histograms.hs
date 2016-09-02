@@ -46,7 +46,13 @@ ptHisto :: YodaHisto1D
 ptHisto = YodaHisto "/pt" "$p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D (binD 0 25 1000)
 
 sumTrkPtHisto :: YodaHisto1D
-sumTrkPtHisto = YodaHisto "/sumtrkpt" "$\\sum_{\\mathrm trk} p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D (binD 0 25 500)
+sumTrkPtHisto = YodaHisto "/sumtrkpt" "$\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D (binD 0 25 500)
+
+sumSV1TrkPtHisto :: YodaHisto1D
+sumSV1TrkPtHisto = YodaHisto "/sumsv1trkpt" "SV1 $\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D (binD 0 25 500)
+
+bFragHisto :: YodaHisto1D
+bFragHisto = YodaHisto "/bFrag" "$z_{p_{\\mathrm T}}$" (dsigdXpbY "$z_{p_{\\mathrm T}}" "1") $ histo1D (binD 0 22 1.1)
 
 eHisto :: YodaHisto1D
 eHisto = YodaHisto "/E" "$E$ [GeV]" (dsigdXpbY "E" gev) $ histo1D (binD 0 25 1000)
@@ -121,16 +127,19 @@ lvHistos = sequenceConduits [ fillingYH ptHisto  <=$= CL.map (fmap lvPt)
                             , fillingYH etaHisto <=$= CL.map (fmap lvEta)
                             ] <=$= CL.map (fmap toPtEtaPhiE)
 
-jetTrkHistos :: Monad m => Consumer (Weighted Jet) m YodaHisto1D
-jetTrkHistos = fillingYH sumTrkPtHisto <=$= CL.map (fmap (sum . fmap lvPt . jTracks))
+jetTrkHistos :: Monad m => Consumer (Weighted Jet) m [YodaHisto1D]
+jetTrkHistos = sequenceConduits [ fillingYH sumTrkPtHisto    <=$= CL.map (fmap sumTrkPt)
+                                , fillingYH sumSV1TrkPtHisto <=$= CL.map (fmap sumSV1TrkPt)
+                                , fillingYH bFragHisto       <=$= CL.map (fmap bFrag)
+                                ] <=$= CL.filter ((> 0) . length . jSV1Tracks . snd)
 
 jetsHistos :: Monad m => Consumer (Weighted [Jet]) m [YodaHisto1D]
 jetsHistos = fmap ((path %~ ("/jets" <>)) . (xLabel %~ ("small-$R$ jet " <>)))
-             <$> (fillAll jetTrkHistos =:= fillAll lvHistos)
+             <$> (fillAll jetTrkHistos =++= fillAll lvHistos)
 
 jet0Histos :: Monad m => Consumer (Weighted [Jet]) m [YodaHisto1D]
 jet0Histos = fmap ((path %~ ("/jet0" <>)) . (xLabel %~ ("leading small-$R$ jet " <>)))
-             <$> fillFirst lvHistos
+             <$> (fillFirst jetTrkHistos =++= fillFirst lvHistos)
 
 jetHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
 jetHistos = (jetsHistos =++= jet0Histos) <=$= CL.map (fmap _jets)
@@ -186,52 +195,8 @@ eventHistos = {- eljetHisto =:= -} metHisto =:= jetHistos
 
 
 channel :: Monad m => Text -> (Event -> Bool) -> Consumer (Weighted Event) m [YodaHisto1D]
-channel n f = fmap (fmap (path %~ (n <>))) $ filterC (f . snd) =$= eventHistos
+channel n f = (fmap.fmap) (path %~ (n <>)) $ filterC (f . snd) =$= eventHistos
 
 
 channelHistos :: Monad m => Consumer (Weighted Event) m (Int, ZipList YodaHisto1D)
-channelHistos = getZipConduit $ (,) <$> ZipConduit lengthC <*> ZipConduit (ZipList . concat <$> sequenceConduits [ channel "/elmujj/inclusive" elmujj ])
-{-
-                                                      , channel "/elelJ/0tag0addtag" (and . sequenceA [elelJ, (== (0, 0)) . nTags])
-                                                      , channel "/elelJ/1tag0addtag" (and . sequenceA [elelJ, (== (1, 0)) . nTags])
-                                                      , channel "/elelJ/2tag0addtag" (and . sequenceA [elelJ, (== (2, 0)) . nTags])
-                                                      , channel "/elelJ/0tag1addtag" (and . sequenceA [elelJ, (== (0, 1)) . nTags])
-                                                      , channel "/elelJ/1tag1addtag" (and . sequenceA [elelJ, (== (1, 1)) . nTags])
-                                                      , channel "/elelJ/2tag1addtag" (and . sequenceA [elelJ, (== (2, 1)) . nTags])
-                                                      , channel "/elmuJ/inclusive" elmuJ
-                                                      , channel "/elmuJ/0tag0addtag" (and . sequenceA [elmuJ, (== (0, 0)) . nTags])
-                                                      , channel "/elmuJ/1tag0addtag" (and . sequenceA [elmuJ, (== (1, 0)) . nTags])
-                                                      , channel "/elmuJ/2tag0addtag" (and . sequenceA [elmuJ, (== (2, 0)) . nTags])
-                                                      , channel "/elmuJ/0tag1addtag" (and . sequenceA [elmuJ, (== (0, 1)) . nTags])
-                                                      , channel "/elmuJ/1tag1addtag" (and . sequenceA [elmuJ, (== (1, 1)) . nTags])
-                                                      , channel "/elmuJ/2tag1addtag" (and . sequenceA [elmuJ, (== (2, 1)) . nTags])
-                                                      , channel "/mumuJ/inclusive" mumuJ
-                                                      , channel "/mumuJ/0tag0addtag" (and . sequenceA [mumuJ, (== (0, 0)) . nTags])
-                                                      , channel "/mumuJ/1tag0addtag" (and . sequenceA [mumuJ, (== (1, 0)) . nTags])
-                                                      , channel "/mumuJ/2tag0addtag" (and . sequenceA [mumuJ, (== (2, 0)) . nTags])
-                                                      , channel "/mumuJ/0tag1addtag" (and . sequenceA [mumuJ, (== (0, 1)) . nTags])
-                                                      , channel "/mumuJ/1tag1addtag" (and . sequenceA [mumuJ, (== (1, 1)) . nTags])
-                                                      , channel "/mumuJ/2tag1addtag" (and . sequenceA [mumuJ, (== (2, 1)) . nTags])
-                                                      , channel "/elnuJ/inclusive" elnuJ
-                                                      , channel "/elnuJ/0tag0addtag" (and . sequenceA [elnuJ, (== (0, 0)) . nTags])
-                                                      , channel "/elnuJ/1tag0addtag" (and . sequenceA [elnuJ, (== (1, 0)) . nTags])
-                                                      , channel "/elnuJ/2tag0addtag" (and . sequenceA [elnuJ, (== (2, 0)) . nTags])
-                                                      , channel "/elnuJ/0tag1addtag" (and . sequenceA [elnuJ, (== (0, 1)) . nTags])
-                                                      , channel "/elnuJ/1tag1addtag" (and . sequenceA [elnuJ, (== (1, 1)) . nTags])
-                                                      , channel "/elnuJ/2tag1addtag" (and . sequenceA [elnuJ, (== (2, 1)) . nTags])
-                                                      , channel "/munuJ/inclusive" munuJ
-                                                      , channel "/munuJ/0tag0addtag" (and . sequenceA [munuJ, (== (0, 0)) . nTags])
-                                                      , channel "/munuJ/1tag0addtag" (and . sequenceA [munuJ, (== (1, 0)) . nTags])
-                                                      , channel "/munuJ/2tag0addtag" (and . sequenceA [munuJ, (== (2, 0)) . nTags])
-                                                      , channel "/munuJ/0tag1addtag" (and . sequenceA [munuJ, (== (0, 1)) . nTags])
-                                                      , channel "/munuJ/1tag1addtag" (and . sequenceA [munuJ, (== (1, 1)) . nTags])
-                                                      , channel "/munuJ/2tag1addtag" (and . sequenceA [munuJ, (== (2, 1)) . nTags])
-                                                      , channel "/nunuJ/inclusive" nunuJ
-                                                      , channel "/nunuJ/0tag0addtag" (and . sequenceA [nunuJ, (== (0, 0)) . nTags])
-                                                      , channel "/nunuJ/1tag0addtag" (and . sequenceA [nunuJ, (== (1, 0)) . nTags])
-                                                      , channel "/nunuJ/2tag0addtag" (and . sequenceA [nunuJ, (== (2, 0)) . nTags])
-                                                      , channel "/nunuJ/0tag1addtag" (and . sequenceA [nunuJ, (== (0, 1)) . nTags])
-                                                      , channel "/nunuJ/1tag1addtag" (and . sequenceA [nunuJ, (== (1, 1)) . nTags])
-                                                      , channel "/nunuJ/2tag1addtag" (and . sequenceA [nunuJ, (== (2, 1)) . nTags])
-                                                      ]
--}
+channelHistos = getZipConduit $ (,) <$> ZipConduit lengthC <*> ZipConduit (ZipList . concat <$> sequenceConduits [ channel "/elmujj/inclusive" (elmujj . pruneJets) ])

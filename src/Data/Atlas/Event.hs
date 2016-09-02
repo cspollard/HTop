@@ -3,6 +3,8 @@
 
 module Data.Atlas.Event ( Event(..)
                         , module X
+                        , runNumber, eventNumber, mu
+                        , electrons, muons, jets, met
                         ) where
 
 import Control.Lens
