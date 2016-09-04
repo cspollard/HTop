@@ -8,7 +8,7 @@ import Control.Lens
 import GHC.Generics (Generic)
 import Data.Serialize
 import Control.Applicative (ZipList(..))
-import Data.List (nubBy)
+import Data.List (deleteFirstsBy)
 
 import Data.HEP.LorentzVector
 import Data.Atlas.PtEtaPhiE
@@ -20,7 +20,8 @@ import qualified Data.Vector as V
 data Jet = Jet { jPtEtaPhiE :: PtEtaPhiE
                , jMV2c10 :: Float
                , jJVT :: Float
-               , jTracks :: [Track]
+               , jPVTracks :: [Track]
+               , jSVTracks :: [Track]
                } deriving (Show, Generic)
 
 instance Serialize Jet
@@ -46,16 +47,16 @@ instance FromTTree Jets where
                    sv1trks <- jetTracksTLV SVertex "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
 
                    -- NB: this should give SV tracks priority
-                   let trks'' = nubBy trkEq <$> ZipList (sv1trks ++ trks')
+                   let trks'' = zipWith (deleteFirstsBy trkEq) trks' sv1trks
 
-                   let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts <*> trks''
+                   let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts <*> ZipList trks'' <*> ZipList sv1trks
                    return . Jets $ getZipList js
 
 sumTrkPt :: Jet -> Double
-sumTrkPt = sum . fmap (lvPt . _tfourmom) . jTracks
+sumTrkPt = sum . fmap (lvPt . _tfourmom) . ((++) <$> jPVTracks <*> jSVTracks)
 
 sumSVTrkPt :: Jet -> Double
-sumSVTrkPt = sum . fmap (lvPt . _tfourmom) . filter ((== SVertex) . vertex) . jTracks
+sumSVTrkPt = sum . fmap (lvPt . _tfourmom) . jSVTracks
 
 bFrag :: Jet -> Double
 bFrag = (/) <$> sumSVTrkPt <*> sumTrkPt

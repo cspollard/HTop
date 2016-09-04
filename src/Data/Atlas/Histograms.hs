@@ -141,8 +141,12 @@ jet0Histos :: Monad m => Consumer (Weighted [Jet]) m [YodaHisto1D]
 jet0Histos = fmap ((path %~ ("/jet0" <>)) . (xLabel %~ ("leading small-$R$ jet " <>)))
              <$> (fillFirst jetTrkHistos =++= fillFirst lvHistos)
 
+probeJetHistos :: Monad m => Consumer (Weighted [Jet]) m [YodaHisto1D]
+probeJetHistos = fmap ((path %~ ("/probejet" <>)) . (xLabel %~ ("probe small-$R$ jet " <>)))
+             <$> (fillAll jetTrkHistos =++= fillAll lvHistos) <=$= CL.map (fmap probeJets)
+
 jetHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
-jetHistos = (jetsHistos =++= jet0Histos) <=$= CL.map (fmap _jets)
+jetHistos = (jetsHistos =++= jet0Histos =++= probeJetHistos) <=$= CL.map (fmap _jets)
 
 {-
 ljetHs :: Monad m => Consumer (Weighted LargeJet) m [YodaHisto1D]
