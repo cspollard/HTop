@@ -21,6 +21,9 @@ data SampleInfo = SampleInfo { dsid :: CInt
                              } deriving (Show, Generic)
 
 
+addSampInfo :: SampleInfo -> SampleInfo -> SampleInfo
+SampleInfo d t tw `addSampInfo` SampleInfo _ t' tw' = SampleInfo d (t+t') (tw+tw')
+
 -- instance Serialize SampleInfo where
 
 instance FromTTree SampleInfo where

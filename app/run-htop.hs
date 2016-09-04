@@ -5,19 +5,25 @@
 
 module Main where
 
-import Control.Monad (forM, when)
-import Control.Applicative (liftA2, getZipList)
+import Control.Lens
+
 import Conduit
+
+import Control.Monad (forM, forM_, when)
+import Control.Applicative (liftA2, getZipList)
 
 import qualified Data.Text as T
 
 import Options.Generic
+
+import qualified Data.IntMap.Strict as IM
 
 import Data.TTree
 import Data.Atlas.Histograms
 import Data.Atlas.Sample
 import Data.Atlas.Event
 import Data.Histogram.Extra
+import Data.Atlas.CrossSections
 
 data Args = Args { outfolder :: String
                  , infiles :: String
@@ -39,35 +45,32 @@ printEvent i x = putStrLn ("event " ++ show i ++ ":") >> print x
 main :: IO ()
           -- read in cmd line args
 main = do args <- getRecord "run-hs" :: IO Args
+
+          xsecs <- readXSecFile (xsecfile args)
+          print xsecs
+
           -- get the list of input trees
           fs <- lines <$> readFile (infiles args)
 
-          -- get sumweights
-          sws <- mapM (ttree "sumWeights") fs
-          sumweights <- fmap sum . forM sws $ \s -> project s =$= mapC totalEventsWeighted $$ sumC
-          print sumweights
+          samps <- forM fs $ \f -> do wt <- ttree "sumWeights" f
+                                      tt <- ttree "nominal" f
+                                      s <- foldl1 addSampInfo <$> (project wt $$ sinkList)
+                                      (_, h) <- project tt $$ mapC (1.0,) =$= channelHistos
+                                      return (s, h)
 
-          -- project trees
-          tins <- mapM (ttree "nominal") fs
-          (ns, hs) <- fmap unzip $ forM tins $ \t -> project t =$= everyC 10000 printEvent =$= mapC (1.0,) $$ channelHistos
-          putStrLn (show (sum ns) ++ " events analyzed.") 
+          let m = IM.fromListWith (\(s, h) (s', h') -> (addSampInfo s s', liftA2 haddYH h h')) $ map ((,) <$> fromEnum . dsid . fst <*> id) samps
 
-          let hs' = foldl1 (liftA2 haddYH) hs
-          runResourceT $ yieldMany (getZipList hs') =$= mapC (T.unpack . showHisto) $$ sinkFile (outfolder args ++ '/' : "test.yoda")
+
+          let scaledHists = flip IM.mapWithKey m $
+                                \ds (s, hs) -> case ds of
+                                                    0 -> hs
+                                                    _ -> over (traverse . yhHisto) (flip scaleBy $ (xsecs IM.! ds) * 3210 / totalEventsWeighted s) hs
+
+
+          forM_ (IM.toList scaledHists) $ \(ds, hs) ->
+                                            runResourceT $ yieldMany (getZipList hs) =$= mapC (T.unpack . showHisto) $$ sinkFile (outfolder args ++ '/' : show ds ++ ".yoda")
 
 {-
-          -- project the samples onto the nominal histos (in parallel)
-          samps <- sequence . withStrategy (parList rseq) . map (\fn -> runResourceT (yield (fn <> "\n") $$ stderrC) >> project) $ tins
-
-          let m = M.fromListWith (liftA2 haddYH) $ map (first $ ordedBy dsid) samps
-
-          -- read in the sample cross sections
-          xsecs <- runResourceT $ sourceFile (xsecfile args) $$ sinkParser crossSectionInfo
-
-          let scaledHists = flip M.mapWithKey m $
-                                \(Orded ds s) hs -> case ds of
-                                                         0 -> hs
-                                                         _ -> over (traverse . yhHisto) (flip scaleBy $ (xsecs IM.! ds) * 3210 / sumWeights s) hs
 
           let mergedHists = M.mapKeysWith (liftA2 haddYH) (processTitle . orded) scaledHists & fmap getZipList
 

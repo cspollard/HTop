@@ -1,7 +1,10 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Data.Atlas.CrossSections where
 
+import Conduit
+import Data.Conduit.Attoparsec
 import Control.Applicative
 import Data.Attoparsec.ByteString.Char8 hiding (isEndOfLine)
 import Data.IntMap
@@ -21,3 +24,7 @@ crossSectionInfo = fromList . ((0, 1.0) :) . rights <$>
         xsecline = (,) <$> (decimal <* skipSpace)
                        <*> ((*) <$> (double <* skipSpace)
                                 <*> option 1.0 (double <* skipSpace))
+
+
+readXSecFile :: FilePath -> IO CrossSectionInfo
+readXSecFile f = runResourceT $ sourceFile f $$ sinkParser crossSectionInfo
