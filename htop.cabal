@@ -26,6 +26,7 @@ library
                      , Data.Atlas.ProcessInfo
                      , Data.Atlas.Sample
                      , Data.Atlas.Selection
+                     , Data.Atlas.Track
 
   other-modules:       Data.Serialize.CTypes
                      , Data.Orded

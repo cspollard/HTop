@@ -8,9 +8,11 @@ import Control.Lens
 import GHC.Generics (Generic)
 import Data.Serialize
 import Control.Applicative (ZipList(..))
+import Data.List (nubBy)
 
 import Data.HEP.LorentzVector
 import Data.Atlas.PtEtaPhiE
+import Data.Atlas.Track
 import Data.TTree
 
 import qualified Data.Vector as V
@@ -18,8 +20,7 @@ import qualified Data.Vector as V
 data Jet = Jet { jPtEtaPhiE :: PtEtaPhiE
                , jMV2c10 :: Float
                , jJVT :: Float
-               , jTracks :: [PtEtaPhiE]
-               , jSV1Tracks :: [PtEtaPhiE]
+               , jTracks :: [Track]
                } deriving (Show, Generic)
 
 instance Serialize Jet
@@ -29,45 +30,35 @@ instance HasLorentzVector Jet where
 
 newtype Jets = Jets { fromJets :: [Jet] } deriving (Show, Generic, Serialize)
 
-jetTracksTLV :: MonadIO m => String -> String -> String -> String -> TR m [[PtEtaPhiE]]
-jetTracksTLV spt seta sphi se = do trkpts <- fromVVector <$> readBranch spt
-                                   trketas <- fromVVector <$> readBranch seta
-                                   trkphis <- fromVVector <$> readBranch sphi
-                                   trkes <- fromVVector <$> readBranch se
-
-                                   let trks = V.zipWith4 (\pts etas phis es ->
-                                                           V.toList $ V.zipWith4 PtEtaPhiE pts etas phis es
-                                                          ) trkpts trketas trkphis trkes
-
-                                   return $ V.toList trks
-
-
 jetTracksIsTight :: MonadIO m => TR m [[Bool]]
-jetTracksIsTight = V.toList . fmap V.toList . over (traverse.traverse) ((/= 0) :: CInt -> Bool) . fromVVector <$> readBranch "JetTracksisTight"
+jetTracksIsTight = V.toList . fmap V.toList .  over (traverse.traverse) (/= (0 :: CInt)) . fromVVector <$> readBranch "JetTracksisTight"
 
 
 instance FromTTree Jets where
     fromTTree = do PtEtaPhiEs tlvs <- lvsFromTTree "JetPt" "JetEta" "JetPhi" "JetE"
                    mv2c10s <- readBranch "JetMV2c20"
                    jvts <- readBranch "JetJVT"
-                   trks <- jetTracksTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
+                   trks <- jetTracksTLV PVertex "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
                    trksTight <- jetTracksIsTight
 
                    let trks' = fmap snd . filter fst <$> zipWith zip trksTight trks
 
-                   sv1trks <- jetTracksTLV "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
+                   sv1trks <- jetTracksTLV SVertex "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
 
-                   let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts <*> ZipList trks' <*> ZipList sv1trks
+                   -- NB: this should give SV tracks priority
+                   let trks'' = nubBy trkEq <$> ZipList (sv1trks ++ trks')
+
+                   let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts <*> trks''
                    return . Jets $ getZipList js
 
 sumTrkPt :: Jet -> Double
-sumTrkPt = sum . fmap lvPt . jTracks
+sumTrkPt = sum . fmap (lvPt . _tfourmom) . jTracks
 
-sumSV1TrkPt :: Jet -> Double
-sumSV1TrkPt = sum . fmap lvPt . jSV1Tracks
+sumSVTrkPt :: Jet -> Double
+sumSVTrkPt = sum . fmap (lvPt . _tfourmom) . filter ((== SVertex) . vertex) . jTracks
 
 bFrag :: Jet -> Double
-bFrag = (/) <$> sumSV1TrkPt <*> sumTrkPt
+bFrag = (/) <$> sumSVTrkPt <*> sumTrkPt
 
 {-
  - TODO

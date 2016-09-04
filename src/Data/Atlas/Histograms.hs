@@ -48,8 +48,8 @@ ptHisto = YodaHisto "/pt" "$p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D 
 sumTrkPtHisto :: YodaHisto1D
 sumTrkPtHisto = YodaHisto "/sumtrkpt" "$\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D (binD 0 25 500)
 
-sumSV1TrkPtHisto :: YodaHisto1D
-sumSV1TrkPtHisto = YodaHisto "/sumsv1trkpt" "SV1 $\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D (binD 0 25 500)
+sumSVTrkPtHisto :: YodaHisto1D
+sumSVTrkPtHisto = YodaHisto "/sumsvtrkpt" "SV $\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D (binD 0 25 500)
 
 bFragHisto :: YodaHisto1D
 bFragHisto = YodaHisto "/bFrag" "$z_{p_{\\mathrm T}}$" (dsigdXpbY "z_{p_{\\mathrm T}}" "1") $ histo1D (binD 0 22 1.1)
@@ -129,9 +129,9 @@ lvHistos = sequenceConduits [ fillingYH ptHisto  <=$= CL.map (fmap lvPt)
 
 jetTrkHistos :: Monad m => Consumer (Weighted Jet) m [YodaHisto1D]
 jetTrkHistos = sequenceConduits [ fillingYH sumTrkPtHisto    <=$= CL.map (fmap sumTrkPt)
-                                , fillingYH sumSV1TrkPtHisto <=$= CL.map (fmap sumSV1TrkPt)
+                                , fillingYH sumSVTrkPtHisto <=$= CL.map (fmap sumSVTrkPt)
                                 , fillingYH bFragHisto       <=$= CL.map (fmap bFrag)
-                                ] <=$= CL.filter ((> 0) . length . jSV1Tracks . snd)
+                                ]
 
 jetsHistos :: Monad m => Consumer (Weighted [Jet]) m [YodaHisto1D]
 jetsHistos = fmap ((path %~ ("/jets" <>)) . (xLabel %~ ("small-$R$ jet " <>)))
