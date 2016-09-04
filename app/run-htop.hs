@@ -39,23 +39,21 @@ everyC n f = loop 0
                            Just x -> when (i `mod` n == 0) (lift $ f i x) >> yield x >> loop (i+1)
                            Nothing -> return ()
 
-printEvent :: Int -> Event -> IO ()
-printEvent i x = putStrLn ("event " ++ show i ++ ":") >> print x
-
 main :: IO ()
           -- read in cmd line args
 main = do args <- getRecord "run-hs" :: IO Args
 
           xsecs <- readXSecFile (xsecfile args)
-          print xsecs
 
           -- get the list of input trees
           fs <- lines <$> readFile (infiles args)
 
-          samps <- forM fs $ \f -> do wt <- ttree "sumWeights" f
+          samps <- forM fs $ \f -> do putStrLn $ "analyzing events in file " ++ f
+                                      wt <- ttree "sumWeights" f
                                       tt <- ttree "nominal" f
                                       s <- foldl1 addSampInfo <$> (project wt $$ sinkList)
-                                      (_, h) <- project tt $$ mapC (1.0,) =$= channelHistos
+                                      (n, h) <- project tt $$ mapC (1.0,) =$= channelHistos
+                                      putStrLn $ show n ++ " events analyzed.\n"
                                       return (s, h)
 
           let m = IM.fromListWith (\(s, h) (s', h') -> (addSampInfo s s', liftA2 haddYH h h')) $ map ((,) <$> fromEnum . dsid . fst <*> id) samps
