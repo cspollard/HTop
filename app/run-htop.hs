@@ -8,6 +8,10 @@ module Main where
 import Control.Lens
 
 import Conduit
+import Data.Conduit.Binary (sourceLbs)
+import Data.Conduit.Zlib (gzip)
+import Data.Serialize (encodeLazy)
+import Data.Serialize.ZipList
 
 import Control.Monad (forM, forM_, when)
 import Control.Applicative (liftA2, getZipList)
@@ -25,7 +29,7 @@ import Data.Atlas.Event
 import Data.Histogram.Extra
 import Data.Atlas.CrossSections
 
-data Args = Args { outfolder :: String
+data Args = Args { outfile :: String
                  , infiles :: String
                  , xsecfile :: String
                  } deriving (Show, Generic)
@@ -62,13 +66,15 @@ main = do args <- getRecord "run-hs" :: IO Args
           let scaledHists = flip IM.mapWithKey m $
                                 \ds (s, hs) -> case ds of
                                                     0 -> hs
-                                                    _ -> over (traverse . yhHisto) (flip scaleBy $ (xsecs IM.! ds) * 3210 / totalEventsWeighted s) hs
+                                                    _ -> over (traverse . yhHisto) (flip scaleBy $ (xsecs IM.! ds) / totalEventsWeighted s) hs
 
 
-          forM_ (IM.toList scaledHists) $ \(ds, hs) ->
-                                            runResourceT $ yieldMany (getZipList hs) =$= mapC (T.unpack . showHisto) $$ sinkFile (outfolder args ++ '/' : show ds ++ ".yoda")
+          runResourceT $ sourceLbs (encodeLazy scaledHists) =$= gzip $$ sinkFile (outfile args)
 
 {-
+
+          forM_ (IM.toList scaledHists) $ \(ds, hs) ->
+                                            runResourceT $ yieldMany (getZipList hs) =$= mapC (T.unpack . showHisto) $$ sinkFile
 
           let mergedHists = M.mapKeysWith (liftA2 haddYH) (processTitle . orded) scaledHists & fmap getZipList
 

@@ -18,4 +18,5 @@ hasSV = not . null . jSVTracks
 
 probeJets :: [Jet] -> [Jet]
 probeJets [j1, j2] = [j2 | probeJet j1 j2] ++ [j1 | probeJet j2 j1]
-    where probeJet j1 j2 = bTagged j1 && hasSV j2
+    where probeJet j j' = bTagged j && hasSV j'
+probeJets _        = []
