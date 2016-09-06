@@ -26,7 +26,7 @@ import Data.TTree
 import Data.Atlas.Histograms
 import Data.Atlas.Sample
 import Data.Atlas.Event
-import Data.Histogram.Extra
+import Data.YODA.Histo
 import Data.Atlas.CrossSections
 
 data Args = Args { outfile :: String
@@ -60,13 +60,13 @@ main = do args <- getRecord "run-hs" :: IO Args
                                       putStrLn $ show n ++ " events analyzed.\n"
                                       return (s, h)
 
-          let m = IM.fromListWith (\(s, h) (s', h') -> (addSampInfo s s', liftA2 haddYH h h')) $ map ((,) <$> fromEnum . dsid . fst <*> id) samps
+          let m = IM.fromListWith (\(s, h) (s', h') -> (addSampInfo s s', liftA2 addYH h h')) $ map ((,) <$> fromEnum . dsid . fst <*> id) samps
 
 
           let scaledHists = flip IM.mapWithKey m $
                                 \ds (s, hs) -> case ds of
                                                     0 -> hs
-                                                    _ -> over (traverse . yhHisto) (flip scaleBy $ (xsecs IM.! ds) / totalEventsWeighted s) hs
+                                                    _ -> over (traverse . thing) (flip scaledBy $ (xsecs IM.! ds) / totalEventsWeighted s) hs
 
 
           runResourceT $ sourceLbs (encodeLazy scaledHists) =$= gzip $$ sinkFile (outfile args)

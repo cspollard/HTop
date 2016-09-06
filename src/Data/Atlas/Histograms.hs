@@ -7,8 +7,6 @@ import Control.Lens
 import Conduit
 import qualified Data.Conduit.List as CL
 
-import qualified Data.Vector.Unboxed as V
-
 import Data.Maybe (listToMaybe)
 import Data.Foldable (toList)
 
@@ -28,7 +26,7 @@ import Data.Atlas.Selection
 -- TODO
 -- all of these lists should probably turn into (:.) lists for type checking
 
-type Weighted a = (Double, a)
+type WithWeight a = (Double, a)
 
 dsigdXpbY :: Text -> Text -> Text
 dsigdXpbY x y = "$\\frac{d\\sigma}{d" <> x <> "} \\frac{\\mathrm{pb}}{" <> y <> "}$"
@@ -38,69 +36,81 @@ gev = "\\mathrm{GeV}"
 rad = "\\mathrm{rad}"
 pt = "p_{\\mathrm{T}}"
 
-histo1D :: (V.Unbox v, Num v, Bin b) => b -> Histogram b v
-histo1D bin = histogram bin (V.replicate (nBins bin) 0)
-
 
 ptHisto :: YodaHisto1D
-ptHisto = YodaHisto "/pt" "$p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D (binD 0 25 1000)
+ptHisto = yodaHisto1D 25 0 1000 & annots . at "Path" ?~ "/pt"
+                                & annots . at "XLabel" ?~ "$p_{\\mathrm T}$ [GeV]"
+                                & annots . at "YLabel" ?~ dsigdXpbY pt gev
 
 sumTrkPtHisto :: YodaHisto1D
-sumTrkPtHisto = YodaHisto "/sumtrkpt" "$\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D (binD 0 25 500)
+sumTrkPtHisto = yodaHisto1D 25 0 500 & annots . at "Path" ?~ "/sumtrkpt"
+                                     & annots . at "XLabel" ?~ "$\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]"
+                                     & annots . at "YLabel" ?~ dsigdXpbY pt gev
 
 sumSVTrkPtHisto :: YodaHisto1D
-sumSVTrkPtHisto = YodaHisto "/sumsvtrkpt" "SV $\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) $ histo1D (binD 0 25 500)
+sumSVTrkPtHisto = yodaHisto1D 25 0 500 & annots . at "Path" ?~ "/sumsvtrkpt"
+                                       & annots . at "XLabel" ?~ "SV $\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]"
+                                       & annots . at "YLabel" ?~ dsigdXpbY pt gev
 
 bFragHisto :: YodaHisto1D
-bFragHisto = YodaHisto "/bFrag" "$z_{p_{\\mathrm T}}$" (dsigdXpbY "z_{p_{\\mathrm T}}" "1") $ histo1D (binD 0 22 1.1)
+bFragHisto = yodaHisto1D 22 0 1.1 & annots . at "Path" ?~ "/bFrag"
+                                  & annots . at "XLabel" ?~ "$z_{p_{\\mathrm T}}$"
+                                  & annots . at "YLabel" ?~ dsigdXpbY "z_{p_{\\mathrm T}}" "1" 
 
 eHisto :: YodaHisto1D
-eHisto = YodaHisto "/E" "$E$ [GeV]" (dsigdXpbY "E" gev) $ histo1D (binD 0 25 1000)
+eHisto = yodaHisto1D 25 0 1000 & annots . at "Path" ?~ "/E"
+                               & annots . at "XLabel" ?~ "$E$ [GeV]"
+                               & annots . at "YLabel" ?~ dsigdXpbY "E" gev
 
 mHisto :: YodaHisto1D
-mHisto = YodaHisto "/mass" "mass [GeV]" (dsigdXpbY "m" gev) $ histo1D (binD 0 30 300)
+mHisto = yodaHisto1D 30 0 300 & annots . at "Path" ?~ "/mass"
+                              & annots . at "XLabel" ?~ "mass [GeV]"
+                              & annots . at "YLabel" ?~ dsigdXpbY "m" gev
 
 etaHisto :: YodaHisto1D
-etaHisto = YodaHisto "/eta" "$\\eta$" (dsigdXpbY "\\eta" rad) $ histo1D (binD (-3) 30 3)
+etaHisto = yodaHisto1D 30 (-3) 3 & annots . at "Path" ?~ "/eta"
+                                 & annots . at "XLabel" ?~ "$\\eta$"
+                                 & annots . at "YLabel" ?~ dsigdXpbY "\\eta" rad
 
 phiHisto :: YodaHisto1D
-phiHisto = YodaHisto "/phi" "$\\phi$" (dsigdXpbY "\\phi" rad) $ histo1D (binD (-pi) 30 pi)
+phiHisto = yodaHisto1D 30 (-pi) pi & annots . at "Path" ?~ "/phi"
+                                   & annots . at "XLabel" ?~ "$\\phi$"
+                                   & annots . at "YLabel" ?~ dsigdXpbY "\\phi" rad
 
+{-
 sd12Histo :: YodaHisto1D
-sd12Histo = YodaHisto "/sd12" "$\\sqrt{d_{12}}$ [GeV]" (dsigdXpbY "\\sqrt{d_{12}}" gev) $ histo1D (binD 0 30 300)
+sd12Histo = yodaHisto1D "/sd12" "$\\sqrt{d_{12}}$ [GeV]" (dsigdXpbY "\\sqrt{d_{12}}" gev) $ histo1D (binD 0 30 300)
 
 tau21Histo :: YodaHisto1D
-tau21Histo = YodaHisto "/tau21" "$\\tau_{21}$" (dsigdXpbY "\\tau_{21}" "1") $ histo1D (binD 0 30 30)
+tau21Histo = yodaHisto1D "/tau21" "$\\tau_{21}$" (dsigdXpbY "\\tau_{21}" "1") $ histo1D (binD 0 30 30)
 
 tau32Histo :: YodaHisto1D
-tau32Histo = YodaHisto "/tau32" "$\\tau_{32}$" (dsigdXpbY "\\tau_{32}" "1") $ histo1D (binD 0 30 30)
+tau32Histo = yodaHisto1D "/tau32" "$\\tau_{32}$" (dsigdXpbY "\\tau_{32}" "1") $ histo1D (binD 0 30 30)
 
 dRHisto :: YodaHisto1D
-dRHisto = YodaHisto "/deltaR" "$\\Delta R$" (dsigdXpbY "\\Delta R" "rad") $ histo1D (binD 0 25 5)
+dRHisto = yodaHisto1D "/deltaR" "$\\Delta R$" (dsigdXpbY "\\Delta R" "rad") $ histo1D (binD 0 25 5)
 
 nObjHisto :: YodaHisto1D
-nObjHisto = YodaHisto "/n" "multiplicity" (dsigdXpbY "n" "\\mathrm{unit}") $ histo1D (binD 0 5 5)
+nObjHisto = yodaHisto1D "/n" "multiplicity" (dsigdXpbY "n" "\\mathrm{unit}") $ histo1D (binD 0 5 5)
+-}
 
 
-filling :: (Monad m, Num v, V.Unbox v, Bin b)
-        => Histogram b v -> Consumer (v, BinValue b) m (Histogram b v)
-filling = foldlC (flip $ fill (+))
+filling :: (Monad m, Fillable a) => a -> Consumer (FillVec a) m a
+filling = foldlC (flip fill)
 
-
--- shouldn't I be able to write this more cleanly?
-fillingYH :: (Monad m, Num v, V.Unbox v, Bin b)
-          => YodaHisto b v -> Consumer (v, BinValue b) m (YodaHisto b v)
-fillingYH yh = flip (set yhHisto) yh <$> filling (view yhHisto yh)
-
+fillingOver :: (Monad m, Fillable a) => Lens' b a -> b -> Consumer (FillVec a) m b
+fillingOver l = foldlC (\h' x -> over l (fill x) h')
 
 fillAll :: (Monad m, Applicative f, Foldable f)
          => Consumer (v, a) m b -> Consumer (v, f a) m b
 fillAll c = CL.map sequenceA =$= CL.concat =$= c
 
-
 fillFirst :: (Monad m, Applicative f, Foldable f)
           => Consumer (v, a) m b -> Consumer (v, f a) m b
 fillFirst c = CL.map (traverse firstF) =$= CL.concat =$= c
+
+firstF :: Foldable f => f a -> Maybe a
+firstF = listToMaybe . toList
 
 
 infixr 2 <=$=
@@ -117,90 +127,86 @@ infixr 3 =++=
 cs =++= cs' = getZipConduit $ liftA2 (++) (ZipConduit cs) (ZipConduit cs')
 
 
-firstF :: Foldable f => f a -> Maybe a
-firstF = listToMaybe . toList
-
-
 -- common histograms for LorentzVectors
-lvHistos :: (Monad m, HasLorentzVector a) => Consumer (Weighted a) m [YodaHisto1D]
-lvHistos = sequenceConduits [ fillingYH ptHisto  <=$= CL.map (fmap lvPt)
-                            , fillingYH etaHisto <=$= CL.map (fmap lvEta)
+lvHistos :: (Monad m, HasLorentzVector a) => Consumer (WithWeight a) m [YodaHisto1D]
+lvHistos = sequenceConduits [ fillingOver thing ptHisto  <=$= CL.map (fmap lvPt)
+                            , fillingOver thing etaHisto <=$= CL.map (fmap lvEta)
                             ] <=$= CL.map (fmap toPtEtaPhiE)
 
-jetTrkHistos :: Monad m => Consumer (Weighted Jet) m [YodaHisto1D]
-jetTrkHistos = sequenceConduits [ fillingYH sumTrkPtHisto    <=$= CL.map (fmap sumTrkPt)
-                                , fillingYH sumSVTrkPtHisto <=$= CL.map (fmap sumSVTrkPt)
-                                , fillingYH bFragHisto       <=$= CL.map (fmap bFrag)
+jetTrkHistos :: Monad m => Consumer (WithWeight Jet) m [YodaHisto1D]
+jetTrkHistos = sequenceConduits [ fillingOver thing sumTrkPtHisto    <=$= CL.map (fmap sumTrkPt)
+                                , fillingOver thing sumSVTrkPtHisto  <=$= CL.map (fmap sumSVTrkPt)
+                                , fillingOver thing bFragHisto       <=$= CL.map (fmap bFrag)
                                 ]
 
-jetsHistos :: Monad m => Consumer (Weighted [Jet]) m [YodaHisto1D]
-jetsHistos = fmap ((path %~ ("/jets" <>)) . (xLabel %~ ("small-$R$ jet " <>)))
+jetsHistos :: Monad m => Consumer (WithWeight [Jet]) m [YodaHisto1D]
+jetsHistos = fmap ((path %~ ("/jets" <>)) . (xlabel %~ ("small-$R$ jet " <>)))
              <$> (fillAll jetTrkHistos =++= fillAll lvHistos)
 
-jet0Histos :: Monad m => Consumer (Weighted [Jet]) m [YodaHisto1D]
-jet0Histos = fmap ((path %~ ("/jet0" <>)) . (xLabel %~ ("leading small-$R$ jet " <>)))
+jet0Histos :: Monad m => Consumer (WithWeight [Jet]) m [YodaHisto1D]
+jet0Histos = fmap ((path %~ ("/jet0" <>)) . (xlabel %~ ("leading small-$R$ jet " <>)))
              <$> (fillFirst jetTrkHistos =++= fillFirst lvHistos)
 
-probeJetHistos :: Monad m => Consumer (Weighted [Jet]) m [YodaHisto1D]
-probeJetHistos = fmap ((path %~ ("/probejet" <>)) . (xLabel %~ ("probe small-$R$ jet " <>)))
+probeJetHistos :: Monad m => Consumer (WithWeight [Jet]) m [YodaHisto1D]
+probeJetHistos = fmap ((path %~ ("/probejet" <>)) . (xlabel %~ ("probe small-$R$ jet " <>)))
              <$> (fillAll jetTrkHistos =++= fillAll lvHistos) <=$= CL.map (fmap probeJets)
 
-jetHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
+jetHistos :: Monad m => Consumer (WithWeight Event) m [YodaHisto1D]
 jetHistos = (jetsHistos =++= jet0Histos =++= probeJetHistos) <=$= CL.map (fmap _jets)
 
 {-
-ljetHs :: Monad m => Consumer (Weighted LargeJet) m [YodaHisto1D]
+ljetHs :: Monad m => Consumer (WithWeight LargeJet) m [YodaHisto1D]
 ljetHs = (fillingYH mHisto <=$= CL.map (fmap ljM))
          =:= (fillingYH sd12Histo <=$= CL.map (fmap ljSD12))
          =:= lvHistos
 
 
-ljetsHistos :: Monad m => Consumer (Weighted LargeJets) m [YodaHisto1D]
-ljetsHistos = fmap ((path %~ ("/ljets" <>)) . (xLabel %~ ("large-$R$ jet " <>)))
+ljetsHistos :: Monad m => Consumer (WithWeight LargeJets) m [YodaHisto1D]
+ljetsHistos = fmap ((path %~ ("/ljets" <>)) . (xlabel %~ ("large-$R$ jet " <>)))
               <$> fillAll ljetHs
 
 
-ljet0Histos :: Monad m => Consumer (Weighted LargeJets) m [YodaHisto1D]
-ljet0Histos = fmap ((path %~ ("/ljet0" <>)) . (xLabel %~ ("leading large-$R$ jet " <>)))
+ljet0Histos :: Monad m => Consumer (WithWeight LargeJets) m [YodaHisto1D]
+ljet0Histos = fmap ((path %~ ("/ljet0" <>)) . (xlabel %~ ("leading large-$R$ jet " <>)))
               <$> fillFirst ljetHs
 
 
-ljetHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
+ljetHistos :: Monad m => Consumer (WithWeight Event) m [YodaHisto1D]
 ljetHistos = (ljetsHistos =++= ljet0Histos) <=$= CL.map (fmap eLargeJets)
 
 
-eljetHisto :: Monad m => Consumer (Weighted Event) m YodaHisto1D
-eljetHisto = ((path %~ ("/elljet0" <>)) . (xLabel %~ ("electron-large-$R$ jet " <>)))
+eljetHisto :: Monad m => Consumer (WithWeight Event) m YodaHisto1D
+eljetHisto = ((path %~ ("/elljet0" <>)) . (xlabel %~ ("electron-large-$R$ jet " <>)))
              <$> fillFirst (fillingYH dRHisto) <=$= CL.map (fmap f)
     where f evt = flip minDR (eElectrons evt) =<< leading (eLargeJets evt)
 
-tjetHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
-tjetHistos = fmap ((path %~ ("/tjets" <>)) . (xLabel %~ ("track jet " <>)))
+tjetHistos :: Monad m => Consumer (WithWeight Event) m [YodaHisto1D]
+tjetHistos = fmap ((path %~ ("/tjets" <>)) . (xlabel %~ ("track jet " <>)))
              <$> fillAll lvHistos <=$= CL.map (fmap eTrackJets)
 -}
 
-electronsHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
-electronsHistos = fmap ((path %~ ("/electrons" <>)) . (xLabel %~ ("electron " <>)))
+electronsHistos :: Monad m => Consumer (WithWeight Event) m [YodaHisto1D]
+electronsHistos = fmap ((path %~ ("/electrons" <>)) . (xlabel %~ ("electron " <>)))
                   <$> fillAll lvHistos <=$= CL.map (fmap _electrons)
 
 
-muonsHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
-muonsHistos = fmap ((path %~ ("/muons" <>)) . (xLabel %~ ("muon " <>)))
+muonsHistos :: Monad m => Consumer (WithWeight Event) m [YodaHisto1D]
+muonsHistos = fmap ((path %~ ("/muons" <>)) . (xlabel %~ ("muon " <>)))
               <$> fillAll lvHistos <=$= CL.map (fmap _muons)
 
-metHisto :: Monad m => Consumer (Weighted Event) m YodaHisto1D
-metHisto = ((path %~ ("/met" <>)) . (xLabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}}$ " <>)))
-             <$> fillingYH ptHisto <=$= CL.map (fmap (lvPt . _met))
+metHisto :: Monad m => Consumer (WithWeight Event) m YodaHisto1D
+metHisto = ((path %~ ("/met" <>)) . (xlabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}}$ " <>)))
+             <$> fillingOver thing ptHisto <=$= CL.map (fmap (lvPt . _met))
 
-eventHistos :: Monad m => Consumer (Weighted Event) m [YodaHisto1D]
+eventHistos :: Monad m => Consumer (WithWeight Event) m [YodaHisto1D]
 eventHistos = {- eljetHisto =:= -} metHisto =:= jetHistos
                          =++= electronsHistos =++= muonsHistos
                          -- =++= ljetHistos =++= tjetHistos
 
 
-channel :: Monad m => Text -> (Event -> Bool) -> Consumer (Weighted Event) m [YodaHisto1D]
+channel :: Monad m => Text -> (Event -> Bool) -> Consumer (WithWeight Event) m [YodaHisto1D]
 channel n f = (fmap.fmap) (path %~ (n <>)) $ filterC (f . snd) =$= eventHistos
 
 
-channelHistos :: Monad m => Consumer (Weighted Event) m (Int, ZipList YodaHisto1D)
+channelHistos :: Monad m => Consumer (WithWeight Event) m (Int, ZipList YodaHisto1D)
 channelHistos = getZipConduit $ (,) <$> ZipConduit lengthC <*> ZipConduit (ZipList . concat <$> sequenceConduits [ CL.map (fmap pruneJets) =$= channel "/elmujj/inclusive" elmujj ])
