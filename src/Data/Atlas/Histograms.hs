@@ -18,8 +18,8 @@ import Data.Semigroup
 
 import Data.Text (Text)
 
-import Data.Histogram hiding (sum)
-import Data.Histogram.Extra
+import Data.YODA.Histo
+import Data.YODA.Profile
 
 import Data.Atlas.Event
 import Data.Atlas.Selection

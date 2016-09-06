@@ -56,7 +56,7 @@ library
                      , lens >=4.0 && <5.0
                      , bifunctors >=5.0 && <6.0
                      , hhep >=0.1
-                     , histogram-extras >=0.1
+                     , histogram-extras >=0.2
                      , ttree >=0.1
 
   hs-source-dirs:      src
@@ -84,7 +84,7 @@ executable run-htop
                      , histogram-fill >=0.8 && <0.9
                      , lens >=4.0 && <5.0
                      , hhep >=0.1
-                     , histogram-extras >=0.1
+                     , histogram-extras >=0.2
                      , ttree >=0.1
                      , htop >=0.1
 
@@ -111,7 +111,7 @@ executable histToYoda
                      , histogram-fill >=0.8 && <0.9
                      , lens >=4.0 && <5.0
                      , hhep >=0.1
-                     , histogram-extras >=0.1
+                     , histogram-extras >=0.2
                      , ttree >=0.1
                      , htop >=0.1
 

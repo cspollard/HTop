@@ -12,7 +12,7 @@ import Control.Applicative
 
 import GHC.Float
 
-import Data.Histogram.Extra
+import Data.YODA.Histo
 import Data.TTree
 
 data SampleInfo = SampleInfo { dsid :: CInt
@@ -41,4 +41,4 @@ type Sample h = (SampleInfo, h)
 normToXsec :: SampleInfo -> ZipList YodaHisto1D -> ZipList YodaHisto1D
 normToXsec si hs = case dsid si of
                         0 -> hs
-                        _ -> fmap (over yhHisto (`scaleBy` (1.0 / totalEventsWeighted si))) hs
+                        _ -> over (traverse . thing) (`scaledBy` (1.0 / totalEventsWeighted si)) hs
