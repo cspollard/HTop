@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, TupleSections, TypeOperators, TypeFamilies, RankNTypes #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Data.Atlas.Histograms where
 
@@ -24,73 +25,6 @@ import Data.Atlas.Selection
 
 -- TODO
 -- all of these lists should probably turn into (:.) lists for type checking
-
-type WithWeight a = (Double, a)
-
-dsigdXpbY :: Text -> Text -> Text
-dsigdXpbY x y = "$\\frac{d\\sigma}{d" <> x <> "} \\frac{\\mathrm{pb}}{" <> y <> "}$"
-
-gev, rad, pt :: Text
-gev = "\\mathrm{GeV}"
-rad = "\\mathrm{rad}"
-pt = "p_{\\mathrm{T}}"
-
-
-
-ptHist :: YodaObj
-ptHist = yodaHist1D 25 0 1000 & annots . at "Path" ?~ "/pt"
-                              & annots . at "XLabel" ?~ "$p_{\\mathrm T}$ [GeV]"
-                              & annots . at "YLabel" ?~ dsigdXpbY pt gev
-
-sumTrkPtHist :: YodaObj
-sumTrkPtHist = yodaHist1D 25 0 500 & annots . at "Path" ?~ "/sumtrkpt"
-                                   & annots . at "XLabel" ?~ "$\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]"
-                                   & annots . at "YLabel" ?~ dsigdXpbY pt gev
-
-sumTrkPtProf :: YodaObj
-sumTrkPtProf = yodaProf1D 18 25 250 & annots . at "Path" ?~ "/sumtrkptprof"
-                                    & annots . at "XLabel" ?~ "$p_{\\mathrm T}$ [GeV]"
-                                    & annots . at "YLabel" ?~ "$<\\sum_{\\mathrm{trk}} p_{\\mathrm T}>$"
-
-sumSVTrkPtHist :: YodaObj
-sumSVTrkPtHist = yodaHist1D 25 0 500 & annots . at "Path" ?~ "/sumsvtrkpt"
-                                     & annots . at "XLabel" ?~ "SV $\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]"
-                                     & annots . at "YLabel" ?~ dsigdXpbY pt gev
-
-sumSVTrkPtProf :: YodaObj
-sumSVTrkPtProf = yodaProf1D 18 25 250 & annots . at "Path" ?~ "/sumsvtrkptprof"
-                                      & annots . at "XLabel" ?~ "$p_{\\mathrm T}$ [GeV]"
-                                      & annots . at "YLabel" ?~ "$<\\mathrm{SV }\\sum_{\\mathrm{trk}} p_{\\mathrm T}>$"
-
-bFragHist :: YodaObj
-bFragHist = yodaHist1D 22 0 1.1 & annots . at "Path" ?~ "/bfrag"
-                                & annots . at "XLabel" ?~ "$z_{p_{\\mathrm T}}$"
-                                & annots . at "YLabel" ?~ dsigdXpbY "z_{p_{\\mathrm T}}" "1" 
-
-bFragProf :: YodaObj
-bFragProf = yodaProf1D 18 25 250 & annots . at "Path" ?~ "/bfragprof"
-                                 & annots . at "XLabel" ?~ "$p_{\\mathrm T}$ [GeV]"
-                                 & annots . at "YLabel" ?~ "$<z_{p_{\\mathrm T}}>$"
-
-eHist :: YodaObj
-eHist = yodaHist1D 25 0 1000 & annots . at "Path" ?~ "/E"
-                             & annots . at "XLabel" ?~ "$E$ [GeV]"
-                             & annots . at "YLabel" ?~ dsigdXpbY "E" gev
-
-mHist :: YodaObj
-mHist = yodaHist1D 30 0 300 & annots . at "Path" ?~ "/mass"
-                            & annots . at "XLabel" ?~ "mass [GeV]"
-                            & annots . at "YLabel" ?~ dsigdXpbY "m" gev
-
-etaHist :: YodaObj
-etaHist = yodaHist1D 30 (-3) 3 & annots . at "Path" ?~ "/eta"
-                               & annots . at "XLabel" ?~ "$\\eta$"
-                               & annots . at "YLabel" ?~ dsigdXpbY "\\eta" rad
-
-phiHist :: YodaObj
-phiHist = yodaHist1D 30 (-pi) pi & annots . at "Path" ?~ "/phi"
-                                 & annots . at "XLabel" ?~ "$\\phi$"
-                                 & annots . at "YLabel" ?~ dsigdXpbY "\\phi" rad
 
 
 filling :: (Monad m, Fillable a) => a -> Consumer (FillVec a) m a
@@ -124,27 +58,139 @@ infixr 3 =++=
 (=++=) :: Monad m => ConduitM i o m [r] -> ConduitM i o m [r] -> ConduitM i o m [r]
 cs =++= cs' = getZipConduit $ liftA2 (++) (ZipConduit cs) (ZipConduit cs')
 
+dsigdXpbY :: Text -> Text -> Text
+dsigdXpbY x y = "$\\frac{d\\sigma}{d" <> x <> "} \\frac{\\mathrm{pb}}{" <> y <> "}$"
+
+gev, rad, pt :: Text
+gev = "\\mathrm{GeV}"
+rad = "\\mathrm{rad}"
+pt = "p_{\\mathrm{T}}"
+
 
 -- common histograms for LorentzVectors
+
+ptHist :: YodaObj
+ptHist = yodaHist1D 25 0 500
+    & annots . at "Path" ?~ "/pt"
+    & annots . at "XLabel" ?~ "$p_{\\mathrm T}$ [GeV]"
+    & annots . at "YLabel" ?~ dsigdXpbY pt gev
+
+etaHist :: YodaObj
+etaHist = yodaHist1D 30 (-3) 3
+    & annots . at "Path" ?~ "/eta"
+    & annots . at "XLabel" ?~ "$\\eta$"
+    & annots . at "YLabel" ?~ dsigdXpbY "\\eta" rad
+
+phiHist :: YodaObj
+phiHist = yodaHist1D 30 (-pi) pi
+    & annots . at "Path" ?~ "/phi"
+    & annots . at "XLabel" ?~ "$\\phi$"
+    & annots . at "YLabel" ?~ dsigdXpbY "\\phi" rad
+
+eHist :: YodaObj
+eHist = yodaHist1D 25 0 500
+    & annots . at "Path" ?~ "/E"
+    & annots . at "XLabel" ?~ "$E$ [GeV]"
+    & annots . at "YLabel" ?~ dsigdXpbY "E" gev
+
+mHist :: YodaObj
+mHist = yodaHist1D 30 0 300
+    & annots . at "Path" ?~ "/mass"
+    & annots . at "XLabel" ?~ "mass [GeV]"
+    & annots . at "YLabel" ?~ dsigdXpbY "m" gev
+
 lvObjs :: (Monad m, HasLorentzVector a) => Consumer (WithWeight a) m [YodaObj]
 lvObjs = sequenceConduits [ fillingOver (noted . _H1DD) ptHist  <=$= CL.map (fmap lvPt)
                           , fillingOver (noted . _H1DD) etaHist <=$= CL.map (fmap lvEta)
                           ] <=$= CL.map (fmap toPtEtaPhiE)
 
+
+
+sumTrkPtHist :: YodaObj
+sumTrkPtHist = yodaHist1D 25 0 500
+    & annots . at "Path" ?~ "/sumtrkpt"
+    & annots . at "XLabel" ?~ "$\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]"
+    & annots . at "YLabel" ?~ dsigdXpbY pt gev
+
+sumSVTrkPtHist :: YodaObj
+sumSVTrkPtHist = yodaHist1D 25 0 500
+    & annots . at "Path" ?~ "/sumsvtrkpt"
+    & annots . at "XLabel" ?~ "SV $\\sum_{\\mathrm{trk}} p_{\\mathrm T}$ [GeV]"
+    & annots . at "YLabel" ?~ dsigdXpbY pt gev
+
+bFragHist :: YodaObj
+bFragHist = yodaHist1D 22 0 1.1
+    & annots . at "Path" ?~ "/bfrag"
+    & annots . at "XLabel" ?~ "$z_{p_{\\mathrm T}}$"
+    & annots . at "YLabel" ?~ dsigdXpbY "z_{p_{\\mathrm T}}" "1" 
+
+sumTrkPtVsJetPtProf :: YodaObj
+sumTrkPtVsJetPtProf = yodaProf1D 18 25 250
+    & annots . at "Path" ?~ "/sumtrkptprof"
+    & annots . at "XLabel" ?~ "$p_{\\mathrm T}$ [GeV]"
+    & annots . at "YLabel" ?~ "$<\\sum_{\\mathrm{trk}} p_{\\mathrm T}>$"
+
+sumSVTrkPtVsJetPtProf :: YodaObj
+sumSVTrkPtVsJetPtProf = yodaProf1D 18 25 250
+    & annots . at "Path" ?~ "/sumsvtrkptprof"
+    & annots . at "XLabel" ?~ "$p_{\\mathrm T}$ [GeV]"
+    & annots . at "YLabel" ?~ "$<\\mathrm{SV }\\sum_{\\mathrm{trk}} p_{\\mathrm T}>$"
+
+bFragVsJetPtProf :: YodaObj
+bFragVsJetPtProf = yodaProf1D 18 25 250
+    & annots . at "Path" ?~ "/bfragprof"
+    & annots . at "XLabel" ?~ "$p_{\\mathrm T}$ [GeV]"
+    & annots . at "YLabel" ?~ "$<z_{p_{\\mathrm T}}>$"
+
+sumTrkPtVsJetEtaProf :: YodaObj
+sumTrkPtVsJetEtaProf = yodaProf1D 25 0 2.5
+    & annots . at "Path" ?~ "/sumtrkptprof"
+    & annots . at "XLabel" ?~ "$\\eta$ [GeV]"
+    & annots . at "YLabel" ?~ "$<\\sum_{\\mathrm{trk}} p_{\\mathrm T}>$"
+
+sumSVTrkPtVsJetEtaProf :: YodaObj
+sumSVTrkPtVsJetEtaProf = yodaProf1D 25 0 2.5
+    & annots . at "Path" ?~ "/sumsvtrkptprof"
+    & annots . at "XLabel" ?~ "$\\eta$ [GeV]"
+    & annots . at "YLabel" ?~ "$<\\mathrm{SV }\\sum_{\\mathrm{trk}} p_{\\mathrm T}>$"
+
+bFragVsJetEtaProf :: YodaObj
+bFragVsJetEtaProf = yodaProf1D 25 0 2.5
+    & annots . at "Path" ?~ "/bfragprof"
+    & annots . at "XLabel" ?~ "$\\eta$ [GeV]"
+    & annots . at "YLabel" ?~ "$<z_{p_{\\mathrm T}}>$"
+
+
 jetTrkObjs :: Monad m => Consumer (WithWeight Jet) m [YodaObj]
-jetTrkObjs = sequenceConduits [ fillingOver (noted . _H1DD) sumTrkPtHist   <=$= CL.map (fmap sumTrkPt)
-                              , fillingOver (noted . _H1DD) sumSVTrkPtHist <=$= CL.map (fmap sumSVTrkPt)
+jetTrkObjs = sequenceConduits [ fillingOver (noted . _H1DD) sumTrkPtHist
+                                    <=$= CL.map (fmap sumTrkPt)
+                              , fillingOver (noted . _H1DD) sumSVTrkPtHist
+                                    <=$= CL.map (fmap sumSVTrkPt)
 
                               -- TODO
                               -- this is pretty inefficient
 
-                              , fillingOver (noted . _P1DD) sumTrkPtProf    <=$= CL.map (\(w, j) -> (w, (lvPt (toPtEtaPhiE j), sumTrkPt j)))
-                              , fillingOver (noted . _P1DD) sumSVTrkPtProf  <=$= CL.map (\(w, j) -> (w, (lvPt (toPtEtaPhiE j), sumSVTrkPt j)))
+                              , fillingOver (noted . _P1DD) sumTrkPtVsJetPtProf
+                                    <=$= CL.map (\(w, j) -> (w, (lvPt (toPtEtaPhiE j), sumTrkPt j)))
+                              , fillingOver (noted . _P1DD) sumSVTrkPtVsJetPtProf
+                                    <=$= CL.map (\(w, j) -> (w, (lvPt (toPtEtaPhiE j), sumSVTrkPt j)))
+                              , fillingOver (noted . _P1DD) sumTrkPtVsJetEtaProf
+                                    <=$= CL.map (\(w, j) -> (w, (abs . lvEta $ toPtEtaPhiE j, sumTrkPt j)))
+                              , fillingOver (noted . _P1DD) sumSVTrkPtVsJetEtaProf
+                                    <=$= CL.map (\(w, j) -> (w, (abs . lvEta $ toPtEtaPhiE j, sumSVTrkPt j)))
 
                               -- make sure we don't fill this with NaNs
-                              , fillAll (fillingOver (noted . _H1DD) bFragHist) <=$= CL.map (fmap bFrag)
-                              , fillAll (fillingOver (noted . _P1DD) bFragProf) <=$= CL.map (\(w, j) -> (w, (lvPt (toPtEtaPhiE j),) <$> bFrag j))
+                              , fillAll (fillingOver (noted . _H1DD) bFragHist)
+                                    <=$= CL.map (fmap bFrag)
+                              , fillAll (fillingOver (noted . _P1DD) bFragVsJetPtProf)
+                                    <=$= CL.map (\(w, j) -> (w, (lvPt (toPtEtaPhiE j),) <$> bFrag j))
+                              , fillAll (fillingOver (noted . _P1DD) bFragVsJetEtaProf)
+                                    <=$= CL.map (\(w, j) -> (w, (lvEta (toPtEtaPhiE j),) <$> bFrag j))
                               ]
+
+
+
+type WithWeight a = (Double, a)
 
 
 jetsObjs :: Monad m => Consumer (WithWeight [Jet]) m [YodaObj]
@@ -156,12 +202,26 @@ jet0Objs = fmap ((path %~ ("/jet0" <>)) . (xlabel %~ ("leading small-$R$ jet " <
              <$> (fillFirst jetTrkObjs =++= fillFirst lvObjs)
 
 probeJetObjs :: Monad m => Consumer (WithWeight [Jet]) m [YodaObj]
-probeJetObjs = fmap ((path %~ ("/probejet" <>)) . (xlabel %~ ("probe small-$R$ jet " <>)))
-             <$> (fillAll jetTrkObjs =++= fillAll lvObjs) <=$= CL.map (fmap probeJets)
+probeJetObjs = fillAll jetTrkObjs =++= fillAll lvObjs
+
+allProbeJetObjs :: Monad m => Consumer (WithWeight [Jet]) m [YodaObj]
+allProbeJetObjs = CL.map (fmap probeJets) =$=
+    ( fmap ((path %~ ("/probejet2trk" <>)) . (xlabel %~ ("probe small-$R$ jet " <>)))
+      <$> probeJetObjs <=$= CL.map (fmap (filter ((== 2) . length . jSVTracks)))
+    ) =++=
+    ( fmap ((path %~ ("/probejet3trk" <>)) . (xlabel %~ ("probe small-$R$ jet " <>)))
+      <$> probeJetObjs <=$= CL.map (fmap (filter ((== 3) . length . jSVTracks)))
+    ) =++=
+    ( fmap ((path %~ ("/probejet4ptrk" <>)) . (xlabel %~ ("probe small-$R$ jet " <>)))
+      <$> probeJetObjs <=$= CL.map (fmap (filter ((>= 4) . length . jSVTracks)))
+    ) =++= 
+    ( fmap ((path %~ ("/probejet" <>)) . (xlabel %~ ("probe small-$R$ jet " <>)))
+      <$> probeJetObjs
+    )
 
 
 jetObjs :: Monad m => Consumer (WithWeight Event) m [YodaObj]
-jetObjs = (jetsObjs =++= jet0Objs =++= probeJetObjs) <=$= CL.map (fmap _jets)
+jetObjs = (jetsObjs =++= jet0Objs =++= allProbeJetObjs) <=$= CL.map (fmap _jets)
 
 
 {-

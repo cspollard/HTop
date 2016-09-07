@@ -34,7 +34,6 @@ main :: IO ()
           -- read in cmd line args
 main = do args <- getRecord "histToYoda" :: IO Args
           eim <- decode . toStrict . fromChunks <$> runResourceT (sourceFile (infile args) $$ ungzip =$= sinkList) :: IO (Either String (IM.IntMap (ZipList YodaObj)))
-          print eim
 
           case eim of
                Left err -> print err
