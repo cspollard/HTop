@@ -12,7 +12,7 @@ import Control.Applicative
 
 import GHC.Float
 
-import Data.YODA.Histo
+import Data.YODA.Obj
 import Data.TTree
 
 data SampleInfo = SampleInfo { dsid :: CInt
@@ -38,7 +38,7 @@ type Sample h = (SampleInfo, h)
 -- normalize h to a cross section and drop SampleInfo
 -- we can't combine histograms from the same process correctly after
 -- this step.
-normToXsec :: SampleInfo -> ZipList YodaHisto1D -> ZipList YodaHisto1D
+normToXsec :: SampleInfo -> ZipList YodaObj -> ZipList YodaObj
 normToXsec si hs = case dsid si of
                         0 -> hs
-                        _ -> over (traverse . thing) (`scaledBy` (1.0 / totalEventsWeighted si)) hs
+                        _ -> over (traverse . noted . _H1DD) (`scaledBy` (1.0 / totalEventsWeighted si)) hs

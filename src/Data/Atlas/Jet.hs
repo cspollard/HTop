@@ -12,7 +12,6 @@ import Data.List (deleteFirstsBy)
 
 import Data.HEP.LorentzVector
 import Data.Atlas.PtEtaPhiE
-import Data.Atlas.Track
 import Data.TTree
 
 import qualified Data.Vector as V
@@ -20,8 +19,8 @@ import qualified Data.Vector as V
 data Jet = Jet { jPtEtaPhiE :: PtEtaPhiE
                , jMV2c10 :: Float
                , jJVT :: Float
-               , jPVTracks :: [Track]
-               , jSVTracks :: [Track]
+               , jPVTracks :: [PtEtaPhiE]
+               , jSVTracks :: [PtEtaPhiE]
                } deriving (Show, Generic)
 
 instance Serialize Jet
@@ -39,27 +38,47 @@ instance FromTTree Jets where
     fromTTree = do PtEtaPhiEs tlvs <- lvsFromTTree "JetPt" "JetEta" "JetPhi" "JetE"
                    mv2c10s <- readBranch "JetMV2c20"
                    jvts <- readBranch "JetJVT"
-                   trks <- jetTracksTLV PVertex "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
+                   trks <- jetTracksTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
                    trksTight <- jetTracksIsTight
 
                    let trks' = fmap snd . filter fst <$> zipWith zip trksTight trks
 
-                   sv1trks <- jetTracksTLV SVertex "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
+                   sv1trks <- jetTracksTLV "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
 
-                   -- NB: this should give SV tracks priority
                    let trks'' = zipWith (deleteFirstsBy trkEq) trks' sv1trks
 
                    let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts <*> ZipList trks'' <*> ZipList sv1trks
                    return . Jets $ getZipList js
 
+
 sumTrkPt :: Jet -> Double
-sumTrkPt = sum . fmap (lvPt . _tfourmom) . ((++) <$> jPVTracks <*> jSVTracks)
+sumTrkPt = sum . fmap lvPt . ((++) <$> jPVTracks <*> jSVTracks)
 
 sumSVTrkPt :: Jet -> Double
-sumSVTrkPt = sum . fmap (lvPt . _tfourmom) . jSVTracks
+sumSVTrkPt = sum . fmap lvPt . jSVTracks
 
-bFrag :: Jet -> Double
-bFrag = (/) <$> sumSVTrkPt <*> sumTrkPt
+-- protect against dividing by zero
+bFrag :: Jet -> Maybe Double
+bFrag j = case sumTrkPt j of
+               0.0 -> Nothing
+               x   -> Just (sumSVTrkPt j / x)
+
+
+jetTracksTLV :: MonadIO m
+             => String -> String -> String -> String -> TR m [[PtEtaPhiE]]
+jetTracksTLV spt seta sphi se = do trkpts <- fromVVector <$> readBranch spt
+                                   trketas <- fromVVector <$> readBranch seta
+                                   trkphis <- fromVVector <$> readBranch sphi
+                                   trkes <- fromVVector <$> readBranch se
+
+                                   let trks = V.zipWith4 (\pts etas phis es ->
+                                                           V.toList $ V.zipWith4 PtEtaPhiE pts etas phis es
+                                                          ) trkpts trketas trkphis trkes
+
+                                   return $ V.toList trks
+
+trkEq :: PtEtaPhiE -> PtEtaPhiE -> Bool
+p `trkEq` p' = (p `lvDR` p') < 0.005
 
 {-
  - TODO

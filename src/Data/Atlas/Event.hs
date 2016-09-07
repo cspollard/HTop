@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE CPP #-}
 
 module Data.Atlas.Event ( Event(..)
                         , module X
