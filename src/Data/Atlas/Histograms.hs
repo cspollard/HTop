@@ -11,7 +11,7 @@ import qualified Data.Conduit.List as CL
 import Data.Maybe (listToMaybe)
 import Data.Foldable (toList)
 
-import Control.Applicative (liftA2, ZipList(..))
+import Control.Applicative (ZipList(..))
 
 import Data.Semigroup
 
@@ -45,18 +45,21 @@ firstF :: Foldable f => f a -> Maybe a
 firstF = listToMaybe . toList
 
 
+-- not sure about these fixities.
 infixr 2 <=$=
 (<=$=) :: Monad m => ConduitM b c m r -> Conduit a m b -> ConduitM a c m r
 (<=$=) = flip (=$=)
 
--- not sure about this fixity.
+
 infixr 3 =:=
 (=:=) :: Monad m => ConduitM i o m r -> ConduitM i o m [r] -> ConduitM i o m [r]
-c =:= cs = getZipConduit $ liftA2 (:) (ZipConduit c) (ZipConduit cs)
+c =:= cs = getZipConduit $ (:) <$> ZipConduit c <*> ZipConduit cs
+
 
 infixr 3 =++=
 (=++=) :: Monad m => ConduitM i o m [r] -> ConduitM i o m [r] -> ConduitM i o m [r]
-cs =++= cs' = getZipConduit $ liftA2 (++) (ZipConduit cs) (ZipConduit cs')
+cs =++= cs' = getZipConduit $ (++) <$> ZipConduit cs <*> ZipConduit cs'
+
 
 dsigdXpbY :: Text -> Text -> Text
 dsigdXpbY x y = "$\\frac{d\\sigma}{d" <> x <> "} \\frac{\\mathrm{pb}}{" <> y <> "}$"
@@ -197,12 +200,15 @@ jetsObjs :: Monad m => Consumer (WithWeight [Jet]) m [YodaObj]
 jetsObjs = fmap ((path %~ ("/jets" <>)) . (xlabel %~ ("small-$R$ jet " <>)))
              <$> (fillAll jetTrkObjs =++= fillAll lvObjs)
 
+
 jet0Objs :: Monad m => Consumer (WithWeight [Jet]) m [YodaObj]
 jet0Objs = fmap ((path %~ ("/jet0" <>)) . (xlabel %~ ("leading small-$R$ jet " <>)))
              <$> (fillFirst jetTrkObjs =++= fillFirst lvObjs)
 
+
 probeJetObjs :: Monad m => Consumer (WithWeight [Jet]) m [YodaObj]
 probeJetObjs = fillAll jetTrkObjs =++= fillAll lvObjs
+
 
 allProbeJetObjs :: Monad m => Consumer (WithWeight [Jet]) m [YodaObj]
 allProbeJetObjs = CL.map (fmap probeJets) =$=
@@ -222,6 +228,35 @@ allProbeJetObjs = CL.map (fmap probeJets) =$=
 
 jetObjs :: Monad m => Consumer (WithWeight Event) m [YodaObj]
 jetObjs = (jetsObjs =++= jet0Objs =++= allProbeJetObjs) <=$= CL.map (fmap _jets)
+
+
+electronsObjs :: Monad m => Consumer (WithWeight Event) m [YodaObj]
+electronsObjs = fmap ((path %~ ("/electrons" <>)) . (xlabel %~ ("electron " <>)))
+                  <$> fillAll lvObjs <=$= CL.map (fmap _electrons)
+
+
+muonsObjs :: Monad m => Consumer (WithWeight Event) m [YodaObj]
+muonsObjs = fmap ((path %~ ("/muons" <>)) . (xlabel %~ ("muon " <>)))
+              <$> fillAll lvObjs <=$= CL.map (fmap _muons)
+
+metHist :: Monad m => Consumer (WithWeight Event) m YodaObj
+metHist = ((path %~ ("/met" <>)) . (xlabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}}$ " <>)))
+             <$> fillingOver (noted . _H1DD) ptHist <=$= CL.map (fmap (lvPt . _met))
+
+eventObjs :: Monad m => Consumer (WithWeight Event) m [YodaObj]
+eventObjs = metHist =:= {- eljetHist =:= -}
+                    jetObjs =++= electronsObjs =++= muonsObjs
+                    -- =++= ljetObjs =++= tjetObjs
+
+
+channel :: Monad m => Text -> (Event -> Bool) -> Consumer (WithWeight Event) m [YodaObj]
+channel n f = (fmap.fmap) (path %~ (n <>)) $ filterC (f . snd) =$= eventObjs
+
+
+channelObjs :: Monad m => Consumer (WithWeight Event) m (Int, [[YodaObj]])
+channelObjs = getZipConduit $
+    (,) <$> ZipConduit lengthC
+        <*> ZipConduit (sequenceConduits [ CL.map (fmap pruneJets) =$= channel "/elmujj" elmujj ])
 
 
 {-
@@ -254,29 +289,3 @@ tjetHists :: Monad m => Consumer (WithWeight Event) m [YodaHist1D]
 tjetHists = fmap ((path %~ ("/tjets" <>)) . (xlabel %~ ("track jet " <>)))
              <$> fillAll lvHists <=$= CL.map (fmap eTrackJets)
 -}
-
-electronsObjs :: Monad m => Consumer (WithWeight Event) m [YodaObj]
-electronsObjs = fmap ((path %~ ("/electrons" <>)) . (xlabel %~ ("electron " <>)))
-                  <$> fillAll lvObjs <=$= CL.map (fmap _electrons)
-
-
-muonsObjs :: Monad m => Consumer (WithWeight Event) m [YodaObj]
-muonsObjs = fmap ((path %~ ("/muons" <>)) . (xlabel %~ ("muon " <>)))
-              <$> fillAll lvObjs <=$= CL.map (fmap _muons)
-
-metHist :: Monad m => Consumer (WithWeight Event) m YodaObj
-metHist = ((path %~ ("/met" <>)) . (xlabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}}$ " <>)))
-             <$> fillingOver (noted . _H1DD) ptHist <=$= CL.map (fmap (lvPt . _met))
-
-eventObjs :: Monad m => Consumer (WithWeight Event) m [YodaObj]
-eventObjs = {- eljetHist =:= -} metHist =:= jetObjs
-                         =++= electronsObjs =++= muonsObjs
-                         -- =++= ljetObjs =++= tjetObjs
-
-
-channel :: Monad m => Text -> (Event -> Bool) -> Consumer (WithWeight Event) m [YodaObj]
-channel n f = (fmap.fmap) (path %~ (n <>)) $ filterC (f . snd) =$= eventObjs
-
-
-channelObjs :: Monad m => Consumer (WithWeight Event) m (Int, ZipList YodaObj)
-channelObjs = getZipConduit $ (,) <$> ZipConduit lengthC <*> ZipConduit (ZipList . concat <$> sequenceConduits [ CL.map (fmap pruneJets) =$= channel "/elmujj/inclusive" elmujj ])

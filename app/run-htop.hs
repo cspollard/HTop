@@ -14,7 +14,7 @@ import Data.Serialize (encodeLazy)
 import Data.Serialize.ZipList
 
 import Control.Monad (forM, forM_, when)
-import Control.Applicative (liftA2, getZipList)
+import Control.Applicative (liftA2, ZipList(..))
 
 import qualified Data.Text as T
 
@@ -56,9 +56,9 @@ main = do args <- getRecord "run-hs" :: IO Args
                                       wt <- ttree "sumWeights" f
                                       tt <- ttree "nominal" f
                                       s <- foldl1 addSampInfo <$> (project wt $$ sinkList)
-                                      (n, h) <- project tt $$ mapC (1.0,) =$= channelObjs
+                                      (n, hs) <- project tt $$ mapC (1.0,) =$= channelObjs
                                       putStrLn $ show n ++ " events analyzed.\n"
-                                      return (s, h)
+                                      return (s, ZipList . concat $ hs)
 
           let m = IM.fromListWith (\(s, h) (s', h') -> (addSampInfo s s', liftA2 mergeYO h h')) $ map ((,) <$> fromEnum . dsid . fst <*> id) samps
 
