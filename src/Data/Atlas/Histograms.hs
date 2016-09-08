@@ -127,40 +127,40 @@ bFragHist = yodaHist1D 22 0 1.1
     & annots . at "XLabel" ?~ "$z_{p_{\\mathrm T}}$"
     & annots . at "YLabel" ?~ dsigdXpbY "z_{p_{\\mathrm T}}" "1" 
 
-sumTrkPtVsJetPtProf :: YodaObj
-sumTrkPtVsJetPtProf = yodaProf1D 18 25 250
-    & annots . at "Path" ?~ "/sumtrkptprof"
+sumTrkPtVsPtProf :: YodaObj
+sumTrkPtVsPtProf = yodaProf1D 18 25 250
+    & annots . at "Path" ?~ "/sumtrkptvsptprof"
     & annots . at "XLabel" ?~ "$p_{\\mathrm T}$ [GeV]"
     & annots . at "YLabel" ?~ "$<\\sum_{\\mathrm{trk}} p_{\\mathrm T}>$"
 
-sumSVTrkPtVsJetPtProf :: YodaObj
-sumSVTrkPtVsJetPtProf = yodaProf1D 18 25 250
-    & annots . at "Path" ?~ "/sumsvtrkptprof"
+sumSVTrkPtVsPtProf :: YodaObj
+sumSVTrkPtVsPtProf = yodaProf1D 18 25 250
+    & annots . at "Path" ?~ "/sumsvtrkptvsptprof"
     & annots . at "XLabel" ?~ "$p_{\\mathrm T}$ [GeV]"
     & annots . at "YLabel" ?~ "$<\\mathrm{SV }\\sum_{\\mathrm{trk}} p_{\\mathrm T}>$"
 
-bFragVsJetPtProf :: YodaObj
-bFragVsJetPtProf = yodaProf1D 18 25 250
-    & annots . at "Path" ?~ "/bfragprof"
+bFragVsPtProf :: YodaObj
+bFragVsPtProf = yodaProf1D 18 25 250
+    & annots . at "Path" ?~ "/bfragvsptprof"
     & annots . at "XLabel" ?~ "$p_{\\mathrm T}$ [GeV]"
     & annots . at "YLabel" ?~ "$<z_{p_{\\mathrm T}}>$"
 
-sumTrkPtVsJetEtaProf :: YodaObj
-sumTrkPtVsJetEtaProf = yodaProf1D 25 0 2.5
-    & annots . at "Path" ?~ "/sumtrkptprof"
-    & annots . at "XLabel" ?~ "$\\eta$ [GeV]"
+sumTrkPtVsEtaProf :: YodaObj
+sumTrkPtVsEtaProf = yodaProf1D 21 0 2.1
+    & annots . at "Path" ?~ "/sumtrkptvsetaprof"
+    & annots . at "XLabel" ?~ "$\\eta$"
     & annots . at "YLabel" ?~ "$<\\sum_{\\mathrm{trk}} p_{\\mathrm T}>$"
 
-sumSVTrkPtVsJetEtaProf :: YodaObj
-sumSVTrkPtVsJetEtaProf = yodaProf1D 25 0 2.5
-    & annots . at "Path" ?~ "/sumsvtrkptprof"
-    & annots . at "XLabel" ?~ "$\\eta$ [GeV]"
+sumSVTrkPtVsEtaProf :: YodaObj
+sumSVTrkPtVsEtaProf = yodaProf1D 21 0 2.1
+    & annots . at "Path" ?~ "/sumsvtrkptvsetaprof"
+    & annots . at "XLabel" ?~ "$\\eta$"
     & annots . at "YLabel" ?~ "$<\\mathrm{SV }\\sum_{\\mathrm{trk}} p_{\\mathrm T}>$"
 
-bFragVsJetEtaProf :: YodaObj
-bFragVsJetEtaProf = yodaProf1D 25 0 2.5
-    & annots . at "Path" ?~ "/bfragprof"
-    & annots . at "XLabel" ?~ "$\\eta$ [GeV]"
+bFragVsEtaProf :: YodaObj
+bFragVsEtaProf = yodaProf1D 21 0 2.1
+    & annots . at "Path" ?~ "/bfragvsetaprof"
+    & annots . at "XLabel" ?~ "$\\eta$"
     & annots . at "YLabel" ?~ "$<z_{p_{\\mathrm T}}>$"
 
 
@@ -173,21 +173,21 @@ jetTrkObjs = sequenceConduits [ fillingOver (noted . _H1DD) sumTrkPtHist
                               -- TODO
                               -- this is pretty inefficient
 
-                              , fillingOver (noted . _P1DD) sumTrkPtVsJetPtProf
+                              , fillingOver (noted . _P1DD) sumTrkPtVsPtProf
                                     <=$= CL.map (\(w, j) -> (w, (lvPt (toPtEtaPhiE j), sumTrkPt j)))
-                              , fillingOver (noted . _P1DD) sumSVTrkPtVsJetPtProf
+                              , fillingOver (noted . _P1DD) sumSVTrkPtVsPtProf
                                     <=$= CL.map (\(w, j) -> (w, (lvPt (toPtEtaPhiE j), sumSVTrkPt j)))
-                              , fillingOver (noted . _P1DD) sumTrkPtVsJetEtaProf
+                              , fillingOver (noted . _P1DD) sumTrkPtVsEtaProf
                                     <=$= CL.map (\(w, j) -> (w, (abs . lvEta $ toPtEtaPhiE j, sumTrkPt j)))
-                              , fillingOver (noted . _P1DD) sumSVTrkPtVsJetEtaProf
+                              , fillingOver (noted . _P1DD) sumSVTrkPtVsEtaProf
                                     <=$= CL.map (\(w, j) -> (w, (abs . lvEta $ toPtEtaPhiE j, sumSVTrkPt j)))
 
                               -- make sure we don't fill this with NaNs
                               , fillAll (fillingOver (noted . _H1DD) bFragHist)
                                     <=$= CL.map (fmap bFrag)
-                              , fillAll (fillingOver (noted . _P1DD) bFragVsJetPtProf)
+                              , fillAll (fillingOver (noted . _P1DD) bFragVsPtProf)
                                     <=$= CL.map (\(w, j) -> (w, (lvPt (toPtEtaPhiE j),) <$> bFrag j))
-                              , fillAll (fillingOver (noted . _P1DD) bFragVsJetEtaProf)
+                              , fillAll (fillingOver (noted . _P1DD) bFragVsEtaProf)
                                     <=$= CL.map (\(w, j) -> (w, (lvEta (toPtEtaPhiE j),) <$> bFrag j))
                               ]
 
