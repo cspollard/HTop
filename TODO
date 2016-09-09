@@ -1,15 +1,10 @@
 other object histograms:
-dPhi, dEta, dR
 
 cut DSL (a ala root TTree::Project)
 
 TopTree, Histograms, Tree need cleanup
 
-more complicated plots, e.g. mll
-
 split library and executable.
-
-associate track jets to large-R jets
 
 MC vs Data events
 
