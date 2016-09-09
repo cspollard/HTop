@@ -9,3 +9,5 @@ split library and executable.
 MC vs Data events
 
 criterion for timing
+
+use lenses to histogram filling rather than nested conduits
