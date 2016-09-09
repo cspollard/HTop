@@ -7,7 +7,9 @@ import Control.Lens
 
 import GHC.Generics (Generic)
 import Data.Serialize
+
 import Control.Applicative (ZipList(..))
+import Data.Foldable (fold)
 import Data.List (deleteFirstsBy)
 
 import Data.HEP.LorentzVector
@@ -51,17 +53,17 @@ instance FromTTree Jets where
                    return . Jets $ getZipList js
 
 
-sumTrkPt :: Jet -> Double
-sumTrkPt = sum . fmap lvPt . ((++) <$> jPVTracks <*> jSVTracks)
+trkSumPt :: Jet -> Double
+trkSumPt = lvPt . fold . ((++) <$> jPVTracks <*> jSVTracks)
 
-sumSVTrkPt :: Jet -> Double
-sumSVTrkPt = sum . fmap lvPt . jSVTracks
+svTrkSumPt :: Jet -> Double
+svTrkSumPt = lvPt . fold . jSVTracks
 
 -- protect against dividing by zero
 bFrag :: Jet -> Maybe Double
-bFrag j = case sumTrkPt j of
+bFrag j = case trkSumPt j of
                0.0 -> Nothing
-               x   -> Just (sumSVTrkPt j / x)
+               x   -> Just (svTrkSumPt j / x)
 
 
 jetTracksTLV :: MonadIO m
