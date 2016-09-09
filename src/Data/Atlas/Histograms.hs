@@ -109,10 +109,10 @@ lvObjs = sequenceConduits [ fillingOver (noted . _H1DD) ptHist  <=$= CL.map (fma
 
 
 trkSumPtHist :: YodaObj
-trkSumPtHist = yodaHist 25 0 500 "/trksumpt" "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$" $ dsigdXpbY pt gev
+trkSumPtHist = yodaHist 25 0 500 "/trksumpt" "$p_{\\mathrm T} \\sum \\mathrm{trk}$" $ dsigdXpbY pt gev
 
 svTrkSumPtHist :: YodaObj
-svTrkSumPtHist = yodaHist 25 0 500 "/svtrksumpt" "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$" $ dsigdXpbY pt gev
+svTrkSumPtHist = yodaHist 25 0 500 "/svtrksumpt" "$p_{\\mathrm T} \\sum \\mathrm{SV trk}$" $ dsigdXpbY pt gev
 
 bFragHist :: YodaObj
 bFragHist = yodaHist 22 0 1.1 "/bfrag" "$z_{p_{\\mathrm T}}$" $ dsigdXpbY "z_{p_{\\mathrm T}}" "1" 
