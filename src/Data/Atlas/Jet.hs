@@ -10,6 +10,7 @@ import Data.Serialize
 
 import Control.Applicative (ZipList(..))
 import Data.Foldable (fold)
+import Data.Monoid ((<>))
 import Data.List (deleteFirstsBy)
 
 import Data.HEP.LorentzVector
@@ -53,11 +54,23 @@ instance FromTTree Jets where
                    return . Jets $ getZipList js
 
 
-trkSumPt :: Jet -> Double
-trkSumPt = lvPt . fold . ((++) <$> jPVTracks <*> jSVTracks)
+pvTrkSumTLV :: Jet -> PtEtaPhiE
+pvTrkSumTLV = fold . jPVTracks
+
+svTrkSumTLV :: Jet -> PtEtaPhiE
+svTrkSumTLV = fold . jSVTracks
+
+trkSumTLV :: Jet -> PtEtaPhiE
+trkSumTLV = (<>) <$> svTrkSumTLV <*> pvTrkSumTLV
+
+pvTrkSumPt :: Jet -> Double
+pvTrkSumPt = lvPt . pvTrkSumTLV
 
 svTrkSumPt :: Jet -> Double
-svTrkSumPt = lvPt . fold . jSVTracks
+svTrkSumPt = lvPt . svTrkSumTLV
+
+trkSumPt :: Jet -> Double
+trkSumPt = lvPt . trkSumTLV
 
 -- protect against dividing by zero
 bFrag :: Jet -> Maybe Double
