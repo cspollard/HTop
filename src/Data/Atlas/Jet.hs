@@ -29,7 +29,7 @@ data Jet = Jet { jPtEtaPhiE :: PtEtaPhiE
 instance Serialize Jet
 
 instance HasLorentzVector Jet where
-    lv = fromLV . jPtEtaPhiE
+    toPtEtaPhiE = lens jPtEtaPhiE $ \j lv -> j { jPtEtaPhiE = lv }
 
 newtype Jets = Jets { fromJets :: [Jet] } deriving (Show, Generic, Serialize)
 
@@ -64,13 +64,13 @@ trkSumTLV :: Jet -> PtEtaPhiE
 trkSumTLV = (<>) <$> svTrkSumTLV <*> pvTrkSumTLV
 
 pvTrkSumPt :: Jet -> Double
-pvTrkSumPt = lvPt . pvTrkSumTLV
+pvTrkSumPt = view lvPt . pvTrkSumTLV
 
 svTrkSumPt :: Jet -> Double
-svTrkSumPt = lvPt . svTrkSumTLV
+svTrkSumPt = view lvPt . svTrkSumTLV
 
 trkSumPt :: Jet -> Double
-trkSumPt = lvPt . trkSumTLV
+trkSumPt = view lvPt . trkSumTLV
 
 -- protect against dividing by zero
 bFrag :: Jet -> Maybe Double

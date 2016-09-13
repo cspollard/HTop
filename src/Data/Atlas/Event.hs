@@ -15,7 +15,7 @@ import GHC.Float
 
 import Data.TTree
 
-import Data.HEP.LorentzVector as X hiding (PtEtaPhiEs)
+import Data.HEP.LorentzVector as X
 import Data.Atlas.PtEtaPhiE as X
 import Data.Atlas.Electron as X
 import Data.Atlas.Muon as X

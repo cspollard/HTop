@@ -102,9 +102,9 @@ mHist :: YodaObj
 mHist = yodaHist 30 0 300 "/mass" "mass [GeV]" $ dsigdXpbY "m" gev
 
 lvObjs :: (Monad m, HasLorentzVector a) => Consumer (WithWeight a) m [YodaObj]
-lvObjs = sequenceConduits [ fillingOver (noted . _H1DD) ptHist  <=$= CL.map (fmap lvPt)
-                          , fillingOver (noted . _H1DD) etaHist <=$= CL.map (fmap lvEta)
-                          ] <=$= CL.map (fmap toPtEtaPhiE)
+lvObjs = sequenceConduits [ fillingOver (noted . _H1DD) ptHist  <=$= CL.map (fmap $ view lvPt)
+                          , fillingOver (noted . _H1DD) etaHist <=$= CL.map (fmap $ view lvEta)
+                          ] <=$= CL.map (fmap $ view toPtEtaPhiE)
 
 
 
@@ -152,13 +152,13 @@ jetTrkObjs = sequenceConduits [ fillingOver (noted . _H1DD) trkSumPtHist
                               -- this is pretty (no---*really*) inefficient
 
                               , fillingOver (noted . _P1DD) trkSumPtVsJetPtProf
-                                    <=$= CL.map (\(w, j) -> (w, (lvPt (toPtEtaPhiE j), trkSumPt j)))
+                                    <=$= CL.map (\(w, j) -> (w, (view lvPt j, trkSumPt j)))
                               , fillingOver (noted . _P1DD) svTrkSumPtVsJetPtProf
-                                    <=$= CL.map (\(w, j) -> (w, (lvPt (toPtEtaPhiE j), svTrkSumPt j)))
+                                    <=$= CL.map (\(w, j) -> (w, (view lvPt j, svTrkSumPt j)))
                               , fillingOver (noted . _P1DD) trkSumPtVsJetEtaProf
-                                    <=$= CL.map (\(w, j) -> (w, (abs . lvEta $ toPtEtaPhiE j, trkSumPt j)))
+                                    <=$= CL.map (\(w, j) -> (w, (view lvAbsEta j, trkSumPt j)))
                               , fillingOver (noted . _P1DD) svTrkSumPtVsJetEtaProf
-                                    <=$= CL.map (\(w, j) -> (w, (abs . lvEta $ toPtEtaPhiE j, svTrkSumPt j)))
+                                    <=$= CL.map (\(w, j) -> (w, (view lvAbsEta j, svTrkSumPt j)))
 
                               , fillingOver (noted . _P1DD) svTrkSumPtVsTrkSumPtProf
                                     <=$= CL.map (\(w, j) -> (w, (trkSumPt j, svTrkSumPt j)))
@@ -167,9 +167,9 @@ jetTrkObjs = sequenceConduits [ fillingOver (noted . _H1DD) trkSumPtHist
                               , fillAll (fillingOver (noted . _H1DD) bFragHist)
                                     <=$= CL.map (fmap bFrag)
                               , fillAll (fillingOver (noted . _P1DD) bFragVsJetPtProf)
-                                    <=$= CL.map (\(w, j) -> (w, (lvPt (toPtEtaPhiE j),) <$> bFrag j))
+                                    <=$= CL.map (\(w, j) -> (w, (view lvPt j,) <$> bFrag j))
                               , fillAll (fillingOver (noted . _P1DD) bFragVsJetEtaProf)
-                                    <=$= CL.map (\(w, j) -> (w, (lvEta (toPtEtaPhiE j),) <$> bFrag j))
+                                    <=$= CL.map (\(w, j) -> (w, (view lvEta j,) <$> bFrag j))
 
                               , fillAll (fillingOver (noted . _P1DD) bFragVsTrkSumPtProf)
                                     <=$= CL.map (\(w, j) -> (w, (trkSumPt j,) <$> bFrag j))
@@ -222,7 +222,7 @@ muonsObjs = fmap ((path %~ ("/muons" <>)) . (xlabel %~ ("muon " <>)))
 
 metHist :: Monad m => Consumer (WithWeight Event) m YodaObj
 metHist = ((path %~ ("/met" <>)) . (xlabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}}$ " <>)))
-             <$> fillingOver (noted . _H1DD) ptHist <=$= CL.map (fmap (lvPt . _met))
+             <$> fillingOver (noted . _H1DD) ptHist <=$= CL.map (fmap (view $ met . lvPt))
 
 eventObjs :: Monad m => Consumer (WithWeight Event) m [YodaObj]
 eventObjs = metHist =:= {- eljetHist =:= -}

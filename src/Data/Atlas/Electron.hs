@@ -3,6 +3,8 @@
 
 module Data.Atlas.Electron where
 
+import Control.Lens
+
 import GHC.Generics (Generic)
 import Data.Serialize
 import Data.Serialize.CTypes ()
@@ -23,7 +25,7 @@ data Electron = Electron { ePtEtaPhiE :: PtEtaPhiE
 instance Serialize Electron where
 
 instance HasLorentzVector Electron where
-    lv = fromLV . ePtEtaPhiE
+    toPtEtaPhiE = lens ePtEtaPhiE $ \e lv -> e { ePtEtaPhiE = lv }
 
 newtype Electrons = Electrons { fromElectrons :: [Electron] } deriving (Show, Generic, Serialize)
 

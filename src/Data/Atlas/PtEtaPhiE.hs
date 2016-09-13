@@ -2,7 +2,7 @@ module Data.Atlas.PtEtaPhiE ( lvsFromTTree, PtEtaPhiEs(..) ) where
 
 import GHC.Float
 import Control.Applicative (ZipList(..))
-import Data.HEP.LorentzVector hiding (PtEtaPhiEs)
+import Data.HEP.LorentzVector
 import Data.TTree
 
 newtype PtEtaPhiEs = PtEtaPhiEs [PtEtaPhiE]

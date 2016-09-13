@@ -36,6 +36,7 @@ library
                      , TemplateHaskell
 
   build-depends:       base >=4.8 && <4.9
+                     , lens >=4.13 && <4.14
                      , containers >=0.5 && <0.6
                      , attoparsec >=0.13 && <0.14
                      , vector >=0.11
@@ -51,11 +52,10 @@ library
                      , histogram-fill >=0.8 && <0.9
                      , histogram-fill-cereal >=0.6 && <0.7
                      , semigroups >=0.15
-                     , lens >=4.0 && <5.0
                      , bifunctors >=5.0 && <6.0
-                     , hhep >=0.1
-                     , histogram-extras >=0.2
-                     , ttree >=0.1
+                     , hhep >=0.2 && <0.3
+                     , histogram-extras >=0.2 && <0.3
+                     , ttree >=0.1 && <0.2
 
   hs-source-dirs:      src
   default-language:    Haskell2010
@@ -66,6 +66,7 @@ library
 executable run-htop
   main-is:             app/run-htop.hs
   build-depends:       base >=4.8 && <4.9
+                     , lens >=4.13 && <4.14
                      , attoparsec >=0.13 && <0.14
                      , containers >=0.5 && <0.6
                      , vector >=0.11
@@ -74,17 +75,15 @@ executable run-htop
                      , conduit-extra >=1.1
                      , conduit-combinators >=1.0
                      , bytestring >=0.10
-                     -- , exceptions >=0.8
                      , cereal >=0.5
                      , cereal-text >=0.1
                      , resourcet >=1.1
                      , optparse-generic >=1.0
                      , histogram-fill >=0.8 && <0.9
-                     , lens >=4.0 && <5.0
-                     , hhep >=0.1
-                     , histogram-extras >=0.2
-                     , ttree >=0.1
-                     , htop >=0.1
+                     , hhep >=0.2 && <0.3
+                     , histogram-extras >=0.2 && <0.3
+                     , ttree >=0.1 && <0.2
+                     , htop >=0.2 && <0.3
 
   default-language:    Haskell2010
   ghc-options:         -Wall -O1
@@ -93,6 +92,7 @@ executable run-htop
 executable histToYoda
   main-is:             app/histToYoda.hs
   build-depends:       base >=4.8 && <4.9
+                     , lens >=4.13 && <4.14
                      , attoparsec >=0.13 && <0.14
                      , containers >=0.5 && <0.6
                      , vector >=0.11
@@ -101,17 +101,15 @@ executable histToYoda
                      , conduit-extra >=1.1
                      , conduit-combinators >=1.0
                      , bytestring >=0.10
-                     -- , exceptions >=0.8
                      , cereal >=0.5
                      , cereal-text >=0.1
                      , resourcet >=1.1
                      , optparse-generic >=1.0
                      , histogram-fill >=0.8 && <0.9
-                     , lens >=4.0 && <5.0
-                     , hhep >=0.1
-                     , histogram-extras >=0.2
-                     , ttree >=0.1
-                     , htop >=0.1
+                     , hhep >=0.2 && <0.3
+                     , histogram-extras >=0.2 && <0.3
+                     , ttree >=0.1 && <0.2
+                     , htop >=0.2 && <0.3
 
   default-language:    Haskell2010
   ghc-options:         -Wall -O1
