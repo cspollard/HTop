@@ -136,10 +136,23 @@ bFragVsJetEtaProf :: YodaObj
 bFragVsJetEtaProf = yodaProf 21 0 2.1 "/bfragvsjetetaprof" "$\\eta$" "$<z_{p_{\\mathrm T}}>$"
 
 svTrkSumPtVsTrkSumPtProf :: YodaObj
-svTrkSumPtVsTrkSumPtProf = yodaProf 10 0 100 "/svtrksumptvstrksumptprof" "$p_{\\mathrm T}$ [GeV]" "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
+svTrkSumPtVsTrkSumPtProf = yodaProf 10 0 100 "/svtrksumptvstrksumptprof" "$p_{\\mathrm T} \\sum \\mathrm{trk}$" "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
 
 bFragVsTrkSumPtProf :: YodaObj
-bFragVsTrkSumPtProf = yodaProf 10 0 100 "/bfragvstrksumptprof" "$p_{\\mathrm T}$ [GeV]" "$<z_{p_{\\mathrm T}}>$"
+bFragVsTrkSumPtProf = yodaProf 10 0 100 "/bfragvstrksumptprof" "$p_{\\mathrm T} \\sum \\mathrm{trk}$" "$<z_{p_{\\mathrm T}}>$"
+
+
+nPVTrksHist :: YodaObj
+nPVTrksHist = yodaHist 20 0 20 "/npvtrks" "$n$ PV tracks" $ dsigdXpbY "n" "1"
+
+nSVTrksHist :: YodaObj
+nSVTrksHist = yodaHist 10 0 10 "/nsvtrks" "$n$ SV tracks" $ dsigdXpbY "n" "1"
+
+nPVTrksVsJetPtProf :: YodaObj
+nPVTrksVsJetPtProf = yodaProf 18 25 250 "/npvtrksvsjetpt" "$p_{\\mathrm T}$ [GeV]" "$<n$ PV tracks $>$"
+
+nSVTrksVsJetPtProf :: YodaObj
+nSVTrksVsJetPtProf = yodaProf 18 25 250 "/nsvtrksvsjetpt" "$p_{\\mathrm T}$ [GeV]" "$<n$ SV tracks $>$"
 
 
 jetTrkObjs :: Monad m => Consumer (WithWeight Jet) m [YodaObj]
@@ -173,6 +186,15 @@ jetTrkObjs = sequenceConduits [ fillingOver (noted . _H1DD) trkSumPtHist
 
                               , fillAll (fillingOver (noted . _P1DD) bFragVsTrkSumPtProf)
                                     <=$= CL.map (\(w, j) -> (w, (trkSumPt j,) <$> bFrag j))
+
+                              , fillingOver (noted . _H1DD) nPVTrksHist
+                                    <=$= CL.map (fmap (fromIntegral . length . jPVTracks))
+                              , fillingOver (noted . _H1DD) nSVTrksHist
+                                    <=$= CL.map (fmap (fromIntegral . length . jSVTracks))
+                              , fillingOver (noted . _P1DD) nPVTrksVsJetPtProf
+                                    <=$= CL.map (fmap ((,) <$> view lvPt <*> fromIntegral . length . jPVTracks))
+                              , fillingOver (noted . _P1DD) nSVTrksVsJetPtProf
+                                    <=$= CL.map (fmap ((,) <$> view lvPt <*> fromIntegral . length . jSVTracks))
                               ]
 
 
