@@ -4,6 +4,7 @@ module Data.Atlas.Event ( Event(..)
                         , module X
                         , runNumber, eventNumber, mu
                         , electrons, muons, jets, met
+                        , weightedEvent
                         ) where
 
 import Control.Lens
@@ -12,6 +13,8 @@ import Data.Serialize
 import GHC.Generics (Generic)
 
 import GHC.Float
+
+import Data.Monoid (Product(..))
 
 import Data.TTree
 
@@ -73,6 +76,8 @@ instance FromTTree Event where
 -- TODO
 -- How do we want to deal with syst weights?
 
-data MC a = MC a
-
--- FromTree a => instance (FromTree MC a) where
+weightedEvent :: MonadIO m => [String] -> TR m (Double, Event)
+weightedEvent ws =
+    (,)
+    <$> (float2Double . getProduct . foldMap Product <$> mapM readBranch ws)
+    <*> fromTTree

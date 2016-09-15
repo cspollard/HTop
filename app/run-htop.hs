@@ -56,7 +56,10 @@ main = do args <- getRecord "run-hs" :: IO Args
                                       wt <- ttree "sumWeights" f
                                       tt <- ttree "nominal" f
                                       s <- foldl1 addSampInfo <$> (project wt $$ sinkList)
-                                      (n, hs) <- project tt $$ mapC (1.0,) =$= channelObjs
+                                      let f = case dsid s of
+                                                   0 -> (1.0,) <$> fromTTree
+                                                   _ -> weightedEvent ["SFTot"]
+                                      (n, hs) <- runTTree f tt $$ channelObjs
                                       putStrLn $ show n ++ " events analyzed.\n"
                                       return (s, ZipList . concat $ hs)
 
