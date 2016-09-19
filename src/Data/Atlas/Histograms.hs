@@ -1,3 +1,7 @@
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 module Data.Atlas.Histograms where
 
 import Control.Lens
@@ -7,8 +11,6 @@ import qualified Data.Conduit.List as CL
 
 import Data.Maybe (listToMaybe)
 import Data.Foldable (toList)
-
-import Control.Applicative (ZipList(..))
 
 import Data.Semigroup
 
@@ -34,7 +36,7 @@ fillAll :: (Monad m, Applicative f, Foldable f)
          => Consumer (v, a) m b -> Consumer (v, f a) m b
 fillAll c = CL.map sequenceA =$= CL.concat =$= c
 
-fillFirst :: (Monad m, Applicative f, Foldable f)
+fillFirst :: (Monad m, Foldable f)
           => Consumer (v, a) m b -> Consumer (v, f a) m b
 fillFirst c = CL.map (traverse firstF) =$= CL.concat =$= c
 
@@ -152,7 +154,7 @@ nSVTrksVsJetPtProf :: YodaObj
 nSVTrksVsJetPtProf = yodaProf 18 25 250 "/nsvtrksvsjetpt" "$p_{\\mathrm T}$ [GeV]" "$<n$ SV tracks $>$"
 
 
-jetTrkObjs :: Monad m => Consumer (WithWeight Jet) m [YodaObj]
+jetTrkObjs :: Monad m => Consumer (WithWeight (Jet a)) m [YodaObj]
 jetTrkObjs = sequenceConduits [ fillingOver (noted . _H1DD) trkSumPtHist
                                     <=$= CL.map (fmap trkSumPt)
                               , fillingOver (noted . _H1DD) svTrkSumPtHist
@@ -185,79 +187,104 @@ jetTrkObjs = sequenceConduits [ fillingOver (noted . _H1DD) trkSumPtHist
                                     <=$= CL.map (\(w, j) -> (w, (trkSumPt j,) <$> bFrag j))
 
                               , fillingOver (noted . _H1DD) nPVTrksHist
-                                    <=$= CL.map (fmap (fromIntegral . length . jPVTracks))
+                                    <=$= CL.map (fmap (fromIntegral . length . view jPVTracks))
                               , fillingOver (noted . _H1DD) nSVTrksHist
-                                    <=$= CL.map (fmap (fromIntegral . length . jSVTracks))
+                                    <=$= CL.map (fmap (fromIntegral . length . view jSVTracks))
                               , fillingOver (noted . _P1DD) nPVTrksVsJetPtProf
-                                    <=$= CL.map (fmap ((,) <$> view lvPt <*> fromIntegral . length . jPVTracks))
+                                    <=$= CL.map (fmap ((,) <$> view lvPt <*> fromIntegral . length . view jPVTracks))
                               , fillingOver (noted . _P1DD) nSVTrksVsJetPtProf
-                                    <=$= CL.map (fmap ((,) <$> view lvPt <*> fromIntegral . length . jSVTracks))
+                                    <=$= CL.map (fmap ((,) <$> view lvPt <*> fromIntegral . length . view jSVTracks))
                               ]
 
 
 
-jetsObjs :: Monad m => Consumer (WithWeight [Jet]) m [YodaObj]
+jetsObjs :: Monad m => Consumer (WithWeight (Jet a)) m [YodaObj]
 jetsObjs = fmap ((path %~ ("/jets" <>)) . (xlabel %~ ("small-$R$ jet " <>)))
-             <$> fillAll lvObjs
+             <$> lvObjs
 
 
-jet0Objs :: Monad m => Consumer (WithWeight [Jet]) m [YodaObj]
+jet0Objs :: Monad m => Consumer (WithWeight (Jet a)) m [YodaObj]
 jet0Objs = fmap ((path %~ ("/jet0" <>)) . (xlabel %~ ("leading small-$R$ jet " <>)))
-             <$> fillFirst lvObjs
+             <$> lvObjs
 
 
-probeJetObjs :: Monad m => Consumer (WithWeight [Jet]) m [YodaObj]
-probeJetObjs = fillAll jetTrkObjs =++= fillAll lvObjs
+probeJetObjs :: Monad m => Consumer (WithWeight (Jet a)) m [YodaObj]
+probeJetObjs = jetTrkObjs =++= lvObjs
 
 
-allProbeJetObjs :: Monad m => Consumer (WithWeight [Jet]) m [YodaObj]
-allProbeJetObjs = CL.map (fmap probeJets) =$=
-    ( fmap ((path %~ ("/probejet2trk" <>)) . (xlabel %~ ("probe small-$R$ jet " <>)))
-      <$> probeJetObjs <=$= CL.map (fmap (filter ((== 2) . length . jSVTracks)))
-    ) =++=
-    ( fmap ((path %~ ("/probejet3trk" <>)) . (xlabel %~ ("probe small-$R$ jet " <>)))
-      <$> probeJetObjs <=$= CL.map (fmap (filter ((== 3) . length . jSVTracks)))
-    ) =++=
-    ( fmap ((path %~ ("/probejet4ptrk" <>)) . (xlabel %~ ("probe small-$R$ jet " <>)))
-      <$> probeJetObjs <=$= CL.map (fmap (filter ((>= 4) . length . jSVTracks)))
-    ) =++= 
-    ( fmap ((path %~ ("/probejet" <>)) . (xlabel %~ ("probe small-$R$ jet " <>)))
-      <$> probeJetObjs
-    )
+
+allProbeJetObjs :: Monad m => Consumer (WithWeight (Jet a)) m [YodaObj]
+allProbeJetObjs = (fmap.fmap) (xlabel %~ ("probe small-$R$ jet " <>)) $
+    channel "/probejet2trk" ((== 2) . nSVTracks . snd) probeJetObjs
+    =++= channel "/probejet3trk" ((== 3) . nSVTracks . snd) probeJetObjs
+    =++= channel "/probejet4ptrk" ((>= 4) . nSVTracks . snd) probeJetObjs
+    =++= channel "/probejet" (const True) probeJetObjs
+    
+
+probeJetMCObjs :: Monad m => Consumer (WithWeight (Jet (MC' a))) m [YodaObj]
+probeJetMCObjs =
+    channel "/bjets" (bLabeled . snd) allProbeJetObjs
+    =++= channel "/cjets" (cLabeled . snd) allProbeJetObjs
+    =++= channel "/ljets" (lLabeled . snd) allProbeJetObjs
+    =++= channel "" (const True) allProbeJetObjs
 
 
-jetObjs :: Monad m => Consumer (WithWeight Event) m [YodaObj]
-jetObjs = (jetsObjs =++= jet0Objs =++= allProbeJetObjs) <=$= CL.map (fmap _jets)
+probeJetDataObjs :: Monad m => Consumer (WithWeight (Jet Data')) m [YodaObj]
+probeJetDataObjs = allProbeJetObjs
 
 
-electronsObjs :: Monad m => Consumer (WithWeight Event) m [YodaObj]
+jetObjs :: Monad m => Consumer (WithWeight [Jet a]) m [YodaObj]
+jetObjs = fillAll jetsObjs
+            =++= fillFirst jet0Objs
+
+
+electronsObjs :: Monad m => Consumer (WithWeight (Event a)) m [YodaObj]
 electronsObjs = fmap ((path %~ ("/electrons" <>)) . (xlabel %~ ("electron " <>)))
                   <$> fillAll lvObjs <=$= CL.map (fmap _electrons)
 
 
-muonsObjs :: Monad m => Consumer (WithWeight Event) m [YodaObj]
+muonsObjs :: Monad m => Consumer (WithWeight (Event a)) m [YodaObj]
 muonsObjs = fmap ((path %~ ("/muons" <>)) . (xlabel %~ ("muon " <>)))
               <$> fillAll lvObjs <=$= CL.map (fmap _muons)
 
-metHist :: Monad m => Consumer (WithWeight Event) m YodaObj
+metHist :: Monad m => Consumer (WithWeight (Event a)) m YodaObj
 metHist = ((path %~ ("/met" <>)) . (xlabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}}$ " <>)))
              <$> fillingOver (noted . _H1DD) ptHist <=$= CL.map (fmap (view $ met . lvPt))
 
-eventObjs :: Monad m => Consumer (WithWeight Event) m [YodaObj]
-eventObjs = metHist =:= {- eljetHist =:= -}
-                    jetObjs =++= electronsObjs =++= muonsObjs
-                    -- =++= ljetObjs =++= tjetObjs
+mcEventObjs :: Monad m => Consumer (WithWeight (Event (MC' a))) m [YodaObj]
+mcEventObjs = metHist =:= electronsObjs =++= muonsObjs
+    =++= (CL.map (fmap (view jets))
+        =$= (jetObjs
+            =++= (CL.map (fmap probeJets) =$= fillAll probeJetMCObjs))
+         )
+
+dataEventObjs :: Monad m => Consumer (WithWeight (Event Data')) m [YodaObj]
+dataEventObjs = metHist =:= electronsObjs =++= muonsObjs
+    =++= (CL.map (fmap (view jets))
+        =$= (jetObjs
+            =++= (CL.map (fmap probeJets) =$= fillAll probeJetDataObjs))
+         )
 
 
-channel :: Monad m => Text -> (Event -> Bool) -> Consumer (WithWeight Event) m [YodaObj]
-channel n f = (fmap.fmap) (path %~ (n <>)) $ filterC (f . snd) =$= eventObjs
+channel :: Monad m =>
+    Text -> (a -> Bool)
+    -> Consumer a m [YodaObj]
+    -> Consumer a m [YodaObj]
+channel n f c = filterC f =$= fmap (path %~ (n <>)) <$> c
 
 
-channelObjs :: Monad m => Consumer (WithWeight Event) m (Int, [[YodaObj]])
-channelObjs = getZipConduit $
-    (,) <$> ZipConduit lengthC
-        <*> ZipConduit (sequenceConduits [ CL.map (fmap pruneJets) =$= channel "/elmujj" elmujj ])
+withLenC :: Monad m => ConduitM i o m a -> ConduitM i o m (Int, a)
+withLenC c =
+    getZipConduit $
+        (,) <$> ZipConduit lengthC
+            <*> ZipConduit c
 
+
+mcEvent :: Monad m => Conduit (Event (MC' a)) m (WithWeight (Event (MC' a)))
+mcEvent = CL.map ((,) <$> view extraInfo <*> id)
+
+dataEvent :: Monad m => Conduit (Event Data') m (WithWeight (Event Data'))
+dataEvent = CL.map (1.0,)
 
 {-
 ljetHs :: Monad m => Consumer (WithWeight LargeJet) m [YodaHist1D]

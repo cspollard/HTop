@@ -65,8 +65,8 @@ metFromTTree m p = do et <- float2Double <$> readBranch m
                       return $ PtEtaPhiE et 0 phi et
 
 
-instance HasExtraInfo (Event Nominal') where
-    type ExtraInfo (Event Nominal') = Double
+instance HasExtraInfo (Event (MC' a)) where
+    type ExtraInfo (Event (MC' a)) = Double
     extraInfo = lens _extraInfo $ \e x -> e { _extraInfo = x }
 
 instance HasExtraInfo (Event Data') where
@@ -74,7 +74,7 @@ instance HasExtraInfo (Event Data') where
     extraInfo = lens _extraInfo $ \e x -> e { _extraInfo = x }
 
 
-instance FromTTree (Event Nominal') where
+instance FromTTree (Event (MC' a)) where
     fromTTree = Event <$> readBranch "Run"
                       <*> readBranch "Event"
                       <*> readBranch "Mu"

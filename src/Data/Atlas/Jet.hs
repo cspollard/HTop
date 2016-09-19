@@ -90,7 +90,7 @@ jetFromTTreeG = do
     return $ \eis -> (Jets . getZipList) (js <*> ZipList eis)
 
 
-instance FromTTree (Jets Nominal') where
+instance FromTTree (Jets (MC' a)) where
     fromTTree = jetFromTTreeG <*> readBranch "JetTruthLabel"
 
 instance FromTTree (Jets Data') where

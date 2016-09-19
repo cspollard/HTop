@@ -11,12 +11,10 @@ import Conduit
 import Data.Conduit.Binary (sourceLbs)
 import Data.Conduit.Zlib (gzip)
 import Data.Serialize (encodeLazy)
-import Data.Serialize.ZipList
+import Data.Serialize.ZipList ()
 
-import Control.Monad (forM, forM_, when)
+import Control.Monad (forM, when)
 import Control.Applicative (liftA2, ZipList(..))
-
-import qualified Data.Text as T
 
 import Options.Generic
 
@@ -24,10 +22,11 @@ import qualified Data.IntMap.Strict as IM
 
 import Data.TTree
 import Data.Atlas.Histograms
-import Data.Atlas.Sample
 import Data.Atlas.Event
+import Data.Atlas.Sample
 import Data.YODA.Obj
 import Data.Atlas.CrossSections
+import Data.Atlas.Selection
 
 data Args = Args { outfile :: String
                  , infiles :: String
@@ -56,12 +55,11 @@ main = do args <- getRecord "run-hs" :: IO Args
                                       wt <- ttree "sumWeights" f
                                       tt <- ttree "nominal" f
                                       s <- foldl1 addSampInfo <$> (project wt $$ sinkList)
-                                      (n, hs) <- let f = case dsid s of
-                                                            0 -> (1.0,) <$> fromTTree
-                                                            _ -> weightedEvent ["SFTot"]
-                                      (n, hs) <- runTTree f tt $$ channelObjs
+                                      (n, hs) <-  case dsid s of
+                                                    0 -> project tt $$ everyC 1000 printIE =$= proj (dataEvent =$= dataEventObjs)
+                                                    _ -> project tt $$ everyC 1000 printIE =$= proj (mcEvent =$= mcEventObjs)
                                       putStrLn $ show n ++ " events analyzed.\n"
-                                      return (s, ZipList . concat $ hs)
+                                      return (s, ZipList hs)
 
           let m = IM.fromListWith (\(s, h) (s', h') -> (addSampInfo s s', liftA2 mergeYO h h')) $ map ((,) <$> fromEnum . dsid . fst <*> id) samps
 
@@ -73,3 +71,8 @@ main = do args <- getRecord "run-hs" :: IO Args
 
 
           runResourceT $ sourceLbs (encodeLazy scaledHists) =$= gzip $$ sinkFile (outfile args)
+
+    where
+        printIE i _ = print (show i ++ " events analyzed")
+        proj :: Monad m => Consumer (Event a) m [YodaObj] -> Consumer (Event a) m (Int, [YodaObj])
+        proj c = mapC pruneJets =$= withLenC (channel "/elmujj" elmujj c)
