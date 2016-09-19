@@ -1,6 +1,3 @@
-{-# LANGUAGE OverloadedStrings, TupleSections, TypeOperators, TypeFamilies, RankNTypes #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
-
 module Data.Atlas.Histograms where
 
 import Control.Lens

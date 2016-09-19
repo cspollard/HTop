@@ -56,9 +56,9 @@ main = do args <- getRecord "run-hs" :: IO Args
                                       wt <- ttree "sumWeights" f
                                       tt <- ttree "nominal" f
                                       s <- foldl1 addSampInfo <$> (project wt $$ sinkList)
-                                      let f = case dsid s of
-                                                   0 -> (1.0,) <$> fromTTree
-                                                   _ -> weightedEvent ["SFTot"]
+                                      (n, hs) <- let f = case dsid s of
+                                                            0 -> (1.0,) <$> fromTTree
+                                                            _ -> weightedEvent ["SFTot"]
                                       (n, hs) <- runTTree f tt $$ channelObjs
                                       putStrLn $ show n ++ " events analyzed.\n"
                                       return (s, ZipList . concat $ hs)
@@ -73,20 +73,3 @@ main = do args <- getRecord "run-hs" :: IO Args
 
 
           runResourceT $ sourceLbs (encodeLazy scaledHists) =$= gzip $$ sinkFile (outfile args)
-
-{-
-
-          forM_ (IM.toList scaledHists) $ \(ds, hs) ->
-                                            runResourceT $ yieldMany (getZipList hs) =$= mapC (T.unpack . showHisto) $$ sinkFile
-
-          let mergedHists = M.mapKeysWith (liftA2 haddYH) (processTitle . orded) scaledHists & fmap getZipList
-
-          let outfname = outfolder args
-          createDirectoryIfMissing True outfname
-        
-          forM_ (M.toList mergedHists) (\(fout, hs) -> runResourceT $ mapM_ yield hs $$ CL.map (T.encodeUtf8 . showHisto) =$= sinkFile (outfname ++ '/' : T.unpack fout ++ ".yoda")) 
-
-          runResourceT $ CC.sourcePut (put mergedHists) =$= gzip $$ sinkFile (outfname ++ "hists.gz")
-
-    where mcWs = ["weight_mc", "weight_pileup"]
--}

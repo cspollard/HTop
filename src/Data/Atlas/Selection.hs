@@ -4,19 +4,22 @@ import Control.Lens
 
 import Data.Atlas.Event
 
-elmujj :: Event -> Bool
+elmujj :: Event a -> Bool
 elmujj e = length (_electrons e) == 1 && length (_muons e) == 1 && length (_jets e) == 2
 
-pruneJets :: Event -> Event
+pruneJets :: Event a -> Event a
 pruneJets = over jets $ filter (\j -> view lvPt j > 30 && view lvAbsEta j < 2.1)
 
-bTagged :: Jet -> Bool
-bTagged = (> 0.8244273) . jMV2c10
+bLabeled :: Jet (MC' a) -> Bool
+bLabeled = (== 5) . view extraInfo
 
-hasSV :: Jet -> Bool
-hasSV = not . null . jSVTracks
+bTagged :: Jet a -> Bool
+bTagged = (> 0.8244273) . view jMV2c10
 
-probeJets :: [Jet] -> [Jet]
+hasSV :: Jet a -> Bool
+hasSV = not . null . view jSVTracks
+
+probeJets :: [Jet a] -> [Jet a]
 probeJets [j1, j2] = [j2 | probeJet j1 j2] ++ [j1 | probeJet j2 j1]
     where probeJet j j' = bTagged j && hasSV j'
 probeJets _        = []

@@ -1,83 +1,122 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
+
+{-# LANGUAGE RankNTypes #-}
 
 module Data.Atlas.Jet where
 
 import Control.Lens
 
 import GHC.Generics (Generic)
-import Data.Serialize
 
 import Control.Applicative (ZipList(..))
 import Data.Foldable (fold)
 import Data.Monoid ((<>))
 import Data.List (deleteFirstsBy)
 
-import Data.HEP.LorentzVector
-import Data.Atlas.PtEtaPhiE
-import Data.TTree
-
 import qualified Data.Vector as V
 
-data Jet =
+import Data.HEP.LorentzVector
+import Data.TTree
+import Data.Atlas.PtEtaPhiE
+import Data.Atlas.DataMC
+
+data Jet a =
     Jet
-        { jPtEtaPhiE :: PtEtaPhiE
-        , jMV2c10 :: Float
-        , jJVT :: Float
-        , jPVTracks :: [PtEtaPhiE]
-        , jSVTracks :: [PtEtaPhiE]
-        } deriving (Show, Generic)
-
-instance Serialize Jet
-
-instance HasLorentzVector Jet where
-    toPtEtaPhiE = lens jPtEtaPhiE $ \j lv -> j { jPtEtaPhiE = lv }
+        { _jPtEtaPhiE :: PtEtaPhiE
+        , _jMV2c10 :: Float
+        , _jJVT :: Float
+        , _jPVTracks :: [PtEtaPhiE]
+        , _jSVTracks :: [PtEtaPhiE]
+        , _jExtraInfo :: ExtraInfo (Jet a)
+        } deriving Generic
 
 
-newtype Jets = Jets { fromJets :: [Jet] } deriving (Show, Generic, Serialize)
+instance Show (Jet a) where
+    show j = "Jet " ++ views toPtEtaPhiE show j
+
+-- TODO
+-- macro here?
+-- can't use template haskell
+jJVT, jMV2c10 :: Lens' (Jet a) Float
+jJVT = lens _jJVT $ \j x -> j { _jJVT = x }
+jMV2c10 = lens _jMV2c10 $ \j x -> j { _jMV2c10 = x }
+
+
+jPVTracks, jSVTracks :: Lens' (Jet a) [PtEtaPhiE]
+jPVTracks = lens _jPVTracks $ \j x -> j { _jPVTracks = x }
+jSVTracks = lens _jSVTracks $ \j x -> j { _jSVTracks = x }
+
+jExtraInfo :: Lens' (Jet a) (ExtraInfo (Jet a))
+jExtraInfo = lens _jExtraInfo $ \j x -> j { _jExtraInfo = x }
+
+instance HasLorentzVector (Jet a) where
+    toPtEtaPhiE = lens _jPtEtaPhiE $ \j x -> j { _jPtEtaPhiE = x }
+
+instance HasExtraInfo (Jet (MC' a)) where
+    type ExtraInfo (Jet (MC' a)) = CInt
+    extraInfo = jExtraInfo
+
+instance HasExtraInfo (Jet Data') where
+    type ExtraInfo (Jet Data') = ()
+    extraInfo = jExtraInfo
+
+
+-- TODO
+-- MonoFoldable?
+newtype Jets a = Jets { fromJets :: [Jet a] } deriving Generic
 
 jetTracksIsTight :: MonadIO m => TR m [[Bool]]
 jetTracksIsTight = V.toList . fmap V.toList .  over (traverse.traverse) (/= (0 :: CInt)) . fromVVector <$> readBranch "JetTracksisTight"
 
 
-instance FromTTree Jets where
-    fromTTree = do
-        PtEtaPhiEs tlvs <- lvsFromTTree "JetPt" "JetEta" "JetPhi" "JetE"
-        mv2c10s <- readBranch "JetMV2c20"
-        jvts <- readBranch "JetJVT"
-        trks <- jetTracksTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
-        trksTight <- jetTracksIsTight
+-- Generic jet (without extra info)
+jetFromTTreeG :: MonadIO m => TR m ([ExtraInfo (Jet a)] -> Jets a)
+jetFromTTreeG = do
+    PtEtaPhiEs tlvs <- lvsFromTTree "JetPt" "JetEta" "JetPhi" "JetE"
+    mv2c10s <- readBranch "JetMV2c20"
+    jvts <- readBranch "JetJVT"
+    trks <- jetTracksTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
+    trksTight <- jetTracksIsTight
 
-        let trks' = fmap snd . filter fst <$> zipWith zip trksTight trks
+    let trks' = fmap snd . filter fst <$> zipWith zip trksTight trks
 
-        sv1trks <- jetTracksTLV "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
+    sv1trks <- jetTracksTLV "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
 
-        let trks'' = zipWith (deleteFirstsBy trkEq) trks' sv1trks
+    let trks'' = zipWith (deleteFirstsBy trkEq) trks' sv1trks
 
-        let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts <*> ZipList trks'' <*> ZipList sv1trks
-        return . Jets $ getZipList js
+    let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts <*> ZipList trks'' <*> ZipList sv1trks
+    return $ \eis -> (Jets . getZipList) (js <*> ZipList eis)
 
 
-pvTrkSumTLV :: Jet -> PtEtaPhiE
-pvTrkSumTLV = fold . jPVTracks
+instance FromTTree (Jets Nominal') where
+    fromTTree = jetFromTTreeG <*> readBranch "JetTruthLabel"
 
-svTrkSumTLV :: Jet -> PtEtaPhiE
-svTrkSumTLV = fold . jSVTracks
+instance FromTTree (Jets Data') where
+    fromTTree = jetFromTTreeG <*> return (repeat ())
 
-trkSumTLV :: Jet -> PtEtaPhiE
+
+pvTrkSumTLV :: Jet a -> PtEtaPhiE
+pvTrkSumTLV = fold . view jPVTracks
+
+svTrkSumTLV :: Jet a -> PtEtaPhiE
+svTrkSumTLV = fold . view jSVTracks
+
+trkSumTLV :: Jet a -> PtEtaPhiE
 trkSumTLV = (<>) <$> svTrkSumTLV <*> pvTrkSumTLV
 
-pvTrkSumPt :: Jet -> Double
+pvTrkSumPt :: Jet a -> Double
 pvTrkSumPt = view lvPt . pvTrkSumTLV
 
-svTrkSumPt :: Jet -> Double
+svTrkSumPt :: Jet a -> Double
 svTrkSumPt = view lvPt . svTrkSumTLV
 
-trkSumPt :: Jet -> Double
+trkSumPt :: Jet a -> Double
 trkSumPt = view lvPt . trkSumTLV
 
 -- protect against dividing by zero
-bFrag :: Jet -> Maybe Double
+bFrag :: Jet a -> Maybe Double
 bFrag j = case trkSumPt j of
                0.0 -> Nothing
                x   -> Just (svTrkSumPt j / x)
