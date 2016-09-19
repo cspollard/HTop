@@ -252,11 +252,11 @@ metHist = ((path %~ ("/met" <>)) . (xlabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}
              <$> fillingOver (noted . _H1DD) ptHist <=$= CL.map (fmap (view $ met . lvPt))
 
 mcEventObjs :: Monad m => Consumer (WithWeight (Event (MC' a))) m [YodaObj]
-mcEventObjs = metHist =:= electronsObjs =++= muonsObjs
-    =++= (CL.map (fmap (view jets))
-        =$= (jetObjs
-            =++= (CL.map (fmap probeJets) =$= fillAll probeJetMCObjs))
-         )
+mcEventObjs =
+    metHist =:= electronsObjs =++= muonsObjs
+        =++= ( CL.map (fmap (view jets))
+                =$= (jetObjs =++= (CL.map (fmap probeJets) =$= fillAll probeJetMCObjs))
+             )
 
 dataEventObjs :: Monad m => Consumer (WithWeight (Event Data')) m [YodaObj]
 dataEventObjs = metHist =:= electronsObjs =++= muonsObjs
@@ -266,10 +266,8 @@ dataEventObjs = metHist =:= electronsObjs =++= muonsObjs
          )
 
 
-channel :: Monad m =>
-    Text -> (a -> Bool)
-    -> Consumer a m [YodaObj]
-    -> Consumer a m [YodaObj]
+channel :: Monad m
+        => Text -> (a -> Bool) -> Consumer a m [YodaObj] -> Consumer a m [YodaObj]
 channel n f c = filterC f =$= fmap (path %~ (n <>)) <$> c
 
 
@@ -285,34 +283,3 @@ mcEvent = CL.map ((,) <$> view extraInfo <*> id)
 
 dataEvent :: Monad m => Conduit (Event Data') m (WithWeight (Event Data'))
 dataEvent = CL.map (1.0,)
-
-{-
-ljetHs :: Monad m => Consumer (WithWeight LargeJet) m [YodaHist1D]
-ljetHs = (fillingYH mHist <=$= CL.map (fmap ljM))
-         =:= (fillingYH sd12Hist <=$= CL.map (fmap ljSD12))
-         =:= lvHists
-
-
-ljetsHists :: Monad m => Consumer (WithWeight LargeJets) m [YodaHist1D]
-ljetsHists = fmap ((path %~ ("/ljets" <>)) . (xlabel %~ ("large-$R$ jet " <>)))
-              <$> fillAll ljetHs
-
-
-ljet0Hists :: Monad m => Consumer (WithWeight LargeJets) m [YodaHist1D]
-ljet0Hists = fmap ((path %~ ("/ljet0" <>)) . (xlabel %~ ("leading large-$R$ jet " <>)))
-              <$> fillFirst ljetHs
-
-
-ljetHists :: Monad m => Consumer (WithWeight Event) m [YodaHist1D]
-ljetHists = (ljetsHists =++= ljet0Hists) <=$= CL.map (fmap eLargeJets)
-
-
-eljetHist :: Monad m => Consumer (WithWeight Event) m YodaHist1D
-eljetHist = ((path %~ ("/elljet0" <>)) . (xlabel %~ ("electron-large-$R$ jet " <>)))
-             <$> fillFirst (fillingYH dRHist) <=$= CL.map (fmap f)
-    where f evt = flip minDR (eElectrons evt) =<< leading (eLargeJets evt)
-
-tjetHists :: Monad m => Consumer (WithWeight Event) m [YodaHist1D]
-tjetHists = fmap ((path %~ ("/tjets" <>)) . (xlabel %~ ("track jet " <>)))
-             <$> fillAll lvHists <=$= CL.map (fmap eTrackJets)
--}

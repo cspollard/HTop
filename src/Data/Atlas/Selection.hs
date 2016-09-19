@@ -17,7 +17,7 @@ cLabeled :: Jet (MC' a) -> Bool
 cLabeled = (== 4) . view extraInfo
 
 lLabeled :: Jet (MC' a) -> Bool
-lLabeled = (== 1) . view extraInfo
+lLabeled = ((&&) <$> (/= 5) <*> (/= 4)) . view extraInfo
 
 bTagged :: Jet a -> Bool
 bTagged = (> 0.8244273) . view jMV2c10

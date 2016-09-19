@@ -73,6 +73,6 @@ main = do args <- getRecord "run-hs" :: IO Args
           runResourceT $ sourceLbs (encodeLazy scaledHists) =$= gzip $$ sinkFile (outfile args)
 
     where
-        printIE i _ = print (show i ++ " events analyzed")
+        printIE i _ = putStrLn (show i ++ " events analyzed")
         proj :: Monad m => Consumer (Event a) m [YodaObj] -> Consumer (Event a) m (Int, [YodaObj])
         proj c = mapC pruneJets =$= withLenC (channel "/elmujj" elmujj c)
