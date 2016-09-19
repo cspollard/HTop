@@ -33,15 +33,6 @@ instance Serialize Jet
 instance HasLorentzVector Jet where
     toPtEtaPhiE = lens jPtEtaPhiE $ \j lv -> j { jPtEtaPhiE = lv }
 
-data JetTruthLabel =
-    BLabel
-    | CLabel
-    | TauLabel
-    | LLabel
-    | NoLabel
-
-instance FromTTree JetTruthLabel where
-    fromTTree = do l <- readBranch "
 
 newtype Jets = Jets { fromJets :: [Jet] } deriving (Show, Generic, Serialize)
 
