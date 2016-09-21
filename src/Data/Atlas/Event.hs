@@ -1,29 +1,31 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Data.Atlas.Event ( Event(..)
                         , module X
                         , runNumber, eventNumber, mu
                         , electrons, muons, jets, met
+                        , readEventSysts
                         ) where
 
 import Control.Lens
 
 import GHC.Generics (Generic)
-
 import GHC.Float
-
-import Data.Monoid (Product(..))
+import Data.Map.Strict as M
+import Data.Text
 
 import Data.TTree
-
 import Data.HEP.LorentzVector as X
 import Data.Atlas.PtEtaPhiE as X
 import Data.Atlas.Electron as X
 import Data.Atlas.Muon as X
 import Data.Atlas.Jet as X
 import Data.Atlas.DataMC as X
+import Data.Atlas.Systematic as X
 
 data Event a =
     Event
@@ -34,7 +36,7 @@ data Event a =
         , _muons :: [Muon]
         , _jets :: [Jet a]
         , _met :: PtEtaPhiE
-        , _extraInfo :: ExtraInfo (Event a)
+        , _mcInfo :: MCInfo (Event a)
         } deriving Generic
 
 runNumber :: Lens' (Event a) CInt
@@ -65,33 +67,38 @@ metFromTTree m p = do et <- float2Double <$> readBranch m
                       return $ PtEtaPhiE et 0 phi et
 
 
-instance HasExtraInfo (Event (MC' a)) where
-    type ExtraInfo (Event (MC' a)) = Double
-    extraInfo = lens _extraInfo $ \e x -> e { _extraInfo = x }
+instance HasMCInfo (Event MC) where
+    type MCInfo (Event MC) = Double
+    mcInfo = lens _mcInfo $ \e x -> e { _mcInfo = x }
 
-instance HasExtraInfo (Event Data') where
-    type ExtraInfo (Event Data') = ()
-    extraInfo = lens _extraInfo $ \e x -> e { _extraInfo = x }
+instance HasMCInfo (Event Data') where
+    type MCInfo (Event Data') = ()
+    mcInfo = lens _mcInfo $ \e x -> e { _mcInfo = x }
 
 
-instance FromTTree (Event (MC' a)) where
-    fromTTree = Event <$> readBranch "Run"
-                      <*> readBranch "Event"
-                      <*> readBranch "Mu"
-                      <*> fmap fromElectrons fromTTree
-                      <*> fmap fromMuons fromTTree
-                      <*> fmap fromJets fromTTree
-                      <*> metFromTTree "ETMiss" "ETMissPhi"
-                      <*> (float2Double . getProduct . foldMap Product <$> mapM readBranch ws)
-        where ws = ["SFTot"]
+readEventG :: (MonadIO m, FromTTree (Jets a))
+           => TR m (MCInfo (Event a) -> Event a)
+readEventG =
+    Event
+        <$> readBranch "Run"
+        <*> readBranch "Event"
+        <*> readBranch "Mu"
+        <*> fmap fromElectrons fromTTree
+        <*> fmap fromMuons fromTTree
+        <*> fmap fromJets fromTTree
+        <*> metFromTTree "ETMiss" "ETMissPhi"
 
+
+readEventSysts :: MonadIO m
+               => [WeightSystematic]
+               -> TR m (Map Text (Event MC))
+readEventSysts systs = M.fromList <$> evts
+    where
+        f :: MonadIO m => WeightSystematic -> TR m (Text, Event MC)
+        f (WeightSystematic n g) =
+            fmap (n,) $ readEventG <*> g
+
+        evts = mapM f systs
 
 instance FromTTree (Event Data') where
-    fromTTree = Event <$> readBranch "Run"
-                      <*> readBranch "Event"
-                      <*> readBranch "Mu"
-                      <*> fmap fromElectrons fromTTree
-                      <*> fmap fromMuons fromTTree
-                      <*> fmap fromJets fromTTree
-                      <*> metFromTTree "ETMiss" "ETMissPhi"
-                      <*> return ()
+    fromTTree = readEventG <*> return ()

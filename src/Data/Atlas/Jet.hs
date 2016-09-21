@@ -29,7 +29,7 @@ data Jet a =
         , _jJVT :: Float
         , _jPVTracks :: [PtEtaPhiE]
         , _jSVTracks :: [PtEtaPhiE]
-        , _jExtraInfo :: ExtraInfo (Jet a)
+        , _jMCInfo :: MCInfo (Jet a)
         } deriving Generic
 
 
@@ -48,19 +48,19 @@ jPVTracks, jSVTracks :: Lens' (Jet a) [PtEtaPhiE]
 jPVTracks = lens _jPVTracks $ \j x -> j { _jPVTracks = x }
 jSVTracks = lens _jSVTracks $ \j x -> j { _jSVTracks = x }
 
-jExtraInfo :: Lens' (Jet a) (ExtraInfo (Jet a))
-jExtraInfo = lens _jExtraInfo $ \j x -> j { _jExtraInfo = x }
+jMCInfo :: Lens' (Jet a) (MCInfo (Jet a))
+jMCInfo = lens _jMCInfo $ \j x -> j { _jMCInfo = x }
 
 instance HasLorentzVector (Jet a) where
     toPtEtaPhiE = lens _jPtEtaPhiE $ \j x -> j { _jPtEtaPhiE = x }
 
-instance HasExtraInfo (Jet (MC' a)) where
-    type ExtraInfo (Jet (MC' a)) = CInt
-    extraInfo = jExtraInfo
+instance HasMCInfo (Jet MC) where
+    type MCInfo (Jet MC) = CInt
+    mcInfo = jMCInfo
 
-instance HasExtraInfo (Jet Data') where
-    type ExtraInfo (Jet Data') = ()
-    extraInfo = jExtraInfo
+instance HasMCInfo (Jet Data') where
+    type MCInfo (Jet Data') = ()
+    mcInfo = jMCInfo
 
 
 -- TODO
@@ -72,7 +72,7 @@ jetTracksIsTight = V.toList . fmap V.toList .  over (traverse.traverse) (/= (0 :
 
 
 -- Generic jet (without extra info)
-jetFromTTreeG :: MonadIO m => TR m ([ExtraInfo (Jet a)] -> Jets a)
+jetFromTTreeG :: MonadIO m => TR m ([MCInfo (Jet a)] -> Jets a)
 jetFromTTreeG = do
     PtEtaPhiEs tlvs <- lvsFromTTree "JetPt" "JetEta" "JetPhi" "JetE"
     mv2c10s <- readBranch "JetMV2c20"
@@ -90,7 +90,7 @@ jetFromTTreeG = do
     return $ \eis -> (Jets . getZipList) (js <*> ZipList eis)
 
 
-instance FromTTree (Jets (MC' a)) where
+instance FromTTree (Jets MC) where
     fromTTree = jetFromTTreeG <*> readBranch "JetTruthLabel"
 
 instance FromTTree (Jets Data') where
