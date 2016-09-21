@@ -11,15 +11,18 @@ import qualified Data.Conduit.List as CL
 
 import Data.Maybe (listToMaybe)
 import Data.Foldable (toList)
-
 import Data.Semigroup
 
 import Data.Text (Text)
+import qualified Data.Map.Strict as M
 
 import Data.YODA.Obj
 
 import Data.Atlas.Event
 import Data.Atlas.Selection
+import Data.Atlas.Systematic
+
+import Data.TTree
 
 
 -- TODO
@@ -42,6 +45,9 @@ fillFirst c = CL.map (traverse firstF) =$= CL.concat =$= c
 
 firstF :: Foldable f => f a -> Maybe a
 firstF = listToMaybe . toList
+
+type HistFiller a = forall m. Monad m => Consumer (WithWeight a) m YodaObj
+type HistsFiller a = forall m. Monad m => Consumer (WithWeight a) m [YodaObj]
 
 
 -- not sure about these fixities.
@@ -100,7 +106,7 @@ eHist = yodaHist 25 0 500 "/E" "$E$ [GeV]" $ dsigdXpbY "E" gev
 mHist :: YodaObj
 mHist = yodaHist 30 0 300 "/mass" "mass [GeV]" $ dsigdXpbY "m" gev
 
-lvObjs :: (Monad m, HasLorentzVector a) => Consumer (WithWeight a) m [YodaObj]
+lvObjs :: HasLorentzVector a => HistsFiller a
 lvObjs = sequenceConduits [ fillingOver (noted . _H1DD) ptHist  <=$= CL.map (fmap $ view lvPt)
                           , fillingOver (noted . _H1DD) etaHist <=$= CL.map (fmap $ view lvEta)
                           ] <=$= CL.map (fmap $ view toPtEtaPhiE)
@@ -154,7 +160,7 @@ nSVTrksVsJetPtProf :: YodaObj
 nSVTrksVsJetPtProf = yodaProf 18 25 250 "/nsvtrksvsjetpt" "$p_{\\mathrm T}$ [GeV]" "$<n$ SV tracks $>$"
 
 
-jetTrkObjs :: Monad m => Consumer (WithWeight (Jet a)) m [YodaObj]
+jetTrkObjs :: HistsFiller (Jet a)
 jetTrkObjs = sequenceConduits [ fillingOver (noted . _H1DD) trkSumPtHist
                                     <=$= CL.map (fmap trkSumPt)
                               , fillingOver (noted . _H1DD) svTrkSumPtHist
@@ -198,22 +204,22 @@ jetTrkObjs = sequenceConduits [ fillingOver (noted . _H1DD) trkSumPtHist
 
 
 
-jetsObjs :: Monad m => Consumer (WithWeight (Jet a)) m [YodaObj]
+jetsObjs :: HistsFiller (Jet a)
 jetsObjs = fmap ((path %~ ("/jets" <>)) . (xlabel %~ ("small-$R$ jet " <>)))
              <$> lvObjs
 
 
-jet0Objs :: Monad m => Consumer (WithWeight (Jet a)) m [YodaObj]
+jet0Objs :: HistsFiller (Jet a)
 jet0Objs = fmap ((path %~ ("/jet0" <>)) . (xlabel %~ ("leading small-$R$ jet " <>)))
              <$> lvObjs
 
 
-probeJetObjs :: Monad m => Consumer (WithWeight (Jet a)) m [YodaObj]
+probeJetObjs :: HistsFiller (Jet a)
 probeJetObjs = jetTrkObjs =++= lvObjs
 
 
 
-allProbeJetObjs :: Monad m => Consumer (WithWeight (Jet a)) m [YodaObj]
+allProbeJetObjs :: HistsFiller (Jet a)
 allProbeJetObjs = (fmap.fmap) (xlabel %~ ("probe small-$R$ jet " <>)) $
     channel "/probejet2trk" ((== 2) . nSVTracks . snd) probeJetObjs
     =++= channel "/probejet3trk" ((== 3) . nSVTracks . snd) probeJetObjs
@@ -221,7 +227,7 @@ allProbeJetObjs = (fmap.fmap) (xlabel %~ ("probe small-$R$ jet " <>)) $
     =++= channel "/probejet" (const True) probeJetObjs
     
 
-probeJetMCObjs :: Monad m => Consumer (WithWeight (Jet (MC' a))) m [YodaObj]
+probeJetMCObjs :: HistsFiller (Jet MC)
 probeJetMCObjs =
     channel "/bjets" (bLabeled . snd) allProbeJetObjs
     =++= channel "/cjets" (cLabeled . snd) allProbeJetObjs
@@ -229,36 +235,73 @@ probeJetMCObjs =
     =++= channel "" (const True) allProbeJetObjs
 
 
-probeJetDataObjs :: Monad m => Consumer (WithWeight (Jet Data')) m [YodaObj]
+probeJetDataObjs :: HistsFiller (Jet Data')
 probeJetDataObjs = allProbeJetObjs
 
 
-jetObjs :: Monad m => Consumer (WithWeight [Jet a]) m [YodaObj]
-jetObjs = fillAll jetsObjs
-            =++= fillFirst jet0Objs
+jetObjs :: HistsFiller [Jet a]
+jetObjs = fillAll jetsObjs =++= fillFirst jet0Objs
 
 
-electronsObjs :: Monad m => Consumer (WithWeight (Event a)) m [YodaObj]
+electronsObjs :: HistsFiller (Event a)
 electronsObjs = fmap ((path %~ ("/electrons" <>)) . (xlabel %~ ("electron " <>)))
                   <$> fillAll lvObjs <=$= CL.map (fmap _electrons)
 
 
-muonsObjs :: Monad m => Consumer (WithWeight (Event a)) m [YodaObj]
+muonsObjs :: HistsFiller (Event a)
 muonsObjs = fmap ((path %~ ("/muons" <>)) . (xlabel %~ ("muon " <>)))
               <$> fillAll lvObjs <=$= CL.map (fmap _muons)
 
-metHist :: Monad m => Consumer (WithWeight (Event a)) m YodaObj
+metHist :: HistFiller (Event a)
 metHist = ((path %~ ("/met" <>)) . (xlabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}}$ " <>)))
              <$> fillingOver (noted . _H1DD) ptHist <=$= CL.map (fmap (view $ met . lvPt))
 
-mcEventObjs :: Monad m => Consumer (WithWeight (Event (MC' a))) m [YodaObj]
-mcEventObjs =
-    metHist =:= electronsObjs =++= muonsObjs
-        =++= ( CL.map (fmap (view jets))
-                =$= (jetObjs =++= (CL.map (fmap probeJets) =$= fillAll probeJetMCObjs))
-             )
 
-dataEventObjs :: Monad m => Consumer (WithWeight (Event Data')) m [YodaObj]
+{-
+-- TODO
+-- we only want to pass the list of event weights once.
+-- need to consolidate a bit.
+mcEventObjs :: MonadIO m => [WeightSystematic] -> TTree -> m [YodaObj]
+mcEventObjs ws t = do
+    hMap <- runTTree (readEventSysts ws) t $$ fillHists
+    return . concatMap (\(n, hs) -> fmap (path %~ (n <>)) hs) . M.toList $ hMap
+
+    where
+        -- hists :: Monad m => Consumer (WithWeight (Event MC)) m [YodaObj]
+        -- hists = metHist =:= electronsObjs =++= muonsObjs
+                    -- =++= (CL.map (fmap (view jets))
+                        -- =$= (jetObjs =++= (CL.map (fmap probeJets) =$= fillAll probeJetMCObjs)))
+
+-}
+
+fillHists :: Monad m
+          => [Text] -> Consumer (Event MC) m [YodaObj] -> Consumer (M.Map Text (Event MC)) m (M.Map Text [YodaObj])
+fillHists ns c = go mcs
+
+    where
+        -- mcs :: Monad m => M.Map Text (ConduitM (Event MC) o m [YodaObj])
+        mcs = M.fromList $ map (,c) ns
+
+        go :: M.Map Text (ConduitM a o m b) -> ConduitM (M.Map Text a) o m (M.Map Text b)
+        go myos = do
+            mmap <- await
+            case mmap of
+                Nothing -> do xs <- runConduit $ sequence myos
+                              return xs
+                Just m -> go $ M.intersectionWith (fuse . yield) m myos
+
+         
+
+{-
+fillHists mcs = do mevts <- await
+                   case mevts of
+                        Nothing -> sequence mcs
+                        Just e -> sequence mcs
+
+-}
+-- fillHists mcs = foldlC (intersectionWith (flip $ fuse .  yield)) $ M.fromList (map (\w -> (weightName w, hists)) ws)
+
+dataEventObjs :: HistsFiller (Event Data')
 dataEventObjs = metHist =:= electronsObjs =++= muonsObjs
     =++= (CL.map (fmap (view jets))
         =$= (jetObjs
@@ -266,8 +309,7 @@ dataEventObjs = metHist =:= electronsObjs =++= muonsObjs
          )
 
 
-channel :: Monad m
-        => Text -> (a -> Bool) -> Consumer a m [YodaObj] -> Consumer a m [YodaObj]
+channel :: Monad m => Text -> (a -> Bool) -> Consumer a m [YodaObj] -> Consumer a m [YodaObj]
 channel n f c = filterC f =$= fmap (path %~ (n <>)) <$> c
 
 
@@ -277,9 +319,6 @@ withLenC c =
         (,) <$> ZipConduit lengthC
             <*> ZipConduit c
 
-
-mcEvent :: Monad m => Conduit (Event (MC' a)) m (WithWeight (Event (MC' a)))
-mcEvent = CL.map ((,) <$> view extraInfo <*> id)
 
 dataEvent :: Monad m => Conduit (Event Data') m (WithWeight (Event Data'))
 dataEvent = CL.map (1.0,)

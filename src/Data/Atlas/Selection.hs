@@ -10,14 +10,14 @@ elmujj e = length (_electrons e) == 1 && length (_muons e) == 1 && length (_jets
 pruneJets :: Event a -> Event a
 pruneJets = over jets $ filter (\j -> view lvPt j > 30 && view lvAbsEta j < 2.1)
 
-bLabeled :: Jet (MC' a) -> Bool
-bLabeled = (== 5) . view extraInfo
+bLabeled :: Jet MC -> Bool
+bLabeled = (== 5) . view mcInfo
 
-cLabeled :: Jet (MC' a) -> Bool
-cLabeled = (== 4) . view extraInfo
+cLabeled :: Jet MC -> Bool
+cLabeled = (== 4) . view mcInfo
 
-lLabeled :: Jet (MC' a) -> Bool
-lLabeled = ((&&) <$> (/= 5) <*> (/= 4)) . view extraInfo
+lLabeled :: Jet MC -> Bool
+lLabeled = ((&&) <$> (/= 5) <*> (/= 4)) . view mcInfo
 
 bTagged :: Jet a -> Bool
 bTagged = (> 0.8244273) . view jMV2c10
