@@ -28,42 +28,62 @@ import Data.TTree
 -- TODO
 -- all of these lists should probably turn into (:.) lists for type checking
 
+data Feed a b = Feed { obj :: !b
+                     , feed :: a -> Feed a b
+                     }
 
-filling :: (Monad m, Fillable a) => a -> Consumer (FillVec a) m a
-filling = foldlC (flip fill)
+-- convert a fold to a feed
+toFeed :: (a -> b -> b) -> b -> Feed a b
+toFeed f o = Feed o $ \x -> let o' = f x o in toFeed f o'
 
-fillingOver :: (Monad m, Fillable a) => Traversal' b a -> b -> Consumer (FillVec a) m b
-fillingOver l = foldlC (\h' x -> over l (fill x) h')
+premap :: (a -> c) -> Feed c b -> Feed a b
+premap f (Feed o g) = Feed o $ \x -> premap f (g (f x))
 
-fillAll :: (Monad m, Applicative f, Foldable f)
-         => Consumer (v, a) m b -> Consumer (v, f a) m b
-fillAll c = CL.map sequenceA =$= CL.concat =$= c
+instance Functor (Feed a) where
+    fmap g (Feed x f) = Feed (g x) $ \x' -> fmap g (f x')
 
-fillFirst :: (Monad m, Foldable f)
-          => Consumer (v, a) m b -> Consumer (v, f a) m b
-fillFirst c = CL.map (traverse firstF) =$= CL.concat =$= c
+instance Applicative (Feed a) where
+    pure x = let f = Feed x (const f) in f
+    Feed g f <*> Feed x f' = Feed (g x) $ \x' -> f x' <*> f' x'
 
-firstF :: Foldable f => f a -> Maybe a
-firstF = listToMaybe . toList
 
-type HistFiller a = forall m. Monad m => Consumer (WithWeight a) m YodaObj
-type HistsFiller a = forall m. Monad m => Consumer (WithWeight a) m [YodaObj]
+-- need monad?
+
+-- fixme
+feedOver :: Traversal' b c -> (a -> c -> c) -> b -> Feed a b
+feedOver l f = toFeed $ over l . f
+
+feedAll :: Foldable f => Feed a b -> Feed (f a) b
+feedAll f@(Feed o g) = Feed o $ feedAll . foldl feed f
+
+feedFirst :: Foldable f => Feed a b -> Feed (f a) b
+feedFirst f = premap (listToMaybe . toList) (feedAll f)
+
+feedIf :: (a -> Bool) -> Feed a b -> Feed a b
+feedIf g f = premap g' $ feedAll f
+    where g' x = if g x then Just x else Nothing
+
+fillOver :: Fillable a => Traversal' b a -> b -> Feed (FillVec a) b
+fillOver l = feedOver l fill
 
 
 -- not sure about these fixities.
-infixr 2 <=$=
-(<=$=) :: Monad m => ConduitM b c m r -> Conduit a m b -> ConduitM a c m r
-(<=$=) = flip (=$=)
+infixr 2 <$=
+(<$=) :: Feed c b -> (a -> c) -> Feed a b
+(<$=) = flip premap
 
 
 infixr 3 =:=
-(=:=) :: Monad m => ConduitM i o m r -> ConduitM i o m [r] -> ConduitM i o m [r]
-c =:= cs = getZipConduit $ (:) <$> ZipConduit c <*> ZipConduit cs
+(=:=) :: Applicative f => f a -> f [a] -> f [a]
+fx =:= fxs = (:) <$> fx <*> fxs
 
 
 infixr 3 =++=
-(=++=) :: Monad m => ConduitM i o m [r] -> ConduitM i o m [r] -> ConduitM i o m [r]
-cs =++= cs' = getZipConduit $ (++) <$> ZipConduit cs <*> ZipConduit cs'
+(=++=) :: Applicative f => f [a] -> f [a] -> f [a]
+fxs =++= fys = (++) <$> fxs <*> fys
+
+
+type ObjsFiller a = Feed (WithWeight a) [YodaObj]
 
 
 dsigdXpbY :: Text -> Text -> Text
@@ -106,10 +126,10 @@ eHist = yodaHist 25 0 500 "/E" "$E$ [GeV]" $ dsigdXpbY "E" gev
 mHist :: YodaObj
 mHist = yodaHist 30 0 300 "/mass" "mass [GeV]" $ dsigdXpbY "m" gev
 
-lvObjs :: HasLorentzVector a => HistsFiller a
-lvObjs = sequenceConduits [ fillingOver (noted . _H1DD) ptHist  <=$= CL.map (fmap $ view lvPt)
-                          , fillingOver (noted . _H1DD) etaHist <=$= CL.map (fmap $ view lvEta)
-                          ] <=$= CL.map (fmap $ view toPtEtaPhiE)
+lvObjs :: HasLorentzVector a => ObjsFiller a
+lvObjs = sequenceA [ fillOver (noted . _H1DD) ptHist <$= fmap (view lvPt)
+                   , fillOver (noted . _H1DD) etaHist <$= fmap (view lvEta)
+                   ] <$= fmap (view toPtEtaPhiE)
 
 
 
@@ -160,66 +180,69 @@ nSVTrksVsJetPtProf :: YodaObj
 nSVTrksVsJetPtProf = yodaProf 18 25 250 "/nsvtrksvsjetpt" "$p_{\\mathrm T}$ [GeV]" "$<n$ SV tracks $>$"
 
 
-jetTrkObjs :: HistsFiller (Jet a)
-jetTrkObjs = sequenceConduits [ fillingOver (noted . _H1DD) trkSumPtHist
-                                    <=$= CL.map (fmap trkSumPt)
-                              , fillingOver (noted . _H1DD) svTrkSumPtHist
-                                    <=$= CL.map (fmap svTrkSumPt)
+jetTrkObjs :: ObjsFiller (Jet a)
+jetTrkObjs = sequenceA [ fillOver (noted . _H1DD) trkSumPtHist
+                             <$= fmap trkSumPt
+                       , fillOver (noted . _H1DD) svTrkSumPtHist
+                             <$= fmap svTrkSumPt
 
-                              -- TODO
-                              -- this is pretty (no---*really*) inefficient
+                       -- TODO
+                       -- this is pretty (no---*really*) inefficient
 
-                              , fillingOver (noted . _P1DD) trkSumPtVsJetPtProf
-                                    <=$= CL.map (\(w, j) -> (w, (view lvPt j, trkSumPt j)))
-                              , fillingOver (noted . _P1DD) svTrkSumPtVsJetPtProf
-                                    <=$= CL.map (\(w, j) -> (w, (view lvPt j, svTrkSumPt j)))
-                              , fillingOver (noted . _P1DD) trkSumPtVsJetEtaProf
-                                    <=$= CL.map (\(w, j) -> (w, (view lvAbsEta j, trkSumPt j)))
-                              , fillingOver (noted . _P1DD) svTrkSumPtVsJetEtaProf
-                                    <=$= CL.map (\(w, j) -> (w, (view lvAbsEta j, svTrkSumPt j)))
+                       , fillOver (noted . _P1DD) trkSumPtVsJetPtProf
+                             <$= (\(w, j) -> (w, (view lvPt j, trkSumPt j)))
+                       , fillOver (noted . _P1DD) svTrkSumPtVsJetPtProf
+                             <$= (\(w, j) -> (w, (view lvPt j, svTrkSumPt j)))
+                       , fillOver (noted . _P1DD) trkSumPtVsJetEtaProf
+                             <$= (\(w, j) -> (w, (view lvAbsEta j, trkSumPt j)))
+                       , fillOver (noted . _P1DD) svTrkSumPtVsJetEtaProf
+                             <$= (\(w, j) -> (w, (view lvAbsEta j, svTrkSumPt j)))
 
-                              , fillingOver (noted . _P1DD) svTrkSumPtVsTrkSumPtProf
-                                    <=$= CL.map (\(w, j) -> (w, (trkSumPt j, svTrkSumPt j)))
+                       , fillOver (noted . _P1DD) svTrkSumPtVsTrkSumPtProf
+                             <$= (\(w, j) -> (w, (trkSumPt j, svTrkSumPt j)))
 
-                              -- make sure we don't fill this with NaNs
-                              , fillAll (fillingOver (noted . _H1DD) bFragHist)
-                                    <=$= CL.map (fmap bFrag)
-                              , fillAll (fillingOver (noted . _P1DD) bFragVsJetPtProf)
-                                    <=$= CL.map (\(w, j) -> (w, (view lvPt j,) <$> bFrag j))
-                              , fillAll (fillingOver (noted . _P1DD) bFragVsJetEtaProf)
-                                    <=$= CL.map (\(w, j) -> (w, (view lvEta j,) <$> bFrag j))
+                       -- make sure we don't fill this with NaNs
+                       , feedAll (fillOver (noted . _H1DD) bFragHist)
+                             <$= sequence . fmap bFrag
+                       , feedAll (fillOver (noted . _P1DD) bFragVsJetPtProf)
+                             <$= (\(w, j) -> sequence (w, (view lvPt j,) <$> bFrag j))
+                       , feedAll (fillOver (noted . _P1DD) bFragVsJetEtaProf)
+                             <$= (\(w, j) -> sequence (w, (view lvEta j,) <$> bFrag j))
 
-                              , fillAll (fillingOver (noted . _P1DD) bFragVsTrkSumPtProf)
-                                    <=$= CL.map (\(w, j) -> (w, (trkSumPt j,) <$> bFrag j))
+                       , feedAll (fillOver (noted . _P1DD) bFragVsTrkSumPtProf)
+                             <$= (\(w, j) -> sequence (w, (trkSumPt j,) <$> bFrag j))
 
-                              , fillingOver (noted . _H1DD) nPVTrksHist
-                                    <=$= CL.map (fmap (fromIntegral . length . view jPVTracks))
-                              , fillingOver (noted . _H1DD) nSVTrksHist
-                                    <=$= CL.map (fmap (fromIntegral . length . view jSVTracks))
-                              , fillingOver (noted . _P1DD) nPVTrksVsJetPtProf
-                                    <=$= CL.map (fmap ((,) <$> view lvPt <*> fromIntegral . length . view jPVTracks))
-                              , fillingOver (noted . _P1DD) nSVTrksVsJetPtProf
-                                    <=$= CL.map (fmap ((,) <$> view lvPt <*> fromIntegral . length . view jSVTracks))
-                              ]
+                       , fillOver (noted . _H1DD) nPVTrksHist
+                             <$= fmap (fromIntegral . length . view jPVTracks)
+                       , fillOver (noted . _H1DD) nSVTrksHist
+                             <$= fmap (fromIntegral . length . view jSVTracks)
+                       , fillOver (noted . _P1DD) nPVTrksVsJetPtProf
+                             <$= fmap ((,) <$> view lvPt <*> fromIntegral . length . view jPVTracks)
+                       , fillOver (noted . _P1DD) nSVTrksVsJetPtProf
+                             <$= fmap ((,) <$> view lvPt <*> fromIntegral . length . view jSVTracks)
+                       ]
 
 
 
-jetsObjs :: HistsFiller (Jet a)
+jetsObjs :: ObjsFiller (Jet a)
 jetsObjs = fmap ((path %~ ("/jets" <>)) . (xlabel %~ ("small-$R$ jet " <>)))
              <$> lvObjs
 
 
-jet0Objs :: HistsFiller (Jet a)
+jet0Objs :: ObjsFiller (Jet a)
 jet0Objs = fmap ((path %~ ("/jet0" <>)) . (xlabel %~ ("leading small-$R$ jet " <>)))
              <$> lvObjs
 
 
-probeJetObjs :: HistsFiller (Jet a)
+probeJetObjs :: ObjsFiller (Jet a)
 probeJetObjs = jetTrkObjs =++= lvObjs
 
 
+channel :: Text -> (a -> Bool) -> ObjsFiller a -> ObjsFiller a
+channel n f c = feedIf (fmap f) $ fmap (path %~ (n <>)) <$> c
 
-allProbeJetObjs :: HistsFiller (Jet a)
+
+allProbeJetObjs :: ObjsFiller (Jet a)
 allProbeJetObjs = (fmap.fmap) (xlabel %~ ("probe small-$R$ jet " <>)) $
     channel "/probejet2trk" ((== 2) . nSVTracks . snd) probeJetObjs
     =++= channel "/probejet3trk" ((== 3) . nSVTracks . snd) probeJetObjs
@@ -227,7 +250,7 @@ allProbeJetObjs = (fmap.fmap) (xlabel %~ ("probe small-$R$ jet " <>)) $
     =++= channel "/probejet" (const True) probeJetObjs
     
 
-probeJetMCObjs :: HistsFiller (Jet MC)
+probeJetMCObjs :: ObjsFiller (Jet MC)
 probeJetMCObjs =
     channel "/bjets" (bLabeled . snd) allProbeJetObjs
     =++= channel "/cjets" (cLabeled . snd) allProbeJetObjs
@@ -235,26 +258,27 @@ probeJetMCObjs =
     =++= channel "" (const True) allProbeJetObjs
 
 
-probeJetDataObjs :: HistsFiller (Jet Data')
+probeJetDataObjs :: ObjsFiller (Jet Data')
 probeJetDataObjs = allProbeJetObjs
 
 
-jetObjs :: HistsFiller [Jet a]
-jetObjs = fillAll jetsObjs =++= fillFirst jet0Objs
+jetObjs :: ObjsFiller [Jet a]
+jetObjs = feedAll jetsObjs =++= feedFirst jet0Objs
 
 
-electronsObjs :: HistsFiller (Event a)
+electronsObjs :: ObjsFiller (Event a)
 electronsObjs = fmap ((path %~ ("/electrons" <>)) . (xlabel %~ ("electron " <>)))
-                  <$> fillAll lvObjs <=$= CL.map (fmap _electrons)
+                  <$> feedAll lvObjs <$= fmap _electrons
 
 
-muonsObjs :: HistsFiller (Event a)
+{-
+muonsObjs :: ObjsFiller (Event a)
 muonsObjs = fmap ((path %~ ("/muons" <>)) . (xlabel %~ ("muon " <>)))
-              <$> fillAll lvObjs <=$= CL.map (fmap _muons)
+              <$> feedAll lvObjs <$= CL.map (fmap _muons)
 
 metHist :: HistFiller (Event a)
 metHist = ((path %~ ("/met" <>)) . (xlabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}}$ " <>)))
-             <$> fillingOver (noted . _H1DD) ptHist <=$= CL.map (fmap (view $ met . lvPt))
+             <$> fillingOver (noted . _H1DD) ptHist <$= CL.map (fmap (view $ met . lvPt))
 
 
 {-
@@ -270,7 +294,7 @@ mcEventObjs ws t = do
         -- hists :: Monad m => Consumer (WithWeight (Event MC)) m [YodaObj]
         -- hists = metHist =:= electronsObjs =++= muonsObjs
                     -- =++= (CL.map (fmap (view jets))
-                        -- =$= (jetObjs =++= (CL.map (fmap probeJets) =$= fillAll probeJetMCObjs)))
+                        -- =$= (jetObjs =++= (CL.map (fmap probeJets) =$= feedAll probeJetMCObjs)))
 
 -}
 
@@ -301,16 +325,13 @@ fillHists mcs = do mevts <- await
 -}
 -- fillHists mcs = foldlC (intersectionWith (flip $ fuse .  yield)) $ M.fromList (map (\w -> (weightName w, hists)) ws)
 
-dataEventObjs :: HistsFiller (Event Data')
+dataEventObjs :: ObjsFiller (Event Data')
 dataEventObjs = metHist =:= electronsObjs =++= muonsObjs
     =++= (CL.map (fmap (view jets))
         =$= (jetObjs
-            =++= (CL.map (fmap probeJets) =$= fillAll probeJetDataObjs))
+            =++= (CL.map (fmap probeJets) =$= feedAll probeJetDataObjs))
          )
 
-
-channel :: Monad m => Text -> (a -> Bool) -> Consumer a m [YodaObj] -> Consumer a m [YodaObj]
-channel n f c = filterC f =$= fmap (path %~ (n <>)) <$> c
 
 
 withLenC :: Monad m => ConduitM i o m a -> ConduitM i o m (Int, a)
@@ -322,3 +343,4 @@ withLenC c =
 
 dataEvent :: Monad m => Conduit (Event Data') m (WithWeight (Event Data'))
 dataEvent = CL.map (1.0,)
+-}
