@@ -18,7 +18,8 @@ import Control.Applicative (liftA2, ZipList(..))
 import Data.Traversable (for)
 
 import Options.Generic
-import Control.Parallel.Strategies
+import Control.Concurrent.Async
+
 
 import qualified Data.IntMap.Strict as IM
 
@@ -53,7 +54,7 @@ main = do args <- getRecord "run-hs" :: IO Args
           fs <- lines <$> readFile (infiles args)
 
           let systs = [nominal, pileupUp, pileupDown]
-          samps <- parTraversable pseq . flip map fs $
+          samps <- flip mapConcurrently fs $
                         \f -> do putStrLn $ "analyzing events in file " ++ f
                                  wt <- ttree "sumWeights" f
                                  tt <- ttree "nominal" f
