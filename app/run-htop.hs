@@ -15,10 +15,9 @@ import Data.Serialize.ZipList ()
 
 import Control.Monad (forM, when)
 import Control.Applicative (liftA2, ZipList(..))
-import Data.Traversable (for)
+import Data.Traversable (forM)
 
 import Options.Generic
-import Control.Concurrent.Async
 
 
 import qualified Data.IntMap.Strict as IM
@@ -54,7 +53,7 @@ main = do args <- getRecord "run-hs" :: IO Args
           fs <- lines <$> readFile (infiles args)
 
           let systs = [nominal, pileupUp, pileupDown]
-          samps <- flip mapConcurrently fs $
+          samps <- forM fs $
                         \f -> do putStrLn $ "analyzing events in file " ++ f
                                  wt <- ttree "sumWeights" f
                                  tt <- ttree "nominal" f
