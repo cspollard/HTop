@@ -10,4 +10,4 @@ MC vs Data events
 
 criterion for timing
 
-use lenses to histogram filling rather than nested conduits
+look into async::asyncBound to get over thread safety problems with ROOT
