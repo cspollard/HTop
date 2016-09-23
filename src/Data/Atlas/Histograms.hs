@@ -5,9 +5,7 @@
 module Data.Atlas.Histograms where
 
 import Control.Lens
-
-import Conduit
-import qualified Data.Conduit.List as CL
+import Data.Traversable (for)
 
 import Data.Maybe (listToMaybe)
 import Data.Foldable (toList)
@@ -24,9 +22,6 @@ import Data.Atlas.Systematic
 
 import Data.TTree
 
-
--- TODO
--- all of these lists should probably turn into (:.) lists for type checking
 
 data Feed a b = Feed { obj :: !b
                      , feed :: a -> Feed a b
@@ -238,8 +233,8 @@ probeJetObjs :: ObjsFiller (Jet a)
 probeJetObjs = jetTrkObjs =++= lvObjs
 
 
-channel :: Text -> (a -> Bool) -> ObjsFiller a -> ObjsFiller a
-channel n f c = feedIf (fmap f) $ fmap (path %~ (n <>)) <$> c
+channel :: Functor f => Text -> (a -> Bool) -> Feed a (f YodaObj) -> Feed a (f YodaObj)
+channel n f c = feedIf f $ fmap (path %~ (n <>)) <$> c
 
 
 allProbeJetObjs :: ObjsFiller (Jet a)
@@ -263,84 +258,55 @@ probeJetDataObjs = allProbeJetObjs
 
 
 jetObjs :: ObjsFiller [Jet a]
-jetObjs = feedAll jetsObjs =++= feedFirst jet0Objs
+jetObjs = feedAll jetsObjs =++= feedFirst jet0Objs <$= sequence
 
 
 electronsObjs :: ObjsFiller (Event a)
 electronsObjs = fmap ((path %~ ("/electrons" <>)) . (xlabel %~ ("electron " <>)))
-                  <$> feedAll lvObjs <$= fmap _electrons
+                  <$> feedAll lvObjs <$= sequence . fmap _electrons
 
 
-{-
 muonsObjs :: ObjsFiller (Event a)
 muonsObjs = fmap ((path %~ ("/muons" <>)) . (xlabel %~ ("muon " <>)))
-              <$> feedAll lvObjs <$= CL.map (fmap _muons)
+              <$> feedAll lvObjs <$= sequence . fmap _muons
 
-metHist :: HistFiller (Event a)
+metHist :: Feed (WithWeight (Event a)) YodaObj
 metHist = ((path %~ ("/met" <>)) . (xlabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}}$ " <>)))
-             <$> fillingOver (noted . _H1DD) ptHist <$= CL.map (fmap (view $ met . lvPt))
+             <$> fillOver (noted . _H1DD) ptHist <$= fmap (view $ met . lvPt)
 
 
-{-
 -- TODO
 -- we only want to pass the list of event weights once.
 -- need to consolidate a bit.
-mcEventObjs :: MonadIO m => [WeightSystematic] -> TTree -> m [YodaObj]
-mcEventObjs ws t = do
-    hMap <- runTTree (readEventSysts ws) t $$ fillHists
-    return . concatMap (\(n, hs) -> fmap (path %~ (n <>)) hs) . M.toList $ hMap
+mcEventObjs :: [WeightSystematic] -> Feed (M.Map Text (Event MC)) [YodaObj]
+mcEventObjs ws = allHists
 
     where
-        -- hists :: Monad m => Consumer (WithWeight (Event MC)) m [YodaObj]
-        -- hists = metHist =:= electronsObjs =++= muonsObjs
-                    -- =++= (CL.map (fmap (view jets))
-                        -- =$= (jetObjs =++= (CL.map (fmap probeJets) =$= feedAll probeJetMCObjs)))
+        mcHists :: Feed (WithWeight (Event MC)) [YodaObj]
+        mcHists = metHist =:= electronsObjs =++= muonsObjs
+                =++= premap (fmap (view jets))
+                    (jetObjs =++= (feedAll probeJetMCObjs <$= sequence . fmap probeJets))
 
--}
+        allHists = fmap concat . sequenceA $ fmap f ws
 
-fillHists :: Monad m
-          => [Text] -> Consumer (Event MC) m [YodaObj] -> Consumer (M.Map Text (Event MC)) m (M.Map Text [YodaObj])
-fillHists ns c = go mcs
+        f :: WeightSystematic -> Feed (M.Map Text (Event MC)) [YodaObj]
+        f w = let n = systName w
+              in  fmap (path %~ (n <>)) <$>
+                    mcHists <$= (\e -> (view mcInfo e, e)) . (M.! n)
 
-    where
-        -- mcs :: Monad m => M.Map Text (ConduitM (Event MC) o m [YodaObj])
-        mcs = M.fromList $ map (,c) ns
 
-        go :: M.Map Text (ConduitM a o m b) -> ConduitM (M.Map Text a) o m (M.Map Text b)
-        go myos = do
-            mmap <- await
-            case mmap of
-                Nothing -> do xs <- runConduit $ sequence myos
-                              return xs
-                Just m -> go $ M.intersectionWith (fuse . yield) m myos
-
-         
-
-{-
-fillHists mcs = do mevts <- await
-                   case mevts of
-                        Nothing -> sequence mcs
-                        Just e -> sequence mcs
-
--}
--- fillHists mcs = foldlC (intersectionWith (flip $ fuse .  yield)) $ M.fromList (map (\w -> (weightName w, hists)) ws)
 
 dataEventObjs :: ObjsFiller (Event Data')
 dataEventObjs = metHist =:= electronsObjs =++= muonsObjs
-    =++= (CL.map (fmap (view jets))
-        =$= (jetObjs
-            =++= (CL.map (fmap probeJets) =$= feedAll probeJetDataObjs))
-         )
+    =++= premap (fmap (view jets))
+            (jetObjs =++= (feedAll probeJetDataObjs <$= sequence . fmap probeJets))
 
 
+lengthF :: Feed a Int
+lengthF = toFeed (const (+1)) 0
 
-withLenC :: Monad m => ConduitM i o m a -> ConduitM i o m (Int, a)
-withLenC c =
-    getZipConduit $
-        (,) <$> ZipConduit lengthC
-            <*> ZipConduit c
+withLenF :: Feed a b -> Feed a (Int, b)
+withLenF f = (,) <$> lengthF <*> f
 
-
-dataEvent :: Monad m => Conduit (Event Data') m (WithWeight (Event Data'))
-dataEvent = CL.map (1.0,)
--}
+dataEvent :: Event Data' -> WithWeight (Event Data')
+dataEvent = (1.0,)
