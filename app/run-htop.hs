@@ -18,7 +18,7 @@ import Control.Applicative (liftA2, ZipList(..))
 import Data.Traversable (for)
 
 import Options.Generic
-import Control.Parallel.Strategies (withStrategy, parList, rpar)
+import Control.Parallel.Strategies
 
 import qualified Data.IntMap.Strict as IM
 
@@ -53,7 +53,7 @@ main = do args <- getRecord "run-hs" :: IO Args
           fs <- lines <$> readFile (infiles args)
 
           let systs = [nominal, pileupUp, pileupDown]
-          samps <- sequence . withStrategy (parList rpar) . flip map fs $
+          samps <- parTraversable pseq . flip map fs $
                         \f -> do putStrLn $ "analyzing events in file " ++ f
                                  wt <- ttree "sumWeights" f
                                  tt <- ttree "nominal" f
@@ -61,12 +61,12 @@ main = do args <- getRecord "run-hs" :: IO Args
                                  (n, hs) <- case dsid s of
                                                0 -> fmap obj $
                                                        project tt
-                                                       =$= mapC dataEvent
+                                                       $$ mapC dataEvent
                                                        =$= foldlC feed (withLenF dataEventObjs)
 
                                                _ -> fmap obj $
                                                        runTTree (readEventSysts systs) tt
-                                                       =$= foldlC feed (withLenF $ mcEventObjs systs)
+                                                       $$ foldlC feed (withLenF $ mcEventObjs systs)
 
                                  putStrLn $ show n ++ " events analyzed.\n"
                                  return (s, ZipList hs)
