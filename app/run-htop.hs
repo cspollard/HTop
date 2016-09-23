@@ -69,7 +69,7 @@ main = do args <- getRecord "run-hs" :: IO Args
                                                        runTTree (readEventSysts systs) tt
                                                        $$ foldlC feed (withLenF $ mcEventObjs systs)
 
-                                 putStrLn $ show n ++ " events analyzed.\n"
+                                 putStrLn $ show n ++ " events analyzed in file " ++ f ++ ".\n"
                                  return (s, ZipList hs)
 
           let m = IM.fromListWith (\(s, h) (s', h') -> (addSampInfo s s', liftA2 mergeYO h h')) $ map ((,) <$> fromEnum . dsid . fst <*> id) samps
