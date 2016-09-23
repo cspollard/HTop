@@ -5,7 +5,6 @@
 module Data.Atlas.Histograms where
 
 import Control.Lens
-import Data.Traversable (for)
 
 import Data.Maybe (listToMaybe)
 import Data.Foldable (toList)
@@ -18,9 +17,6 @@ import Data.YODA.Obj
 
 import Data.Atlas.Event
 import Data.Atlas.Selection
-import Data.Atlas.Systematic
-
-import Data.TTree
 
 
 data Feed a b = Feed { obj :: !b
@@ -42,6 +38,11 @@ instance Applicative (Feed a) where
     Feed g f <*> Feed x f' = Feed (g x) $ \x' -> f x' <*> f' x'
 
 
+lseq :: [a] -> [a]
+lseq [] = []
+lseq (x:xs) = seq x $ x : lseq xs
+
+
 -- need monad?
 
 -- fixme
@@ -49,7 +50,7 @@ feedOver :: Traversal' b c -> (a -> c -> c) -> b -> Feed a b
 feedOver l f = toFeed $ over l . f
 
 feedAll :: Foldable f => Feed a b -> Feed (f a) b
-feedAll f@(Feed o g) = Feed o $ feedAll . foldl feed f
+feedAll f@(Feed o _) = Feed o $ feedAll . foldl feed f
 
 feedFirst :: Foldable f => Feed a b -> Feed (f a) b
 feedFirst f = premap (listToMaybe . toList) (feedAll f)

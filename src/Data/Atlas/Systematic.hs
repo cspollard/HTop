@@ -3,7 +3,7 @@
 
 module Data.Atlas.Systematic where
 
-import Data.Monoid (Product(..), (<>))
+import Data.Monoid (Product(..))
 
 import Data.Text
 import GHC.Float
@@ -26,10 +26,18 @@ readWeights ws = float2Double . getProduct . foldMap Product
 
 
 nominal :: WeightSystematic
-nominal = WeightSystematic "nominal" $ readWeights ["SFTot"]
+nominal = WeightSystematic "/nominal" $ readWeights ["EvtW", "SFTot"]
 
-systUp :: Text -> [Text] -> WeightSystematic
-systUp n ws = WeightSystematic (n <> "_up") $ readWeights ws
+pileupUp :: WeightSystematic
+pileupUp = WeightSystematic "/pileup_up" $
+    do nomW <- readWeights ["EvtW", "SFTot"]
+       sfUp <- readWeights ["SFPileUp_UP"]
+       sfNom <- readWeights ["SFPileUp"]
+       return (nomW * sfUp / sfNom)
 
-systDown :: Text -> [Text] -> WeightSystematic
-systDown n ws = WeightSystematic (n <> "_down") $ readWeights ws
+pileupDown :: WeightSystematic
+pileupDown = WeightSystematic "/pileup_down" $
+    do nomW <- readWeights ["EvtW", "SFTot"]
+       sfDown <- readWeights ["SFPileUp_DOWN"]
+       sfNom <- readWeights ["SFPileUp"]
+       return (nomW * sfDown / sfNom)

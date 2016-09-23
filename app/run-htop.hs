@@ -26,7 +26,6 @@ import Data.Atlas.Event
 import Data.Atlas.Sample
 import Data.YODA.Obj
 import Data.Atlas.CrossSections
-import Data.Atlas.Selection
 
 data Args = Args { outfile :: String
                  , infiles :: String
@@ -51,13 +50,23 @@ main = do args <- getRecord "run-hs" :: IO Args
           -- get the list of input trees
           fs <- lines <$> readFile (infiles args)
 
+          let systs = [nominal, pileupUp, pileupDown]
           samps <- forM fs $ \f -> do putStrLn $ "analyzing events in file " ++ f
                                       wt <- ttree "sumWeights" f
                                       tt <- ttree "nominal" f
                                       s <- foldl1 addSampInfo <$> (project wt $$ sinkList)
-                                      (n, hs) <-  case dsid s of
-                                                    0 -> project tt $$ everyC 1000 printIE =$= proj (dataEvent =$= dataEventObjs)
-                                                    _ -> project tt $$ everyC 1000 printIE =$= proj (mcEvent =$= mcEventObjs)
+                                      (n, hs) <- case dsid s of
+                                                    0 -> fmap obj $
+                                                            project tt
+                                                            $$ everyC 1000 printIE
+                                                            =$= mapC dataEvent
+                                                            =$= foldlC feed (withLenF dataEventObjs)
+
+                                                    _ -> fmap obj $
+                                                            runTTree (readEventSysts systs) tt
+                                                            $$ everyC 1000 printIE
+                                                            =$= foldlC feed (withLenF $ mcEventObjs systs)
+
                                       putStrLn $ show n ++ " events analyzed.\n"
                                       return (s, ZipList hs)
 
@@ -74,5 +83,3 @@ main = do args <- getRecord "run-hs" :: IO Args
 
     where
         printIE i _ = putStrLn (show i ++ " events analyzed")
-        proj :: Monad m => Consumer (Event a) m [YodaObj] -> Consumer (Event a) m (Int, [YodaObj])
-        proj c = mapC pruneJets =$= withLenC (channel "/elmujj" elmujj c)

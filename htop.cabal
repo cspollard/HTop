@@ -27,6 +27,7 @@ library
                      , Data.Atlas.ProcessInfo
                      , Data.Atlas.Sample
                      , Data.Atlas.Selection
+                     , Data.Atlas.Systematic
                      , Data.Serialize.ZipList
 
   other-modules:       Data.Serialize.CTypes
