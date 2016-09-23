@@ -17,6 +17,7 @@ import GHC.Generics (Generic)
 import GHC.Float
 import Data.Map.Strict as M
 import Data.Text
+import Control.Monad (forM)
 
 import Data.TTree
 import Data.HEP.LorentzVector as X
@@ -92,13 +93,8 @@ readEventG =
 readEventSysts :: MonadIO m
                => [WeightSystematic]
                -> TR m (Map Text (Event MC))
-readEventSysts systs = M.fromList <$> evts
-    where
-        f :: MonadIO m => WeightSystematic -> TR m (Text, Event MC)
-        f (WeightSystematic n g) =
-            fmap (n,) $ readEventG <*> g
-
-        evts = mapM f systs
+readEventSysts systs = do evt <- readEventG :: MonadIO m => TR m (Double -> Event MC)
+                          M.fromList <$> forM systs (\(WeightSystematic n g) -> (n,) . evt <$> g)
 
 instance FromTTree (Event Data') where
     fromTTree = readEventG <*> return ()
