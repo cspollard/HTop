@@ -15,8 +15,10 @@ import Data.Serialize.ZipList ()
 
 import Control.Monad (forM, when)
 import Control.Applicative (liftA2, ZipList(..))
+import Data.Traversable (for)
 
 import Options.Generic
+import Control.Parallel.Strategies (withStrategy, parList, rseq)
 
 import qualified Data.IntMap.Strict as IM
 
@@ -51,24 +53,25 @@ main = do args <- getRecord "run-hs" :: IO Args
           fs <- lines <$> readFile (infiles args)
 
           let systs = [nominal, pileupUp, pileupDown]
-          samps <- forM fs $ \f -> do putStrLn $ "analyzing events in file " ++ f
-                                      wt <- ttree "sumWeights" f
-                                      tt <- ttree "nominal" f
-                                      s <- foldl1 addSampInfo <$> (project wt $$ sinkList)
-                                      (n, hs) <- case dsid s of
-                                                    0 -> fmap obj $
-                                                            project tt
-                                                            $$ everyC 1000 printIE
-                                                            =$= mapC dataEvent
-                                                            =$= foldlC feed (withLenF dataEventObjs)
+          samps <- sequence . withStrategy (parList rseq) . flip map fs $
+                        \f -> do putStrLn $ "analyzing events in file " ++ f
+                                 wt <- ttree "sumWeights" f
+                                 tt <- ttree "nominal" f
+                                 s <- foldl1 addSampInfo <$> (project wt $$ sinkList)
+                                 (n, hs) <- case dsid s of
+                                               0 -> fmap obj $
+                                                       project tt
+                                                       $$ everyC 1000 printIE
+                                                       =$= mapC dataEvent
+                                                       =$= foldlC feed (withLenF dataEventObjs)
 
-                                                    _ -> fmap obj $
-                                                            runTTree (readEventSysts systs) tt
-                                                            $$ everyC 1000 printIE
-                                                            =$= foldlC feed (withLenF $ mcEventObjs systs)
+                                               _ -> fmap obj $
+                                                       runTTree (readEventSysts systs) tt
+                                                       $$ everyC 1000 printIE
+                                                       =$= foldlC feed (withLenF $ mcEventObjs systs)
 
-                                      putStrLn $ show n ++ " events analyzed.\n"
-                                      return (s, ZipList hs)
+                                 putStrLn $ show n ++ " events analyzed.\n"
+                                 return (s, ZipList hs)
 
           let m = IM.fromListWith (\(s, h) (s', h') -> (addSampInfo s s', liftA2 mergeYO h h')) $ map ((,) <$> fromEnum . dsid . fst <*> id) samps
 
