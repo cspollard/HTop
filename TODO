@@ -1,13 +1,11 @@
-other object histograms:
-
 cut DSL (a ala root TTree::Project)
 
-TopTree, Histograms, Tree need cleanup
+Histograms needs cleanup
 
 split library and executable.
-
-MC vs Data events
 
 criterion for timing
 
 look into async::asyncBound to get over thread safety problems with ROOT
+
+add mu plot
