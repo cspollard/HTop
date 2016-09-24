@@ -26,17 +26,17 @@ readWeights ws = float2Double . getProduct . foldMap Product
 
 
 nominal :: WeightSystematic
-nominal = WeightSystematic "/nominal" $ readWeights ["EvtW", "SFTot"]
+nominal = WeightSystematic "nominal" $ readWeights ["EvtW", "SFTot"]
 
 pileupUp :: WeightSystematic
-pileupUp = WeightSystematic "/pileup_up" $
+pileupUp = WeightSystematic "pileup_up" $
     do nomW <- readWeights ["EvtW", "SFTot"]
        sfUp <- readWeights ["SFPileUp_UP"]
        sfNom <- readWeights ["SFPileUp"]
        return (nomW * sfUp / sfNom)
 
 pileupDown :: WeightSystematic
-pileupDown = WeightSystematic "/pileup_down" $
+pileupDown = WeightSystematic "pileup_down" $
     do nomW <- readWeights ["EvtW", "SFTot"]
        sfDown <- readWeights ["SFPileUp_DOWN"]
        sfNom <- readWeights ["SFPileUp"]

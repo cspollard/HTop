@@ -8,6 +8,7 @@ module Data.Atlas.Jet where
 
 import Control.Lens
 
+import GHC.Float
 import GHC.Generics (Generic)
 
 import Control.Applicative (ZipList(..))
@@ -25,8 +26,8 @@ import Data.Atlas.DataMC
 data Jet a =
     Jet
         { _jPtEtaPhiE :: PtEtaPhiE
-        , _jMV2c10 :: Float
-        , _jJVT :: Float
+        , _jMV2c10 :: Double
+        , _jJVT :: Double
         , _jPVTracks :: [PtEtaPhiE]
         , _jSVTracks :: [PtEtaPhiE]
         , _jMCInfo :: MCInfo (Jet a)
@@ -39,7 +40,7 @@ instance Show (Jet a) where
 -- TODO
 -- macro here?
 -- can't use template haskell
-jJVT, jMV2c10 :: Lens' (Jet a) Float
+jJVT, jMV2c10 :: Lens' (Jet a) Double
 jJVT = lens _jJVT $ \j x -> j { _jJVT = x }
 jMV2c10 = lens _jMV2c10 $ \j x -> j { _jMV2c10 = x }
 
@@ -75,8 +76,8 @@ jetTracksIsTight = V.toList . fmap V.toList .  over (traverse.traverse) (/= (0 :
 jetFromTTreeG :: MonadIO m => TR m ([MCInfo (Jet a)] -> Jets a)
 jetFromTTreeG = do
     PtEtaPhiEs tlvs <- lvsFromTTree "JetPt" "JetEta" "JetPhi" "JetE"
-    mv2c10s <- readBranch "JetMV2c20"
-    jvts <- readBranch "JetJVT"
+    mv2c10s <- fmap float2Double <$> readBranch "JetMV2c20"
+    jvts <- fmap float2Double <$> readBranch "JetJVT"
     trks <- jetTracksTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
     trksTight <- jetTracksIsTight
 

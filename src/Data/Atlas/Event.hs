@@ -32,7 +32,7 @@ data Event a =
     Event
         { _runNumber :: CInt
         , _eventNumber :: CInt
-        , _mu :: Float
+        , _mu :: Double
         , _electrons :: [Electron]
         , _muons :: [Muon]
         , _jets :: [Jet a]
@@ -46,7 +46,7 @@ runNumber = lens _runNumber $ \e x -> e { _runNumber = x }
 eventNumber :: Lens' (Event a) CInt
 eventNumber = lens _eventNumber $ \e x -> e { _eventNumber = x }
 
-mu :: Lens' (Event a) Float
+mu :: Lens' (Event a) Double
 mu = lens _mu $ \e x -> e { _mu = x }
 
 electrons :: Lens' (Event a) [Electron]
@@ -83,7 +83,7 @@ readEventG =
     Event
         <$> readBranch "Run"
         <*> readBranch "Event"
-        <*> readBranch "Mu"
+        <*> fmap float2Double (readBranch "Mu")
         <*> fmap fromElectrons fromTTree
         <*> fmap fromMuons fromTTree
         <*> fmap fromJets fromTTree

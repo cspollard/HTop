@@ -107,6 +107,9 @@ yodaProf nb xmin xmax p xl yl = yodaProf1D nb xmin xmax
 
 -- common histograms for LorentzVectors
 
+muHist :: YodaObj
+muHist = yodaHist 25 0 100 "/mu" "$< \\mu >$" $ dsigdXpbY "\\mu" "1"
+
 ptHist :: YodaObj
 ptHist = yodaHist 25 0 500 "/pt" "$p_{\\mathrm T}$ [GeV]" $ dsigdXpbY pt gev
 
@@ -128,6 +131,9 @@ lvObjs = sequenceA [ fillOver (noted . _H1DD) ptHist <$= fmap (view lvPt)
                    ] <$= fmap (view toPtEtaPhiE)
 
 
+
+mv2c10Hist :: YodaObj
+mv2c10Hist = yodaHist 25 (-1) 1 "/mv2c10" "MV2c10" $ dsigdXpbY "\\mathrm{MV2c10}" "1"
 
 trkSumPtHist :: YodaObj
 trkSumPtHist = yodaHist 25 0 500 "/trksumpt" "$p_{\\mathrm T} \\sum \\mathrm{trk}$" $ dsigdXpbY pt gev
@@ -181,6 +187,8 @@ jetTrkObjs = sequenceA [ fillOver (noted . _H1DD) trkSumPtHist
                              <$= fmap trkSumPt
                        , fillOver (noted . _H1DD) svTrkSumPtHist
                              <$= fmap svTrkSumPt
+                       , fillOver (noted . _H1DD) mv2c10Hist
+                             <$= fmap (view jMV2c10)
 
                        -- TODO
                        -- this is pretty (no---*really*) inefficient
@@ -271,9 +279,12 @@ muonsObjs :: ObjsFiller (Event a)
 muonsObjs = fmap ((path %~ ("/muons" <>)) . (xlabel %~ ("muon " <>)))
               <$> feedAll lvObjs <$= sequence . fmap _muons
 
-metHist :: Feed (WithWeight (Event a)) YodaObj
-metHist = ((path %~ ("/met" <>)) . (xlabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}}$ " <>)))
+metObj :: Feed (WithWeight (Event a)) YodaObj
+metObj = ((path %~ ("/met" <>)) . (xlabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}}$ " <>)))
              <$> fillOver (noted . _H1DD) ptHist <$= fmap (view $ met . lvPt)
+
+muObj :: Feed (WithWeight (Event a)) YodaObj
+muObj = fillOver (noted . _H1DD) muHist <$= fmap (view mu)
 
 
 -- TODO
@@ -284,7 +295,7 @@ mcEventObjs ws = allHists
 
     where
         mcHists :: Feed (WithWeight (Event MC)) [YodaObj]
-        mcHists = metHist =:= electronsObjs =++= muonsObjs
+        mcHists = muObj =:= metObj =:= electronsObjs =++= muonsObjs
                 =++= premap (fmap (view jets))
                     (jetObjs =++= (feedAll probeJetMCObjs <$= sequence . fmap probeJets))
 
@@ -292,13 +303,13 @@ mcEventObjs ws = allHists
 
         f :: WeightSystematic -> Feed (M.Map Text (Event MC)) [YodaObj]
         f w = let n = systName w
-              in  fmap (path %~ (n <>)) <$>
+              in  fmap (path %~ (<> "[" <> n <> "]")) <$>
                     mcHists <$= (\e -> (view mcInfo e, e)) . (M.! n)
 
 
 
 dataEventObjs :: ObjsFiller (Event Data')
-dataEventObjs = metHist =:= electronsObjs =++= muonsObjs
+dataEventObjs = muObj =:= metObj =:= electronsObjs =++= muonsObjs
     =++= premap (fmap (view jets))
             (jetObjs =++= (feedAll probeJetDataObjs <$= sequence . fmap probeJets))
 

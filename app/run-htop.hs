@@ -61,11 +61,13 @@ main = do args <- getRecord "run-hs" :: IO Args
                                  (n, hs) <- case dsid s of
                                                0 -> fmap obj $
                                                        project tt
+                                                       =$= everyC 1000 printIE
                                                        $$ mapC dataEvent
                                                        =$= foldlC feed (withLenF dataEventObjs)
 
                                                _ -> fmap obj $
                                                        runTTree (readEventSysts systs) tt
+                                                       =$= everyC 1000 printIE
                                                        $$ foldlC feed (withLenF $ mcEventObjs systs)
 
                                  putStrLn $ show n ++ " events analyzed in file " ++ f ++ ".\n"
