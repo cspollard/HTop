@@ -21,11 +21,13 @@ import Options.Generic
 
 
 import qualified Data.IntMap.Strict as IM
+import qualified Data.Map.Strict as M
 
 import Data.TTree
 import Data.Atlas.Histograms
 import Data.Atlas.Event
 import Data.Atlas.Sample
+import Data.Atlas.Selection
 import Data.YODA.Obj
 import Data.Atlas.CrossSections
 
@@ -63,12 +65,12 @@ main = do args <- getRecord "run-hs" :: IO Args
                                                        project tt
                                                        =$= everyC 1000 printIE
                                                        $$ mapC dataEvent
-                                                       =$= foldlC feed (withLenF dataEventObjs)
+                                                       =$= foldlC feed (withLenF $ channel "/elmujj" (elmujj . snd) dataEventObjs)
 
                                                _ -> fmap obj $
                                                        runTTree (readEventSysts systs) tt
                                                        =$= everyC 1000 printIE
-                                                       $$ foldlC feed (withLenF $ mcEventObjs systs)
+                                                       $$ foldlC feed (withLenF . channel "/elmujj" (elmujj . (M.! "nominal")) $ mcEventObjs systs)
 
                                  putStrLn $ show n ++ " events analyzed in file " ++ f ++ ".\n"
                                  return (s, ZipList hs)

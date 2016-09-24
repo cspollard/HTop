@@ -33,11 +33,11 @@ pileupUp = WeightSystematic "pileup_up" $
     do nomW <- readWeights ["EvtW", "SFTot"]
        sfUp <- readWeights ["SFPileUp_UP"]
        sfNom <- readWeights ["SFPileUp"]
-       return (nomW * sfUp / sfNom)
+       return $ if sfNom == 0 then 0 else nomW * sfUp / sfNom
 
 pileupDown :: WeightSystematic
 pileupDown = WeightSystematic "pileup_down" $
     do nomW <- readWeights ["EvtW", "SFTot"]
        sfDown <- readWeights ["SFPileUp_DOWN"]
        sfNom <- readWeights ["SFPileUp"]
-       return (nomW * sfDown / sfNom)
+       return $ if sfNom == 0 then 0 else nomW * sfDown / sfNom

@@ -242,7 +242,8 @@ probeJetObjs :: ObjsFiller (Jet a)
 probeJetObjs = jetTrkObjs =++= lvObjs
 
 
-channel :: Functor f => Text -> (a -> Bool) -> Feed a (f YodaObj) -> Feed a (f YodaObj)
+channel :: Functor f
+        => Text -> (a -> Bool) -> Feed a (f YodaObj) -> Feed a (f YodaObj)
 channel n f c = feedIf f $ fmap (path %~ (n <>)) <$> c
 
 
