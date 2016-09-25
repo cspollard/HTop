@@ -65,12 +65,12 @@ main = do args <- getRecord "run-hs" :: IO Args
                                                        project tt
                                                        =$= everyC 1000 printIE
                                                        $$ mapC dataEvent
-                                                       =$= foldlC ((fmap.fmap.fmap) lseq . feed) (withLenF $ channel "/elmujj" (elmujj . snd) dataEventObjs)
+                                                       =$= foldlC feed (withLenF $ channel "/elmujj" (elmujj . snd) dataEventObjs)
 
                                                _ -> fmap obj $
                                                        runTTree (readEventSysts systs) tt
                                                        =$= everyC 1000 printIE
-                                                       $$ foldlC ((fmap.fmap.fmap) lseq . feed) (withLenF . channel "/elmujj" (elmujj . (M.! "nominal")) $ mcEventObjs systs)
+                                                       $$ foldlC feed (withLenF . channel "/elmujj" (elmujj . (M.! "nominal")) $ mcEventObjs systs)
 
                                  putStrLn $ show n ++ " events analyzed in file " ++ f ++ ".\n"
                                  return (s, ZipList hs)

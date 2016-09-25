@@ -304,7 +304,7 @@ mcEventObjs ws = allHists
 
         f :: WeightSystematic -> Feed (M.Map Text (Event MC)) [YodaObj]
         f w = let n = systName w
-              in  ({-# SCC "rename" #-} fmap (path %~ (<> "[" <> n <> "]"))) <$>
+              in  fmap (path %~ (<> "[" <> n <> "]")) <$>
                     mcHists <$= (\e -> (view mcInfo e, e)) . (M.! n)
 
 
@@ -319,7 +319,7 @@ lengthF :: Feed a Int
 lengthF = toFeed (const (+1)) 0
 
 withLenF :: Feed a b -> Feed a (Int, b)
-withLenF f = (,) <$> lengthF <*> f
+withLenF f = (\x y -> x `seq` y `seq` (x, y)) <$> lengthF <*> f
 
 dataEvent :: Event Data' -> WithWeight (Event Data')
 dataEvent = (1.0,)
