@@ -55,6 +55,7 @@ library
                      , histogram-fill-cereal == 0.6.*
                      , semigroups == 0.18.*
                      , bifunctors == 5.4.*
+                     , foldl == 1.2.*
                      , hhep == 0.2.*
                      , histogram-extras == 0.2.*
                      , ttree == 0.1.*
