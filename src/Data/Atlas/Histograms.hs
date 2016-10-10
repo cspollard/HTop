@@ -19,6 +19,8 @@ import Data.Atlas.Event
 import Data.Atlas.Selection
 
 
+-- TODO
+-- I think this type is causing the memory leak.
 data Feed a b = Feed { obj :: !b
                      , feed :: a -> Feed a b
                      }
@@ -64,7 +66,7 @@ fillOver l = feedOver l fill
 
 
 -- not sure about these fixities.
-infixr 2 <$=
+infixl 2 <$=
 (<$=) :: Feed c b -> (a -> c) -> Feed a b
 (<$=) = flip premap
 
@@ -288,9 +290,6 @@ muObj :: Feed (WithWeight (Event a)) YodaObj
 muObj = fillOver (noted . _H1DD) muHist <$= fmap (view mu)
 
 
--- TODO
--- we only want to pass the list of event weights once.
--- need to consolidate a bit.
 mcEventObjs :: [WeightSystematic] -> Feed (M.Map Text (Event MC)) [YodaObj]
 mcEventObjs ws = allHists
 
