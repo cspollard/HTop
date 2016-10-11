@@ -83,6 +83,7 @@ executable run-htop
                      , resourcet == 1.1.*
                      , optparse-generic == 1.1.*
                      , histogram-fill == 0.8.*
+                     , foldl == 1.2.*
                      , hhep == 0.2.*
                      , histogram-extras == 0.2.*
                      , ttree == 0.1.*

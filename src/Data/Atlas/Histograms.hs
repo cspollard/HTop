@@ -20,20 +20,19 @@ import Data.Atlas.Event
 import Data.Atlas.Selection
 
 
-feed :: (b -> a -> b) -> b -> F.Fold a b
-feed f o = F.Fold f o id
+toFold :: (b -> a -> b) -> b -> F.Fold a b
+toFold f o = F.Fold f o id
+
+feed :: F.Fold a b -> a -> F.Fold a b
+feed (F.Fold f o g) x = F.Fold f (f o x) g
 
 lseq :: [a] -> [a]
 lseq [] = []
 lseq (x:xs) = seq x $ x : lseq xs
 
 
--- fixme
-foldOver :: Traversal' b c -> (c -> a -> c) -> b -> (b -> b') -> F.Fold a b'
-foldOver l f = F.Fold (\y x -> over l (`f` x) y)
-
 foldAll :: F.Foldable f => F.Fold a b -> F.Fold (f a) b
-foldAll (F.Fold f o g) = F.Fold (foldl f) o g
+foldAll = F.handles folded
 
 foldFirst :: F.Foldable f => F.Fold a b -> F.Fold (f a) b
 foldFirst f = F.premap (listToMaybe . toList) (foldAll f)
@@ -43,7 +42,7 @@ foldIf g f = F.premap g' $ foldAll f
     where g' x = if g x then Just x else Nothing
 
 fillOver :: Fillable a => Traversal' b a -> b -> F.Fold (FillVec a) b
-fillOver l o = foldOver l (flip fill) o id
+fillOver l = toFold (\y x -> over l (fill x) y)
 
 
 -- not sure about these fixities.
@@ -296,7 +295,7 @@ dataEventObjs = muObj =:= metObj =:= electronsObjs =++= muonsObjs
 
 
 lengthF :: F.Fold a Int
-lengthF = feed (flip $ const (+1)) 0
+lengthF = toFold (flip $ const (+1)) 0
 
 withLenF :: F.Fold a b -> F.Fold a (Int, b)
 withLenF f = (\x y -> x `seq` y `seq` (x, y)) <$> lengthF <*> f

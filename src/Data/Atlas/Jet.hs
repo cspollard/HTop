@@ -139,4 +139,4 @@ jetTracksTLV spt seta sphi se = do
     return $ V.toList trks
 
 trkEq :: PtEtaPhiE -> PtEtaPhiE -> Bool
-p `trkEq` p' = (p `lvDR` p') < 0.005
+p `trkEq` p' = (p `lvDREta` p') < 0.005

@@ -6,6 +6,7 @@
 module Main where
 
 import Control.Lens
+import qualified Control.Foldl as F
 
 import Conduit
 import Data.Conduit.Binary (sourceLbs)
@@ -70,10 +71,10 @@ main = do args <- getRecord "run-hs" :: IO Args
                                                _ -> fmap obj $
                                                        runTTree (readEventSysts systs) tt
                                                        =$= everyC 1000 printIE
-                                                       $$ foldlC ((fmap.fmap.fmap) lseq . feed)
+                                                       $$ foldlC feed
                                                                 (withLenF . channel "/elmujj" (elmujj . (M.! "nominal")) $ mcEventObjs systs)
 
-                                 putStrLn $ show n ++ " events analyzed in file " ++ f ++ ".\n"
+                                 putStrLn $ show (n :: Int) ++ " events analyzed in file " ++ f ++ ".\n"
                                  return (s, ZipList hs)
 
           let m = IM.fromListWith (\(s, h) (s', h') -> (addSampInfo s s', liftA2 mergeYO h h')) $ map ((,) <$> fromEnum . dsid . fst <*> id) samps
@@ -88,4 +89,6 @@ main = do args <- getRecord "run-hs" :: IO Args
           runResourceT $ sourceLbs (encodeLazy scaledHists) =$= gzip $$ sinkFile (outfile args)
 
     where
+        printIE :: Int -> a -> IO ()
         printIE i _ = putStrLn (show i ++ " events analyzed")
+        obj (F.Fold _ o g) = g o
