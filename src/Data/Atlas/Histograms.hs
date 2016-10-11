@@ -5,6 +5,7 @@
 module Data.Atlas.Histograms where
 
 import Control.Lens
+import qualified Control.Foldl as F
 
 import Data.Maybe (listToMaybe)
 import Data.Foldable (toList)
@@ -19,54 +20,35 @@ import Data.Atlas.Event
 import Data.Atlas.Selection
 
 
-data Feed a b = Feed { obj :: !b
-                     , feed :: a -> Feed a b
-                     }
+toFold :: (b -> a -> b) -> b -> F.Fold a b
+toFold f o = F.Fold f o id
 
--- convert a fold to a feed
-toFeed :: (a -> b -> b) -> b -> Feed a b
-toFeed f o = Feed o $ \x -> let o' = f x o in toFeed f o'
-
-premap :: (a -> c) -> Feed c b -> Feed a b
-premap f (Feed o g) = Feed o $ \x -> premap f (g (f x))
-
-instance Functor (Feed a) where
-    fmap g (Feed x f) = Feed (g x) $ \x' -> fmap g (f x')
-
-instance Applicative (Feed a) where
-    pure x = let f = Feed x (const f) in f
-    Feed g f <*> Feed x f' = Feed (g x) $ \x' -> f x' <*> f' x'
-
+feed :: F.Fold a b -> a -> F.Fold a b
+feed (F.Fold f o g) x = F.Fold f (f o x) g
 
 lseq :: [a] -> [a]
 lseq [] = []
 lseq (x:xs) = seq x $ x : lseq xs
 
 
--- need monad?
+foldAll :: F.Foldable f => F.Fold a b -> F.Fold (f a) b
+foldAll = F.handles folded
 
--- fixme
-feedOver :: Traversal' b c -> (a -> c -> c) -> b -> Feed a b
-feedOver l f = toFeed $ over l . f
+foldFirst :: F.Foldable f => F.Fold a b -> F.Fold (f a) b
+foldFirst f = F.premap (listToMaybe . toList) (foldAll f)
 
-feedAll :: Foldable f => Feed a b -> Feed (f a) b
-feedAll f@(Feed o _) = Feed o $ feedAll . foldl feed f
-
-feedFirst :: Foldable f => Feed a b -> Feed (f a) b
-feedFirst f = premap (listToMaybe . toList) (feedAll f)
-
-feedIf :: (a -> Bool) -> Feed a b -> Feed a b
-feedIf g f = premap g' $ feedAll f
+foldIf :: (a -> Bool) -> F.Fold a b -> F.Fold a b
+foldIf g f = F.premap g' $ foldAll f
     where g' x = if g x then Just x else Nothing
 
-fillOver :: Fillable a => Traversal' b a -> b -> Feed (FillVec a) b
-fillOver l = feedOver l fill
+fillOver :: Fillable a => Traversal' b a -> b -> F.Fold (FillVec a) b
+fillOver l = toFold (\y x -> over l (fill x) y)
 
 
 -- not sure about these fixities.
-infixr 2 <$=
-(<$=) :: Feed c b -> (a -> c) -> Feed a b
-(<$=) = flip premap
+infixl 2 <$=
+(<$=) :: F.Fold c b -> (a -> c) -> F.Fold a b
+(<$=) = flip F.premap
 
 
 infixr 3 =:=
@@ -79,7 +61,7 @@ infixr 3 =++=
 fxs =++= fys = (++) <$> fxs <*> fys
 
 
-type ObjsFiller a = Feed (WithWeight a) [YodaObj]
+type ObjsFiller a = F.Fold (WithWeight a) [YodaObj]
 
 
 dsigdXpbY :: Text -> Text -> Text
@@ -206,14 +188,14 @@ jetTrkObjs = sequenceA [ fillOver (noted . _H1DD) trkSumPtHist
                              <$= (\(w, j) -> (w, (trkSumPt j, svTrkSumPt j)))
 
                        -- make sure we don't fill this with NaNs
-                       , feedAll (fillOver (noted . _H1DD) bFragHist)
+                       , foldAll (fillOver (noted . _H1DD) bFragHist)
                              <$= sequence . fmap bFrag
-                       , feedAll (fillOver (noted . _P1DD) bFragVsJetPtProf)
+                       , foldAll (fillOver (noted . _P1DD) bFragVsJetPtProf)
                              <$= (\(w, j) -> sequence (w, (view lvPt j,) <$> bFrag j))
-                       , feedAll (fillOver (noted . _P1DD) bFragVsJetEtaProf)
+                       , foldAll (fillOver (noted . _P1DD) bFragVsJetEtaProf)
                              <$= (\(w, j) -> sequence (w, (view lvEta j,) <$> bFrag j))
 
-                       , feedAll (fillOver (noted . _P1DD) bFragVsTrkSumPtProf)
+                       , foldAll (fillOver (noted . _P1DD) bFragVsTrkSumPtProf)
                              <$= (\(w, j) -> sequence (w, (trkSumPt j,) <$> bFrag j))
 
                        , fillOver (noted . _H1DD) nPVTrksHist
@@ -243,8 +225,8 @@ probeJetObjs = jetTrkObjs =++= lvObjs
 
 
 channel :: Functor f
-        => Text -> (a -> Bool) -> Feed a (f YodaObj) -> Feed a (f YodaObj)
-channel n f c = feedIf f $ fmap (path %~ (n <>)) <$> c
+        => Text -> (a -> Bool) -> F.Fold a (f YodaObj) -> F.Fold a (f YodaObj)
+channel n f c = foldIf f $ fmap (path %~ (n <>)) <$> c
 
 
 allProbeJetObjs :: ObjsFiller (Jet a)
@@ -268,41 +250,38 @@ probeJetDataObjs = allProbeJetObjs
 
 
 jetObjs :: ObjsFiller [Jet a]
-jetObjs = feedAll jetsObjs =++= feedFirst jet0Objs <$= sequence
+jetObjs = foldAll jetsObjs =++= foldFirst jet0Objs <$= sequence
 
 
 electronsObjs :: ObjsFiller (Event a)
 electronsObjs = fmap ((path %~ ("/electrons" <>)) . (xlabel %~ ("electron " <>)))
-                  <$> feedAll lvObjs <$= sequence . fmap _electrons
+                  <$> foldAll lvObjs <$= sequence . fmap _electrons
 
 
 muonsObjs :: ObjsFiller (Event a)
 muonsObjs = fmap ((path %~ ("/muons" <>)) . (xlabel %~ ("muon " <>)))
-              <$> feedAll lvObjs <$= sequence . fmap _muons
+              <$> foldAll lvObjs <$= sequence . fmap _muons
 
-metObj :: Feed (WithWeight (Event a)) YodaObj
+metObj :: F.Fold (WithWeight (Event a)) YodaObj
 metObj = ((path %~ ("/met" <>)) . (xlabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}}$ " <>)))
              <$> fillOver (noted . _H1DD) ptHist <$= fmap (view $ met . lvPt)
 
-muObj :: Feed (WithWeight (Event a)) YodaObj
+muObj :: F.Fold (WithWeight (Event a)) YodaObj
 muObj = fillOver (noted . _H1DD) muHist <$= fmap (view mu)
 
 
--- TODO
--- we only want to pass the list of event weights once.
--- need to consolidate a bit.
-mcEventObjs :: [WeightSystematic] -> Feed (M.Map Text (Event MC)) [YodaObj]
+mcEventObjs :: [WeightSystematic] -> F.Fold (M.Map Text (Event MC)) [YodaObj]
 mcEventObjs ws = allHists
 
     where
-        mcHists :: Feed (WithWeight (Event MC)) [YodaObj]
+        mcHists :: F.Fold (WithWeight (Event MC)) [YodaObj]
         mcHists = muObj =:= metObj =:= electronsObjs =++= muonsObjs
-                =++= premap (fmap (view jets))
-                    (jetObjs =++= (feedAll probeJetMCObjs <$= sequence . fmap probeJets))
+                =++= F.premap (fmap (view jets))
+                    (jetObjs =++= (foldAll probeJetMCObjs <$= sequence . fmap probeJets))
 
         allHists = fmap concat . sequenceA $ fmap f ws
 
-        f :: WeightSystematic -> Feed (M.Map Text (Event MC)) [YodaObj]
+        f :: WeightSystematic -> F.Fold (M.Map Text (Event MC)) [YodaObj]
         f w = let n = systName w
               in  fmap (path %~ (<> "[" <> n <> "]")) <$>
                     mcHists <$= (\e -> (view mcInfo e, e)) . (M.! n)
@@ -311,15 +290,15 @@ mcEventObjs ws = allHists
 
 dataEventObjs :: ObjsFiller (Event Data')
 dataEventObjs = muObj =:= metObj =:= electronsObjs =++= muonsObjs
-    =++= premap (fmap (view jets))
-            (jetObjs =++= (feedAll probeJetDataObjs <$= sequence . fmap probeJets))
+    =++= F.premap (fmap (view jets))
+            (jetObjs =++= (foldAll probeJetDataObjs <$= sequence . fmap probeJets))
 
 
-lengthF :: Feed a Int
-lengthF = toFeed (const (+1)) 0
+lengthF :: F.Fold a Int
+lengthF = toFold (flip $ const (+1)) 0
 
-withLenF :: Feed a b -> Feed a (Int, b)
-withLenF f = (,) <$> lengthF <*> f
+withLenF :: F.Fold a b -> F.Fold a (Int, b)
+withLenF f = (\x y -> x `seq` y `seq` (x, y)) <$> lengthF <*> f
 
 dataEvent :: Event Data' -> WithWeight (Event Data')
 dataEvent = (1.0,)
