@@ -274,14 +274,12 @@ mcEventObjs :: [WeightSystematic] -> F.Fold (M.Map Text (Event MC)) [YodaObj]
 mcEventObjs ws = allHists
 
     where
-        mcHists :: F.Fold (WithWeight (Event MC)) [YodaObj]
         mcHists = muObj =:= metObj =:= electronsObjs =++= muonsObjs
                 =++= F.premap (fmap (view jets))
                     (jetObjs =++= (foldAll probeJetMCObjs <$= sequence . fmap probeJets))
 
         allHists = fmap concat . sequenceA $ fmap f ws
 
-        f :: WeightSystematic -> F.Fold (M.Map Text (Event MC)) [YodaObj]
         f w = let n = systName w
               in  fmap (path %~ (<> "[" <> n <> "]")) <$>
                     mcHists <$= (\e -> (view mcInfo e, e)) . (M.! n)
