@@ -24,7 +24,7 @@ toFold :: (b -> a -> b) -> b -> F.Fold a b
 toFold f o = F.Fold f o id
 
 feed :: F.Fold a b -> a -> F.Fold a b
-feed (F.Fold f o g) x = F.Fold f (f o x) g
+feed (F.Fold f o g) x = let o' = f o x in o' `seq` F.Fold f o' g
 
 lseq :: [a] -> [a]
 lseq [] = []
