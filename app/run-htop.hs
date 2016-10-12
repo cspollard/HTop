@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TupleSections #-}
@@ -7,6 +8,7 @@ module Main where
 
 import Control.Lens
 import qualified Control.Foldl as F
+import List.Transformer
 
 import Conduit
 import Data.Conduit.Binary (sourceLbs)
@@ -16,7 +18,6 @@ import Data.Serialize.ZipList ()
 
 import Control.Monad (forM, when)
 import Control.Applicative (liftA2, ZipList(..))
-import Data.Traversable (forM)
 
 import Options.Generic
 
@@ -39,12 +40,14 @@ data Args = Args { outfile :: String
 
 instance ParseRecord Args where
 
-everyC :: Monad m => Int -> (Int -> a -> m ()) -> Conduit a m a
-everyC n f = loop 0
-    where loop i = do mx <- await
-                      case mx of
-                           Just x -> when (i `mod` n == 0) (lift $ f i x) >> yield x >> loop (i+1)
-                           Nothing -> return ()
+everyL :: Monad m => Int -> (Int -> a -> m ()) -> ListT m a -> ListT m a
+everyL n f = loop 0
+    where
+        loop i l = ListT $ do
+            mx <- next l
+            case mx of
+                Cons x l' -> when (i `mod` n == 0) (f i x) >> (return . Cons x . loop (i+1)) l'
+                Nil -> return Nil
 
 main :: IO ()
           -- read in cmd line args
@@ -57,25 +60,23 @@ main = do args <- getRecord "run-hs" :: IO Args
 
           let systs = [nominal, pileupUp, pileupDown]
           samps <- forM fs $
-                        \f -> do putStrLn $ "analyzing events in file " ++ f
-                                 wt <- ttree "sumWeights" f
-                                 tt <- ttree "nominal" f
-                                 s <- foldl1 addSampInfo <$> (project wt $$ sinkList)
-                                 (n, hs) <- case dsid s of
-                                               0 -> fmap obj $
-                                                       project tt
-                                                       =$= everyC 1000 printIE
-                                                       $$ mapC dataEvent
-                                                       =$= foldlC feed (withLenF $ channel "/elmujj" (elmujj . snd) dataEventObjs)
+            \f -> do
+                putStrLn $ "analyzing events in file " ++ f
+                wt <- ttree "sumWeights" f
+                tt <- ttree "nominal" f
+                s <- fold addSampInfo defsi id $ project wt
+                (n, hs) <-
+                    case dsid s of
+                       0 -> let f' = withLenF (channel "/elmujj" (elmujj . snd) dataEventObjs)
+                                    -- everyL 1000 printIE
+                                    <$= dataEvent
+                            in  F.purely fold f' $ project tt
 
-                                               _ -> fmap obj $
-                                                       runTTree (readEventSysts systs) tt
-                                                       =$= everyC 1000 printIE
-                                                       $$ foldlC feed
-                                                                (withLenF . channel "/elmujj" (elmujj . (M.! "nominal")) $ mcEventObjs systs)
+                       _ -> let f' = withLenF . channel "/elmujj" (elmujj . (M.! "nominal")) $ mcEventObjs systs
+                            in  F.purely fold f' $ runTTree (readEventSysts systs) tt
 
-                                 putStrLn $ show (n :: Int) ++ " events analyzed in file " ++ f ++ ".\n"
-                                 return (s, ZipList hs)
+                putStrLn $ show (n :: Int) ++ " events analyzed in file " ++ f ++ ".\n"
+                return (s, ZipList hs)
 
           let m = IM.fromListWith (\(s, h) (s', h') -> (addSampInfo s s', liftA2 mergeYO h h')) $ map ((,) <$> fromEnum . dsid . fst <*> id) samps
 
@@ -91,4 +92,4 @@ main = do args <- getRecord "run-hs" :: IO Args
     where
         printIE :: Int -> a -> IO ()
         printIE i _ = putStrLn (show i ++ " events analyzed")
-        obj (F.Fold _ o g) = g o
+        defsi = SampleInfo (-1) 0 0

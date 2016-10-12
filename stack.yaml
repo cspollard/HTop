@@ -7,5 +7,6 @@ packages:
 - ../histogram-extras.git/
 extra-deps:
 - cereal-text-0.1.0.2
+- list-transformer-1.0.1
 - histogram-fill-cereal-0.6.2.0
 resolver: lts-7.0

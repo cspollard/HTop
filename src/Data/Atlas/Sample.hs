@@ -22,7 +22,7 @@ data SampleInfo = SampleInfo { dsid :: CInt
 
 
 addSampInfo :: SampleInfo -> SampleInfo -> SampleInfo
-SampleInfo d t tw `addSampInfo` SampleInfo _ t' tw' = SampleInfo d (t+t') (tw+tw')
+SampleInfo _ t tw `addSampInfo` SampleInfo d t' tw' = SampleInfo d (t+t') (tw+tw')
 
 -- instance Serialize SampleInfo where
 

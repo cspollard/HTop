@@ -56,9 +56,10 @@ library
                      , semigroups == 0.18.*
                      , bifunctors == 5.4.*
                      , foldl == 1.2.*
+                     , list-transformer == 1.0.*
                      , hhep == 0.2.*
                      , histogram-extras == 0.2.*
-                     , ttree == 0.1.*
+                     , ttree == 0.2.*
 
   hs-source-dirs:      src
   default-language:    Haskell2010
@@ -84,9 +85,10 @@ executable run-htop
                      , optparse-generic == 1.1.*
                      , histogram-fill == 0.8.*
                      , foldl == 1.2.*
+                     , list-transformer == 1.0.*
                      , hhep == 0.2.*
                      , histogram-extras == 0.2.*
-                     , ttree == 0.1.*
+                     , ttree == 0.2.*
                      , htop == 0.2.*
 
   default-language:    Haskell2010
@@ -112,7 +114,6 @@ executable histToYoda
                      , histogram-fill == 0.8.*
                      , hhep == 0.2.*
                      , histogram-extras == 0.2.*
-                     , ttree == 0.1.*
                      , htop == 0.2.*
 
   default-language:    Haskell2010
