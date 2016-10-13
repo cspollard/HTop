@@ -91,7 +91,7 @@ readEventG =
 
 
 readEventSysts :: MonadIO m
-               => [WeightSystematic]
+               => [Systematic]
                -> TR m (Map Text (Event MC))
 readEventSysts systs = do evt <- readEventG :: MonadIO m => TR m (Double -> Event MC)
                           M.fromList <$> forM systs (\(WeightSystematic n g) -> (n,) . evt <$> g)

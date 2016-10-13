@@ -10,34 +10,36 @@ import GHC.Float
 
 import Data.TTree
 
-data WeightSystematic =
+-- TODO
+-- other types of systs...
+data Systematic =
     WeightSystematic
         { systName :: Text
         , readWeight :: forall m. MonadIO m => TR m Double
         }
 
-instance Show WeightSystematic where
-    show = unpack . systName
+instance Show Systematic where
+    show = show . systName
 
 
-readWeights :: MonadIO m => [Text] -> TR m Double
-readWeights ws = float2Double . getProduct . foldMap Product
-                        <$> mapM (readBranch . unpack) ws
-
-
-nominal :: WeightSystematic
+nominal :: Systematic
 nominal = WeightSystematic "nominal" $ readWeights ["EvtW", "SFTot"]
 
-pileupUp :: WeightSystematic
+pileupUp :: Systematic
 pileupUp = WeightSystematic "pileup_up" $
     do nomW <- readWeights ["EvtW", "SFTot"]
        sfUp <- readWeights ["SFPileUp_UP"]
        sfNom <- readWeights ["SFPileUp"]
        return $ if sfNom == 0 then 0 else nomW * sfUp / sfNom
 
-pileupDown :: WeightSystematic
+pileupDown :: Systematic
 pileupDown = WeightSystematic "pileup_down" $
     do nomW <- readWeights ["EvtW", "SFTot"]
        sfDown <- readWeights ["SFPileUp_DOWN"]
        sfNom <- readWeights ["SFPileUp"]
        return $ if sfNom == 0 then 0 else nomW * sfDown / sfNom
+
+
+readWeights :: MonadIO m => [Text] -> TR m Double
+readWeights ws = float2Double . getProduct . foldMap Product
+                        <$> mapM (readBranch . unpack) ws

@@ -13,6 +13,7 @@ import Data.Semigroup
 
 import Data.Text (Text)
 import qualified Data.Map.Strict as M
+import Data.Map.Strict.Merge
 
 import Data.YODA.Obj
 
@@ -61,8 +62,18 @@ infixr 3 =++=
 fxs =++= fys = (++) <$> fxs <*> fys
 
 
-type ObjsFiller a = F.Fold (WithWeight a) [YodaObj]
+type WithSysts a = (M.Map Text Double, a)
+type ObjFiller a = F.Fold (WithSysts a) (M.Map Text YodaObj)
+type ObjsFiller a = F.Fold (WithSysts a) (M.Map Text [YodaObj])
 
+-- I have a "forall" inside the type
+-- how to deal with this?
+-- feed?
+withSysts :: Fillable a => [Systematic] -> F.Fold (FillVec a) YodaObj -> ObjFiller a
+withSysts ss (F.Fold f o g) = F.Fold go (M.fromList $ zip (fmap systName ss) (repeat $ g o)) id
+    where
+        go :: M.Map Text YodaObj -> WithSysts a -> M.Map Text YodaObj
+        go hs (m, x) = merge preserveMissing dropMissing (zipWithMatched $ const f . (,x)) m hs
 
 dsigdXpbY :: Text -> Text -> Text
 dsigdXpbY x y = "$\\frac{d\\sigma}{d" <> x <> "} \\frac{\\mathrm{pb}}{" <> y <> "}$"
@@ -73,7 +84,6 @@ rad = "\\mathrm{rad}"
 pt = "p_{\\mathrm{T}}"
 
 
-type WithWeight a = (Double, a)
 
 yodaHist :: Int -> Double -> Double -> Text -> Text -> Text -> YodaObj
 yodaHist nb xmin xmax p xl yl = yodaHist1D nb xmin xmax
@@ -107,10 +117,10 @@ eHist = yodaHist 25 0 500 "/E" "$E$ [GeV]" $ dsigdXpbY "E" gev
 mHist :: YodaObj
 mHist = yodaHist 30 0 300 "/mass" "mass [GeV]" $ dsigdXpbY "m" gev
 
-lvObjs :: HasLorentzVector a => ObjsFiller a
-lvObjs = sequenceA [ fillOver (noted . _H1DD) ptHist <$= fmap (view lvPt)
-                   , fillOver (noted . _H1DD) etaHist <$= fmap (view lvEta)
-                   ] <$= fmap (view toPtEtaPhiE)
+lvObjs :: HasLorentzVector a => [Text] -> ObjsFiller a
+lvObjs ws = sequenceA [ fillOver (noted . _H1DD) ptHist <$= fmap (view lvPt)
+                      , fillOver (noted . _H1DD) etaHist <$= fmap (view lvEta)
+                      ] <$= fmap (view toPtEtaPhiE)
 
 
 
@@ -165,48 +175,49 @@ nSVTrksVsJetPtProf = yodaProf 18 25 250 "/nsvtrksvsjetpt" "$p_{\\mathrm T}$ [GeV
 
 
 jetTrkObjs :: ObjsFiller (Jet a)
-jetTrkObjs = sequenceA [ fillOver (noted . _H1DD) trkSumPtHist
-                             <$= fmap trkSumPt
-                       , fillOver (noted . _H1DD) svTrkSumPtHist
-                             <$= fmap svTrkSumPt
-                       , fillOver (noted . _H1DD) mv2c10Hist
-                             <$= fmap (view jMV2c10)
+jetTrkObjs = sequenceA
+    [ fillOver (noted . _H1DD) trkSumPtHist
+          <$= fmap trkSumPt
+    , fillOver (noted . _H1DD) svTrkSumPtHist
+          <$= fmap svTrkSumPt
+    , fillOver (noted . _H1DD) mv2c10Hist
+          <$= fmap (view jMV2c10)
 
-                       -- TODO
-                       -- this is pretty (no---*really*) inefficient
+    -- TODO
+    -- this is pretty (no---*really*) inefficient
 
-                       , fillOver (noted . _P1DD) trkSumPtVsJetPtProf
-                             <$= (\(w, j) -> (w, (view lvPt j, trkSumPt j)))
-                       , fillOver (noted . _P1DD) svTrkSumPtVsJetPtProf
-                             <$= (\(w, j) -> (w, (view lvPt j, svTrkSumPt j)))
-                       , fillOver (noted . _P1DD) trkSumPtVsJetEtaProf
-                             <$= (\(w, j) -> (w, (view lvAbsEta j, trkSumPt j)))
-                       , fillOver (noted . _P1DD) svTrkSumPtVsJetEtaProf
-                             <$= (\(w, j) -> (w, (view lvAbsEta j, svTrkSumPt j)))
+    , fillOver (noted . _P1DD) trkSumPtVsJetPtProf
+          <$= (\(w, j) -> (w, (view lvPt j, trkSumPt j)))
+    , fillOver (noted . _P1DD) svTrkSumPtVsJetPtProf
+          <$= (\(w, j) -> (w, (view lvPt j, svTrkSumPt j)))
+    , fillOver (noted . _P1DD) trkSumPtVsJetEtaProf
+          <$= (\(w, j) -> (w, (view lvAbsEta j, trkSumPt j)))
+    , fillOver (noted . _P1DD) svTrkSumPtVsJetEtaProf
+          <$= (\(w, j) -> (w, (view lvAbsEta j, svTrkSumPt j)))
 
-                       , fillOver (noted . _P1DD) svTrkSumPtVsTrkSumPtProf
-                             <$= (\(w, j) -> (w, (trkSumPt j, svTrkSumPt j)))
+    , fillOver (noted . _P1DD) svTrkSumPtVsTrkSumPtProf
+          <$= (\(w, j) -> (w, (trkSumPt j, svTrkSumPt j)))
 
-                       -- make sure we don't fill this with NaNs
-                       , foldAll (fillOver (noted . _H1DD) bFragHist)
-                             <$= sequence . fmap bFrag
-                       , foldAll (fillOver (noted . _P1DD) bFragVsJetPtProf)
-                             <$= (\(w, j) -> sequence (w, (view lvPt j,) <$> bFrag j))
-                       , foldAll (fillOver (noted . _P1DD) bFragVsJetEtaProf)
-                             <$= (\(w, j) -> sequence (w, (view lvEta j,) <$> bFrag j))
+    -- make sure we don't fill this with NaNs
+    , foldAll (fillOver (noted . _H1DD) bFragHist)
+          <$= sequence . fmap bFrag
+    , foldAll (fillOver (noted . _P1DD) bFragVsJetPtProf)
+          <$= (\(w, j) -> sequence (w, (view lvPt j,) <$> bFrag j))
+    , foldAll (fillOver (noted . _P1DD) bFragVsJetEtaProf)
+          <$= (\(w, j) -> sequence (w, (view lvEta j,) <$> bFrag j))
 
-                       , foldAll (fillOver (noted . _P1DD) bFragVsTrkSumPtProf)
-                             <$= (\(w, j) -> sequence (w, (trkSumPt j,) <$> bFrag j))
+    , foldAll (fillOver (noted . _P1DD) bFragVsTrkSumPtProf)
+          <$= (\(w, j) -> sequence (w, (trkSumPt j,) <$> bFrag j))
 
-                       , fillOver (noted . _H1DD) nPVTrksHist
-                             <$= fmap (fromIntegral . length . view jPVTracks)
-                       , fillOver (noted . _H1DD) nSVTrksHist
-                             <$= fmap (fromIntegral . length . view jSVTracks)
-                       , fillOver (noted . _P1DD) nPVTrksVsJetPtProf
-                             <$= fmap ((,) <$> view lvPt <*> fromIntegral . length . view jPVTracks)
-                       , fillOver (noted . _P1DD) nSVTrksVsJetPtProf
-                             <$= fmap ((,) <$> view lvPt <*> fromIntegral . length . view jSVTracks)
-                       ]
+    , fillOver (noted . _H1DD) nPVTrksHist
+          <$= fmap (fromIntegral . length . view jPVTracks)
+    , fillOver (noted . _H1DD) nSVTrksHist
+          <$= fmap (fromIntegral . length . view jSVTracks)
+    , fillOver (noted . _P1DD) nPVTrksVsJetPtProf
+          <$= fmap ((,) <$> view lvPt <*> fromIntegral . length . view jPVTracks)
+    , fillOver (noted . _P1DD) nSVTrksVsJetPtProf
+          <$= fmap ((,) <$> view lvPt <*> fromIntegral . length . view jSVTracks)
+    ]
 
 
 
@@ -262,15 +273,15 @@ muonsObjs :: ObjsFiller (Event a)
 muonsObjs = fmap ((path %~ ("/muons" <>)) . (xlabel %~ ("muon " <>)))
               <$> foldAll lvObjs <$= sequence . fmap _muons
 
-metObj :: F.Fold (WithWeight (Event a)) YodaObj
+metObj :: F.Fold (WithSysts (Event a)) YodaObj
 metObj = ((path %~ ("/met" <>)) . (xlabel %~ ("$E_{\\mathrm{T}}^{\\mathrm{miss}}$ " <>)))
              <$> fillOver (noted . _H1DD) ptHist <$= fmap (view $ met . lvPt)
 
-muObj :: F.Fold (WithWeight (Event a)) YodaObj
+muObj :: F.Fold (WithSysts (Event a)) YodaObj
 muObj = fillOver (noted . _H1DD) muHist <$= fmap (view mu)
 
 
-mcEventObjs :: [WeightSystematic] -> F.Fold (M.Map Text (Event MC)) [YodaObj]
+mcEventObjs :: [Systematic] -> F.Fold (M.Map Text (Event MC)) [YodaObj]
 mcEventObjs ws = allHists
 
     where
@@ -280,6 +291,7 @@ mcEventObjs ws = allHists
 
         allHists = fmap concat . sequenceA $ fmap f ws
 
+        f :: Systematic -> F.Fold (M.Map Text (Event MC)) [Annotated Obj]
         f w = let n = systName w
               in  fmap (path %~ (<> "[" <> n <> "]")) <$>
                     mcHists <$= (\e -> (view mcInfo e, e)) . (M.! n)
@@ -298,5 +310,5 @@ lengthF = toFold (flip $ const (+1)) 0
 withLenF :: F.Fold a b -> F.Fold a (Int, b)
 withLenF f = (\x y -> x `seq` y `seq` (x, y)) <$> lengthF <*> f
 
-dataEvent :: Event Data' -> WithWeight (Event Data')
+dataEvent :: Event Data' -> WithSysts (Event Data')
 dataEvent = (1.0,)
