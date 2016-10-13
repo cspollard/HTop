@@ -68,12 +68,11 @@ main = do args <- getRecord "run-hs" :: IO Args
                 (n, hs) <-
                     case dsid s of
                        0 -> let f' = withLenF (channel "/elmujj" (elmujj . snd) dataEventObjs)
-                                    -- everyL 1000 printIE
-                                    <$= dataEvent
-                            in  F.purely fold f' $ project tt
+                                        <$= dataEvent
+                            in  F.purely fold f' $ everyL 1000 printIE $ project tt
 
                        _ -> let f' = withLenF . channel "/elmujj" (elmujj . (M.! "nominal")) $ mcEventObjs systs
-                            in  F.purely fold f' $ runTTree (readEventSysts systs) tt
+                            in  F.purely fold f' $ everyL 1000 printIE $ runTTree (readEventSysts systs) tt
 
                 putStrLn $ show (n :: Int) ++ " events analyzed in file " ++ f ++ ".\n"
                 return (s, ZipList hs)
