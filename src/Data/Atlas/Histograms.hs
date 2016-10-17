@@ -13,7 +13,6 @@ import Data.Semigroup
 
 import Data.Text (Text)
 import qualified Data.Map.Strict as M
-import Data.Map.Strict.Merge
 
 import Data.YODA.Obj
 
@@ -63,17 +62,18 @@ fxs =++= fys = (++) <$> fxs <*> fys
 
 
 type WithSysts a = (M.Map Text Double, a)
-type ObjFiller a = F.Fold (WithSysts a) (M.Map Text YodaObj)
-type ObjsFiller a = F.Fold (WithSysts a) (M.Map Text [YodaObj])
+type ObjFill a = F.Fold (WithSysts a) YodaObj
+type ObjsFill a = F.Fold (WithSysts a) [YodaObj]
+type ObjFillSysts a = F.Fold (WithSysts a) (M.Map Text YodaObj)
+type ObjsFillSysts a = F.Fold (WithSysts a) (M.Map Text [YodaObj])
 
 -- I have a "forall" inside the type
 -- how to deal with this?
 -- feed?
-withSysts :: Fillable a => [Systematic] -> F.Fold (FillVec a) YodaObj -> ObjFiller a
-withSysts ss (F.Fold f o g) = F.Fold go (M.fromList $ zip (fmap systName ss) (repeat $ g o)) id
+withSysts :: [Systematic] -> F.Fold (Double, a) YodaObj -> ObjFillSysts a
+withSysts ss (F.Fold f o g) = F.Fold go (M.fromList $ zip (fmap systName ss) (repeat o)) (fmap g)
     where
-        go :: M.Map Text YodaObj -> WithSysts a -> M.Map Text YodaObj
-        go hs (m, x) = merge preserveMissing dropMissing (zipWithMatched $ const f . (,x)) m hs
+        go hs (m, x) = M.mergeWithKey (\_ a b -> Just $ f a (b, x)) id (error "attempting to fill systematic that doesn't exist.") hs m
 
 dsigdXpbY :: Text -> Text -> Text
 dsigdXpbY x y = "$\\frac{d\\sigma}{d" <> x <> "} \\frac{\\mathrm{pb}}{" <> y <> "}$"
@@ -97,6 +97,10 @@ yodaProf nb xmin xmax p xl yl = yodaProf1D nb xmin xmax
     & annots . at "XLabel" ?~ xl
     & annots . at "YLabel" ?~ yl
 
+fillHistSysts :: YodaObj -> [Systematic] -> (a -> Double) -> ObjsFillSysts a
+fillHistSysts h ws f =
+    (fmap.fmap) (:[]) . withSysts ws $ fillOver (noted . _H1DD) h <$= fmap f
+
 -- common histograms for LorentzVectors
 
 muHist :: YodaObj
@@ -116,12 +120,15 @@ eHist = yodaHist 25 0 500 "/E" "$E$ [GeV]" $ dsigdXpbY "E" gev
 
 mHist :: YodaObj
 mHist = yodaHist 30 0 300 "/mass" "mass [GeV]" $ dsigdXpbY "m" gev
+-- TODO
+-- HERE
+-- What do I want this to look like?
 
-lvObjs :: HasLorentzVector a => [Text] -> ObjsFiller a
-lvObjs ws = sequenceA [ fillOver (noted . _H1DD) ptHist <$= fmap (view lvPt)
-                      , fillOver (noted . _H1DD) etaHist <$= fmap (view lvEta)
-                      ] <$= fmap (view toPtEtaPhiE)
-
+lvObjs :: HasLorentzVector s => [Systematic] -> F.Fold (M.Map Text Double, s) (M.Map Text [YodaObj])
+lvObjs ws = M.unionsWith (++) <$> sequenceA
+        [ fillHistSysts ptHist ws (view lvPt)
+        , fillHistSysts etaHist ws (view lvEta)
+        ] <$= fmap (view toPtEtaPhiE)
 
 
 mv2c10Hist :: YodaObj
@@ -174,29 +181,26 @@ nSVTrksVsJetPtProf :: YodaObj
 nSVTrksVsJetPtProf = yodaProf 18 25 250 "/nsvtrksvsjetpt" "$p_{\\mathrm T}$ [GeV]" "$<n$ SV tracks $>$"
 
 
-jetTrkObjs :: ObjsFiller (Jet a)
-jetTrkObjs = sequenceA
-    [ fillOver (noted . _H1DD) trkSumPtHist
-          <$= fmap trkSumPt
-    , fillOver (noted . _H1DD) svTrkSumPtHist
-          <$= fmap svTrkSumPt
-    , fillOver (noted . _H1DD) mv2c10Hist
-          <$= fmap (view jMV2c10)
+jetTrkObjs :: [Systematic] -> ObjsFillSysts (Jet a)
+jetTrkObjs ws = M.unionsWith (++) <$> sequenceA
+    [ fillHistSysts trkSumPtHist ws trkSumPt
+    , fillHistSysts svTrkSumPtHist ws svTrkSumPt
+    , fillHistSysts mv2c10Hist ws (view jMV2c10)
 
     -- TODO
     -- this is pretty (no---*really*) inefficient
 
-    , fillOver (noted . _P1DD) trkSumPtVsJetPtProf
-          <$= (\(w, j) -> (w, (view lvPt j, trkSumPt j)))
-    , fillOver (noted . _P1DD) svTrkSumPtVsJetPtProf
-          <$= (\(w, j) -> (w, (view lvPt j, svTrkSumPt j)))
-    , fillOver (noted . _P1DD) trkSumPtVsJetEtaProf
-          <$= (\(w, j) -> (w, (view lvAbsEta j, trkSumPt j)))
-    , fillOver (noted . _P1DD) svTrkSumPtVsJetEtaProf
-          <$= (\(w, j) -> (w, (view lvAbsEta j, svTrkSumPt j)))
+    , fillHistSysts trkSumPtVsJetPtProf ws $
+        \(w, j) -> (w, (view lvPt j, trkSumPt j))
+    , fillHistSysts svTrkSumPtVsJetPtProf ws $
+        \(w, j) -> (w, (view lvPt j, svTrkSumPt j))
+    , fillHistSysts trkSumPtVsJetEtaProf ws $
+        \(w, j) -> (w, (view lvAbsEta j, trkSumPt j))
+    , fillHistSysts svTrkSumPtVsJetEtaProf ws $
+        \(w, j) -> (w, (view lvAbsEta j, svTrkSumPt j))
 
-    , fillOver (noted . _P1DD) svTrkSumPtVsTrkSumPtProf
-          <$= (\(w, j) -> (w, (trkSumPt j, svTrkSumPt j)))
+    , fillHistSysts svTrkSumPtVsTrkSumPtProf ws $
+        \(w, j) -> (w, (trkSumPt j, svTrkSumPt j))
 
     -- make sure we don't fill this with NaNs
     , foldAll (fillOver (noted . _H1DD) bFragHist)
@@ -221,17 +225,17 @@ jetTrkObjs = sequenceA
 
 
 
-jetsObjs :: ObjsFiller (Jet a)
+jetsObjs :: ObjsFillSysts (Jet a)
 jetsObjs = fmap ((path %~ ("/jets" <>)) . (xlabel %~ ("small-$R$ jet " <>)))
              <$> lvObjs
 
 
-jet0Objs :: ObjsFiller (Jet a)
+jet0Objs :: ObjsFillSysts (Jet a)
 jet0Objs = fmap ((path %~ ("/jet0" <>)) . (xlabel %~ ("leading small-$R$ jet " <>)))
              <$> lvObjs
 
 
-probeJetObjs :: ObjsFiller (Jet a)
+probeJetObjs :: ObjsFillSysts (Jet a)
 probeJetObjs = jetTrkObjs =++= lvObjs
 
 
@@ -240,7 +244,7 @@ channel :: Functor f
 channel n f c = foldIf f $ fmap (path %~ (n <>)) <$> c
 
 
-allProbeJetObjs :: ObjsFiller (Jet a)
+allProbeJetObjs :: ObjsFillSysts (Jet a)
 allProbeJetObjs = (fmap.fmap) (xlabel %~ ("probe small-$R$ jet " <>)) $
     channel "/probejet2trk" ((== 2) . nSVTracks . snd) probeJetObjs
     =++= channel "/probejet3trk" ((== 3) . nSVTracks . snd) probeJetObjs
@@ -248,7 +252,7 @@ allProbeJetObjs = (fmap.fmap) (xlabel %~ ("probe small-$R$ jet " <>)) $
     =++= channel "/probejet" (const True) probeJetObjs
     
 
-probeJetMCObjs :: ObjsFiller (Jet MC)
+probeJetMCObjs :: ObjsFillSysts (Jet MC)
 probeJetMCObjs =
     channel "/bjets" (bLabeled . snd) allProbeJetObjs
     =++= channel "/cjets" (cLabeled . snd) allProbeJetObjs
@@ -256,20 +260,20 @@ probeJetMCObjs =
     =++= channel "" (const True) allProbeJetObjs
 
 
-probeJetDataObjs :: ObjsFiller (Jet Data')
+probeJetDataObjs :: ObjsFillSysts (Jet Data')
 probeJetDataObjs = allProbeJetObjs
 
 
-jetObjs :: ObjsFiller [Jet a]
+jetObjs :: ObjsFillSysts [Jet a]
 jetObjs = foldAll jetsObjs =++= foldFirst jet0Objs <$= sequence
 
 
-electronsObjs :: ObjsFiller (Event a)
+electronsObjs :: ObjsFillSysts (Event a)
 electronsObjs = fmap ((path %~ ("/electrons" <>)) . (xlabel %~ ("electron " <>)))
                   <$> foldAll lvObjs <$= sequence . fmap _electrons
 
 
-muonsObjs :: ObjsFiller (Event a)
+muonsObjs :: ObjsFillSysts (Event a)
 muonsObjs = fmap ((path %~ ("/muons" <>)) . (xlabel %~ ("muon " <>)))
               <$> foldAll lvObjs <$= sequence . fmap _muons
 
@@ -298,7 +302,7 @@ mcEventObjs ws = allHists
 
 
 
-dataEventObjs :: ObjsFiller (Event Data')
+dataEventObjs :: ObjsFillSysts (Event Data')
 dataEventObjs = muObj =:= metObj =:= electronsObjs =++= muonsObjs
     =++= F.premap (fmap (view jets))
             (jetObjs =++= (foldAll probeJetDataObjs <$= sequence . fmap probeJets))
