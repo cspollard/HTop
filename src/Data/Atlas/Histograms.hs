@@ -120,9 +120,19 @@ eHist = yodaHist 25 0 500 "/E" "$E$ [GeV]" $ dsigdXpbY "E" gev
 
 mHist :: YodaObj
 mHist = yodaHist 30 0 300 "/mass" "mass [GeV]" $ dsigdXpbY "m" gev
+
+
 -- TODO
 -- HERE
--- What do I want this to look like?
+fillHist :: YodaObj -> (a -> Double) -> Fold (Double, a) YodaObj
+fillHist h ws f =
+    (fmap.fmap) (:[]) . withSysts ws $ fillOver (noted . _H1DD) h <$= fmap f
+
+lvObjs' :: HasLorentzVector s => F.Fold (Double, s) [YodaObj]
+lvObjs' = sequenceA
+        [ fillHist ptHist (view lvPt)
+        , fillHist etaHist (view lvEta)
+        ] <$= fmap (view toPtEtaPhiE)
 
 lvObjs :: HasLorentzVector s => [Systematic] -> F.Fold (M.Map Text Double, s) (M.Map Text [YodaObj])
 lvObjs ws = M.unionsWith (++) <$> sequenceA
@@ -285,7 +295,7 @@ muObj :: F.Fold (WithSysts (Event a)) YodaObj
 muObj = fillOver (noted . _H1DD) muHist <$= fmap (view mu)
 
 
-mcEventObjs :: [Systematic] -> F.Fold (M.Map Text (Event MC)) [YodaObj]
+mcEventObjs :: [Systematic] -> F.Fold (Event MC) [YodaObj]
 mcEventObjs ws = allHists
 
     where
