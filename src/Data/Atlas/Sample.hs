@@ -41,4 +41,4 @@ type Sample h = (SampleInfo, h)
 normToXsec :: SampleInfo -> ZipList YodaObj -> ZipList YodaObj
 normToXsec si hs = case dsid si of
                         0 -> hs
-                        _ -> over (traverse . noted . _H1DD) (`scaledBy` (1.0 / totalEventsWeighted si)) hs
+                        _ -> over (traverse . noted . _H1DD) (scaling (1.0 / totalEventsWeighted si)) hs

@@ -41,9 +41,17 @@ foldIf :: (a -> Bool) -> F.Fold a b -> F.Fold a b
 foldIf g f = F.premap g' $ foldAll f
     where g' x = if g x then Just x else Nothing
 
-fillOver :: Fillable a => Traversal' b a -> b -> F.Fold (FillVec a) b
-fillOver l = toFold (\y x -> over l (fill x) y)
+fillOver :: Fillable a => Traversal' b a -> b -> F.Fold (Weight a, FillVec a) b
+fillOver l = toFold (\y (w, x) -> over l (filling w x) y)
 
+fillHist :: YodaObj -> (b -> Double) -> F.Fold (Double, b) YodaObj
+fillHist h f = fillOver (noted . _H1DD) h <$= fmap f
+
+fillHists :: M.Map Text Double -> (b -> Double) -> F.Fold (M.Map Text Double, b) [YodaObj]
+fillHists 
+
+fillProf :: YodaObj -> (b -> Double) -> F.Fold (Double, b) YodaObj
+fillProf p f = fillOver (noted . _P1DD) p <$= fmap f
 
 -- not sure about these fixities.
 infixl 2 <$=
