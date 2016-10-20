@@ -47,11 +47,18 @@ fillOver l = toFold (\y (w, x) -> over l (filling w x) y)
 fillHist :: YodaObj -> (b -> Double) -> F.Fold (Double, b) YodaObj
 fillHist h f = fillOver (noted . _H1DD) h <$= fmap f
 
-fillHists :: M.Map Text Double -> (b -> Double) -> F.Fold (M.Map Text Double, b) [YodaObj]
-fillHists 
-
-fillProf :: YodaObj -> (b -> Double) -> F.Fold (Double, b) YodaObj
+fillProf :: YodaObj -> (b -> (Double, Double)) -> F.Fold (Double, b) YodaObj
 fillProf p f = fillOver (noted . _P1DD) p <$= fmap f
+
+liftSysts :: F.Fold (Double, a) YodaObj -> F.Fold (M.Map Text Double, a) (M.Map Text YodaObj)
+liftSysts (F.Fold f o g) = F.Fold f' M.empty (fmap g)
+    where
+        -- f :: x -> (Double, Double) -> x
+        -- o :: x
+        -- g :: x -> YodaObj
+
+        f' hs (mw, x) = M.mergeWithKey (\_ a b -> Just $ f a (b, x)) id (fmap $ f o . (,x)) hs mw
+
 
 -- not sure about these fixities.
 infixl 2 <$=
