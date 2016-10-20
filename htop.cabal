@@ -21,6 +21,7 @@ library
                      , Data.Atlas.Electron
                      , Data.Atlas.Event
                      , Data.Atlas.PtEtaPhiE
+                     , Data.Atlas.HistDefs
                      , Data.Atlas.Histograms
                      , Data.Atlas.Jet
                      , Data.Atlas.Muon

@@ -39,6 +39,6 @@ main = do args <- getRecord "histToYoda" :: IO Args
                Left err -> print err
                Right im -> forM_ (IM.toList im) $
                             \(ds, hs) -> runResourceT $ yieldMany (getZipList hs)
-                                                        =$= mapC (if ds == 0 then id else over (noted . _H1DD) (`scaledBy` lumi args))
+                                                        =$= mapC (if ds == 0 then id else over (noted . _H1DD) (scaling $ lumi args))
                                                         =$= mapC printYObj
                                                         $$ sinkFile (outfolder args ++ '/' : show ds ++ ".yoda")
