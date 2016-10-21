@@ -62,19 +62,29 @@ main = do
 
     let systs = [nominal, pileupUp, pileupDown]
     samps <- forM fs $
-      \f -> do
-          putStrLn $ "analyzing events in file " ++ f
-          wt <- ttree "sumWeights" f
-          tt <- ttree "nominal" f
-          s <- fold addSampInfo defsi id $ project wt
-          (n, hs) <-
-                let f' = withLenF (channel "/elmujj" elmujj eventObjs)
-                in case dsid s of
-                    0 -> F.purely fold f' $ everyL 1000 printIE $ runTTree (readDataEvent [dummy]) tt 
-                    _ -> F.purely fold f' $ everyL 1000 printIE $ runTTree (readMCEvent systs) tt
+        \f -> do
+            putStrLn $ "analyzing events in file " ++ f
+            wt <- ttree "sumWeights" f
+            tt <- ttree "nominal" f
 
-          putStrLn $ show (n :: Int) ++ " events analyzed in file " ++ f ++ ".\n"
-          return (s, ZipList hs)
+            nullTreeWT <- isNullTree wt
+            nullTreeTT <- isNullTree tt
+
+            if nullTreeWT || nullTreeTT
+                then do
+                    putStrLn "ERROR: can't open trees in this file! continuing."
+                    return (defsi, ZipList [])
+                else do
+                    s <- fold addSampInfo defsi id $ project wt
+
+                    (n, hs) <-
+                          let f' = withLenF (channel "/elmujj" elmujj eventObjs)
+                          in case dsid s of
+                              0 -> F.purely fold f' $ everyL 1000 printIE $ runTTree (readDataEvent [dummy]) tt
+                              _ -> F.purely fold f' $ everyL 1000 printIE $ runTTree (readMCEvent systs) tt
+
+                    putStrLn $ show (n :: Int) ++ " events analyzed in file " ++ f ++ ".\n"
+                    return (s, ZipList hs)
 
     let m = IM.fromListWith (\(s, h) (s', h') -> (addSampInfo s s', liftA2 (M.unionWith mergeYO) h h')) $ map ((,) <$> fromEnum . dsid . fst <*> id) samps
     -- let hs' = hs & g
