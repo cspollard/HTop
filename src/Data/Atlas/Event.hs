@@ -8,7 +8,7 @@ module Data.Atlas.Event ( Event(..)
                         , module X
                         , runNumber, eventNumber, mu
                         , electrons, muons, jets, met
-                        , readEventSysts
+                        , readEventSysts, readMCEvent, readDataEvent
                         ) where
 
 import Control.Lens
@@ -69,7 +69,7 @@ metFromTTree m p = do et <- float2Double <$> readBranch m
 
 
 instance HasMCInfo (Event MC) where
-    type MCInfo (Event MC) = Double
+    type MCInfo (Event MC) = ()
     mcInfo = lens _mcInfo $ \e x -> e { _mcInfo = x }
 
 instance HasMCInfo (Event Data') where
@@ -90,11 +90,25 @@ readEventG =
         <*> metFromTTree "ETMiss" "ETMissPhi"
 
 
-readEventSysts :: MonadIO m
+readEventSysts :: (MonadIO m, FromTTree (Event a))
                => [WeightSystematic]
-               -> TR m (Map Text (Event MC))
-readEventSysts systs = do evt <- readEventG :: MonadIO m => TR m (Double -> Event MC)
-                          M.fromList <$> forM systs (\(WeightSystematic n g) -> (n,) . evt <$> g)
+               -> TR m (Map Text Double, Event a)
+readEventSysts systs = do evt <- fromTTree
+                          ws <- M.fromList <$> forM systs (\(WeightSystematic n g) -> (n,) <$> g)
+                          return (ws, evt)
+
+readMCEvent :: MonadIO m
+               => [WeightSystematic]
+               -> TR m (Map Text Double, Event MC)
+readMCEvent = readEventSysts
+
+readDataEvent :: MonadIO m
+               => [WeightSystematic]
+               -> TR m (Map Text Double, Event Data')
+readDataEvent = readEventSysts
 
 instance FromTTree (Event Data') where
+    fromTTree = readEventG <*> return ()
+
+instance FromTTree (Event MC) where
     fromTTree = readEventG <*> return ()
