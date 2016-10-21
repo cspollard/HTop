@@ -5,8 +5,6 @@
 
 module Main where
 
-import Debug.Trace
-
 import Control.Lens
 
 import Conduit
@@ -46,6 +44,6 @@ main = do args <- getRecord "histToYoda" :: IO Args
                                 -- scale to lumi
                                 =$= mapC (if ds == 0 then id else over (noted . _H1DD) (scaling $ lumi args))
                                 -- remove "[nominal]" from paths
-                                =$= mapC (over path (traceShowId . fst . T.breakOn "[nominal]"))
+                                =$= mapC (over path (fst . T.breakOn "[nominal]"))
                                 =$= mapC printYObj
                                 $$ sinkFile (outfolder args ++ '/' : show ds ++ ".yoda")
