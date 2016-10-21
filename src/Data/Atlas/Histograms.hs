@@ -85,48 +85,49 @@ lvObjs = sequenceA [ fillHistSyst ptHist <$= fmap (view lvPt)
 
 
 jetTrkObjs :: SystFiller (Jet a)
-jetTrkObjs = sequenceA [ fillHistSyst trkSumPtHist
-                             <$= fmap trkSumPt
-                       , fillHistSyst svTrkSumPtHist
-                             <$= fmap svTrkSumPt
-                       , fillHistSyst mv2c10Hist
-                             <$= fmap (view jMV2c10)
+jetTrkObjs = 
+    sequenceA [ fillHistSyst trkSumPtHist
+                    <$= fmap (view (trkSum.lvPt))
+              , fillHistSyst svTrkSumPtHist
+                    <$= fmap (view (svTrkSum.lvPt))
+              , fillHistSyst mv2c10Hist
+                    <$= fmap (view mv2c10)
 
-                       -- TODO
-                       -- this is pretty (no---*really*) inefficient
+              -- TODO
+              -- this is pretty (no---*really*) inefficient
 
-                       , fillProfSyst trkSumPtVsJetPtProf
-                             <$= (\(w, j) -> (w, (view lvPt j, trkSumPt j)))
-                       , fillProfSyst svTrkSumPtVsJetPtProf
-                             <$= (\(w, j) -> (w, (view lvPt j, svTrkSumPt j)))
-                       , fillProfSyst trkSumPtVsJetEtaProf
-                             <$= (\(w, j) -> (w, (view lvAbsEta j, trkSumPt j)))
-                       , fillProfSyst svTrkSumPtVsJetEtaProf
-                             <$= (\(w, j) -> (w, (view lvAbsEta j, svTrkSumPt j)))
+              , fillProfSyst trkSumPtVsJetPtProf
+                    <$= (\(w, j) -> (w, (view lvPt j, view (trkSum.lvPt) j)))
+              , fillProfSyst svTrkSumPtVsJetPtProf
+                    <$= (\(w, j) -> (w, (view lvPt j, view (svTrkSum.lvPt) j)))
+              , fillProfSyst trkSumPtVsJetEtaProf
+                    <$= (\(w, j) -> (w, (view lvAbsEta j, view (trkSum.lvPt) j)))
+              , fillProfSyst svTrkSumPtVsJetEtaProf
+                    <$= (\(w, j) -> (w, (view lvAbsEta j, view (svTrkSum.lvPt) j)))
 
-                       , fillProfSyst svTrkSumPtVsTrkSumPtProf
-                             <$= (\(w, j) -> (w, (trkSumPt j, svTrkSumPt j)))
+              , fillProfSyst svTrkSumPtVsTrkSumPtProf
+                    <$= (\(w, j) -> (w, (view (trkSum.lvPt) j, view (svTrkSum.lvPt) j)))
 
-                       -- make sure we don't fill this with NaNs
-                       , foldAll (fillHistSyst bFragHist)
-                             <$= sequence . fmap bFrag
-                       , foldAll (fillProfSyst bFragVsJetPtProf)
-                             <$= (\(w, j) -> sequence (w, (view lvPt j,) <$> bFrag j))
-                       , foldAll (fillProfSyst bFragVsJetEtaProf)
-                             <$= (\(w, j) -> sequence (w, (view lvEta j,) <$> bFrag j))
+              -- make sure we don't fill this with NaNs
+              , foldAll (fillHistSyst bFragHist)
+                    <$= sequence . fmap (view bFrag)
+              , foldAll (fillProfSyst bFragVsJetPtProf)
+                    <$= (\(w, j) -> sequence (w, (view lvPt j,) <$> view bFrag j))
+              , foldAll (fillProfSyst bFragVsJetEtaProf)
+                    <$= (\(w, j) -> sequence (w, (view lvEta j,) <$> view bFrag j))
 
-                       , foldAll (fillProfSyst bFragVsTrkSumPtProf)
-                             <$= (\(w, j) -> sequence (w, (trkSumPt j,) <$> bFrag j))
+              , foldAll (fillProfSyst bFragVsTrkSumPtProf)
+                    <$= (\(w, j) -> sequence (w, (view (trkSum.lvPt) j,) <$> view bFrag j))
 
-                       , fillHistSyst nPVTrksHist
-                             <$= fmap (fromIntegral . length . view jPVTracks)
-                       , fillHistSyst nSVTrksHist
-                             <$= fmap (fromIntegral . length . view jSVTracks)
-                       , fillProfSyst nPVTrksVsJetPtProf
-                             <$= fmap ((,) <$> view lvPt <*> fromIntegral . length . view jPVTracks)
-                       , fillProfSyst nSVTrksVsJetPtProf
-                             <$= fmap ((,) <$> view lvPt <*> fromIntegral . length . view jSVTracks)
-                       ]
+              , fillHistSyst nPVTrksHist
+                    <$= fmap (fromIntegral . length . view pvTracks)
+              , fillHistSyst nSVTrksHist
+                    <$= fmap (fromIntegral . length . view svTracks)
+              , fillProfSyst nPVTrksVsJetPtProf
+                    <$= fmap ((,) <$> view lvPt <*> fromIntegral . length . view pvTracks)
+              , fillProfSyst nSVTrksVsJetPtProf
+                    <$= fmap ((,) <$> view lvPt <*> fromIntegral . length . view svTracks)
+              ]
 
 
 

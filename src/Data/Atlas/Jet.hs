@@ -13,7 +13,6 @@ import GHC.Generics (Generic)
 
 import Control.Applicative (ZipList(..))
 import Data.Foldable (fold)
-import Data.Monoid ((<>))
 import Data.List (deleteFirstsBy)
 
 import qualified Data.Vector as V
@@ -26,10 +25,14 @@ import Data.Atlas.DataMC
 data Jet a =
     Jet
         { _jPtEtaPhiE :: PtEtaPhiE
-        , _jMV2c10 :: Double
-        , _jJVT :: Double
-        , _jPVTracks :: [PtEtaPhiE]
-        , _jSVTracks :: [PtEtaPhiE]
+        , _mv2c10 :: Double
+        , _jvt :: Double
+        , _tracks :: [PtEtaPhiE]
+        , _pvTracks :: [PtEtaPhiE]
+        , _svTracks :: [PtEtaPhiE]
+        , _trkSum :: PtEtaPhiE
+        , _pvTrkSum :: PtEtaPhiE
+        , _svTrkSum :: PtEtaPhiE
         , _jMCInfo :: MCInfo (Jet a)
         } deriving Generic
 
@@ -40,14 +43,20 @@ instance Show (Jet a) where
 -- TODO
 -- macro here?
 -- can't use template haskell
-jJVT, jMV2c10 :: Lens' (Jet a) Double
-jJVT = lens _jJVT $ \j x -> j { _jJVT = x }
-jMV2c10 = lens _jMV2c10 $ \j x -> j { _jMV2c10 = x }
+jvt, mv2c10 :: Lens' (Jet a) Double
+jvt = lens _jvt $ \j x -> j { _jvt = x }
+mv2c10 = lens _mv2c10 $ \j x -> j { _mv2c10 = x }
 
 
-jPVTracks, jSVTracks :: Lens' (Jet a) [PtEtaPhiE]
-jPVTracks = lens _jPVTracks $ \j x -> j { _jPVTracks = x }
-jSVTracks = lens _jSVTracks $ \j x -> j { _jSVTracks = x }
+tracks, pvTracks, svTracks :: Lens' (Jet a) [PtEtaPhiE]
+tracks = lens _tracks $ \j x -> j { _tracks = x }
+pvTracks = lens _pvTracks $ \j x -> j { _pvTracks = x }
+svTracks = lens _svTracks $ \j x -> j { _svTracks = x }
+
+trkSum, pvTrkSum, svTrkSum :: Lens' (Jet a) PtEtaPhiE
+trkSum = lens _trkSum $ \j x -> j { _trkSum = x }
+pvTrkSum = lens _pvTrkSum $ \j x -> j { _pvTrkSum = x }
+svTrkSum = lens _svTrkSum $ \j x -> j { _svTrkSum = x }
 
 jMCInfo :: Lens' (Jet a) (MCInfo (Jet a))
 jMCInfo = lens _jMCInfo $ \j x -> j { _jMCInfo = x }
@@ -85,9 +94,23 @@ jetFromTTreeG = do
 
     sv1trks <- jetTracksTLV "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
 
-    let trks'' = zipWith (deleteFirstsBy trkEq) trks' sv1trks
+    let pvtrks = zipWith (deleteFirstsBy trkEq) trks' sv1trks
+    let trks'' = zipWith (++) sv1trks pvtrks
+    let trksum = map fold trks
+    let pvtrksum = map fold pvtrks
+    let svtrksum = map fold sv1trks
 
-    let js = Jet <$> ZipList tlvs <*> mv2c10s <*> jvts <*> ZipList trks'' <*> ZipList sv1trks
+    let js = Jet
+                <$> ZipList tlvs
+                <*> mv2c10s
+                <*> jvts
+                <*> ZipList trks''
+                <*> ZipList pvtrks
+                <*> ZipList sv1trks
+                <*> ZipList trksum
+                <*> ZipList pvtrksum
+                <*> ZipList svtrksum
+
     return $ \eis -> (Jets . getZipList) (js <*> ZipList eis)
 
 
@@ -98,29 +121,11 @@ instance FromTTree (Jets Data') where
     fromTTree = jetFromTTreeG <*> return (repeat ())
 
 
-pvTrkSumTLV :: Jet a -> PtEtaPhiE
-pvTrkSumTLV = fold . view jPVTracks
-
-svTrkSumTLV :: Jet a -> PtEtaPhiE
-svTrkSumTLV = fold . view jSVTracks
-
-trkSumTLV :: Jet a -> PtEtaPhiE
-trkSumTLV = (<>) <$> svTrkSumTLV <*> pvTrkSumTLV
-
-pvTrkSumPt :: Jet a -> Double
-pvTrkSumPt = view lvPt . pvTrkSumTLV
-
-svTrkSumPt :: Jet a -> Double
-svTrkSumPt = view lvPt . svTrkSumTLV
-
-trkSumPt :: Jet a -> Double
-trkSumPt = view lvPt . trkSumTLV
-
 -- protect against dividing by zero
-bFrag :: Jet a -> Maybe Double
-bFrag j = case trkSumPt j of
-               0.0 -> Nothing
-               x   -> Just (svTrkSumPt j / x)
+bFrag :: Getter (Jet a) (Maybe Double)
+bFrag = to $ \j -> case view (trkSum.lvPt) j of
+                    0.0 -> Nothing
+                    x   -> Just (view (svTrkSum.lvPt) j / x)
 
 
 jetTracksTLV :: MonadIO m
