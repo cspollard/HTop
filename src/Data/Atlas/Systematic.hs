@@ -26,7 +26,7 @@ readWeights ws = float2Double . getProduct . foldMap Product
 
 
 dummy :: WeightSystematic
-dummy = WeightSystematic "dummy" $ return 1.0
+dummy = WeightSystematic "nominal" $ return 1.0
 
 nominal :: WeightSystematic
 nominal = WeightSystematic "nominal" $ readWeights ["EvtW", "SFTot"]
