@@ -5,6 +5,8 @@
 
 module Main where
 
+import Debug.Trace
+
 import Control.Lens
 
 import Conduit
@@ -16,6 +18,7 @@ import Control.Monad (forM_)
 import Control.Applicative (ZipList(..))
 
 import Data.ByteString.Lazy (fromChunks, toStrict)
+import qualified Data.Text as T
 
 import Options.Generic
 
@@ -38,7 +41,11 @@ main = do args <- getRecord "histToYoda" :: IO Args
           case eim of
                Left err -> print err
                Right im -> forM_ (IM.toList im) $
-                            \(ds, hs) -> runResourceT $ yieldMany (getZipList hs)
-                                                        =$= mapC (if ds == 0 then id else over (noted . _H1DD) (`scaledBy` lumi args))
-                                                        =$= mapC printYObj
-                                                        $$ sinkFile (outfolder args ++ '/' : show ds ++ ".yoda")
+                            \(ds, hs) -> runResourceT $
+                                yieldMany (getZipList hs)
+                                -- scale to lumi
+                                =$= mapC (if ds == 0 then id else over (noted . _H1DD) (scaling $ lumi args))
+                                -- remove "[nominal]" from paths
+                                =$= mapC (over path (traceShowId . fst . T.breakOn "[nominal]"))
+                                =$= mapC printYObj
+                                $$ sinkFile (outfolder args ++ '/' : show ds ++ ".yoda")

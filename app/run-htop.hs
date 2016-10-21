@@ -7,6 +7,7 @@
 module Main where
 
 import Control.Lens
+import Data.Semigroup
 import qualified Control.Foldl as F
 import List.Transformer
 
@@ -51,42 +52,43 @@ everyL n f = loop 0
 
 main :: IO ()
           -- read in cmd line args
-main = do args <- getRecord "run-hs" :: IO Args
+main = do
+    args <- getRecord "run-hs" :: IO Args
 
-          xsecs <- readXSecFile (xsecfile args)
+    xsecs <- readXSecFile (xsecfile args)
 
-          -- get the list of input trees
-          fs <- lines <$> readFile (infiles args)
+    -- get the list of input trees
+    fs <- lines <$> readFile (infiles args)
 
-          let systs = [nominal, pileupUp, pileupDown]
-          samps <- forM fs $
-            \f -> do
-                putStrLn $ "analyzing events in file " ++ f
-                wt <- ttree "sumWeights" f
-                tt <- ttree "nominal" f
-                s <- fold addSampInfo defsi id $ project wt
-                (n, hs) <-
-                    case dsid s of
-                       0 -> let f' = withLenF (channel "/elmujj" (elmujj . snd) dataEventObjs)
-                                        <$= dataEvent
-                            in  F.purely fold f' $ everyL 1000 printIE $ project tt
+    let systs = [nominal, pileupUp, pileupDown]
+    samps <- forM fs $
+      \f -> do
+          putStrLn $ "analyzing events in file " ++ f
+          wt <- ttree "sumWeights" f
+          tt <- ttree "nominal" f
+          s <- fold addSampInfo defsi id $ project wt
+          (n, hs) <-
+                let f' = withLenF (channel "/elmujj" elmujj eventObjs)
+                in case dsid s of
+                    0 -> F.purely fold f' $ everyL 1000 printIE $ runTTree (readDataEvent [dummy]) tt 
+                    _ -> F.purely fold f' $ everyL 1000 printIE $ runTTree (readMCEvent systs) tt
 
-                       _ -> let f' = withLenF . channel "/elmujj" (elmujj . (M.! "nominal")) $ mcEventObjs systs
-                            in  F.purely fold f' $ everyL 1000 printIE $ runTTree (readEventSysts systs) tt
+          putStrLn $ show (n :: Int) ++ " events analyzed in file " ++ f ++ ".\n"
+          return (s, ZipList hs)
 
-                putStrLn $ show (n :: Int) ++ " events analyzed in file " ++ f ++ ".\n"
-                return (s, ZipList hs)
-
-          let m = IM.fromListWith (\(s, h) (s', h') -> (addSampInfo s s', liftA2 mergeYO h h')) $ map ((,) <$> fromEnum . dsid . fst <*> id) samps
-
-
-          let scaledHists = flip IM.mapWithKey m $
-                                \ds (s, hs) -> case ds of
-                                                    0 -> hs
-                                                    _ -> over (traverse . noted . _H1DD) (flip scaledBy $ (xsecs IM.! ds) / totalEventsWeighted s) hs
+    let m = IM.fromListWith (\(s, h) (s', h') -> (addSampInfo s s', liftA2 (M.unionWith mergeYO) h h')) $ map ((,) <$> fromEnum . dsid . fst <*> id) samps
+    -- let hs' = hs & g
 
 
-          runResourceT $ sourceLbs (encodeLazy scaledHists) =$= gzip $$ sinkFile (outfile args)
+    let hists = flip IM.mapWithKey m $
+            \ds (s, hs) ->
+                case ds of
+                    0 -> hs
+                    _ -> over (traverse . traverse . noted . _H1DD) (scaling $ (xsecs IM.! ds) / totalEventsWeighted s) hs
+
+
+    let hists' = hists <&> concatMap (map (\(n, h) -> over path (<> "[" <> n <> "]") h) . M.toList) 
+    runResourceT $ sourceLbs (encodeLazy hists') =$= gzip $$ sinkFile (outfile args)
 
     where
         printIE :: Int -> a -> IO ()

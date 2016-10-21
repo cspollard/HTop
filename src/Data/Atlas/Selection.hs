@@ -20,13 +20,13 @@ lLabeled :: Jet MC -> Bool
 lLabeled = ((&&) <$> (/= 5) <*> (/= 4)) . view mcInfo
 
 bTagged :: Jet a -> Bool
-bTagged = (> 0.8244273) . view jMV2c10
+bTagged = (> 0.8244273) . view mv2c10
 
 hasSV :: Jet a -> Bool
-hasSV = not . null . view jSVTracks
+hasSV = not . null . view svTracks
 
 nSVTracks :: Jet a -> Int
-nSVTracks = length . view jSVTracks
+nSVTracks = length . view svTracks
 
 probeJets :: [Jet a] -> [Jet a]
 probeJets [j1, j2] = [j2 | probeJet j1 j2] ++ [j1 | probeJet j2 j1]

@@ -25,6 +25,9 @@ readWeights ws = float2Double . getProduct . foldMap Product
                         <$> mapM (readBranch . unpack) ws
 
 
+dummy :: WeightSystematic
+dummy = WeightSystematic "nominal" $ return 1.0
+
 nominal :: WeightSystematic
 nominal = WeightSystematic "nominal" $ readWeights ["EvtW", "SFTot"]
 
