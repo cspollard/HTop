@@ -55,7 +55,10 @@ main :: IO ()
 main = do
     args <- getRecord "run-hs" :: IO Args
 
-    xsecs <- readXSecFile (xsecfile args)
+    mxsecs <- readXSecFile (xsecfile args)
+    let xsecs = case mxsecs of
+                    Just x -> x
+                    Nothing -> error "failed to parse xsec file."
 
     -- get the list of input trees
     fs <- lines <$> readFile (infiles args)
