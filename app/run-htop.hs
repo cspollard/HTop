@@ -8,6 +8,7 @@ module Main where
 
 import Control.Lens
 import Data.Semigroup
+import Data.Maybe (fromMaybe)
 import qualified Control.Foldl as F
 import List.Transformer
 
@@ -55,10 +56,8 @@ main :: IO ()
 main = do
     args <- getRecord "run-hs" :: IO Args
 
-    mxsecs <- readXSecFile (xsecfile args)
-    let xsecs = case mxsecs of
-                    Just x -> x
-                    Nothing -> error "failed to parse xsec file."
+    xsecs <- fromMaybe (error "failed to parse xsec file.")
+                <$> readXSecFile (xsecfile args)
 
     -- get the list of input trees
     fs <- lines <$> readFile (infiles args)
@@ -82,7 +81,7 @@ main = do
 
                     (n, hs) <-
                           let f' = withLenF (channel "/elmujj" elmujj eventObjs)
-                              g' h' t'= F.purely fold f' $ everyL 1000 printIE $ runTTree h' t'
+                              g' h' t'= F.purely fold f' $ everyL 1000 printIE $ runTTreeL h' t'
                           in case dsid s of
                               0 -> g' (readDataEvent [dummy]) tt
                               _ -> g' (readMCEvent systs) tt

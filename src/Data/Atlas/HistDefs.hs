@@ -2,10 +2,6 @@
 
 module Data.Atlas.HistDefs where
 
-import Control.Lens
-import Data.Semigroup
-
-import Data.Text (Text)
 import Data.YODA.Obj
 
 import Data.Atlas.Histogramming

@@ -1,7 +1,6 @@
 module Data.Atlas.Selection where
 
 import Control.Lens
-import Data.Semigroup
 
 import Data.Atlas.Event
 

@@ -7,7 +7,6 @@ module Data.Atlas.Histograms where
 import Control.Lens
 import qualified Control.Foldl as F
 
-import Data.Maybe (listToMaybe)
 import Data.Foldable (toList)
 import Data.Semigroup
 
@@ -16,7 +15,6 @@ import qualified Data.Map.Strict as M
 
 import Data.YODA.Obj
 
-import Data.Atlas.Histogramming
 import Data.Atlas.Event
 import Data.Atlas.Selection
 import Data.Atlas.HistDefs
