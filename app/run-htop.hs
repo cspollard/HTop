@@ -79,9 +79,10 @@ main = do
 
                     (n, hs) <-
                           let f' = withLenF (channel "/elmujj" elmujj eventObjs)
+                              g' h' t'= F.purely fold f' $ everyL 1000 printIE $ runTTree h' t'
                           in case dsid s of
-                              0 -> F.purely fold f' $ everyL 1000 printIE $ runTTree (readDataEvent [dummy]) tt
-                              _ -> F.purely fold f' $ everyL 1000 printIE $ runTTree (readMCEvent systs) tt
+                              0 -> g' (readDataEvent [dummy]) tt
+                              _ -> g' (readMCEvent systs) tt
 
                     putStrLn $ show (n :: Int) ++ " events analyzed in file " ++ f ++ ".\n"
                     return (s, ZipList hs)

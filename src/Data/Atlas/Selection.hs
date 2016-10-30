@@ -1,8 +1,22 @@
 module Data.Atlas.Selection where
 
 import Control.Lens
+import Data.Semigroup
 
 import Data.Atlas.Event
+
+{- TODO
+-- a cut can fail and always comes with an (in)efficiency SF
+newtype Cut a = Cut (a -> (Double, Maybe a))
+
+instance Semigroup (Cut a) where
+    Cut f <> Cut g = Cut $ \x ->
+                        case f x of
+                            ds@(_, Nothing) -> ds
+                            (d, Just x') ->
+                                let (d', x'') = g x'
+                                n  (d*d', x'')
+-}
 
 elmujj :: Event a -> Bool
 elmujj e = length (_electrons e) == 1 && length (_muons e) == 1 && length (_jets e) == 2
