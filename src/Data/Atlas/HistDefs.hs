@@ -8,26 +8,7 @@ import Data.Semigroup
 import Data.Text (Text)
 import Data.YODA.Obj
 
-dsigdXpbY :: Text -> Text -> Text
-dsigdXpbY x y = "$\\frac{d\\sigma}{d" <> x <> "} \\frac{\\mathrm{pb}}{" <> y <> "}$"
-
-gev, rad, pt :: Text
-gev = "\\mathrm{GeV}"
-rad = "\\mathrm{rad}"
-pt = "p_{\\mathrm{T}}"
-
-
-yodaHist :: Int -> Double -> Double -> Text -> Text -> Text -> YodaObj
-yodaHist nb xmin xmax p xl yl = yodaHist1D nb xmin xmax
-    & annots . at "Path"   ?~ p
-    & annots . at "XLabel" ?~ xl
-    & annots . at "YLabel" ?~ yl
-
-yodaProf :: Int -> Double -> Double -> Text -> Text -> Text -> YodaObj
-yodaProf nb xmin xmax p xl yl = yodaProf1D nb xmin xmax
-    & annots . at "Path"   ?~ p
-    & annots . at "XLabel" ?~ xl
-    & annots . at "YLabel" ?~ yl
+import Data.Atlas.Histogramming
 
 -- common histograms for LorentzVectors
 
