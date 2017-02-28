@@ -1,135 +1,118 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleInstances #-}
-
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies        #-}
 
 module Data.Atlas.Jet where
 
-import Control.Lens
+import           Control.Applicative      (ZipList (..))
+import qualified Control.Foldl            as F
+import           Control.Lens
+import           Data.Atlas.Histogramming
+import           Data.Atlas.PtEtaPhiE
+import           Data.Foldable            (fold)
+import           Data.HEP.LorentzVector
+import           Data.Monoid
+import           Data.TTree
+import qualified Data.Vector              as V
+import           GHC.Float
+import           GHC.Generics             (Generic)
 
-import GHC.Float
-import GHC.Generics (Generic)
+data JetFlavor = L | C | B
+    deriving (Generic, Show, Eq, Ord)
 
-import Control.Applicative (ZipList(..))
-import Data.Foldable (fold)
-import Data.List (deleteFirstsBy)
-
-import qualified Data.Vector as V
-
-import Data.HEP.LorentzVector
-import Data.TTree
-import Data.Atlas.PtEtaPhiE
-import Data.Atlas.DataMC
-
-data Jet a =
-    Jet
-        { _jPtEtaPhiE :: PtEtaPhiE
-        , _mv2c10 :: Double
-        , _jvt :: Double
-        , _tracks :: [PtEtaPhiE]
-        , _pvTracks :: [PtEtaPhiE]
-        , _svTracks :: [PtEtaPhiE]
-        , _trkSum :: PtEtaPhiE
-        , _pvTrkSum :: PtEtaPhiE
-        , _svTrkSum :: PtEtaPhiE
-        , _jMCInfo :: MCInfo (Jet a)
-        } deriving Generic
+flavFromCInt :: CInt -> JetFlavor
+flavFromCInt x =
+  case x of
+    5 -> B
+    4 -> C
+    0 -> L
+    _ -> error $ "bad jet flavor label: " ++ show x
 
 
-instance Show (Jet a) where
-    show j = "Jet " ++ views toPtEtaPhiE show j
 
--- TODO
--- macro here?
--- can't use template haskell
-jvt, mv2c10 :: Lens' (Jet a) Double
-jvt = lens _jvt $ \j x -> j { _jvt = x }
-mv2c10 = lens _mv2c10 $ \j x -> j { _mv2c10 = x }
+data Jet =
+  Jet
+    { _jPtEtaPhiE  :: PtEtaPhiE
+    , _mv2c10      :: Double
+    , _jvt         :: Double
+    , _pvTracks    :: [PtEtaPhiE]
+    , _pvTrkSum    :: PtEtaPhiE
+    , _svTracks    :: [PtEtaPhiE]
+    , _svTrkSum    :: PtEtaPhiE
+    , _truthFlavor :: Maybe JetFlavor
+    } deriving (Generic, Show)
 
-
-tracks, pvTracks, svTracks :: Lens' (Jet a) [PtEtaPhiE]
-tracks = lens _tracks $ \j x -> j { _tracks = x }
-pvTracks = lens _pvTracks $ \j x -> j { _pvTracks = x }
-svTracks = lens _svTracks $ \j x -> j { _svTracks = x }
-
-trkSum, pvTrkSum, svTrkSum :: Lens' (Jet a) PtEtaPhiE
-trkSum = lens _trkSum $ \j x -> j { _trkSum = x }
-pvTrkSum = lens _pvTrkSum $ \j x -> j { _pvTrkSum = x }
-svTrkSum = lens _svTrkSum $ \j x -> j { _svTrkSum = x }
-
-jMCInfo :: Lens' (Jet a) (MCInfo (Jet a))
-jMCInfo = lens _jMCInfo $ \j x -> j { _jMCInfo = x }
-
-instance HasLorentzVector (Jet a) where
+instance HasLorentzVector Jet where
     toPtEtaPhiE = lens _jPtEtaPhiE $ \j x -> j { _jPtEtaPhiE = x }
 
-instance HasMCInfo (Jet MC) where
-    type MCInfo (Jet MC) = CInt
-    mcInfo = jMCInfo
 
-instance HasMCInfo (Jet Data') where
-    type MCInfo (Jet Data') = ()
-    mcInfo = jMCInfo
-
-
--- TODO
--- MonoFoldable?
-newtype Jets a = Jets { fromJets :: [Jet a] } deriving Generic
-
-jetTracksIsTight :: MonadIO m => TR m [[Bool]]
-jetTracksIsTight = V.toList . fmap V.toList .  over (traverse.traverse) (/= (0 :: CInt)) . fromVVector <$> readBranch "JetTracksisTight"
+jetTracksIsTight :: MonadIO m => TR m (ZipList (ZipList Bool))
+jetTracksIsTight =
+  ZipList
+    . V.toList
+    . fmap (ZipList . V.toList)
+    . over (traverse.traverse) (/= (0 :: CInt))
+    . fromVVector
+    <$> readBranch "JetTracksisTight"
 
 
--- Generic jet (without extra info)
-jetFromTTreeG :: MonadIO m => TR m ([MCInfo (Jet a)] -> Jets a)
-jetFromTTreeG = do
-    PtEtaPhiEs tlvs <- lvsFromTTree "JetPt" "JetEta" "JetPhi" "JetE"
-    mv2c10s <- fmap float2Double <$> readBranch "JetMV2c20"
-    jvts <- fmap float2Double <$> readBranch "JetJVT"
-    trks <- jetTracksTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
-    trksTight <- jetTracksIsTight
+readJets :: MonadIO m => Bool -> TR m [Jet]
+readJets isData = do
+  tlvs' <- lvsFromTTreeF "JetPt" "JetEta" "JetPhi" "JetE"
+  let tlvs = over traverse ((lvPt //~ 1e3) . (lvE //~ 1e3)) tlvs'
+  mv2c10s <- fmap float2Double <$> readBranch "JetMV2c20"
+  jvts <- fmap float2Double <$> readBranch "JetJVT"
 
-    let trks' = fmap snd . filter fst <$> zipWith zip trksTight trks
+  pvtrks' <- jetTracksTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
+  let pvtrks'' = over (traverse.traverse) ((lvPt //~ 1e3) . (lvE //~ 1e3)) pvtrks'
+  pvtrksTight <- jetTracksIsTight
 
-    sv1trks <- jetTracksTLV "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
+  let f x y = ZipList . fmap snd . filter fst . getZipList $ (,) <$> x <*> y
+      pvtrks = f <$> pvtrksTight <*> pvtrks''
 
-    let pvtrks = zipWith (deleteFirstsBy trkEq) trks' sv1trks
-    let trks'' = zipWith (++) sv1trks pvtrks
-    let trksum = map fold trks
-    let pvtrksum = map fold pvtrks
-    let svtrksum = map fold sv1trks
+  svtrks' <- jetTracksTLV "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
+  let svtrks = over (traverse.traverse) ((lvPt //~ 1e3) . (lvE //~ 1e3)) svtrks'
 
-    let js = Jet
-                <$> ZipList tlvs
-                <*> mv2c10s
-                <*> jvts
-                <*> ZipList trks''
-                <*> ZipList pvtrks
-                <*> ZipList sv1trks
-                <*> ZipList trksum
-                <*> ZipList pvtrksum
-                <*> ZipList svtrksum
+  let pvtrksum = fold <$> pvtrks
+  let svtrksum = fold <$> svtrks
+  flvs <-
+    if isData
+      then return $ ZipList (repeat Nothing)
+      else fmap (Just . flavFromCInt) <$> readBranch "jetsTrueFlavor"
 
-    return $ \eis -> (Jets . getZipList) (js <*> ZipList eis)
-
-
-instance FromTTree (Jets MC) where
-    fromTTree = jetFromTTreeG <*> readBranch "JetTruthLabel"
-
-instance FromTTree (Jets Data') where
-    fromTTree = jetFromTTreeG <*> return (repeat ())
+  return . getZipList
+    $ Jet
+      <$> tlvs
+      <*> mv2c10s
+      <*> jvts
+      <*> fmap getZipList pvtrks
+      <*> pvtrksum
+      <*> fmap getZipList svtrks
+      <*> svtrksum
+      <*> flvs
 
 
 -- protect against dividing by zero
-bFrag :: Getter (Jet a) (Maybe Double)
-bFrag = to $ \j -> case view (trkSum.lvPt) j of
-                    0.0 -> Nothing
-                    x   -> Just (view (svTrkSum.lvPt) j / x)
+bFrag
+  :: (Profunctor p, Contravariant f)
+  => Optic' p f Jet (Maybe Double)
+bFrag = to $ \j ->
+  let svtrksum = view (svTrkSum.lvPt) j
+      trksum = svtrksum + view (pvTrkSum.lvPt) j
+  in case trksum of
+    0.0 -> Nothing
+    x   -> Just (svtrksum / x)
+
+trkSum :: Getter Jet PtEtaPhiE
+trkSum = runGetter $ (<>) <$> Getter svTrkSum <*> Getter pvTrkSum
 
 
-jetTracksTLV :: MonadIO m
-             => String -> String -> String -> String -> TR m [[PtEtaPhiE]]
+jetTracksTLV
+  :: MonadIO m
+  => String -> String -> String -> String -> TR m (ZipList (ZipList PtEtaPhiE))
 jetTracksTLV spt seta sphi se = do
     trkpts <- fromVVector <$> readBranch spt
     trketas <- fromVVector <$> readBranch seta
@@ -141,7 +124,132 @@ jetTracksTLV spt seta sphi se = do
                 V.toList $ V.zipWith4 PtEtaPhiE pts etas phis es
             ) trkpts trketas trkphis trkes
 
-    return $ V.toList trks
+    return . ZipList . fmap ZipList $ V.toList trks
 
-trkEq :: PtEtaPhiE -> PtEtaPhiE -> Bool
-p `trkEq` p' = (p `lvDREta` p') < 0.005
+-- histograms
+mv2c10Hist :: Fill Jet
+mv2c10Hist =
+  hist1DDef
+    (binD (-1) 25 1)
+    "MV2c10"
+    (dsigdXpbY "\\mathrm{MV2c10}" "1")
+    "/mv2c10"
+    <$$= mv2c10
+
+trkSumPtHist :: Fill Jet
+trkSumPtHist =
+  hist1DDef
+    (binD 0 25 500)
+    "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
+    (dsigdXpbY pt gev)
+    "/trksumpt"
+    <$$= trkSum.lvPt
+
+svTrkSumPtHist :: Fill Jet
+svTrkSumPtHist =
+  hist1DDef
+    (binD 0 25 500)
+    "$p_{\\mathrm T} \\sum \\mathrm{SV trk}$"
+    (dsigdXpbY pt gev)
+    "/svtrksumpt"
+    <$$= svTrkSum . lvPt
+
+bFragHist :: Fill Jet
+bFragHist =
+  hist1DDef
+    (binD 0 22 1.1)
+    "$z_{p_{\\mathrm T}}$"
+    (dsigdXpbY "z_{p_{\\mathrm T}}" "1")
+    "/bfrag"
+    <$$= folded bFrag
+
+tupGetter :: Getter s a -> Getter s b -> Getter s (a, b)
+tupGetter f g = runGetter ((,) <$> Getter f <*> Getter g)
+
+trkSumPtVsJetPtProf :: Fill Jet
+trkSumPtVsJetPtProf =
+  prof1DDef
+    (binD 25 18 250)
+    "$p_{\\mathrm T}$ [GeV]"
+    "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
+    "/trksumptvsjetptprof"
+    <$$= tupGetter lvPt (trkSum.lvPt)
+
+svTrkSumPtVsJetPtProf :: Fill Jet
+svTrkSumPtVsJetPtProf =
+  prof1DDef
+    (binD 25 18 250)
+    "$p_{\\mathrm T}$ [GeV]"
+    "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
+    "/svtrksumptvsjetptprof"
+    <$$= tupGetter lvPt (svTrkSum.lvPt)
+
+bFragVsJetPtProf :: Fill Jet
+bFragVsJetPtProf =
+  prof1DDef
+    (binD 25 18 250)
+    "$p_{\\mathrm T}$ [GeV]"
+    "$<z_{p_{\\mathrm T}}>$"
+    "/bfragvsjetptprof"
+    <$$= tupGetter lvPt (bFrag._Just)
+
+trkSumPtVsJetEtaProf :: Fill Jet
+trkSumPtVsJetEtaProf =
+  prof1DDef
+    (binD 0 21 2.1)
+    "$\\eta$"
+    "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
+    "/trksumptvsjetetaprof"
+    <$$= tupGetter lvEta (trkSum.lvPt)
+
+svTrkSumPtVsJetEtaProf :: Fill Jet
+svTrkSumPtVsJetEtaProf =
+  prof1DDef
+    (binD 0 21 2.1)
+    "$\\eta$"
+    "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
+    "/svtrksumptvsjetetaprof"
+    <$$= tupGetter lvEta (svTrkSum.lvPt)
+
+bFragVsJetEtaProf :: Fill Jet
+bFragVsJetEtaProf =
+  prof1DDef
+    (binD 0 21 2.1)
+    "$\\eta$"
+    "$<z_{p_{\\mathrm T}}>$"
+    "/bfragvsjetetaprof"
+    <$$= tupGetter lvEta (bFrag._Just)
+
+svTrkSumPtVsTrkSumPtProf :: Fill Jet
+svTrkSumPtVsTrkSumPtProf =
+  prof1DDef
+    (binD 0 10 100)
+    "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
+    "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
+    "/svtrksumptvstrksumptprof"
+    <$$= tupGetter (trkSum.lvPt) (svTrkSum.lvPt)
+
+bFragVsTrkSumPtProf :: Fill Jet
+bFragVsTrkSumPtProf =
+  prof1DDef
+    (binD 0 10 100)
+    "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
+    "$<z_{p_{\\mathrm T}}>$"
+    "/bfragvstrksumptprof"
+    <$$= tupGetter (trkSum.lvPt) (bFrag._Just)
+
+-- TODO
+-- macro here?
+-- can't use template haskell
+jvt, mv2c10 :: Lens' Jet Double
+jvt = lens _jvt $ \j x -> j { _jvt = x }
+mv2c10 = lens _mv2c10 $ \j x -> j { _mv2c10 = x }
+
+
+pvTracks, svTracks :: Lens' Jet [PtEtaPhiE]
+pvTracks = lens _pvTracks $ \j x -> j { _pvTracks = x }
+svTracks = lens _svTracks $ \j x -> j { _svTracks = x }
+
+pvTrkSum, svTrkSum :: Lens' Jet PtEtaPhiE
+pvTrkSum = lens _pvTrkSum $ \j x -> j { _pvTrkSum = x }
+svTrkSum = lens _svTrkSum $ \j x -> j { _svTrkSum = x }
