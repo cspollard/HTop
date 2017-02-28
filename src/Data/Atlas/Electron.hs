@@ -1,16 +1,15 @@
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Data.Atlas.Electron where
 
-import           Control.Applicative    (ZipList (..))
+import           Control.Applicative      (ZipList (..))
 import           Control.Lens
+import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
-import           Data.HEP.LorentzVector
 import           Data.Serialize
 import           Data.TTree
 import           GHC.Float
-import           GHC.Generics           (Generic)
+import           GHC.Generics             (Generic)
 
 
 data Electron =
@@ -40,3 +39,6 @@ readElectrons = do
   where
     ci2i :: CInt -> Int
     ci2i = fromEnum
+
+electronHs :: Fill Electron
+electronHs = lvHs

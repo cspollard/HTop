@@ -1,106 +1,136 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE Rank2Types          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections       #-}
 
 module Main where
 
-import Control.Lens
-import Data.Semigroup
-import Data.Maybe (fromMaybe)
-import qualified Control.Foldl as F
-import List.Transformer
+import           Control.Applicative      (ZipList (..), liftA2)
+import           Control.Arrow            ((&&&))
+import qualified Control.Foldl            as F
+import           Control.Lens
+import           Control.Monad            (forM, when)
+import           Data.Biapplicative
+import           Data.List                (isInfixOf)
+import           Data.Maybe               (fromMaybe)
+import           Data.Semigroup
+import           Data.Serialize           (encodeLazy)
+import           GHC.Float
+import           List.Transformer
+import           Options.Generic
 
-import Conduit
-import Data.Conduit.Binary (sourceLbs)
-import Data.Conduit.Zlib (gzip)
-import Data.Serialize (encodeLazy)
-import Data.Serialize.ZipList ()
+import qualified Data.IntMap.Strict       as IM
+import qualified Data.Map.Strict          as M
+import qualified Data.Text                as T
+import qualified List.Transformer         as L
+import           System.IO                (hFlush, stdout)
 
-import Control.Monad (forM, when)
-import Control.Applicative (liftA2, ZipList(..))
+import           Data.Atlas.CrossSections
+import           Data.Atlas.Event
+import           Data.Atlas.Histogramming
+import           Data.Atlas.Selection
+import           Data.TFile
+import           Data.TTree
 
-import Options.Generic
+type TreeName = String
+type SystName = T.Text
 
-
-import qualified Data.IntMap.Strict as IM
-import qualified Data.Map.Strict as M
-
-import Data.TTree
-import Data.Atlas.Histograms
-import Data.Atlas.Event
-import Data.Atlas.Sample
-import Data.Atlas.Selection
-import Data.YODA.Obj
-import Data.Atlas.CrossSections
-
-data Args = Args { outfile :: String
-                 , infiles :: String
-                 , xsecfile :: String
-                 } deriving (Show, Generic)
+data Args =
+  Args
+    { outfile  :: String
+    , infiles  :: String
+    , xsecfile :: String
+    } deriving (Show, Generic)
 
 instance ParseRecord Args where
 
-everyL :: Monad m => Int -> (Int -> a -> m ()) -> ListT m a -> ListT m a
-everyL n f = loop 0
-    where
-        loop i l = ListT $ do
-            mx <- next l
-            case mx of
-                Cons x l' -> when (i `mod` n == 0) (f i x) >> (return . Cons x . loop (i+1)) l'
-                Nil -> return Nil
-
 main :: IO ()
-          -- read in cmd line args
 main = do
-    args <- getRecord "run-hs" :: IO Args
+  -- read in cmd line args
+  args <- getRecord "run-hs" :: IO Args
 
-    -- get the list of input trees
-    fs <- lines <$> readFile (infiles args)
+  -- get the list of input trees
+  fns <- filter (not . null) . lines <$> readFile (infiles args)
 
-    let systs = [nominal, pileupUp, pileupDown]
-    samps <- forM fs $
-        \f -> do
-            putStrLn $ "analyzing events in file " ++ f
-            wt <- ttree "sumWeights" f
-            tt <- ttree "nominal" f
+  let fnl = L.select fns :: L.ListT IO String
+      f = F.FoldM
+            (fillFile [("nominal", M.singleton "nominal" <$> readBranch "eventWeight")])
+            (return Nothing)
+            return
 
-            nullTreeWT <- isNullTree wt
-            nullTreeTT <- isNullTree tt
+  imh <- F.impurely L.foldM f fnl
 
-            if nullTreeWT || nullTreeTT
-                then do
-                    putStrLn "ERROR: can't open trees in this file! continuing."
-                    return (defsi, ZipList [])
-                else do
-                    s <- fold addSampInfo defsi id $ project wt
-
-                    (n, hs) <-
-                          let f' = withLenF (channel "/elmujj" elmujj eventObjs)
-                              g' h' t'= F.purely fold f' $ everyL 1000 printIE $ runTTreeL h' t'
-                          in case dsid s of
-                              0 -> g' (readDataEvent [dummy]) tt
-                              _ -> g' (readMCEvent systs) tt
-
-                    putStrLn $ show (n :: Int) ++ " events analyzed in file " ++ f ++ ".\n"
-                    return (s, ZipList hs)
-
-    let m = IM.fromListWith (\(s, h) (s', h') -> (addSampInfo s s', liftA2 (M.unionWith mergeYO) h h')) $ map ((,) <$> fromEnum . dsid . fst <*> id) samps
-    -- let hs' = hs & g
+  return ()
 
 
-    let hists = flip IM.mapWithKey m $
-            \ds (s, hs) ->
-                case ds of
-                    0 -> hs
-                    _ -> over (traverse . traverse . noted . _H1DD) (scaling $ (xsecs IM.! ds) / totalEventsWeighted s) hs
+fillFile
+  :: [(TreeName, TR IO (M.Map SystName Double))]
+  -> Maybe (Int, Double, SystMap YodaFolder)
+  -> String
+  -> IO (Maybe (Int, Double, SystMap YodaFolder))
+fillFile systs m fn = do
+  putStrLn ("analyzing file " ++ fn) >> hFlush stdout
 
+  -- check whether or not this is a data file
+  let (dsid :: Int) =
+        if "data15_13TeV" `isInfixOf` fn || "data16_13TeV" `isInfixOf` fn
+          then 0
+          -- this works on files of the form
+          -- /blah/blah/blah/blah.blah.blah.DSID.blah/blah
+          else
+            fn
+              & read . T.unpack . (!! 3)
+                . T.split (== '.') . (!! 1)
+                . reverse . T.split (== '/') . T.pack
 
-    let hists' = hists <&> concatMap (map (\(n, h) -> over path (<> "[" <> n <> "]") h) . M.toList) 
-    runResourceT $ sourceLbs (encodeLazy hists') =$= gzip $$ sinkFile (outfile args)
+  f <- tfileOpen fn
+  tw <- ttree f "sumOfWeights"
+  let fo = F.Fold (biliftA2 (+) (+)) (0 :: CInt, 0 :: Float) id
+  (nevents', sow') <-
+    F.purely L.fold fo
+      $ runTTreeL
+          ((,) <$> readBranch "nevents" <*> readBranch "sumOfWeights")
+          tw
 
-    where
-        printIE :: Int -> a -> IO ()
-        printIE i _ = putStrLn (show i ++ " events analyzed")
-        defsi = SampleInfo (-1) 0 0
+  let (nevents :: Int) = fromEnum nevents'
+      sow = float2Double sow'
+
+  systHs <- fmap M.unions . forM systs $ \(tn, readws) -> do
+    t <- ttree f tn
+    putStrLn $ "looping over tree " <> tn
+
+    -- deal with possible missing trees
+    nt <- isNullTree t
+    when nt $ do
+      putStrLn $ "missing tree " <> tn <> " in file " <> fn <> "."
+      putStrLn "continuing."
+
+    let l =
+          if nt
+            then L.empty
+            else runTTreeL tmp t
+        tmp = do
+          evt <- overlapRemoval <$> fromTTree
+          liftIO $ print evt
+          if dsid == 0
+            then return (evt, M.singleton "data" 1)
+            else do
+              ws <- readws
+              liftIO $ print ws
+              return (evt, ws)
+
+    F.purely L.fold defHs l
+
+  tfileClose f
+
+  case m of
+      Nothing -> return $ Just (dsid, nevents, systHs)
+      Just (dsid', n, hs') -> do
+        when (dsid /= dsid') $ error "attempting to analyze different dsids in one run!!!"
+        return $ Just (dsid, n+nevents, M.unionWith mergeYF systHs hs')
+
+  where
+    defHs :: F.Fold (Event, SystMap Double) (SystMap YodaFolder)
+    defHs = withWeights eventHs

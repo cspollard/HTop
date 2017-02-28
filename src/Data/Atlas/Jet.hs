@@ -8,12 +8,10 @@
 module Data.Atlas.Jet where
 
 import           Control.Applicative      (ZipList (..))
-import qualified Control.Foldl            as F
 import           Control.Lens
 import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
 import           Data.Foldable            (fold)
-import           Data.HEP.LorentzVector
 import           Data.Monoid
 import           Data.TTree
 import qualified Data.Vector              as V
@@ -98,13 +96,13 @@ readJets isData = do
 -- protect against dividing by zero
 bFrag
   :: (Profunctor p, Contravariant f)
-  => Optic' p f Jet (Maybe Double)
+  => Optic' p f Jet Double
 bFrag = to $ \j ->
   let svtrksum = view (svTrkSum.lvPt) j
       trksum = svtrksum + view (pvTrkSum.lvPt) j
   in case trksum of
-    0.0 -> Nothing
-    x   -> Just (svtrksum / x)
+    0.0 -> 0.0
+    x   -> svtrksum / x
 
 trkSum :: Getter Jet PtEtaPhiE
 trkSum = runGetter $ (<>) <$> Getter svTrkSum <*> Getter pvTrkSum
@@ -127,8 +125,8 @@ jetTracksTLV spt seta sphi se = do
     return . ZipList . fmap ZipList $ V.toList trks
 
 -- histograms
-mv2c10Hist :: Fill Jet
-mv2c10Hist =
+mv2c10H :: Fill Jet
+mv2c10H =
   hist1DDef
     (binD (-1) 25 1)
     "MV2c10"
@@ -136,8 +134,8 @@ mv2c10Hist =
     "/mv2c10"
     <$$= mv2c10
 
-trkSumPtHist :: Fill Jet
-trkSumPtHist =
+trkSumPtH :: Fill Jet
+trkSumPtH =
   hist1DDef
     (binD 0 25 500)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
@@ -145,8 +143,8 @@ trkSumPtHist =
     "/trksumpt"
     <$$= trkSum.lvPt
 
-svTrkSumPtHist :: Fill Jet
-svTrkSumPtHist =
+svTrkSumPtH :: Fill Jet
+svTrkSumPtH =
   hist1DDef
     (binD 0 25 500)
     "$p_{\\mathrm T} \\sum \\mathrm{SV trk}$"
@@ -154,20 +152,20 @@ svTrkSumPtHist =
     "/svtrksumpt"
     <$$= svTrkSum . lvPt
 
-bFragHist :: Fill Jet
-bFragHist =
+bFragH :: Fill Jet
+bFragH =
   hist1DDef
     (binD 0 22 1.1)
     "$z_{p_{\\mathrm T}}$"
     (dsigdXpbY "z_{p_{\\mathrm T}}" "1")
     "/bfrag"
-    <$$= folded bFrag
+    <$$= bFrag
 
 tupGetter :: Getter s a -> Getter s b -> Getter s (a, b)
 tupGetter f g = runGetter ((,) <$> Getter f <*> Getter g)
 
-trkSumPtVsJetPtProf :: Fill Jet
-trkSumPtVsJetPtProf =
+trkSumPtVsJetPtP :: Fill Jet
+trkSumPtVsJetPtP =
   prof1DDef
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
@@ -175,8 +173,8 @@ trkSumPtVsJetPtProf =
     "/trksumptvsjetptprof"
     <$$= tupGetter lvPt (trkSum.lvPt)
 
-svTrkSumPtVsJetPtProf :: Fill Jet
-svTrkSumPtVsJetPtProf =
+svTrkSumPtVsJetPtP :: Fill Jet
+svTrkSumPtVsJetPtP =
   prof1DDef
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
@@ -184,17 +182,17 @@ svTrkSumPtVsJetPtProf =
     "/svtrksumptvsjetptprof"
     <$$= tupGetter lvPt (svTrkSum.lvPt)
 
-bFragVsJetPtProf :: Fill Jet
-bFragVsJetPtProf =
+bFragVsJetPtP :: Fill Jet
+bFragVsJetPtP =
   prof1DDef
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<z_{p_{\\mathrm T}}>$"
     "/bfragvsjetptprof"
-    <$$= tupGetter lvPt (bFrag._Just)
+    <$$= tupGetter lvPt bFrag
 
-trkSumPtVsJetEtaProf :: Fill Jet
-trkSumPtVsJetEtaProf =
+trkSumPtVsJetEtaP :: Fill Jet
+trkSumPtVsJetEtaP =
   prof1DDef
     (binD 0 21 2.1)
     "$\\eta$"
@@ -202,8 +200,8 @@ trkSumPtVsJetEtaProf =
     "/trksumptvsjetetaprof"
     <$$= tupGetter lvEta (trkSum.lvPt)
 
-svTrkSumPtVsJetEtaProf :: Fill Jet
-svTrkSumPtVsJetEtaProf =
+svTrkSumPtVsJetEtaP :: Fill Jet
+svTrkSumPtVsJetEtaP =
   prof1DDef
     (binD 0 21 2.1)
     "$\\eta$"
@@ -211,17 +209,17 @@ svTrkSumPtVsJetEtaProf =
     "/svtrksumptvsjetetaprof"
     <$$= tupGetter lvEta (svTrkSum.lvPt)
 
-bFragVsJetEtaProf :: Fill Jet
-bFragVsJetEtaProf =
+bFragVsJetEtaP :: Fill Jet
+bFragVsJetEtaP =
   prof1DDef
     (binD 0 21 2.1)
     "$\\eta$"
     "$<z_{p_{\\mathrm T}}>$"
     "/bfragvsjetetaprof"
-    <$$= tupGetter lvEta (bFrag._Just)
+    <$$= tupGetter lvEta bFrag
 
-svTrkSumPtVsTrkSumPtProf :: Fill Jet
-svTrkSumPtVsTrkSumPtProf =
+svTrkSumPtVsTrkSumPtP :: Fill Jet
+svTrkSumPtVsTrkSumPtP =
   prof1DDef
     (binD 0 10 100)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
@@ -229,14 +227,68 @@ svTrkSumPtVsTrkSumPtProf =
     "/svtrksumptvstrksumptprof"
     <$$= tupGetter (trkSum.lvPt) (svTrkSum.lvPt)
 
-bFragVsTrkSumPtProf :: Fill Jet
-bFragVsTrkSumPtProf =
+bFragVsTrkSumPtP :: Fill Jet
+bFragVsTrkSumPtP =
   prof1DDef
     (binD 0 10 100)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     "$<z_{p_{\\mathrm T}}>$"
     "/bfragvstrksumptprof"
-    <$$= tupGetter (trkSum.lvPt) (bFrag._Just)
+    <$$= tupGetter (trkSum.lvPt) bFrag
+
+nPVTrksH :: Fill Jet
+nPVTrksH =
+  hist1DDef
+    (binD 0 20 20)
+    "$n$ PV tracks"
+    (dsigdXpbY "n" "1")
+    "/npvtrks"
+    <$$= (pvTracks.to (fromIntegral.length))
+
+nSVTrksH :: Fill Jet
+nSVTrksH =
+  hist1DDef
+    (binD 0 10 10)
+    "$n$ SV tracks"
+    (dsigdXpbY "n" "1")
+    "/nsvtrks"
+    <$$= (svTracks.to (fromIntegral.length))
+
+nPVTrksVsJetPtP :: Fill Jet
+nPVTrksVsJetPtP =
+  prof1DDef
+    (binD 25 18 250)
+    "$p_{\\mathrm T}$ [GeV]"
+    "$<n$ PV tracks $>$"
+    "/npvtrksvsjetpt"
+    <$$= tupGetter lvPt (pvTracks.to (fromIntegral.length))
+
+nSVTrksVsJetPtP :: Fill Jet
+nSVTrksVsJetPtP =
+  prof1DDef
+    (binD 25 18 250)
+    "$p_{\\mathrm T}$ [GeV]"
+    "$<n$ SV tracks $>$"
+    "/nsvtrksvsjetpt"
+    <$$= tupGetter lvPt (svTracks.to (fromIntegral.length))
+
+jetHs :: Fill Jet
+jetHs =
+  lvHs
+    <> mconcat
+      [ mv2c10H
+      , trkSumPtH
+      , svTrkSumPtH
+      , bFragH
+      , trkSumPtVsJetPtP
+      , svTrkSumPtVsJetPtP
+      , trkSumPtVsJetEtaP
+      , svTrkSumPtVsJetEtaP
+      , nPVTrksH
+      , nSVTrksH
+      , nPVTrksVsJetPtP
+      , nSVTrksVsJetPtP
+      ]
 
 -- TODO
 -- macro here?
@@ -253,3 +305,6 @@ svTracks = lens _svTracks $ \j x -> j { _svTracks = x }
 pvTrkSum, svTrkSum :: Lens' Jet PtEtaPhiE
 pvTrkSum = lens _pvTrkSum $ \j x -> j { _pvTrkSum = x }
 svTrkSum = lens _svTrkSum $ \j x -> j { _svTrkSum = x }
+
+truthFlavor :: Lens' Jet (Maybe JetFlavor)
+truthFlavor = lens _truthFlavor $ \j x -> j { _truthFlavor = x }
