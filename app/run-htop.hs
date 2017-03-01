@@ -99,6 +99,9 @@ fillFile systs m fn = do
             then return (evt, M.singleton "data" 1)
             else do
               ws <- readws
+              liftIO $ print evt
+              liftIO $ print "pass cut?"
+              liftIO . print $ elmujj evt
               return (evt, ws)
 
     F.purely L.fold defHs l
