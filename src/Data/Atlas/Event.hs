@@ -39,7 +39,7 @@ data Event =
     , _muons       :: [Muon]
     , _jets        :: [Jet]
     , _met         :: PtEtaPhiE
-    } deriving Generic
+    } deriving (Generic, Show)
 
 
 

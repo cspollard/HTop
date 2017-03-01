@@ -7,14 +7,10 @@
 
 module Main where
 
-import           Control.Applicative      (ZipList (..), liftA2)
-import           Control.Arrow            ((&&&))
 import qualified Control.Foldl            as F
 import           Control.Lens
 import           Control.Monad            (forM, when)
-import           Data.Biapplicative
 import           Data.List                (isInfixOf)
-import           Data.Maybe               (fromMaybe)
 import           Data.Semigroup
 import           Data.Serialize           (encodeLazy)
 import           GHC.Float
@@ -87,15 +83,12 @@ fillFile systs m fn = do
 
   f <- tfileOpen fn
   tw <- ttree f "sumOfWeights"
-  let fo = F.Fold (biliftA2 (+) (+)) (0 :: CInt, 0 :: Float) id
-  (nevents', sow') <-
+  let fo = F.Fold (+) (0 :: Float) id
+  sow' <-
     F.purely L.fold fo
-      $ runTTreeL
-          ((,) <$> readBranch "nevents" <*> readBranch "sumOfWeights")
-          tw
+      $ runTTreeL (readBranch "sumOfWeights") tw
 
-  let (nevents :: Int) = fromEnum nevents'
-      sow = float2Double sow'
+  let sow = float2Double sow'
 
   systHs <- fmap M.unions . forM systs $ \(tn, readws) -> do
     t <- ttree f tn
@@ -126,10 +119,10 @@ fillFile systs m fn = do
   tfileClose f
 
   case m of
-      Nothing -> return $ Just (dsid, nevents, systHs)
+      Nothing -> return $ Just (dsid, sow, systHs)
       Just (dsid', n, hs') -> do
         when (dsid /= dsid') $ error "attempting to analyze different dsids in one run!!!"
-        return $ Just (dsid, n+nevents, M.unionWith mergeYF systHs hs')
+        return $ Just (dsid, n+sow, M.unionWith mergeYF systHs hs')
 
   where
     defHs :: F.Fold (Event, SystMap Double) (SystMap YodaFolder)
