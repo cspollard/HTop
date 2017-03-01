@@ -28,8 +28,7 @@ instance HasLorentzVector Electron where
 
 readElectrons :: MonadIO m => TR m [Electron]
 readElectrons = do
-  tlvs' <- lvsFromTTreeF "ElecPt" "ElecEta" "ElecPhi" "ElecE"
-  let tlvs = over traverse ((lvPt //~ 1e3) . (lvE //~ 1e3)) tlvs'
+  tlvs <- lvsFromTTreeF "ElecPt" "ElecEta" "ElecPhi" "ElecE"
   cletas <- fmap float2Double <$> readBranch "ElecClEta"
   chs <- fmap ci2i <$> readBranch "ElecCharge"
   d0sigs <- fmap float2Double <$> readBranch "ElecD0Sig"

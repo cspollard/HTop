@@ -27,8 +27,7 @@ instance HasLorentzVector Muon where
 
 readMuons :: MonadIO m => TR m [Muon]
 readMuons = do
-  tlvs' <- lvsFromTTreeF "MuonPt" "MuonEta" "MuonPhi" "MuonE"
-  let tlvs = over traverse ((lvPt //~ 1e3) . (lvE //~ 1e3)) tlvs'
+  tlvs <- lvsFromTTreeF "MuonPt" "MuonEta" "MuonPhi" "MuonE"
   chs <- fmap ci2i <$> readBranch "MuonCharge"
   d0sigs <- fmap float2Double <$> readBranch "MuonD0Sig"
   ptvc20s <- fmap float2Double <$> readBranch "MuonMIsol20"

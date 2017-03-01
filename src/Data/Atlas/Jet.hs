@@ -60,20 +60,17 @@ jetTracksIsTight =
 
 readJets :: MonadIO m => Bool -> TR m [Jet]
 readJets isData = do
-  tlvs' <- lvsFromTTreeF "JetPt" "JetEta" "JetPhi" "JetE"
-  let tlvs = over traverse ((lvPt //~ 1e3) . (lvE //~ 1e3)) tlvs'
+  tlvs <- lvsFromTTreeF "JetPt" "JetEta" "JetPhi" "JetE"
   mv2c10s <- fmap float2Double <$> readBranch "JetMV2c20"
   jvts <- fmap float2Double <$> readBranch "JetJVT"
 
   pvtrks' <- jetTracksTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
-  let pvtrks'' = over (traverse.traverse) ((lvPt //~ 1e3) . (lvE //~ 1e3)) pvtrks'
   pvtrksTight <- jetTracksIsTight
 
   let f x y = ZipList . fmap snd . filter fst . getZipList $ (,) <$> x <*> y
-      pvtrks = f <$> pvtrksTight <*> pvtrks''
+      pvtrks = f <$> pvtrksTight <*> pvtrks'
 
-  svtrks' <- jetTracksTLV "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
-  let svtrks = over (traverse.traverse) ((lvPt //~ 1e3) . (lvE //~ 1e3)) svtrks'
+  svtrks <- jetTracksTLV "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
 
   let pvtrksum = fold <$> pvtrks
   let svtrksum = fold <$> svtrks
@@ -109,6 +106,8 @@ trkSum :: Getter Jet PtEtaPhiE
 trkSum = runGetter $ (<>) <$> Getter svTrkSum <*> Getter pvTrkSum
 
 
+-- NB:
+-- track info is already stored as doubles!
 jetTracksTLV
   :: MonadIO m
   => String -> String -> String -> String -> TR m (ZipList (ZipList PtEtaPhiE))

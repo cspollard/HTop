@@ -33,9 +33,8 @@ type SystName = T.Text
 
 data Args =
   Args
-    { outfile  :: String
-    , infiles  :: String
-    , xsecfile :: String
+    { outfile :: String
+    , infiles :: String
     } deriving (Show, Generic)
 
 instance ParseRecord Args where
