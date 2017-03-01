@@ -96,12 +96,10 @@ fillFile systs m fn = do
     let l = if nt then L.empty else runTTreeL tmp t
         tmp = do
           evt <- overlapRemoval <$> readEvent (dsid == 0)
-          liftIO $ print evt
           if dsid == 0
             then return (evt, M.singleton "data" 1)
             else do
               ws <- readws
-              liftIO $ print ws
               return (evt, ws)
 
     F.purely L.fold defHs l
