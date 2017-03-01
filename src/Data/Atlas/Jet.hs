@@ -18,16 +18,17 @@ import qualified Data.Vector              as V
 import           GHC.Float
 import           GHC.Generics             (Generic)
 
-data JetFlavor = L | C | B
+data JetFlavor = L | C | B | T
     deriving (Generic, Show, Eq, Ord)
 
 flavFromCInt :: CInt -> JetFlavor
 flavFromCInt x =
   case x of
-    5 -> B
-    4 -> C
-    0 -> L
-    _ -> error $ "bad jet flavor label: " ++ show x
+    5  -> B
+    4  -> C
+    0  -> L
+    15 -> T
+    _  -> error $ "bad jet flavor label: " ++ show x
 
 
 
@@ -79,7 +80,7 @@ readJets isData = do
   flvs <-
     if isData
       then return $ ZipList (repeat Nothing)
-      else fmap (Just . flavFromCInt) <$> readBranch "jetsTrueFlavor"
+      else fmap (Just . flavFromCInt) <$> readBranch "JetTruthLabel"
 
   return . getZipList
     $ Jet

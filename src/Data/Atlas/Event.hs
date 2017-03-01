@@ -12,6 +12,7 @@ module Data.Atlas.Event
   , electrons, muons, jets, met
   , eventHs, overlapRemoval
   , SystMap, withWeights
+  , readEvent
   ) where
 
 import qualified Control.Foldl            as F
@@ -44,14 +45,15 @@ data Event =
 
 
 metFromTTree :: MonadIO m => String -> String -> TR m PtEtaPhiE
-metFromTTree m p = do et <- (/1e3) . float2Double <$> readBranch m
-                      phi <- float2Double <$> readBranch p
-                      return $ PtEtaPhiE et 0 phi et
+metFromTTree m p = do
+  et <- (/1e3) . float2Double <$> readBranch m
+  phi <- float2Double <$> readBranch p
+  return $ PtEtaPhiE et 0 phi et
 
 
-instance FromTTree Event where
-  fromTTree = do
-    isData <- (== (0 :: CInt)) <$> readBranch "sampleID"
+
+readEvent :: MonadIO m => Bool -> TR m Event
+readEvent isData =
     Event
       <$> fmap ci2i (readBranch "Run")
       <*> fmap ci2i (readBranch "Event")

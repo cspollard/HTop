@@ -52,7 +52,7 @@ main = do
 
   let fnl = L.select fns :: L.ListT IO String
       f = F.FoldM
-            (fillFile [("nominal", M.singleton "nominal" <$> readBranch "eventWeight")])
+            (fillFile [("nominal", M.singleton "nominal" <$> readBranch "EvtW")])
             (return Nothing)
             return
 
@@ -70,23 +70,16 @@ fillFile systs m fn = do
   putStrLn ("analyzing file " ++ fn) >> hFlush stdout
 
   -- check whether or not this is a data file
-  let (dsid :: Int) =
-        if "data15_13TeV" `isInfixOf` fn || "data16_13TeV" `isInfixOf` fn
-          then 0
-          -- this works on files of the form
-          -- /blah/blah/blah/blah.blah.blah.DSID.blah/blah
-          else
-            fn
-              & read . T.unpack . (!! 3)
-                . T.split (== '.') . (!! 1)
-                . reverse . T.split (== '/') . T.pack
-
   f <- tfileOpen fn
-  tw <- ttree f "sumOfWeights"
-  let fo = F.Fold (+) (0 :: Float) id
+  tw <- ttree f "sumWeights"
+  (L.Cons (dsidc :: CInt) _) <- next $ runTTreeL (readBranch "dsid") tw
+
+  let dsid = fromEnum dsidc
+      fo = F.Fold (+) (0 :: Float) id
+
   sow' <-
     F.purely L.fold fo
-      $ runTTreeL (readBranch "sumOfWeights") tw
+      $ runTTreeL (readBranch "totalEventsWeighted") tw
 
   let sow = float2Double sow'
 
@@ -100,12 +93,9 @@ fillFile systs m fn = do
       putStrLn $ "missing tree " <> tn <> " in file " <> fn <> "."
       putStrLn "continuing."
 
-    let l =
-          if nt
-            then L.empty
-            else runTTreeL tmp t
+    let l = if nt then L.empty else runTTreeL tmp t
         tmp = do
-          evt <- overlapRemoval <$> fromTTree
+          evt <- overlapRemoval <$> readEvent (dsid == 0)
           liftIO $ print evt
           if dsid == 0
             then return (evt, M.singleton "data" 1)
