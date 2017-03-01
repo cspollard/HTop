@@ -76,7 +76,7 @@ fillFile systs m fn = do
 
   sow' <-
     F.purely L.fold fo
-      $ runTTreeL (float2Double <$> readBranch "totalEventsWeighted") tw
+      $ runTTreeL (readBranch "totalEventsWeighted") tw
 
   let sow = float2Double sow'
 
