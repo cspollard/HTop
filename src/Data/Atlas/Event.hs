@@ -12,7 +12,7 @@ module Data.Atlas.Event
   , electrons, muons, jets, met
   , eventHs, overlapRemoval
   , SystMap, withWeights
-  , readEvent
+  , readEvent, elmujj, pruneJets
   ) where
 
 import qualified Control.Foldl            as F
@@ -78,10 +78,11 @@ muH =
 eventHs :: Fill Event
 eventHs =
   muH
-  <> (ptH <$$= met)
-  <> (F.handles (to distribute . folded) jetHs <$$= jets)
-  <> (F.handles (to distribute . folded) electronHs <$$= electrons)
-  <> (F.handles (to distribute . folded) muonHs <$$= muons)
+    <> (ptH <$$= met)
+    <> (prefixYF "/jets" <$> F.handles (to distribute . folded) lvHs <$$= jets)
+    <> (prefixYF "/electrons" <$> F.handles (to distribute . folded) electronHs <$$= electrons)
+    <> (prefixYF "/muons" <$> F.handles (to distribute . folded) muonHs <$$= muons)
+    <> (prefixYF "/probejets" <$> F.handles (to distribute . folded) jetHs <$$= jets . to probeJets)
   where distribute (fs, x) = (,) <$> fs <*> pure x
 
 
@@ -114,6 +115,7 @@ met :: Lens' Event PtEtaPhiE
 met = lens _met $ \e x -> e { _met = x }
 
 type SystMap = M.Map T.Text
+
 withWeights :: Fill a -> F.Fold (a, SystMap Double) (SystMap YodaFolder)
 withWeights (F.Fold comb start done) = F.Fold comb' start' done'
   where
@@ -123,3 +125,15 @@ withWeights (F.Fold comb start done) = F.Fold comb' start' done'
     f xw Nothing  = Just $ comb start xw
     f xw (Just h) = Just $ comb h xw
     done' = fmap done
+
+
+probeJets :: [Jet] -> [Jet]
+probeJets [j1, j2] = [j2 | probeJet j1 j2] ++ [j1 | probeJet j2 j1]
+    where probeJet j j' = bTagged j && hasSV j'
+probeJets _        = []
+
+elmujj :: Event -> Bool
+elmujj e = length (_electrons e) == 1 && length (_muons e) == 1 && length (_jets e) == 2
+
+pruneJets :: Event -> Event
+pruneJets = over jets $ filter (\j -> view lvPt j > 30 && view lvAbsEta j < 2.1)

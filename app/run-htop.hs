@@ -7,23 +7,21 @@
 
 module Main where
 
+import           Codec.Compression.GZip   (compress)
 import qualified Control.Foldl            as F
 import           Control.Lens
 import           Control.Monad            (forM, when)
-import           Data.List                (isInfixOf)
+import qualified Data.ByteString.Lazy     as BS
+import qualified Data.Map.Strict          as M
 import           Data.Semigroup
 import           Data.Serialize           (encodeLazy)
+import qualified Data.Text                as T
 import           GHC.Float
 import           List.Transformer
-import           Options.Generic
-
-import qualified Data.IntMap.Strict       as IM
-import qualified Data.Map.Strict          as M
-import qualified Data.Text                as T
 import qualified List.Transformer         as L
+import           Options.Generic
 import           System.IO                (hFlush, stdout)
 
-import           Data.Atlas.CrossSections
 import           Data.Atlas.Event
 import           Data.Atlas.Histogramming
 import           Data.Atlas.Selection
@@ -58,7 +56,9 @@ main = do
 
   imh <- F.impurely L.foldM f fnl
 
-  return ()
+  putStrLn ("writing to file " ++ outfile args) >> hFlush stdout
+
+  BS.writeFile (outfile args) (compress . encodeLazy $ imh)
 
 
 fillFile
@@ -95,7 +95,7 @@ fillFile systs m fn = do
 
     let l = if nt then L.empty else runTTreeL tmp t
         tmp = do
-          evt <- overlapRemoval <$> readEvent (dsid == 0)
+          evt <- overlapRemoval . pruneJets <$> readEvent (dsid == 0)
           if dsid == 0
             then return (evt, M.singleton "data" 1)
             else do
@@ -114,4 +114,4 @@ fillFile systs m fn = do
 
   where
     defHs :: F.Fold (Event, SystMap Double) (SystMap YodaFolder)
-    defHs = withWeights eventHs
+    defHs = withWeights . channel "/elmujj" elmujj $ eventHs

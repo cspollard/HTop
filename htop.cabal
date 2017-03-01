@@ -75,6 +75,7 @@ executable run-htop
                      , histogram-fill == 0.8.*
                      , foldl == 1.2.*
                      , list-transformer == 1.0.*
+                     , zlib == 0.6.*
                      , hhep == 0.2.*
                      , histogram-extras == 0.2.*
                      , ttree == 0.2.*

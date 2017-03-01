@@ -291,6 +291,24 @@ jetHs =
       , nSVTrksVsJetPtP
       ]
 
+bLabeled :: Jet -> Bool
+bLabeled = views truthFlavor (== Just B)
+
+cLabeled :: Jet -> Bool
+cLabeled = views truthFlavor (== Just C)
+
+lLabeled :: Jet -> Bool
+lLabeled = views truthFlavor (== Just L)
+
+tLabeled :: Jet -> Bool
+tLabeled = views truthFlavor (== Just T)
+
+bTagged :: Jet -> Bool
+bTagged = views mv2c10 (> 0.8244273)
+
+hasSV :: Jet -> Bool
+hasSV = views svTracks (not . null)
+
 -- TODO
 -- macro here?
 -- can't use template haskell
