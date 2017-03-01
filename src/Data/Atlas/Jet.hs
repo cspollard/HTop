@@ -62,7 +62,7 @@ jetTracksIsTight =
 readJets :: MonadIO m => Bool -> TR m [Jet]
 readJets isData = do
   tlvs <- lvsFromTTreeF "JetPt" "JetEta" "JetPhi" "JetE"
-  mv2c10s <- fmap float2Double <$> readBranch "JetMV2c20"
+  mv2c10s <- fmap float2Double <$> readBranch "JetMV2c10"
   jvts <- fmap float2Double <$> readBranch "JetJVT"
 
   pvtrks' <- jetTracksTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
@@ -171,7 +171,7 @@ trkSumPtVsJetPtP =
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
-    "/trksumptvsjetptprof"
+    "/trksumptvsjetpt"
     <$$= tupGetter lvPt (trkSum.lvPt)
 
 svTrkSumPtVsJetPtP :: Fill Jet
@@ -180,7 +180,7 @@ svTrkSumPtVsJetPtP =
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-    "/svtrksumptvsjetptprof"
+    "/svtrksumptvsjetpt"
     <$$= tupGetter lvPt (svTrkSum.lvPt)
 
 bFragVsJetPtP :: Fill Jet
@@ -189,7 +189,7 @@ bFragVsJetPtP =
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<z_{p_{\\mathrm T}}>$"
-    "/bfragvsjetptprof"
+    "/bfragvsjetpt"
     <$$= tupGetter lvPt bFrag
 
 trkSumPtVsJetEtaP :: Fill Jet
@@ -198,7 +198,7 @@ trkSumPtVsJetEtaP =
     (binD 0 21 2.1)
     "$\\eta$"
     "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
-    "/trksumptvsjetetaprof"
+    "/trksumptvsjeteta"
     <$$= tupGetter lvEta (trkSum.lvPt)
 
 svTrkSumPtVsJetEtaP :: Fill Jet
@@ -207,7 +207,7 @@ svTrkSumPtVsJetEtaP =
     (binD 0 21 2.1)
     "$\\eta$"
     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-    "/svtrksumptvsjetetaprof"
+    "/svtrksumptvsjeteta"
     <$$= tupGetter lvEta (svTrkSum.lvPt)
 
 bFragVsJetEtaP :: Fill Jet
@@ -216,7 +216,7 @@ bFragVsJetEtaP =
     (binD 0 21 2.1)
     "$\\eta$"
     "$<z_{p_{\\mathrm T}}>$"
-    "/bfragvsjetetaprof"
+    "/bfragvsjeteta"
     <$$= tupGetter lvEta bFrag
 
 svTrkSumPtVsTrkSumPtP :: Fill Jet
@@ -225,7 +225,7 @@ svTrkSumPtVsTrkSumPtP =
     (binD 0 10 100)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-    "/svtrksumptvstrksumptprof"
+    "/svtrksumptvstrksumpt"
     <$$= tupGetter (trkSum.lvPt) (svTrkSum.lvPt)
 
 bFragVsTrkSumPtP :: Fill Jet
@@ -234,7 +234,7 @@ bFragVsTrkSumPtP =
     (binD 0 10 100)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     "$<z_{p_{\\mathrm T}}>$"
-    "/bfragvstrksumptprof"
+    "/bfragvstrksumpt"
     <$$= tupGetter (trkSum.lvPt) bFrag
 
 nPVTrksH :: Fill Jet
