@@ -9,7 +9,6 @@ module Main where
 
 import           Codec.Compression.GZip   (compress)
 import qualified Control.Foldl            as F
-import           Control.Lens
 import           Control.Monad            (forM, when)
 import qualified Data.ByteString.Lazy     as BS
 import qualified Data.Map.Strict          as M
@@ -24,7 +23,6 @@ import           System.IO                (hFlush, stdout)
 
 import           Data.Atlas.Event
 import           Data.Atlas.Histogramming
-import           Data.Atlas.Selection
 import           Data.TFile
 import           Data.TTree
 
@@ -49,11 +47,11 @@ main = do
 
   let fnl = L.select fns :: L.ListT IO String
       f = F.FoldM
-            (fillFile [("nominal", M.singleton "nominal" <$> readBranch "EvtW")])
+            (fillFile [("nominal", M.singleton "nominal" . float2Double <$> readBranch "EvtW")])
             (return Nothing)
             return
 
-  imh <- F.impurely L.foldM f fnl
+  (imh :: Maybe (Int, Double, SystMap YodaFolder)) <- F.impurely L.foldM f fnl
 
   putStrLn ("writing to file " ++ outfile args) >> hFlush stdout
 
@@ -99,9 +97,6 @@ fillFile systs m fn = do
             then return (evt, M.singleton "data" 1)
             else do
               ws <- readws
-              liftIO $ print evt
-              liftIO $ print "pass cut?"
-              liftIO . print $ elmujj evt
               return (evt, ws)
 
     F.purely L.fold defHs l

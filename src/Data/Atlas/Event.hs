@@ -44,9 +44,9 @@ data Event =
 
 
 
-metFromTTree :: MonadIO m => String -> String -> TR m PtEtaPhiE
-metFromTTree m p = do
-  et <- (/1e3) . float2Double <$> readBranch m
+readMET :: MonadIO m => String -> String -> TR m PtEtaPhiE
+readMET m p = do
+  et <- float2Double <$> readBranch m
   phi <- float2Double <$> readBranch p
   return $ PtEtaPhiE et 0 phi et
 
@@ -61,7 +61,7 @@ readEvent isData =
       <*> readElectrons
       <*> readMuons
       <*> readJets isData
-      <*> metFromTTree "ETMiss" "ETMissPhi"
+      <*> readMET "ETMiss" "ETMissPhi"
     where
       ci2i :: CInt -> Int
       ci2i = fromEnum
@@ -78,7 +78,7 @@ muH =
 eventHs :: Fill Event
 eventHs =
   muH
-    <> (ptH <$$= met)
+    <> (prefixYF "/met" <$> ptH <$$= met)
     <> (prefixYF "/jets" <$> F.handles (to distribute . folded) lvHs <$$= jets)
     <> (prefixYF "/electrons" <$> F.handles (to distribute . folded) electronHs <$$= electrons)
     <> (prefixYF "/muons" <$> F.handles (to distribute . folded) muonHs <$$= muons)
