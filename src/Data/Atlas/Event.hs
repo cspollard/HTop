@@ -78,11 +78,16 @@ muH =
 eventHs :: Fill Event
 eventHs =
   muH
-    <> (prefixYF "/met" <$> ptH <$$= met)
-    <> (prefixYF "/jets" <$> F.handles (to distribute . folded) lvHs <$$= jets)
-    <> (prefixYF "/electrons" <$> F.handles (to distribute . folded) electronHs <$$= electrons)
-    <> (prefixYF "/muons" <$> F.handles (to distribute . folded) muonHs <$$= muons)
-    <> (prefixYF "/probejets" <$> F.handles (to distribute . folded) jetHs <$$= jets . to probeJets)
+    <> (prefixYF "/met" . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
+        <$> ptH <$$= met)
+    <> (prefixYF "/jets" . over (traverse.xlabel) ("jet " <>)
+        <$> F.handles (to distribute . folded) lvHs <$$= jets)
+    <> (prefixYF "/electrons" . over (traverse.xlabel) ("electron " <>)
+        <$> F.handles (to distribute . folded) electronHs <$$= electrons)
+    <> (prefixYF "/muons" . over (traverse.xlabel) ("muon " <>)
+        <$> F.handles (to distribute . folded) muonHs <$$= muons)
+    <> (prefixYF "/probejets" . over (traverse.xlabel) ("probe jet " <>)
+        <$> F.handles (to distribute . folded) jetHs <$$= jets . to probeJets)
   where distribute (fs, x) = (,) <$> fs <*> pure x
 
 

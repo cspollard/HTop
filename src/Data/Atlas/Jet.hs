@@ -13,6 +13,7 @@ import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
 import           Data.Foldable            (fold)
 import           Data.Monoid
+import qualified Data.Text                as T
 import           Data.TTree
 import qualified Data.Vector              as V
 import           GHC.Float
@@ -274,21 +275,44 @@ nSVTrksVsJetPtP =
 
 jetHs :: Fill Jet
 jetHs =
-  lvHs
-    <> mconcat
-      [ mv2c10H
-      , trkSumPtH
-      , svTrkSumPtH
-      , bFragH
-      , trkSumPtVsJetPtP
-      , svTrkSumPtVsJetPtP
-      , trkSumPtVsJetEtaP
-      , svTrkSumPtVsJetEtaP
-      , nPVTrksH
-      , nSVTrksH
-      , nPVTrksVsJetPtP
-      , nSVTrksVsJetPtP
-      ]
+  channels
+    [ ("/allJetFlavs", const True)
+    , ("/light", views truthFlavor (== Just L))
+    , ("/charm", views truthFlavor (== Just C))
+    , ("/bottom", views truthFlavor (== Just B))
+    ]
+  $ channels
+    ( ("/inclusive", const True)
+    : ("/pt_gt500", (> 500) . view lvPt)
+    : bins' "/pt" (view lvPt) [20, 30, 50, 75, 100, 150, 250, 500]
+    ++ bins' "/eta" (abs . view lvEta) [0, 0.5, 1.0, 1.5, 2.0, 2.5]
+    )
+    $ mconcat
+        [ lvHs
+        , mv2c10H
+        , trkSumPtH
+        , svTrkSumPtH
+        , bFragH
+        , trkSumPtVsJetPtP
+        , svTrkSumPtVsJetPtP
+        , trkSumPtVsJetEtaP
+        , svTrkSumPtVsJetEtaP
+        , nPVTrksH
+        , nSVTrksH
+        , nPVTrksVsJetPtP
+        , nSVTrksVsJetPtP
+        ]
+
+  where
+    bins' :: T.Text -> (Jet -> Double) -> [Double] -> [(T.Text, Jet -> Bool)]
+    bins' lab f (b0:b1:bs) =
+      ( fixT $ lab <> "_" <> T.pack (show b0) <> "_" <> T.pack (show b1)
+      , \j -> let x = f j in b0 < x && x < b1
+      ) : bins' lab f (b1:bs)
+
+    bins' _ _ _ = []
+
+    fixT = T.replace "-" "m"
 
 bLabeled :: Jet -> Bool
 bLabeled = views truthFlavor (== Just B)
