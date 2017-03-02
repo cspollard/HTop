@@ -277,9 +277,10 @@ jetHs :: Fill Jet
 jetHs =
   channels
     [ ("/allJetFlavs", const True)
-    , ("/light", views truthFlavor (== Just L))
-    , ("/charm", views truthFlavor (== Just C))
-    , ("/bottom", views truthFlavor (== Just B))
+    , ("/tau", tLabeled)
+    , ("/light", lLabeled)
+    , ("/charm", cLabeled)
+    , ("/bottom", bLabeled)
     ]
   $ channels
     ( ("/inclusive", const True)

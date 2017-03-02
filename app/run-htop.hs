@@ -90,7 +90,7 @@ fillFile systs m fn = do
       putStrLn $ "missing tree " <> tn <> " in file " <> fn <> "."
       putStrLn "continuing."
 
-    let l = if nt then L.empty else runTTreeLDebug tmp t
+    let l = if nt then L.empty else runTTreeL tmp t
         tmp = do
           evt <- overlapRemoval . pruneJets <$> readEvent (dsid == 0)
           if dsid == 0
