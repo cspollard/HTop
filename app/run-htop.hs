@@ -101,6 +101,7 @@ fillFile systs m fn = do
 
     F.purely L.fold defHs l
 
+  putStrLn $ "closing file " <> fn
   tfileClose f
 
   case m of
