@@ -277,34 +277,39 @@ jetHs :: Fill Jet
 jetHs =
   channels
     [ ("/allJetFlavs", const True)
-    , ("/tau", tLabeled)
-    , ("/light", lLabeled)
-    , ("/charm", cLabeled)
     , ("/bottom", bLabeled)
     ]
   $ channels
+    [ ("/2psvtrks", view (svTracks . lengthOfWith (> 2)))
+    , ("/2svtrks", view (svTracks . lengthOfWith (== 2)))
+    , ("/3svtrks", view (svTracks . lengthOfWith (== 3)))
+    , ("/4psvtrks", view (svTracks . lengthOfWith (>= 4)))
+    ]
+  $ channels
     ( ("/inclusive", const True)
-    : ("/pt_gt500", (> 500) . view lvPt)
-    : bins' "/pt" (view lvPt) [20, 30, 50, 75, 100, 150, 250, 500]
+    : ("/pt_gt200", (> 200) . view lvPt)
+    : bins' "/pt" (view lvPt) [20, 30, 50, 75, 100, 150, 200]
     ++ bins' "/eta" (abs . view lvEta) [0, 0.5, 1.0, 1.5, 2.0, 2.5]
     )
-    $ mconcat
-        [ lvHs
-        , mv2c10H
-        , trkSumPtH
-        , svTrkSumPtH
-        , bFragH
-        , trkSumPtVsJetPtP
-        , svTrkSumPtVsJetPtP
-        , trkSumPtVsJetEtaP
-        , svTrkSumPtVsJetEtaP
-        , nPVTrksH
-        , nSVTrksH
-        , nPVTrksVsJetPtP
-        , nSVTrksVsJetPtP
-        ]
+  $ mconcat
+    [ lvHs
+    , mv2c10H
+    , trkSumPtH
+    , svTrkSumPtH
+    , bFragH
+    , trkSumPtVsJetPtP
+    , svTrkSumPtVsJetPtP
+    , trkSumPtVsJetEtaP
+    , svTrkSumPtVsJetEtaP
+    , nPVTrksH
+    , nSVTrksH
+    , nPVTrksVsJetPtP
+    , nSVTrksVsJetPtP
+    ]
 
   where
+    lengthOfWith f = to $ f . length
+
     bins' :: T.Text -> (Jet -> Double) -> [Double] -> [(T.Text, Jet -> Bool)]
     bins' lab f (b0:b1:bs) =
       ( fixT $ lab <> "_" <> T.pack (show b0) <> "_" <> T.pack (show b1)
