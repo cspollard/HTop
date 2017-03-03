@@ -19,7 +19,8 @@ import           GHC.Float
 import           List.Transformer
 import qualified List.Transformer         as L
 import           Options.Generic
-import           System.IO                (hFlush, stdout)
+import           System.IO                (BufferMode (..), hSetBuffering,
+                                           stdout)
 
 import           Data.Atlas.Event
 import           Data.Atlas.Histogramming
@@ -39,6 +40,8 @@ instance ParseRecord Args where
 
 main :: IO ()
 main = do
+  hSetBuffering stdout LineBuffering
+
   -- read in cmd line args
   args <- getRecord "run-hs" :: IO Args
 
@@ -53,7 +56,7 @@ main = do
 
   (imh :: Maybe (Int, Double, SystMap YodaFolder)) <- F.impurely L.foldM f fnl
 
-  putStrLn ("writing to file " ++ outfile args) >> hFlush stdout
+  putStrLn ("writing to file " ++ outfile args)
 
   BS.writeFile (outfile args) (compress . encodeLazy $ imh)
 
@@ -64,7 +67,7 @@ fillFile
   -> String
   -> IO (Maybe (Int, Double, SystMap YodaFolder))
 fillFile systs m fn = do
-  putStrLn ("analyzing file " ++ fn) >> hFlush stdout
+  putStrLn $ "analyzing file " <> fn
 
   -- check whether or not this is a data file
   f <- tfileOpen fn
