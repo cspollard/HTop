@@ -92,10 +92,8 @@ readJets isData = do
       <*> flvs
 
 
+bFrag :: (Profunctor p, Contravariant f, Functor f) => Optic' p f Jet Double
 -- protect against dividing by zero
-bFrag
-  :: (Profunctor p, Contravariant f)
-  => Optic' p f Jet Double
 bFrag = to $ \j ->
   let svtrksum = view (svTrkSum.lvPt) j
       trksum = svtrksum + view (pvTrkSum.lvPt) j
