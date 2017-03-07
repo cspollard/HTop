@@ -48,6 +48,6 @@ procDict =
   [ (410000, "PowPyNom")
   , (410001, "PowPyRadUp")
   , (410002, "PowPyRadDown")
-  , (410003, "aCMAtNLOHer")
+  , (410003, "aMCHer")
   , (410004, "PowHer")
   ]

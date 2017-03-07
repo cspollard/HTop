@@ -74,7 +74,7 @@ readJets isData = do
   svtrks <- jetTracksTLV "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
 
   let pvtrksum = fold <$> pvtrks
-  let svtrksum = fold <$> svtrks
+      svtrksum = fold <$> svtrks
   flvs <-
     if isData
       then return $ ZipList (repeat Nothing)
@@ -298,8 +298,10 @@ jetHs =
     , bFragH
     , trkSumPtVsJetPtP
     , svTrkSumPtVsJetPtP
+    , bFragVsJetPtP
     , trkSumPtVsJetEtaP
     , svTrkSumPtVsJetEtaP
+    , bFragVsJetEtaP
     , nPVTrksH
     , nSVTrksH
     , nPVTrksVsJetPtP
