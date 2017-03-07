@@ -1,11 +1,2 @@
 cut DSL (a ala root TTree::Project)
-
-Histograms needs cleanup
-
-split library and executable.
-
-criterion for timing
-
-look into async::asyncBound to get over thread safety problems with ROOT
-
-add mu plot
+- this should take scale factors into account.
