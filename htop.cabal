@@ -21,6 +21,7 @@ library
                      , Data.Atlas.Jet
                      , Data.Atlas.Muon
                      , Data.Atlas.Selection
+                     , Data.Atlas.PtEtaPhiE
 
   other-modules:
   other-extensions:
