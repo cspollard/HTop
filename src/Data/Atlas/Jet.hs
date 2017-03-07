@@ -278,7 +278,7 @@ jetHs =
     , ("/bottom", bLabeled)
     ]
   $ channels
-    [ ("/2psvtrks", view (svTracks . lengthOfWith (> 2)))
+    [ ("/2psvtrks", view (svTracks . lengthOfWith (>= 2)))
     , ("/2svtrks", view (svTracks . lengthOfWith (== 2)))
     , ("/3svtrks", view (svTracks . lengthOfWith (== 3)))
     , ("/4psvtrks", view (svTracks . lengthOfWith (>= 4)))
