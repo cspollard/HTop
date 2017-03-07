@@ -276,6 +276,7 @@ jetHs =
   channels
     [ ("/allJetFlavs", const True)
     , ("/bottom", bLabeled)
+    , ("/notbottom", not . bLabeled)
     ]
   $ channels
     [ ("/2psvtrks", view (svTracks . lengthOfWith (>= 2)))
