@@ -18,10 +18,7 @@ main :: IO ()
 main = mainWith writeFiles
 
 writeFiles :: String -> ProcMap (SystMap YodaFolder) -> IO ()
-writeFiles outf pm = do
-  mapM_ (mapM_ print . M.keys) pm
-  let sm = collapseProcs pm
-  mapM_ print $ M.keys sm
+writeFiles outf pm =
   iforM_ (collapseProcs pm) $
       \ds hs -> T.writeFile (outf ++ '/' : T.unpack ds ++ ".yoda")
                   (ifoldMap printYodaObj hs)
