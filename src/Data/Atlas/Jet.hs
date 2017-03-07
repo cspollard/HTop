@@ -276,7 +276,7 @@ jetHs =
   channels
     [ ("/allJetFlavs", const True)
     , ("/bottom", bLabeled)
-    , ("/notbottom", not . bLabeled)
+    , ("/notbottom", notBLabeled)
     ]
   $ channels
     [ ("/2psvtrks", view (svTracks . lengthOfWith (>= 2)))
@@ -332,6 +332,9 @@ lLabeled = views truthFlavor (== Just L)
 
 tLabeled :: Jet -> Bool
 tLabeled = views truthFlavor (== Just T)
+
+notBLabeled :: Jet -> Bool
+notBLabeled = getAny . views (truthFlavor._Just) (Any . (/= B))
 
 bTagged :: Jet -> Bool
 bTagged = views mv2c10 (> 0.8244273)
