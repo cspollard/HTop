@@ -64,7 +64,11 @@ readJets :: MonadIO m => Bool -> TR m [Jet]
 readJets isData = do
   tlvs <- lvsFromTTreeF "JetPt" "JetEta" "JetPhi" "JetE"
   mv2c10s <- fmap float2Double <$> readBranch "JetMV2c10"
-  mv2c10sfs <- fmap (Product . float2Double) <$> readBranch "JetBtagSF"
+  mv2c10sfs <-
+    if isData
+      then pure (pure 1)
+      else fmap (Product . float2Double) <$> readBranch "JetBtagSF"
+      
   jvts <- fmap float2Double <$> readBranch "JetJVT"
 
   pvtrks' <- jetTracksTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
@@ -292,7 +296,7 @@ jetHs =
     ( ("/inclusive", const True)
     : ("/pt_gt200", (> 200) . view lvPt)
     : bins' "/pt" (view lvPt) [20, 30, 50, 75, 100, 150, 200]
-    ++ bins' "/eta" (abs . view lvEta) [0, 0.5, 1.0, 1.5, 2.0, 2.5]
+    ++ bins' "/eta" (view lvAbsEta) [0, 0.5, 1.0, 1.5, 2.0, 2.5]
     )
   $ mconcat
     [ lvHs
