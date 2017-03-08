@@ -26,6 +26,7 @@ import           System.IO                (BufferMode (..), hSetBuffering,
 import           Data.Atlas.Corrected
 import           Data.Atlas.Event
 import           Data.Atlas.Histogramming
+import           Data.Atlas.Systematics
 import           Data.TFile
 import           Data.TTree
 
@@ -52,11 +53,10 @@ main = do
 
   let fnl = L.select fns :: L.ListT IO String
       f = F.FoldM
-            (fillFile [("nominal", M.singleton "nominal" . float2Double <$> readBranch "EvtW")])
+            (fillFile allVariations)
             (return Nothing)
             return
 
-  -- (imh :: Maybe (Int, Double, SystMap YodaFolder)) <- F.impurely L.foldM f fnl
   imh <- F.impurely L.foldM f fnl
 
   putStrLn ("writing to file " ++ outfile args)
@@ -65,7 +65,7 @@ main = do
 
 
 fillFile
-  :: [(TreeName, TR IO (M.Map SystName Double))]
+  :: [(TreeName, TR IO (SystMap Double))]
   -> Maybe (Int, Double, SystMap YodaFolder)
   -> String
   -> IO (Maybe (Int, Double, SystMap YodaFolder))
@@ -111,12 +111,15 @@ fillFile systs m fn = do
   tfileClose f
 
   case m of
-      Nothing -> return $ Just (dsid, sow, systHs)
+      Nothing ->
+        sow `seq` systHs `seq` return (Just (dsid, sow, systHs))
       Just (dsid', n, hs') -> do
-        when (dsid /= dsid') $ error "attempting to analyze different dsids in one run!!!"
-        return $ Just (dsid, n+sow, M.unionWith mergeYF systHs hs')
+        when (dsid /= dsid')
+          $ error "attempting to analyze different dsids in one run!!!"
+        let n' = n+sow
+            sm' = M.unionWith mergeYF systHs hs'
+        n' `seq` sm' `seq` return (Just (dsid, n', sm'))
 
   where
-    -- defHs :: F.Fold (Event, SystMap Double) (SystMap YodaFolder)
     defHs :: F.Fold (CorrectedT ScaleFactor SystMap Event) (SystMap YodaFolder)
     defHs = withWeights . channel "/elmujj" elmujj $ eventHs

@@ -22,6 +22,7 @@ library
                      , Data.Atlas.Muon
                      , Data.Atlas.Selection
                      , Data.Atlas.PtEtaPhiE
+                     , Data.Atlas.Systematics
 
   other-modules:
   other-extensions:

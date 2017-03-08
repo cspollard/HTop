@@ -14,6 +14,10 @@ import qualified Data.Text          as T
 import qualified Data.Text.IO       as T
 import           Data.YODA.Obj
 
+
+-- TODO
+-- this does not deal with systematic uncertainties at all.
+
 main :: IO ()
 main = mainWith writeFiles
 

@@ -37,7 +37,7 @@ flavFromCInt x =
 data Jet =
   Jet
     { _jPtEtaPhiE  :: PtEtaPhiE
-    , _mv2c10      :: Corrected ScaleFactor Double
+    , _mv2c10      :: Corrected SF Double
     , _jvt         :: Double
     , _pvTracks    :: [PtEtaPhiE]
     , _pvTrkSum    :: PtEtaPhiE
@@ -340,7 +340,7 @@ tLabeled = views truthFlavor (== Just T)
 notBLabeled :: Jet -> Bool
 notBLabeled = getAny . views (truthFlavor._Just) (Any . (/= B))
 
-bTagged :: Jet -> Corrected ScaleFactor Bool
+bTagged :: Jet -> Corrected SF Bool
 bTagged = views mv2c10 (fmap (> 0.8244273))
 
 hasSV :: Jet -> Bool
@@ -349,7 +349,7 @@ hasSV = views svTracks (not . null)
 -- TODO
 -- macro here?
 -- can't use template haskell
-mv2c10 :: Lens' Jet (Corrected ScaleFactor Double)
+mv2c10 :: Lens' Jet (Corrected SF Double)
 mv2c10 = lens _mv2c10 $ \j x -> j { _mv2c10 = x }
 
 jvt :: Lens' Jet Double
