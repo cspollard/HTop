@@ -9,6 +9,7 @@ module Data.Atlas.Jet where
 
 import           Control.Applicative      (ZipList (..))
 import           Control.Lens
+import           Data.Atlas.Corrected
 import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
 import           Data.Foldable            (fold)
@@ -36,7 +37,7 @@ flavFromCInt x =
 data Jet =
   Jet
     { _jPtEtaPhiE  :: PtEtaPhiE
-    , _mv2c10      :: Double
+    , _mv2c10      :: Corrected ScaleFactor Double
     , _jvt         :: Double
     , _pvTracks    :: [PtEtaPhiE]
     , _pvTrkSum    :: PtEtaPhiE
@@ -63,6 +64,7 @@ readJets :: MonadIO m => Bool -> TR m [Jet]
 readJets isData = do
   tlvs <- lvsFromTTreeF "JetPt" "JetEta" "JetPhi" "JetE"
   mv2c10s <- fmap float2Double <$> readBranch "JetMV2c10"
+  mv2c10sfs <- fmap (Product . float2Double) <$> readBranch "JetBtagSF"
   jvts <- fmap float2Double <$> readBranch "JetJVT"
 
   pvtrks' <- jetTracksTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
@@ -83,7 +85,7 @@ readJets isData = do
   return . getZipList
     $ Jet
       <$> tlvs
-      <*> mv2c10s
+      <*> (curry withCorrection <$> mv2c10s <*> mv2c10sfs)
       <*> jvts
       <*> fmap getZipList pvtrks
       <*> pvtrksum
@@ -124,6 +126,8 @@ jetTracksTLV spt seta sphi se = do
     return . ZipList . fmap ZipList $ V.toList trks
 
 -- histograms
+-- TODO
+-- how do we propogate the event weight down to the jet?
 mv2c10H :: Fill Jet
 mv2c10H =
   hist1DDef
@@ -131,7 +135,7 @@ mv2c10H =
     "MV2c10"
     (dsigdXpbY "\\mathrm{MV2c10}" "1")
     "/mv2c10"
-    <$$= mv2c10
+    <$$= view mv2c10
 
 trkSumPtH :: Fill Jet
 trkSumPtH =
@@ -140,7 +144,7 @@ trkSumPtH =
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     (dsigdXpbY pt gev)
     "/trksumpt"
-    <$$= trkSum.lvPt
+    <$= view (trkSum.lvPt)
 
 svTrkSumPtH :: Fill Jet
 svTrkSumPtH =
@@ -149,7 +153,7 @@ svTrkSumPtH =
     "$p_{\\mathrm T} \\sum \\mathrm{SV trk}$"
     (dsigdXpbY pt gev)
     "/svtrksumpt"
-    <$$= svTrkSum . lvPt
+    <$= view (svTrkSum.lvPt)
 
 bFragH :: Fill Jet
 bFragH =
@@ -158,7 +162,7 @@ bFragH =
     "$z_{p_{\\mathrm T}}$"
     (dsigdXpbY "z_{p_{\\mathrm T}}" "1")
     "/bfrag"
-    <$$= bFrag
+    <$= view bFrag
 
 tupGetter :: Getter s a -> Getter s b -> Getter s (a, b)
 tupGetter f g = runGetter ((,) <$> Getter f <*> Getter g)
@@ -170,7 +174,7 @@ trkSumPtVsJetPtP =
     "$p_{\\mathrm T}$ [GeV]"
     "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
     "/trksumptvsjetpt"
-    <$$= tupGetter lvPt (trkSum.lvPt)
+    <$= view (tupGetter lvPt (trkSum.lvPt))
 
 svTrkSumPtVsJetPtP :: Fill Jet
 svTrkSumPtVsJetPtP =
@@ -179,7 +183,7 @@ svTrkSumPtVsJetPtP =
     "$p_{\\mathrm T}$ [GeV]"
     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
     "/svtrksumptvsjetpt"
-    <$$= tupGetter lvPt (svTrkSum.lvPt)
+    <$= view (tupGetter lvPt (svTrkSum.lvPt))
 
 bFragVsJetPtP :: Fill Jet
 bFragVsJetPtP =
@@ -188,7 +192,7 @@ bFragVsJetPtP =
     "$p_{\\mathrm T}$ [GeV]"
     "$<z_{p_{\\mathrm T}}>$"
     "/bfragvsjetpt"
-    <$$= tupGetter lvPt bFrag
+    <$= view (tupGetter lvPt bFrag)
 
 trkSumPtVsJetEtaP :: Fill Jet
 trkSumPtVsJetEtaP =
@@ -197,7 +201,7 @@ trkSumPtVsJetEtaP =
     "$\\eta$"
     "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
     "/trksumptvsjeteta"
-    <$$= tupGetter lvEta (trkSum.lvPt)
+    <$= view (tupGetter lvEta (trkSum.lvPt))
 
 svTrkSumPtVsJetEtaP :: Fill Jet
 svTrkSumPtVsJetEtaP =
@@ -206,7 +210,7 @@ svTrkSumPtVsJetEtaP =
     "$\\eta$"
     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
     "/svtrksumptvsjeteta"
-    <$$= tupGetter lvEta (svTrkSum.lvPt)
+    <$= view (tupGetter lvEta (svTrkSum.lvPt))
 
 bFragVsJetEtaP :: Fill Jet
 bFragVsJetEtaP =
@@ -215,7 +219,7 @@ bFragVsJetEtaP =
     "$\\eta$"
     "$<z_{p_{\\mathrm T}}>$"
     "/bfragvsjeteta"
-    <$$= tupGetter lvEta bFrag
+    <$= view (tupGetter lvEta bFrag)
 
 svTrkSumPtVsTrkSumPtP :: Fill Jet
 svTrkSumPtVsTrkSumPtP =
@@ -224,7 +228,7 @@ svTrkSumPtVsTrkSumPtP =
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
     "/svtrksumptvstrksumpt"
-    <$$= tupGetter (trkSum.lvPt) (svTrkSum.lvPt)
+    <$= view (tupGetter (trkSum.lvPt) (svTrkSum.lvPt))
 
 bFragVsTrkSumPtP :: Fill Jet
 bFragVsTrkSumPtP =
@@ -233,7 +237,7 @@ bFragVsTrkSumPtP =
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     "$<z_{p_{\\mathrm T}}>$"
     "/bfragvstrksumpt"
-    <$$= tupGetter (trkSum.lvPt) bFrag
+    <$= view (tupGetter (trkSum.lvPt) bFrag)
 
 nPVTrksH :: Fill Jet
 nPVTrksH =
@@ -242,7 +246,7 @@ nPVTrksH =
     "$n$ PV tracks"
     (dsigdXpbY "n" "1")
     "/npvtrks"
-    <$$= (pvTracks.to (fromIntegral.length))
+    <$$= pure . fromIntegral . length . view pvTracks
 
 nSVTrksH :: Fill Jet
 nSVTrksH =
@@ -251,7 +255,7 @@ nSVTrksH =
     "$n$ SV tracks"
     (dsigdXpbY "n" "1")
     "/nsvtrks"
-    <$$= (svTracks.to (fromIntegral.length))
+    <$$= pure . fromIntegral . length . view svTracks
 
 nPVTrksVsJetPtP :: Fill Jet
 nPVTrksVsJetPtP =
@@ -260,7 +264,7 @@ nPVTrksVsJetPtP =
     "$p_{\\mathrm T}$ [GeV]"
     "$<n$ PV tracks $>$"
     "/npvtrksvsjetpt"
-    <$$= tupGetter lvPt (pvTracks.to (fromIntegral.length))
+    <$= view (tupGetter lvPt (pvTracks.to (fromIntegral.length)))
 
 nSVTrksVsJetPtP :: Fill Jet
 nSVTrksVsJetPtP =
@@ -269,7 +273,7 @@ nSVTrksVsJetPtP =
     "$p_{\\mathrm T}$ [GeV]"
     "$<n$ SV tracks $>$"
     "/nsvtrksvsjetpt"
-    <$$= tupGetter lvPt (svTracks.to (fromIntegral.length))
+    <$= view (tupGetter lvPt (svTracks.to (fromIntegral.length)))
 
 jetHs :: Fill Jet
 jetHs =
@@ -336,8 +340,8 @@ tLabeled = views truthFlavor (== Just T)
 notBLabeled :: Jet -> Bool
 notBLabeled = getAny . views (truthFlavor._Just) (Any . (/= B))
 
-bTagged :: Jet -> Bool
-bTagged = views mv2c10 (> 0.8244273)
+bTagged :: Jet -> Corrected ScaleFactor Bool
+bTagged = views mv2c10 (fmap (> 0.8244273))
 
 hasSV :: Jet -> Bool
 hasSV = views svTracks (not . null)
@@ -345,9 +349,11 @@ hasSV = views svTracks (not . null)
 -- TODO
 -- macro here?
 -- can't use template haskell
-jvt, mv2c10 :: Lens' Jet Double
-jvt = lens _jvt $ \j x -> j { _jvt = x }
+mv2c10 :: Lens' Jet (Corrected ScaleFactor Double)
 mv2c10 = lens _mv2c10 $ \j x -> j { _mv2c10 = x }
+
+jvt :: Lens' Jet Double
+jvt = lens _jvt $ \j x -> j { _jvt = x }
 
 
 pvTracks, svTracks :: Lens' Jet [PtEtaPhiE]

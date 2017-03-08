@@ -1,9 +1,11 @@
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TupleSections     #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE DeriveGeneric             #-}
+{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE FlexibleInstances         #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE TupleSections             #-}
+{-# LANGUAGE TypeFamilies              #-}
 
 module Data.Atlas.Event
   ( Event(..)
@@ -17,6 +19,7 @@ module Data.Atlas.Event
 
 import qualified Control.Foldl            as F
 import           Control.Lens
+import           Data.Atlas.Corrected
 import           Data.HEP.LorentzVector   as X
 import qualified Data.Map.Strict          as M
 import           Data.Monoid
@@ -73,22 +76,22 @@ muH =
     "$< \\mu >$"
     (dsigdXpbY "\\mu" "1")
     "/mu"
-    <$$= mu
+    <$= view mu
 
 eventHs :: Fill Event
 eventHs =
   muH
     <> (prefixYF "/met" . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
-        <$> ptH <$$= met)
+      <$> ptH <$= view met)
     <> (prefixYF "/jets" . over (traverse.xlabel) ("jet " <>)
-        <$> F.handles (to distribute . folded) lvHs <$$= jets)
+      <$> F.handles (to sequence.folded) lvHs <$= view jets)
     <> (prefixYF "/electrons" . over (traverse.xlabel) ("electron " <>)
-        <$> F.handles (to distribute . folded) electronHs <$$= electrons)
+      <$> F.handles (to sequence.folded) electronHs <$= view electrons)
     <> (prefixYF "/muons" . over (traverse.xlabel) ("muon " <>)
-        <$> F.handles (to distribute . folded) muonHs <$$= muons)
+      <$> F.handles (to sequence.folded) muonHs <$= view muons)
     <> (prefixYF "/probejets" . over (traverse.xlabel) ("probe jet " <>)
-        <$> F.handles (to distribute . folded) jetHs <$$= jets . to probeJets)
-  where distribute (fs, x) = (,) <$> fs <*> pure x
+      <$> F.premap probeJets
+        (F.handles folded jetHs :: F.Fold [Corrected ScaleFactor Jet] YodaFolder))
 
 
 overlapRemoval :: Event -> Event
@@ -121,21 +124,37 @@ met = lens _met $ \e x -> e { _met = x }
 
 type SystMap = M.Map T.Text
 
-withWeights :: Fill a -> F.Fold (a, SystMap Double) (SystMap YodaFolder)
+withWeights :: forall a. Fill a -> F.Fold (CorrectedT ScaleFactor SystMap a) (SystMap YodaFolder)
 withWeights (F.Fold comb start done) = F.Fold comb' start' done'
   where
-    start' = M.empty
-    -- comb' :: M.Map T.Text x -> (a, M.Map T.Text Double) -> M.Map T.Text x
-    comb' mh (x, mw) = foldl (\h (k, xw) -> M.alter (f xw) k h) mh (M.toList $ (x,) <$> mw)
-    f xw Nothing  = Just $ comb start xw
-    f xw (Just h) = Just $ comb h xw
+    start' = mempty
+
+    -- h & at k %~ f xw won't work here because it uses the lazy variant of maps.
+    comb' mh = ifoldr' (\k xw h -> M.alter (f xw) k h) mh . runCorrectedT
+
+    f xw Nothing  = Just $ comb start (withCorrection xw)
+    f xw (Just h) = Just $ comb h (withCorrection xw)
+
     done' = fmap done
 
 
-probeJets :: [Jet] -> [Jet]
-probeJets [j1, j2] = [j2 | probeJet j1 j2] ++ [j1 | probeJet j2 j1]
-    where probeJet j j' = bTagged j && hasSV j'
-probeJets _        = []
+-- TODO
+-- I really don't like how this works
+-- we should "zoom in" to each jet and fill the histogram...
+-- runCorrected should not play a role.
+probeJets :: Corrected ScaleFactor Event -> [Corrected ScaleFactor Jet]
+probeJets e =
+  case view jets evt of
+    [j1, j2] -> probeJet j1 j2 ++ probeJet j2 j1
+    _        -> []
+  where
+    (evt, w) = runCorrected e
+    probeJet j j' = sequence $ do
+      bt <- bTagged j
+      withCorrection ((), w)
+      if bt && hasSV j'
+        then return [j']
+        else return []
 
 elmujj :: Event -> Bool
 elmujj e = length (_electrons e) == 1 && length (_muons e) == 1 && length (_jets e) == 2

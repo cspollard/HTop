@@ -32,9 +32,9 @@ collapseProcs pm =
           & IM.partitionWithKey (\k _ -> k `elem` ttbarDSIDs)
       f x = foldr mergeYF x nombkgs
       tots = f <$> systttbar
-      dat = pm IM.! 0 M.! "data"
+      dat = pm ^. at 0 . _Just . at "data"
   in
-    M.insert "data" dat
+    set (at "data") dat
       . M.fromList
       . fmap (first (procDict IM.!))
       . IM.toList

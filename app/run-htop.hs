@@ -1,9 +1,10 @@
-{-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE Rank2Types          #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections       #-}
+{-# LANGUAGE DeriveGeneric             #-}
+{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE Rank2Types                #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE TupleSections             #-}
 
 module Main where
 
@@ -22,6 +23,7 @@ import           Options.Generic
 import           System.IO                (BufferMode (..), hSetBuffering,
                                            stdout)
 
+import           Data.Atlas.Corrected
 import           Data.Atlas.Event
 import           Data.Atlas.Histogramming
 import           Data.TFile
@@ -54,7 +56,8 @@ main = do
             (return Nothing)
             return
 
-  (imh :: Maybe (Int, Double, SystMap YodaFolder)) <- F.impurely L.foldM f fnl
+  -- (imh :: Maybe (Int, Double, SystMap YodaFolder)) <- F.impurely L.foldM f fnl
+  imh <- F.impurely L.foldM f fnl
 
   putStrLn ("writing to file " ++ outfile args)
 
@@ -97,10 +100,10 @@ fillFile systs m fn = do
         tmp = do
           evt <- overlapRemoval . pruneJets <$> readEvent (dsid == 0)
           if dsid == 0
-            then return (evt, M.singleton "data" 1)
+            then return . correctedT $ M.singleton "data" (evt, 1)
             else do
               ws <- readws
-              return (evt, ws)
+              return . correctedT $ (evt,) . Product <$> ws
 
     F.purely L.fold defHs l
 
@@ -114,5 +117,6 @@ fillFile systs m fn = do
         return $ Just (dsid, n+sow, M.unionWith mergeYF systHs hs')
 
   where
-    defHs :: F.Fold (Event, SystMap Double) (SystMap YodaFolder)
+    -- defHs :: F.Fold (Event, SystMap Double) (SystMap YodaFolder)
+    defHs :: F.Fold (CorrectedT ScaleFactor SystMap Event) (SystMap YodaFolder)
     defHs = withWeights . channel "/elmujj" elmujj $ eventHs
