@@ -30,19 +30,25 @@ writeFiles outf pm =
 collapseProcs :: ProcMap (SystMap YodaFolder) -> SystMap YodaFolder
 collapseProcs pm =
   let preds = sans 0 pm
-      ttbarDSIDs = (+410000) <$> [0, 1, 2, 3, 4] :: [Int]
-      (systttbar, nombkgs) =
-        fmap (M.! "nominal") preds
-          & IM.partitionWithKey (\k _ -> k `elem` ttbarDSIDs)
-      f x = foldr mergeYF x nombkgs
-      tots = f <$> systttbar
+
       dat = pm ^. at 0 . _Just . at "data"
-  in
-    set (at "data") dat
-      . M.fromList
-      . fmap (first (procDict IM.!))
-      . IM.toList
-      $ tots
+
+      systttbarDSIDs = (+410000) <$> [1, 2, 3, 4] :: [Int]
+      (systttbar', systpreds) =
+        IM.partitionWithKey (\k _ -> k `elem` systttbarDSIDs) preds
+      systttbar = (M.! "nominal") <$> systttbar'
+
+      nombkgs = sans 410000 systpreds <&> (M.! "nominal")
+      f x = foldr mergeYF x nombkgs
+      systttbartots = f <$> systttbar
+      modelsysts =
+        M.fromList
+        . fmap (first (procDict IM.!))
+        . IM.toList
+        $ systttbartots
+
+      systs = foldr1 (M.unionWith mergeYF) systpreds `M.union` modelsysts
+  in set (at "data") dat systs
 
 procDict :: IM.IntMap T.Text
 procDict =
