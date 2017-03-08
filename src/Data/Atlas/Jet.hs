@@ -68,7 +68,7 @@ readJets isData = do
     if isData
       then pure (pure 1)
       else fmap (Product . float2Double) <$> readBranch "JetBtagSF"
-      
+
   jvts <- fmap float2Double <$> readBranch "JetJVT"
 
   pvtrks' <- jetTracksTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"

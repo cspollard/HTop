@@ -1,2 +1,4 @@
-cut DSL (a ala root TTree::Project)
-- this should take scale factors into account.
+lepton ID, trigger, iso SFs
+other event SFs and their uncertainties
+tree-level uncertainties
+2D histograms (& migration matrices)

@@ -160,9 +160,14 @@ probeJets e =
 
 elmujj :: Event -> Bool
 elmujj e =
-  length (_electrons e) == 1
-  && length (_muons e) == 1
-  && length (_jets e) == 2
+  let els = _electrons e
+      mus = _muons e
+      js = _jets e
+  in length els == 1
+      && all ((> 28) . view lvPt) els
+      && length mus == 1
+      && all ((> 28) . view lvPt) mus
+      && length js == 2
 
 pruneJets :: Event -> Event
 pruneJets =
