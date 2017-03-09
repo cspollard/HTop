@@ -171,76 +171,86 @@ bFragH =
 tupGetter :: Getter s a -> Getter s b -> Getter s (a, b)
 tupGetter f g = runGetter ((,) <$> Getter f <*> Getter g)
 
-trkSumPtVsJetPtP :: Fill Jet
-trkSumPtVsJetPtP =
+trkSumPtProfJetPt :: Fill Jet
+trkSumPtProfJetPt =
   prof1DDef
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
-    "/trksumptvsjetpt"
+    "/trksumptprofjetpt"
     <$= view (tupGetter lvPt (trkSum.lvPt))
 
-svTrkSumPtVsJetPtP :: Fill Jet
-svTrkSumPtVsJetPtP =
+svTrkSumPtProfJetPt :: Fill Jet
+svTrkSumPtProfJetPt =
   prof1DDef
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-    "/svtrksumptvsjetpt"
+    "/svtrksumptprofjetpt"
     <$= view (tupGetter lvPt (svTrkSum.lvPt))
 
-bFragVsJetPtP :: Fill Jet
-bFragVsJetPtP =
-  prof1DDef
-    (binD 25 18 250)
+bFragVsJetPt :: Fill Jet
+bFragVsJetPt =
+  hist2DDef
+    (binD 25 15 250)
+    (binD 0 22 1.1)
     "$p_{\\mathrm T}$ [GeV]"
-    "$<z_{p_{\\mathrm T}}>$"
+    "$z_{p_{\\mathrm T}}$"
     "/bfragvsjetpt"
     <$= view (tupGetter lvPt bFrag)
 
-trkSumPtVsJetEtaP :: Fill Jet
-trkSumPtVsJetEtaP =
+bFragProfJetPt :: Fill Jet
+bFragProfJetPt =
+  prof1DDef
+    (binD 25 15 250)
+    "$p_{\\mathrm T}$ [GeV]"
+    "$<z_{p_{\\mathrm T}}>$"
+    "/bfragprofjetpt"
+    <$= view (tupGetter lvPt bFrag)
+
+trkSumPtProfJetEta :: Fill Jet
+trkSumPtProfJetEta =
   prof1DDef
     (binD 0 21 2.1)
     "$\\eta$"
     "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
-    "/trksumptvsjeteta"
+    "/trksumptprofjeteta"
     <$= view (tupGetter lvEta (trkSum.lvPt))
 
-svTrkSumPtVsJetEtaP :: Fill Jet
-svTrkSumPtVsJetEtaP =
+svTrkSumPtProfJetEta :: Fill Jet
+svTrkSumPtProfJetEta =
   prof1DDef
     (binD 0 21 2.1)
     "$\\eta$"
     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-    "/svtrksumptvsjeteta"
+    "/svtrksumptprofjeteta"
     <$= view (tupGetter lvEta (svTrkSum.lvPt))
 
-bFragVsJetEtaP :: Fill Jet
-bFragVsJetEtaP =
+bFragProfJetEta :: Fill Jet
+bFragProfJetEta =
   prof1DDef
     (binD 0 21 2.1)
     "$\\eta$"
     "$<z_{p_{\\mathrm T}}>$"
-    "/bfragvsjeteta"
+    "/bfragprofjeteta"
     <$= view (tupGetter lvEta bFrag)
 
-svTrkSumPtVsTrkSumPtP :: Fill Jet
-svTrkSumPtVsTrkSumPtP =
+svTrkSumPtProfTrkSumPt :: Fill Jet
+svTrkSumPtProfTrkSumPt =
   prof1DDef
     (binD 0 10 100)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-    "/svtrksumptvstrksumpt"
+    "/svtrksumptproftrksumpt"
     <$= view (tupGetter (trkSum.lvPt) (svTrkSum.lvPt))
 
-bFragVsTrkSumPtP :: Fill Jet
-bFragVsTrkSumPtP =
+bFragProfTrkSumPt :: Fill Jet
+bFragProfTrkSumPt =
   prof1DDef
     (binD 0 10 100)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     "$<z_{p_{\\mathrm T}}>$"
-    "/bfragvstrksumpt"
+    "/bfragproftrksumpt"
     <$= view (tupGetter (trkSum.lvPt) bFrag)
 
 nPVTrksH :: Fill Jet
@@ -261,22 +271,22 @@ nSVTrksH =
     "/nsvtrks"
     <$$= pure . fromIntegral . length . view svTracks
 
-nPVTrksVsJetPtP :: Fill Jet
-nPVTrksVsJetPtP =
+nPVTrksProfJetPt :: Fill Jet
+nPVTrksProfJetPt =
   prof1DDef
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<n$ PV tracks $>$"
-    "/npvtrksvsjetpt"
+    "/npvtrksprofjetpt"
     <$= view (tupGetter lvPt (pvTracks.to (fromIntegral.length)))
 
-nSVTrksVsJetPtP :: Fill Jet
-nSVTrksVsJetPtP =
+nSVTrksProfJetPt :: Fill Jet
+nSVTrksProfJetPt =
   prof1DDef
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<n$ SV tracks $>$"
-    "/nsvtrksvsjetpt"
+    "/nsvtrksprofjetpt"
     <$= view (tupGetter lvPt (svTracks.to (fromIntegral.length)))
 
 jetHs :: Fill Jet
@@ -304,16 +314,17 @@ jetHs =
     , trkSumPtH
     , svTrkSumPtH
     , bFragH
-    , trkSumPtVsJetPtP
-    , svTrkSumPtVsJetPtP
-    , bFragVsJetPtP
-    , trkSumPtVsJetEtaP
-    , svTrkSumPtVsJetEtaP
-    , bFragVsJetEtaP
+    , trkSumPtProfJetPt
+    , svTrkSumPtProfJetPt
+    , bFragProfJetPt
+    , trkSumPtProfJetEta
+    , svTrkSumPtProfJetEta
+    , bFragProfJetEta
     , nPVTrksH
     , nSVTrksH
-    , nPVTrksVsJetPtP
-    , nSVTrksVsJetPtP
+    , nPVTrksProfJetPt
+    , nSVTrksProfJetPt
+    , bFragVsJetPt
     ]
 
   where
