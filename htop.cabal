@@ -19,6 +19,7 @@ library
   exposed-modules:     Data.Atlas.Electron
                      , Data.Atlas.Event
                      , Data.Atlas.Jet
+                     , Data.Atlas.TruthJet
                      , Data.Atlas.Muon
                      , Data.Atlas.Selection
                      , Data.Atlas.PtEtaPhiE

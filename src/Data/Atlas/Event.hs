@@ -12,6 +12,7 @@ module Data.Atlas.Event
   , module X
   , runNumber, eventNumber, mu
   , electrons, muons, jets, met
+  , truthjets
   , eventHs, overlapRemoval
   , SystMap, withWeights
   , readEvent, elmujj, pruneJets
@@ -33,6 +34,8 @@ import           Data.Atlas.Histogramming
 import           Data.Atlas.Jet           as X
 import           Data.Atlas.Muon          as X
 import           Data.Atlas.PtEtaPhiE     as X
+import           Data.Atlas.TruthJet      as X
+
 
 data Event =
   Event
@@ -43,8 +46,8 @@ data Event =
     , _muons       :: [Muon]
     , _jets        :: [Jet]
     , _met         :: PtEtaPhiE
+    , _truthjets   :: Maybe [TruthJet]
     } deriving (Generic, Show)
-
 
 
 readMET :: MonadIO m => String -> String -> TR m PtEtaPhiE
@@ -52,7 +55,6 @@ readMET m p = do
   et <- float2Double <$> readBranch m
   phi <- float2Double <$> readBranch p
   return $ PtEtaPhiE et 0 phi et
-
 
 
 readEvent :: MonadIO m => Bool -> TR m Event
@@ -65,9 +67,11 @@ readEvent isData =
       <*> readMuons
       <*> readJets isData
       <*> readMET "ETMiss" "ETMissPhi"
+      <*> if isData then return Nothing else Just <$> readTruthJets
     where
       ci2i :: CInt -> Int
       ci2i = fromEnum
+
 
 muH :: Fill Event
 muH =
@@ -77,6 +81,21 @@ muH =
     (dsigdXpbY "\\mu" "1")
     "/mu"
     <$= view mu
+
+
+-- TODO
+-- HERE
+-- recoVsTruthHs :: Fill Event
+-- recoVsTruthHs = h <$= view (tupGetter lvPt bFrag)
+--   where
+--     h =
+--       hist2DDef
+--         (binD 0 22 1.1)
+--         (binD 0 22 1.1)
+--         "true $z_{p_{\\mathrm T}}$"
+--         "reco $z_{p_{\\mathrm T}}$"
+--         "/recobfragvstruebfrag"
+
 
 eventHs :: Fill Event
 eventHs =
@@ -93,12 +112,6 @@ eventHs =
       <$> F.premap probeJets
         (F.handles folded jetHs :: F.Fold [Corrected SF Jet] YodaFolder))
 
-
-overlapRemoval :: Event -> Event
-overlapRemoval evt = over jets (filter filt) evt
-  where
-    leps = view electrons evt
-    filt = not . any (< 0.2) . traverse lvDREta leps
 
 
 runNumber :: Lens' Event Int
@@ -122,7 +135,12 @@ jets = lens _jets $ \e x -> e { _jets = x }
 met :: Lens' Event PtEtaPhiE
 met = lens _met $ \e x -> e { _met = x }
 
+truthjets :: Lens' Event (Maybe [TruthJet])
+truthjets = lens _truthjets $ \e x -> e { _truthjets = x }
+
+
 type SystMap = M.Map T.Text
+
 
 withWeights :: Fill a -> F.Fold (CorrectedT SF SystMap a) (SystMap YodaFolder)
 withWeights (F.Fold comb start done) = F.Fold comb' start' done'
@@ -158,6 +176,7 @@ probeJets e =
         then return [j']
         else return []
 
+
 elmujj :: Event -> Bool
 elmujj e =
   let els = _electrons e
@@ -168,6 +187,15 @@ elmujj e =
       && length mus == 1
       && all ((> 28) . view lvPt) mus
       && length js == 2
+      && lvDREta (head js) (head $ tail js) > 1.0
+
+
+overlapRemoval :: Event -> Event
+overlapRemoval evt = over jets (filter filt) evt
+  where
+    leps = view electrons evt
+    filt = not . any (< 0.2) . traverse lvDREta leps
+
 
 pruneJets :: Event -> Event
 pruneJets =

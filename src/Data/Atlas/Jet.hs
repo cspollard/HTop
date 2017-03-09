@@ -12,8 +12,10 @@ import           Control.Lens
 import           Data.Atlas.Corrected
 import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
+import           Data.Atlas.TruthJet
 import           Data.Foldable            (fold)
-import           Data.Monoid
+import           Data.Monoid              hiding ((<>))
+import           Data.Semigroup
 import qualified Data.Text                as T
 import           Data.TTree
 import qualified Data.Vector              as V
@@ -48,6 +50,15 @@ data Jet =
 
 instance HasLorentzVector Jet where
     toPtEtaPhiE = lens _jPtEtaPhiE $ \j x -> j { _jPtEtaPhiE = x }
+
+
+matchJTJ :: Jet -> [TruthJet] -> Maybe TruthJet
+matchJTJ j tjs = getOption $ do
+  Min (Arg dr tj) <-
+    foldMap (\tj' -> Option . Just . Min $ Arg (lvDREta j tj') tj') tjs
+  if dr < 0.3
+    then return tj
+    else Option Nothing
 
 
 jetTracksIsTight :: MonadIO m => TR m (ZipList (ZipList Bool))
