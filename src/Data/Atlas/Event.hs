@@ -31,6 +31,7 @@ import           Data.Tuple               (swap)
 import           GHC.Float
 import           GHC.Generics             (Generic)
 
+import           Data.Atlas.BFrag         as X
 import           Data.Atlas.Electron      as X
 import           Data.Atlas.Histogramming
 import           Data.Atlas.Jet           as X
@@ -86,7 +87,7 @@ muH =
 
 
 recoVsTruthHs :: Fill (Jet, TruthJet)
-recoVsTruthHs = h <$= swap . bimap (view bFrag) truthJetBFrag
+recoVsTruthHs = h <$= swap . bimap zBT zBT
   where
     h =
       hist2DDef
@@ -96,10 +97,6 @@ recoVsTruthHs = h <$= swap . bimap (view bFrag) truthJetBFrag
         "reco $z_{p_{\\mathrm T}}$"
         "/recobfragvstruebfrag"
 
-    -- g e = do
-    --   tjs <- view truthJets e
-    --   let js = view jets e
-
 
 truthMatchedProbeJets :: Event -> [Corrected SF (Jet, TruthJet)]
 truthMatchedProbeJets e =
@@ -107,6 +104,7 @@ truthMatchedProbeJets e =
       js = probeJets e
       ms = (fmap.fmap) (`matchJTJ` tjs) js
   in catMaybes $ fmap sequence ms
+
 
 eventHs :: Fill Event
 eventHs = mconcat
@@ -121,6 +119,9 @@ eventHs = mconcat
     <$> F.handles (to sequence.folded) muonHs <$= view muons
   , prefixYF "/probejets" . over (traverse.xlabel) ("probe jet " <>)
     <$> jetHs <$$$= probeJets
+  , prefixYF "/truthbjets" . over (traverse.xlabel) ("truth $b$-jet " <>)
+    <$> F.handles (to sequence.folded) truthJetHs
+    <$= ( concat . maybeToList . view truthjets )
   , fmap (prefixYF "/truthrecojets")
     $ recoVsTruthHs <$$$= truthMatchedProbeJets
   ]

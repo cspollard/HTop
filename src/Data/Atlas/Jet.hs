@@ -9,6 +9,7 @@ module Data.Atlas.Jet where
 
 import           Control.Applicative      (ZipList (..))
 import           Control.Lens
+import           Data.Atlas.BFrag
 import           Data.Atlas.Corrected
 import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
@@ -26,6 +27,7 @@ import           GHC.Generics             (Generic)
 data JetFlavor = L | C | B | T
     deriving (Generic, Show, Eq, Ord)
 
+
 flavFromCInt :: CInt -> JetFlavor
 flavFromCInt x =
   case x of
@@ -36,15 +38,14 @@ flavFromCInt x =
     _  -> error $ "bad jet flavor label: " ++ show x
 
 
-
 data Jet =
   Jet
     { _jPtEtaPhiE  :: PtEtaPhiE
     , _mv2c10      :: Corrected SF Double
     , _jvt         :: Double
-    , _pvTracks    :: [PtEtaPhiE]
+    , _pvTrks      :: [PtEtaPhiE]
     , _pvTrkSum    :: PtEtaPhiE
-    , _svTracks    :: [PtEtaPhiE]
+    , _svTrks      :: [PtEtaPhiE]
     , _svTrkSum    :: PtEtaPhiE
     , _truthFlavor :: Maybe JetFlavor
     } deriving (Generic, Show)
@@ -52,15 +53,18 @@ data Jet =
 instance HasLorentzVector Jet where
     toPtEtaPhiE = lens _jPtEtaPhiE $ \j x -> j { _jPtEtaPhiE = x }
 
+instance HasSVTracks Jet where
+  svTracks = view svTrks
 
-matches :: [Jet] -> [TruthJet] -> [(Jet, TruthJet)]
-matches js tjs = catMaybes $ flip matchJTJ tjs <$> js
+instance HasPVTracks Jet where
+  pvTracks = view pvTrks
+
 
 matchJTJ :: Jet -> [TruthJet] -> Maybe (Jet, TruthJet)
 matchJTJ j tjs = getOption $ do
   Min (Arg dr tj) <-
     foldMap (\tj' -> Option . Just . Min $ Arg (lvDREta j tj') tj') tjs
-  if dr < 0.3 && lengthOf tjBHadrons tj == 1
+  if dr < 0.3
     then return (j, tj)
     else Option Nothing
 
@@ -113,19 +117,6 @@ readJets isData = do
       <*> flvs
 
 
-bFrag :: (Profunctor p, Contravariant f, Functor f) => Optic' p f Jet Double
--- protect against dividing by zero
-bFrag = to $ \j ->
-  let svtrksum = view (svTrkSum.lvPt) j
-      trksum = svtrksum + view (pvTrkSum.lvPt) j
-  in case trksum of
-    0.0 -> 0.0
-    x   -> svtrksum / x
-
-trkSum :: Getter Jet PtEtaPhiE
-trkSum = runGetter $ (<>) <$> Getter svTrkSum <*> Getter pvTrkSum
-
-
 -- NB:
 -- track info is already stored as doubles!
 jetTracksTLV
@@ -156,154 +147,6 @@ mv2c10H =
     "/mv2c10"
     <$$= view mv2c10
 
-trkSumPtH :: Fill Jet
-trkSumPtH =
-  hist1DDef
-    (binD 0 25 500)
-    "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
-    (dsigdXpbY pt gev)
-    "/trksumpt"
-    <$= view (trkSum.lvPt)
-
-svTrkSumPtH :: Fill Jet
-svTrkSumPtH =
-  hist1DDef
-    (binD 0 25 500)
-    "$p_{\\mathrm T} \\sum \\mathrm{SV trk}$"
-    (dsigdXpbY pt gev)
-    "/svtrksumpt"
-    <$= view (svTrkSum.lvPt)
-
-bFragH :: Fill Jet
-bFragH =
-  hist1DDef
-    (binD 0 22 1.1)
-    "$z_{p_{\\mathrm T}}$"
-    (dsigdXpbY "z_{p_{\\mathrm T}}" "1")
-    "/bfrag"
-    <$= view bFrag
-
-tupGetter :: Getter s a -> Getter s b -> Getter s (a, b)
-tupGetter f g = runGetter ((,) <$> Getter f <*> Getter g)
-
-trkSumPtProfJetPt :: Fill Jet
-trkSumPtProfJetPt =
-  prof1DDef
-    (binD 25 18 250)
-    "$p_{\\mathrm T}$ [GeV]"
-    "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
-    "/trksumptprofjetpt"
-    <$= view (tupGetter lvPt (trkSum.lvPt))
-
-svTrkSumPtProfJetPt :: Fill Jet
-svTrkSumPtProfJetPt =
-  prof1DDef
-    (binD 25 18 250)
-    "$p_{\\mathrm T}$ [GeV]"
-    "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-    "/svtrksumptprofjetpt"
-    <$= view (tupGetter lvPt (svTrkSum.lvPt))
-
-bFragVsJetPt :: Fill Jet
-bFragVsJetPt =
-  hist2DDef
-    (binD 25 15 250)
-    (binD 0 22 1.1)
-    "$p_{\\mathrm T}$ [GeV]"
-    "$z_{p_{\\mathrm T}}$"
-    "/bfragvsjetpt"
-    <$= view (tupGetter lvPt bFrag)
-
-bFragProfJetPt :: Fill Jet
-bFragProfJetPt =
-  prof1DDef
-    (binD 25 15 250)
-    "$p_{\\mathrm T}$ [GeV]"
-    "$<z_{p_{\\mathrm T}}>$"
-    "/bfragprofjetpt"
-    <$= view (tupGetter lvPt bFrag)
-
-trkSumPtProfJetEta :: Fill Jet
-trkSumPtProfJetEta =
-  prof1DDef
-    (binD 0 21 2.1)
-    "$\\eta$"
-    "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
-    "/trksumptprofjeteta"
-    <$= view (tupGetter lvEta (trkSum.lvPt))
-
-svTrkSumPtProfJetEta :: Fill Jet
-svTrkSumPtProfJetEta =
-  prof1DDef
-    (binD 0 21 2.1)
-    "$\\eta$"
-    "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-    "/svtrksumptprofjeteta"
-    <$= view (tupGetter lvEta (svTrkSum.lvPt))
-
-bFragProfJetEta :: Fill Jet
-bFragProfJetEta =
-  prof1DDef
-    (binD 0 21 2.1)
-    "$\\eta$"
-    "$<z_{p_{\\mathrm T}}>$"
-    "/bfragprofjeteta"
-    <$= view (tupGetter lvEta bFrag)
-
-svTrkSumPtProfTrkSumPt :: Fill Jet
-svTrkSumPtProfTrkSumPt =
-  prof1DDef
-    (binD 0 10 100)
-    "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
-    "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-    "/svtrksumptproftrksumpt"
-    <$= view (tupGetter (trkSum.lvPt) (svTrkSum.lvPt))
-
-bFragProfTrkSumPt :: Fill Jet
-bFragProfTrkSumPt =
-  prof1DDef
-    (binD 0 10 100)
-    "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
-    "$<z_{p_{\\mathrm T}}>$"
-    "/bfragproftrksumpt"
-    <$= view (tupGetter (trkSum.lvPt) bFrag)
-
-nPVTrksH :: Fill Jet
-nPVTrksH =
-  hist1DDef
-    (binD 0 20 20)
-    "$n$ PV tracks"
-    (dsigdXpbY "n" "1")
-    "/npvtrks"
-    <$$= pure . fromIntegral . length . view pvTracks
-
-nSVTrksH :: Fill Jet
-nSVTrksH =
-  hist1DDef
-    (binD 0 10 10)
-    "$n$ SV tracks"
-    (dsigdXpbY "n" "1")
-    "/nsvtrks"
-    <$$= pure . fromIntegral . length . view svTracks
-
-nPVTrksProfJetPt :: Fill Jet
-nPVTrksProfJetPt =
-  prof1DDef
-    (binD 25 18 250)
-    "$p_{\\mathrm T}$ [GeV]"
-    "$<n$ PV tracks $>$"
-    "/npvtrksprofjetpt"
-    <$= view (tupGetter lvPt (pvTracks.to (fromIntegral.length)))
-
-nSVTrksProfJetPt :: Fill Jet
-nSVTrksProfJetPt =
-  prof1DDef
-    (binD 25 18 250)
-    "$p_{\\mathrm T}$ [GeV]"
-    "$<n$ SV tracks $>$"
-    "/nsvtrksprofjetpt"
-    <$= view (tupGetter lvPt (svTracks.to (fromIntegral.length)))
-
 jetHs :: Fill Jet
 jetHs =
   channels
@@ -312,10 +155,10 @@ jetHs =
     , ("/notbottom", notBLabeled)
     ]
   $ channels
-    [ ("/2psvtrks", view (svTracks . lengthOfWith (>= 2)))
-    , ("/2svtrks", view (svTracks . lengthOfWith (== 2)))
-    , ("/3svtrks", view (svTracks . lengthOfWith (== 3)))
-    , ("/4psvtrks", view (svTracks . lengthOfWith (>= 4)))
+    [ ("/2psvtrks", (>= 2) . length . svTracks)
+    , ("/2svtrks", (== 2) . length . svTracks)
+    , ("/3svtrks", (== 3) . length . svTracks)
+    , ("/4psvtrks", (>= 4) . length . svTracks)
     ]
   $ channels
     ( ("/inclusive", const True)
@@ -326,25 +169,10 @@ jetHs =
   $ mconcat
     [ lvHs
     , mv2c10H
-    , trkSumPtH
-    , svTrkSumPtH
-    , bFragH
-    , trkSumPtProfJetPt
-    , svTrkSumPtProfJetPt
-    , bFragProfJetPt
-    , trkSumPtProfJetEta
-    , svTrkSumPtProfJetEta
-    , bFragProfJetEta
-    , nPVTrksH
-    , nSVTrksH
-    , nPVTrksProfJetPt
-    , nSVTrksProfJetPt
-    , bFragVsJetPt
+    , bfragHs
     ]
 
   where
-    lengthOfWith f = to $ f . length
-
     bins' :: T.Text -> (Jet -> Double) -> [Double] -> [(T.Text, Jet -> Bool)]
     bins' lab f (b0:b1:bs) =
       ( fixT $ lab <> "_" <> T.pack (show b0) <> "_" <> T.pack (show b1)
@@ -374,7 +202,7 @@ bTagged :: Jet -> Corrected SF Bool
 bTagged = views mv2c10 (fmap (> 0.8244273))
 
 hasSV :: Jet -> Bool
-hasSV = views svTracks (not . null)
+hasSV = not . null . svTracks
 
 -- TODO
 -- macro here?
@@ -386,9 +214,9 @@ jvt :: Lens' Jet Double
 jvt = lens _jvt $ \j x -> j { _jvt = x }
 
 
-pvTracks, svTracks :: Lens' Jet [PtEtaPhiE]
-pvTracks = lens _pvTracks $ \j x -> j { _pvTracks = x }
-svTracks = lens _svTracks $ \j x -> j { _svTracks = x }
+pvTrks, svTrks :: Lens' Jet [PtEtaPhiE]
+pvTrks = lens _pvTrks $ \j x -> j { _pvTrks = x }
+svTrks = lens _svTrks $ \j x -> j { _svTrks = x }
 
 pvTrkSum, svTrkSum :: Lens' Jet PtEtaPhiE
 pvTrkSum = lens _pvTrkSum $ \j x -> j { _pvTrkSum = x }

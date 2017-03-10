@@ -24,6 +24,7 @@ library
                      , Data.Atlas.Selection
                      , Data.Atlas.PtEtaPhiE
                      , Data.Atlas.Systematics
+                     , Data.Atlas.BFrag
 
   other-modules:
   other-extensions:

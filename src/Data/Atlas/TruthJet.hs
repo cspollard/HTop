@@ -3,16 +3,16 @@
 
 module Data.Atlas.TruthJet
   ( TruthJet(..), tjChargedConsts, tjBHadrons
-  , readTruthJets, truthJetBFrag
-  -- , truthJetHs
+  , readTruthJets, bhChildren
+  , truthJetHs
   ) where
 
 import           Control.Applicative      (ZipList (..))
 import           Control.Lens
+import           Data.Atlas.BFrag
 import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
-import           Data.Foldable            (fold)
-import           Data.List                (unionBy)
+import           Data.List                (deleteFirstsBy)
 import           Data.TTree
 import qualified Data.Vector              as V
 import           GHC.Float
@@ -28,6 +28,12 @@ data TruthJet =
 instance HasLorentzVector TruthJet where
   toPtEtaPhiE = lens _tjPtEtaPhiE $ \tj x -> tj { _tjPtEtaPhiE = x }
 
+truthJetHs :: Fill TruthJet
+truthJetHs = mconcat
+  [ lvHs
+  , bfragHs
+  ]
+
 data BHadron =
   BHadron
     { _bhPtEtaPhiE :: PtEtaPhiE
@@ -37,55 +43,16 @@ data BHadron =
 instance HasLorentzVector BHadron where
   toPtEtaPhiE = lens _bhPtEtaPhiE $ \b x -> b { _bhPtEtaPhiE = x }
 
-trueBChSum :: TruthJet -> PtEtaPhiE
-trueBChSum = foldOf (tjBHadrons.traverse.bhChildren.traverse)
+instance HasSVTracks TruthJet where
+  svTracks = toListOf (tjBHadrons.traverse.bhChildren.traverse)
 
-truthJetChSum :: TruthJet -> PtEtaPhiE
-truthJetChSum tj =
-  let bchs = toListOf (tjBHadrons.traverse.bhChildren.traverse) tj
-      chparts = view tjChargedConsts tj
-  in fold $ unionBy eq bchs chparts
-  where
-    eq x y = lvDREta x y < 0.01
-
-truthJetBFrag :: TruthJet -> Double
-truthJetBFrag tj =
-  let bchs = toListOf (tjBHadrons.traverse.bhChildren.traverse) tj
-      chparts = unionBy eq bchs $ view tjChargedConsts tj
-  in case view lvPt $ fold chparts of
-    0.0 -> 0.0
-    x   -> view lvPt (fold bchs) / x
-  where
-    eq x y = lvDREta x y < 0.01
-
--- TODO
--- HERE
--- trkSumPtH :: Fill TruthJet
--- trkSumPtH =
---   hist1DDef
---     (binD 0 25 500)
---     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
---     (dsigdXpbY pt gev)
---     "/trksumpt"
---     <$= view (trkSum.lvPt)
---
--- truthJetHs = mconcat
---     [ lvHs
---     , trkSumPtH
---     , bTrkSumPtH
---     , bFragH
---     , trkSumPtProfJetPt
---     , svTrkSumPtProfJetPt
---     , bFragProfJetPt
---     , trkSumPtProfJetEta
---     , svTrkSumPtProfJetEta
---     , bFragProfJetEta
---     , nPVTrksH
---     , nSVTrksH
---     , nPVTrksProfJetPt
---     , nSVTrksProfJetPt
---     , bFragVsJetPt
---     ]
+instance HasPVTracks TruthJet where
+  pvTracks tj =
+    let bchs = svTracks tj
+        chparts = view tjChargedConsts tj
+    in deleteFirstsBy eq chparts bchs
+    where
+      eq x y = lvDREta x y < 0.01
 
 readBHadrons :: MonadIO m => TR m [BHadron]
 readBHadrons = do
@@ -110,11 +77,15 @@ readTruthJets = do
   tlvs <- lvsFromTTreeF "TruthJetPt" "TruthJetEta" "TruthJetPhi" "TruthJetE"
   chconsts <-
     vecVecTLV "TruthJetChPt" "TruthJetChEta" "TruthJetChPhi" "TruthJetChE"
-  let tmp = getZipList $ TruthJet <$> tlvs <*> chconsts <*> pure []
+  let tmp = V.fromList . getZipList $ TruthJet <$> tlvs <*> chconsts <*> pure []
 
-  bhads <- readBHadrons
+  bhads <- filter ((> 5) . view lvPt) <$> readBHadrons
 
-  return $ foldr matchBTJ tmp bhads
+  return . filter filt . V.toList
+    $ foldr matchBTJ tmp bhads
+
+  where
+    filt j = lengthOf (tjBHadrons.traverse) j == 1 && view lvPt j > 25
 
 
 vecVecTLV
@@ -136,11 +107,10 @@ vecVecTLV spt seta sphi se = do
 
 -- TODO
 -- better matching criterion?
-matchBTJ :: BHadron -> [TruthJet] -> [TruthJet]
+matchBTJ :: BHadron -> V.Vector TruthJet -> V.Vector TruthJet
 matchBTJ bh tjs =
-  let vtjs = V.fromList tjs
-      mi = V.minIndex $ lvDREta bh <$> vtjs
-  in V.toList $ over (ix mi) (g bh) vtjs
+  let mi = V.minIndex $ lvDREta bh <$> tjs
+  in over (ix mi) (g bh) tjs
 
   where
     g b j =
