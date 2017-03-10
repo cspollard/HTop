@@ -23,9 +23,11 @@ import           Control.Lens
 import           Data.Atlas.Corrected
 import           Data.HEP.LorentzVector   as X
 import qualified Data.Map.Strict          as M
+import           Data.Maybe               (catMaybes, maybeToList)
 import           Data.Monoid
 import qualified Data.Text                as T
 import           Data.TTree
+import           Data.Tuple               (swap)
 import           GHC.Float
 import           GHC.Generics             (Generic)
 
@@ -83,34 +85,45 @@ muH =
     <$= view mu
 
 
--- TODO
--- HERE
--- recoVsTruthHs :: Fill Event
--- recoVsTruthHs = h <$= view (tupGetter lvPt bFrag)
---   where
---     h =
---       hist2DDef
---         (binD 0 22 1.1)
---         (binD 0 22 1.1)
---         "true $z_{p_{\\mathrm T}}$"
---         "reco $z_{p_{\\mathrm T}}$"
---         "/recobfragvstruebfrag"
+recoVsTruthHs :: Fill (Jet, TruthJet)
+recoVsTruthHs = h <$= swap . bimap (view bFrag) truthJetBFrag
+  where
+    h =
+      hist2DDef
+        (binD 0 22 1.1)
+        (binD 0 22 1.1)
+        "true $z_{p_{\\mathrm T}}$"
+        "reco $z_{p_{\\mathrm T}}$"
+        "/recobfragvstruebfrag"
 
+    -- g e = do
+    --   tjs <- view truthJets e
+    --   let js = view jets e
+
+
+truthMatchedProbeJets :: Event -> [Corrected SF (Jet, TruthJet)]
+truthMatchedProbeJets e =
+  let tjs = concat . maybeToList $ view truthjets e
+      js = probeJets e
+      ms = (fmap.fmap) (`matchJTJ` tjs) js
+  in catMaybes $ fmap sequence ms
 
 eventHs :: Fill Event
-eventHs =
-  muH
-    <> (prefixYF "/met" . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
-      <$> ptH <$= view met)
-    <> (prefixYF "/jets" . over (traverse.xlabel) ("jet " <>)
-      <$> F.handles (to sequence.folded) lvHs <$= view jets)
-    <> (prefixYF "/electrons" . over (traverse.xlabel) ("electron " <>)
-      <$> F.handles (to sequence.folded) electronHs <$= view electrons)
-    <> (prefixYF "/muons" . over (traverse.xlabel) ("muon " <>)
-      <$> F.handles (to sequence.folded) muonHs <$= view muons)
-    <> (prefixYF "/probejets" . over (traverse.xlabel) ("probe jet " <>)
-      <$> F.premap probeJets
-        (F.handles folded jetHs :: F.Fold [Corrected SF Jet] YodaFolder))
+eventHs = mconcat
+  [ muH
+  , prefixYF "/met" . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
+    <$> ptH <$= view met
+  , prefixYF "/jets" . over (traverse.xlabel) ("jet " <>)
+    <$> F.handles (to sequence.folded) lvHs <$= view jets
+  , prefixYF "/electrons" . over (traverse.xlabel) ("electron " <>)
+    <$> F.handles (to sequence.folded) electronHs <$= view electrons
+  , prefixYF "/muons" . over (traverse.xlabel) ("muon " <>)
+    <$> F.handles (to sequence.folded) muonHs <$= view muons
+  , prefixYF "/probejets" . over (traverse.xlabel) ("probe jet " <>)
+    <$> jetHs <$$$= probeJets
+  , fmap (prefixYF "/truthrecojets")
+    $ recoVsTruthHs <$$$= truthMatchedProbeJets
+  ]
 
 
 
@@ -158,20 +171,14 @@ withWeights (F.Fold comb start done) = F.Fold comb' start' done'
     done' = fmap done
 
 
--- TODO
--- I really don't like how this works
--- we should "zoom in" to each jet and fill the histogram...
--- runCorrected should not play a role.
-probeJets :: Corrected SF Event -> [Corrected SF Jet]
-probeJets e =
+probeJets :: Event -> [Corrected SF Jet]
+probeJets evt =
   case view jets evt of
     [j1, j2] -> probeJet j1 j2 ++ probeJet j2 j1
     _        -> []
   where
-    (evt, w) = runCorrected e
-    probeJet j j' = sequence $ do
+    probeJet j j' = sequenceA $ do
       bt <- bTagged j
-      withCorrection ((), w)
       if bt && hasSV j'
         then return [j']
         else return []

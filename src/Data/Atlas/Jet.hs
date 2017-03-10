@@ -14,6 +14,7 @@ import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
 import           Data.Atlas.TruthJet
 import           Data.Foldable            (fold)
+import           Data.Maybe               (catMaybes)
 import           Data.Monoid              hiding ((<>))
 import           Data.Semigroup
 import qualified Data.Text                as T
@@ -52,12 +53,15 @@ instance HasLorentzVector Jet where
     toPtEtaPhiE = lens _jPtEtaPhiE $ \j x -> j { _jPtEtaPhiE = x }
 
 
-matchJTJ :: Jet -> [TruthJet] -> Maybe TruthJet
+matches :: [Jet] -> [TruthJet] -> [(Jet, TruthJet)]
+matches js tjs = catMaybes $ flip matchJTJ tjs <$> js
+
+matchJTJ :: Jet -> [TruthJet] -> Maybe (Jet, TruthJet)
 matchJTJ j tjs = getOption $ do
   Min (Arg dr tj) <-
     foldMap (\tj' -> Option . Just . Min $ Arg (lvDREta j tj') tj') tjs
   if dr < 0.3
-    then return tj
+    then return (j, tj)
     else Option Nothing
 
 
