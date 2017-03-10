@@ -60,7 +60,7 @@ matchJTJ :: Jet -> [TruthJet] -> Maybe (Jet, TruthJet)
 matchJTJ j tjs = getOption $ do
   Min (Arg dr tj) <-
     foldMap (\tj' -> Option . Just . Min $ Arg (lvDREta j tj') tj') tjs
-  if dr < 0.3
+  if dr < 0.3 && lengthOf tjBHadrons tj == 1
     then return (j, tj)
     else Option Nothing
 

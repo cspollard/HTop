@@ -1,6 +1,11 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE OverloadedStrings #-}
 
-module Data.Atlas.TruthJet where
+module Data.Atlas.TruthJet
+  ( TruthJet(..), tjChargedConsts, tjBHadrons
+  , readTruthJets, truthJetBFrag
+  -- , truthJetHs
+  ) where
 
 import           Control.Applicative      (ZipList (..))
 import           Control.Lens
@@ -17,7 +22,7 @@ data TruthJet =
   TruthJet
     { _tjPtEtaPhiE     :: PtEtaPhiE
     , _tjChargedConsts :: [PtEtaPhiE]
-    , _tjBHadron       :: [BHadron]
+    , _tjBHadrons      :: [BHadron]
     } deriving (Generic, Show)
 
 instance HasLorentzVector TruthJet where
@@ -33,11 +38,11 @@ instance HasLorentzVector BHadron where
   toPtEtaPhiE = lens _bhPtEtaPhiE $ \b x -> b { _bhPtEtaPhiE = x }
 
 trueBChSum :: TruthJet -> PtEtaPhiE
-trueBChSum = foldOf (tjBHadron.traverse.bhChildren.traverse)
+trueBChSum = foldOf (tjBHadrons.traverse.bhChildren.traverse)
 
 truthJetChSum :: TruthJet -> PtEtaPhiE
 truthJetChSum tj =
-  let bchs = toListOf (tjBHadron.traverse.bhChildren.traverse) tj
+  let bchs = toListOf (tjBHadrons.traverse.bhChildren.traverse) tj
       chparts = view tjChargedConsts tj
   in fold $ unionBy eq bchs chparts
   where
@@ -45,13 +50,42 @@ truthJetChSum tj =
 
 truthJetBFrag :: TruthJet -> Double
 truthJetBFrag tj =
-  let bchs = toListOf (tjBHadron.traverse.bhChildren.traverse) tj
+  let bchs = toListOf (tjBHadrons.traverse.bhChildren.traverse) tj
       chparts = unionBy eq bchs $ view tjChargedConsts tj
   in case view lvPt $ fold chparts of
     0.0 -> 0.0
     x   -> view lvPt (fold bchs) / x
   where
     eq x y = lvDREta x y < 0.01
+
+-- TODO
+-- HERE
+-- trkSumPtH :: Fill TruthJet
+-- trkSumPtH =
+--   hist1DDef
+--     (binD 0 25 500)
+--     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
+--     (dsigdXpbY pt gev)
+--     "/trksumpt"
+--     <$= view (trkSum.lvPt)
+--
+-- truthJetHs = mconcat
+--     [ lvHs
+--     , trkSumPtH
+--     , bTrkSumPtH
+--     , bFragH
+--     , trkSumPtProfJetPt
+--     , svTrkSumPtProfJetPt
+--     , bFragProfJetPt
+--     , trkSumPtProfJetEta
+--     , svTrkSumPtProfJetEta
+--     , bFragProfJetEta
+--     , nPVTrksH
+--     , nSVTrksH
+--     , nPVTrksProfJetPt
+--     , nSVTrksProfJetPt
+--     , bFragVsJetPt
+--     ]
 
 readBHadrons :: MonadIO m => TR m [BHadron]
 readBHadrons = do
@@ -111,15 +145,15 @@ matchBTJ bh tjs =
   where
     g b j =
       if lvDREta b j < 0.3
-        then over tjBHadron ((:) b) j
+        then over tjBHadrons ((:) b) j
         else j
 
 
 tjChargedConsts :: Lens' TruthJet [PtEtaPhiE]
 tjChargedConsts = lens _tjChargedConsts $ \tj x -> tj { _tjChargedConsts = x }
 
-tjBHadron :: Lens' TruthJet [BHadron]
-tjBHadron = lens _tjBHadron $ \tj x -> tj { _tjBHadron = x }
+tjBHadrons :: Lens' TruthJet [BHadron]
+tjBHadrons = lens _tjBHadrons $ \tj x -> tj { _tjBHadrons = x }
 
 bhChildren :: Lens' BHadron [PtEtaPhiE]
 bhChildren = lens _bhChildren $ \b x -> b { _bhChildren = x }
