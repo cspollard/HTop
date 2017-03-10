@@ -57,17 +57,17 @@ readBHadrons :: MonadIO m => TR m [BHadron]
 readBHadrons = do
   tlvs <-
     lvsFromTTreeF
-      "TruthJetBhadPt"
-      "TruthJetBhadEta"
-      "TruthJetBhadPhi"
-      "TruthJetBhadE"
+      "TruthBhadPt"
+      "TruthBhadEta"
+      "TruthBhadPhi"
+      "TruthBhadE"
 
   chtlvs <-
     vecVecTLV
       "TruthBhadChiPt"
       "TruthBhadChiEta"
       "TruthBhadChiPhi"
-      "TruthBhadChiEs"
+      "TruthBhadChiE"
 
   return . getZipList $ BHadron <$> tlvs <*> chtlvs
 
