@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE OverloadedStrings   #-}
@@ -14,8 +15,6 @@ import           Data.Atlas.Corrected
 import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
 import           Data.Atlas.TruthJet
-import           Data.Foldable            (fold)
-import           Data.Maybe               (catMaybes)
 import           Data.Monoid              hiding ((<>))
 import           Data.Semigroup
 import qualified Data.Text                as T
@@ -41,12 +40,11 @@ flavFromCInt x =
 data Jet =
   Jet
     { _jPtEtaPhiE  :: PtEtaPhiE
-    , _mv2c10      :: Corrected SF Double
+    , _mv2c10      :: Double
+    , _isBTagged   :: Corrected SF Bool
     , _jvt         :: Double
     , _pvTrks      :: [PtEtaPhiE]
-    , _pvTrkSum    :: PtEtaPhiE
     , _svTrks      :: [PtEtaPhiE]
-    , _svTrkSum    :: PtEtaPhiE
     , _truthFlavor :: Maybe JetFlavor
     } deriving (Generic, Show)
 
@@ -88,6 +86,11 @@ readJets isData = do
       then pure (pure 1)
       else fmap (Product . float2Double) <$> readBranch "JetBtagSF"
 
+  let tagged =
+        curry withCorrection
+          <$> fmap (> 0.8244273) mv2c10s <*> mv2c10sfs
+
+
   jvts <- fmap float2Double <$> readBranch "JetJVT"
 
   pvtrks' <- jetTracksTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
@@ -98,8 +101,6 @@ readJets isData = do
 
   svtrks <- jetTracksTLV "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
 
-  let pvtrksum = fold <$> pvtrks
-      svtrksum = fold <$> svtrks
   flvs <-
     if isData
       then return $ ZipList (repeat Nothing)
@@ -108,12 +109,11 @@ readJets isData = do
   return . getZipList
     $ Jet
       <$> tlvs
-      <*> (curry withCorrection <$> mv2c10s <*> mv2c10sfs)
+      <*> mv2c10s
+      <*> tagged
       <*> jvts
       <*> fmap getZipList pvtrks
-      <*> pvtrksum
       <*> fmap getZipList svtrks
-      <*> svtrksum
       <*> flvs
 
 
@@ -135,9 +135,7 @@ jetTracksTLV spt seta sphi se = do
 
     return . ZipList . fmap ZipList $ V.toList trks
 
--- histograms
--- TODO
--- how do we propogate the event weight down to the jet?
+
 mv2c10H :: Fill Jet
 mv2c10H =
   hist1DDef
@@ -145,7 +143,7 @@ mv2c10H =
     "MV2c10"
     (dsigdXpbY "\\mathrm{MV2c10}" "1")
     "/mv2c10"
-    <$$= view mv2c10
+    <$= view mv2c10
 
 jetHs :: Fill Jet
 jetHs =
@@ -198,16 +196,14 @@ tLabeled = views truthFlavor (== Just T)
 notBLabeled :: Jet -> Bool
 notBLabeled = getAny . views (truthFlavor._Just) (Any . (/= B))
 
-bTagged :: Jet -> Corrected SF Bool
-bTagged = views mv2c10 (fmap (> 0.8244273))
-
 hasSV :: Jet -> Bool
 hasSV = not . null . svTracks
+
 
 -- TODO
 -- macro here?
 -- can't use template haskell
-mv2c10 :: Lens' Jet (Corrected SF Double)
+mv2c10 :: Lens' Jet Double
 mv2c10 = lens _mv2c10 $ \j x -> j { _mv2c10 = x }
 
 jvt :: Lens' Jet Double
@@ -218,9 +214,8 @@ pvTrks, svTrks :: Lens' Jet [PtEtaPhiE]
 pvTrks = lens _pvTrks $ \j x -> j { _pvTrks = x }
 svTrks = lens _svTrks $ \j x -> j { _svTrks = x }
 
-pvTrkSum, svTrkSum :: Lens' Jet PtEtaPhiE
-pvTrkSum = lens _pvTrkSum $ \j x -> j { _pvTrkSum = x }
-svTrkSum = lens _svTrkSum $ \j x -> j { _svTrkSum = x }
+isBTagged :: Lens' Jet (Corrected SF Bool)
+isBTagged = lens _isBTagged $ \j x -> j { _isBTagged = x }
 
 truthFlavor :: Lens' Jet (Maybe JetFlavor)
 truthFlavor = lens _truthFlavor $ \j x -> j { _truthFlavor = x }

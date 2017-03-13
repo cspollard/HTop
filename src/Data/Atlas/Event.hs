@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds                 #-}
 {-# LANGUAGE DeriveGeneric             #-}
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE FlexibleInstances         #-}
@@ -38,6 +39,7 @@ import           Data.Atlas.Jet           as X
 import           Data.Atlas.Muon          as X
 import           Data.Atlas.PtEtaPhiE     as X
 import           Data.Atlas.TruthJet      as X
+import           Data.Atlas.Variation
 
 
 data Event =
@@ -98,7 +100,8 @@ recoVsTruthHs = h <$= swap . bimap zBT zBT
         "/recobfragvstruebfrag"
 
 
-truthMatchedProbeJets :: Event -> [Corrected SF (Jet, TruthJet)]
+truthMatchedProbeJets
+  :: Event -> [Corrected SF (Jet, TruthJet)]
 truthMatchedProbeJets e =
   let tjs = concat . maybeToList $ view truthjets e
       js = probeJets e
@@ -179,7 +182,7 @@ probeJets evt =
     _        -> []
   where
     probeJet j j' = sequenceA $ do
-      bt <- bTagged j
+      bt <- view isBTagged j
       if bt && hasSV j'
         then return [j']
         else return []
