@@ -65,7 +65,7 @@ main = do
 
 
 fillFile
-  :: [(TreeName, TR IO (SystMap Double))]
+  :: [(TreeName, TR IO (SystMap SF))]
   -> Maybe (Int, Double, SystMap YodaFolder)
   -> String
   -> IO (Maybe (Int, Double, SystMap YodaFolder))
@@ -100,10 +100,10 @@ fillFile systs m fn = do
         tmp = do
           evt <- overlapRemoval . pruneJets <$> readEvent (dsid == 0)
           if dsid == 0
-            then return . correctedT $ M.singleton "data" (evt, 1)
+            then return . correctedT $ M.singleton "data" (evt, sf "data" 1)
             else do
               ws <- readws
-              return . correctedT $ (evt,) . Product <$> ws
+              return . correctedT $ (evt,) <$> ws
 
     F.purely L.fold defHs l
 
@@ -121,5 +121,5 @@ fillFile systs m fn = do
         n' `seq` sm' `seq` return (Just (dsid, n', sm'))
 
   where
-    defHs :: F.Fold (CorrectedT ScaleFactor SystMap Event) (SystMap YodaFolder)
+    defHs :: F.Fold (CorrectedT SF SystMap Event) (SystMap YodaFolder)
     defHs = withWeights . channel "/elmujj" elmujj $ eventHs

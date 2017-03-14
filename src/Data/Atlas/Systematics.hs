@@ -7,6 +7,7 @@ module Data.Atlas.Systematics
   ( module X, allVariations
   ) where
 
+import           Data.Atlas.Corrected
 import           Data.Atlas.Variation as X
 import qualified Data.Map.Strict      as M
 import qualified Data.Text            as T
@@ -34,14 +35,14 @@ puWeightDown = do
   puwdwn <- float2Double <$> readBranch "SFPileUp_DOWN"
   return $ w * puwdwn / puw
 
-weightVars :: MonadIO m => TR m (SystMap Double)
-weightVars = sequence
+weightVars :: MonadIO m => TR m (SystMap SF)
+weightVars = sequence . (fmap.fmap) (sf "evtw") $
   [ ("nominal", nomWeight)
   , ("pileupup", puWeightUp)
   , ("pileupdown", puWeightDown)
   ]
 
-allVariations :: MonadIO m => [(String, TR m (SystMap Double))]
+allVariations :: MonadIO m => [(String, TR m (SystMap SF))]
 allVariations =
   [ ("nominal", weightVars)
   ]

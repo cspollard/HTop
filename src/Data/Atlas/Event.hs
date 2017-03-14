@@ -39,7 +39,6 @@ import           Data.Atlas.Jet           as X
 import           Data.Atlas.Muon          as X
 import           Data.Atlas.PtEtaPhiE     as X
 import           Data.Atlas.TruthJet      as X
-import           Data.Atlas.Variation
 
 
 data Event =

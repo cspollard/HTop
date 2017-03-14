@@ -15,6 +15,7 @@ import           Data.Atlas.Corrected
 import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
 import           Data.Atlas.TruthJet
+-- import           Data.Atlas.Variation
 import           Data.Monoid              hiding ((<>))
 import           Data.Semigroup
 import qualified Data.Text                as T
@@ -83,8 +84,8 @@ readJets isData = do
   mv2c10s <- fmap float2Double <$> readBranch "JetMV2c10"
   mv2c10sfs <-
     if isData
-      then pure (pure 1)
-      else fmap (Product . float2Double) <$> readBranch "JetBtagSF"
+      then return . pure $ sf "" 1
+      else fmap (sf "btagSF" . float2Double) <$> readBranch "JetBtagSF"
 
   let tagged =
         curry withCorrection
