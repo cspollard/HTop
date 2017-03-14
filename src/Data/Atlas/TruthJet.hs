@@ -28,7 +28,7 @@ data TruthJet =
 instance HasLorentzVector TruthJet where
   toPtEtaPhiE = lens _tjPtEtaPhiE $ \tj x -> tj { _tjPtEtaPhiE = x }
 
-truthJetHs :: Fill TruthJet
+truthJetHs :: FillSimple TruthJet
 truthJetHs = mconcat
   [ lvHs
   , bfragHs

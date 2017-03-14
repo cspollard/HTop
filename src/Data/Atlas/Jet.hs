@@ -14,8 +14,8 @@ import           Data.Atlas.BFrag
 import           Data.Atlas.Corrected
 import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
+import           Data.Atlas.Systematics
 import           Data.Atlas.TruthJet
--- import           Data.Atlas.Variation
 import           Data.Monoid              hiding ((<>))
 import           Data.Semigroup
 import qualified Data.Text                as T
@@ -42,7 +42,7 @@ data Jet =
   Jet
     { _jPtEtaPhiE  :: PtEtaPhiE
     , _mv2c10      :: Double
-    , _isBTagged   :: Corrected SF Bool
+    , _isBTagged   :: Corrected (Vars SF) Bool
     , _jvt         :: Double
     , _pvTrks      :: [PtEtaPhiE]
     , _svTrks      :: [PtEtaPhiE]
@@ -82,25 +82,37 @@ readJets :: MonadIO m => Bool -> TR m [Jet]
 readJets isData = do
   tlvs <- lvsFromTTreeF "JetPt" "JetEta" "JetPhi" "JetE"
   mv2c10s <- fmap float2Double <$> readBranch "JetMV2c10"
-  mv2c10sfs <-
+  mv2c10sfs :: ZipList (Vars SF) <-
     if isData
-      then return . pure $ sf "" 1
-      else fmap (sf "btagSF" . float2Double) <$> readBranch "JetBtagSF"
+      then return . pure . pure $ sf "data" 1
+      else
+        imap (\i -> pure . sf ("btagSFjet" <> T.pack (show i))) . fmap float2Double
+          <$> readBranch "JetBtagSF"
 
   let tagged =
         curry withCorrection
-          <$> fmap (> 0.8244273) mv2c10s <*> mv2c10sfs
+        <$> fmap (> 0.8244273) mv2c10s <*> mv2c10sfs
 
 
   jvts <- fmap float2Double <$> readBranch "JetJVT"
 
-  pvtrks' <- jetTracksTLV "JetTracksPt" "JetTracksEta" "JetTracksPhi" "JetTracksE"
+  pvtrks' <-
+    jetTracksTLV
+    "JetTracksPt"
+    "JetTracksEta"
+    "JetTracksPhi"
+    "JetTracksE"
   pvtrksTight <- jetTracksIsTight
 
   let f x y = ZipList . fmap snd . filter fst . getZipList $ (,) <$> x <*> y
       pvtrks = f <$> pvtrksTight <*> pvtrks'
 
-  svtrks <- jetTracksTLV "JetSV1TracksPt" "JetSV1TracksEta" "JetSV1TracksPhi" "JetSV1TracksE"
+  svtrks <-
+    jetTracksTLV
+      "JetSV1TracksPt"
+      "JetSV1TracksEta"
+      "JetSV1TracksPhi"
+      "JetSV1TracksE"
 
   flvs <-
     if isData
@@ -137,7 +149,7 @@ jetTracksTLV spt seta sphi se = do
     return . ZipList . fmap ZipList $ V.toList trks
 
 
-mv2c10H :: Fill Jet
+mv2c10H :: FillSimple Jet
 mv2c10H =
   hist1DDef
     (binD (-1) 25 1)
@@ -146,7 +158,7 @@ mv2c10H =
     "/mv2c10"
     <$= view mv2c10
 
-jetHs :: Fill Jet
+jetHs :: FillSimple Jet
 jetHs =
   channels
     [ ("/allJetFlavs", const True)
@@ -215,7 +227,7 @@ pvTrks, svTrks :: Lens' Jet [PtEtaPhiE]
 pvTrks = lens _pvTrks $ \j x -> j { _pvTrks = x }
 svTrks = lens _svTrks $ \j x -> j { _svTrks = x }
 
-isBTagged :: Lens' Jet (Corrected SF Bool)
+isBTagged :: Lens' Jet (Corrected (Vars SF) Bool)
 isBTagged = lens _isBTagged $ \j x -> j { _isBTagged = x }
 
 truthFlavor :: Lens' Jet (Maybe JetFlavor)

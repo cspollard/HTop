@@ -37,5 +37,5 @@ readMuons = do
     ci2i :: CInt -> Int
     ci2i = fromEnum
 
-muonHs :: Fill Muon
+muonHs :: FillSimple Muon
 muonHs = lvHs

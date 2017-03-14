@@ -39,5 +39,5 @@ readElectrons = do
     ci2i :: CInt -> Int
     ci2i = fromEnum
 
-electronHs :: Fill Electron
+electronHs :: FillSimple Electron
 electronHs = lvHs

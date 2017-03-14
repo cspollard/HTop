@@ -15,7 +15,6 @@ module Data.Atlas.Event
   , electrons, muons, jets, met
   , truthjets
   , eventHs, overlapRemoval
-  , SystMap, withWeights
   , readEvent, elmujj, pruneJets
   ) where
 
@@ -38,6 +37,7 @@ import           Data.Atlas.Histogramming
 import           Data.Atlas.Jet           as X
 import           Data.Atlas.Muon          as X
 import           Data.Atlas.PtEtaPhiE     as X
+import           Data.Atlas.Systematics   as X
 import           Data.Atlas.TruthJet      as X
 
 
@@ -45,6 +45,7 @@ data Event =
   Event
     { _runNumber   :: Int
     , _eventNumber :: Int
+    , _eventWeight :: Vars SF
     , _mu          :: Double
     , _electrons   :: [Electron]
     , _muons       :: [Muon]
@@ -66,6 +67,7 @@ readEvent isData =
     Event
       <$> fmap ci2i (readBranch "Run")
       <*> fmap ci2i (readBranch "Event")
+      <*> evtWgt isData
       <*> fmap float2Double (readBranch "Mu")
       <*> readElectrons
       <*> readMuons
@@ -77,7 +79,7 @@ readEvent isData =
       ci2i = fromEnum
 
 
-muH :: Fill Event
+muH :: FillSimple Event
 muH =
   hist1DDef
     (binD 0 25 100)
@@ -87,7 +89,7 @@ muH =
     <$= view mu
 
 
-recoVsTruthHs :: Fill (Jet, TruthJet)
+recoVsTruthHs :: FillSimple (Jet, TruthJet)
 recoVsTruthHs = h <$= swap . bimap zBT zBT
   where
     h =
@@ -100,7 +102,7 @@ recoVsTruthHs = h <$= swap . bimap zBT zBT
 
 
 truthMatchedProbeJets
-  :: Event -> [Corrected SF (Jet, TruthJet)]
+  :: Event -> [Corrected (Vars SF) (Jet, TruthJet)]
 truthMatchedProbeJets e =
   let tjs = concat . maybeToList $ view truthjets e
       js = probeJets e
@@ -108,7 +110,7 @@ truthMatchedProbeJets e =
   in catMaybes $ fmap sequence ms
 
 
-eventHs :: Fill Event
+eventHs :: FillSimple Event
 eventHs = mconcat
   [ muH
   , prefixYF "/met" . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
@@ -119,14 +121,15 @@ eventHs = mconcat
     <$> F.handles (to sequence.folded) electronHs <$= view electrons
   , prefixYF "/muons" . over (traverse.xlabel) ("muon " <>)
     <$> F.handles (to sequence.folded) muonHs <$= view muons
-  , prefixYF "/probejets" . over (traverse.xlabel) ("probe jet " <>)
-    <$> jetHs <$$$= probeJets
-  , prefixYF "/truthbjets" . over (traverse.xlabel) ("truth $b$-jet " <>)
-    <$> F.handles (to sequence.folded) truthJetHs
-    <$= ( concat . maybeToList . view truthjets )
-  , fmap (prefixYF "/truthrecojets")
-    $ recoVsTruthHs <$$$= truthMatchedProbeJets
   ]
+
+  -- , prefixYF "/probejets" . over (traverse.xlabel) ("probe jet " <>)
+  --   <$> jetHs <$$$= probeJets
+  -- , prefixYF "/truthbjets" . over (traverse.xlabel) ("truth $b$-jet " <>)
+  --   <$> F.handles (to sequence.folded) truthJetHs
+  --   <$= ( concat . maybeToList . view truthjets )
+  -- , fmap (prefixYF "/truthrecojets")
+  --   $ recoVsTruthHs <$$$= truthMatchedProbeJets
 
 
 
@@ -135,6 +138,9 @@ runNumber = lens _runNumber $ \e x -> e { _runNumber = x }
 
 eventNumber :: Lens' Event Int
 eventNumber = lens _eventNumber $ \e x -> e { _eventNumber = x }
+
+eventWeight :: Lens' Event (Vars SF)
+eventWeight = lens _eventWeight $ \e x -> e { _eventWeight = x }
 
 mu :: Lens' Event Double
 mu = lens _mu $ \e x -> e { _mu = x }
@@ -154,27 +160,7 @@ met = lens _met $ \e x -> e { _met = x }
 truthjets :: Lens' Event (Maybe [TruthJet])
 truthjets = lens _truthjets $ \e x -> e { _truthjets = x }
 
-
-type SystMap = M.Map T.Text
-
-
-withWeights :: Fill a -> F.Fold (CorrectedT SF SystMap a) (SystMap YodaFolder)
-withWeights (F.Fold comb start done) = F.Fold comb' start' done'
-  where
-    start' = mempty
-
-    -- h & at k %~ f xw won't work here
-    -- because it uses the lazy variant of maps.
-    comb' mh =
-      M.foldrWithKey (\k xw h -> M.alter (f xw) k h) mh . runCorrectedT
-
-    f xw Nothing  = Just $ comb start (withCorrection xw)
-    f xw (Just h) = Just $ comb h (withCorrection xw)
-
-    done' = fmap done
-
-
-probeJets :: Event -> [Corrected SF Jet]
+probeJets :: Event -> [Corrected (Vars SF) Jet]
 probeJets evt =
   case view jets evt of
     [j1, j2] -> probeJet j1 j2 ++ probeJet j2 j1

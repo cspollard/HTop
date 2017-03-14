@@ -44,7 +44,7 @@ zBT j =
 -- TODO!!!
 zBL = undefined
 
-trkSumPtH :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+trkSumPtH :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 trkSumPtH =
   hist1DDef
     (binD 0 25 500)
@@ -53,7 +53,7 @@ trkSumPtH =
     "/trksumpt"
     <$= trackSumPt
 
-svTrkSumPtH :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+svTrkSumPtH :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 svTrkSumPtH =
   hist1DDef
     (binD 0 25 500)
@@ -62,7 +62,7 @@ svTrkSumPtH =
     "/svtrksumpt"
     <$= svTrackSumPt
 
-zBTH :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+zBTH :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 zBTH =
   hist1DDef
     (binD 0 22 1.1)
@@ -74,7 +74,7 @@ zBTH =
 tupGetter :: Getter s a -> Getter s b -> Getter s (a, b)
 tupGetter f g = runGetter ((,) <$> Getter f <*> Getter g)
 
-trkSumPtProfPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+trkSumPtProfPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 trkSumPtProfPt =
   prof1DDef
     (binD 25 18 250)
@@ -83,7 +83,7 @@ trkSumPtProfPt =
     "/trksumptprofpt"
     <$= (view lvPt &&& trackSumPt)
 
-svTrkSumPtProfPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+svTrkSumPtProfPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 svTrkSumPtProfPt =
   prof1DDef
     (binD 25 18 250)
@@ -92,7 +92,7 @@ svTrkSumPtProfPt =
     "/svtrksumptprofpt"
     <$= (view lvPt &&& svTrackSumPt)
 
-zBTVsPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+zBTVsPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 zBTVsPt =
   hist2DDef
     (binD 25 15 250)
@@ -102,7 +102,7 @@ zBTVsPt =
     "/zbtvspt"
     <$= (view lvPt &&& zBT)
 
-zBTProfPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+zBTProfPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 zBTProfPt =
   prof1DDef
     (binD 25 15 250)
@@ -111,7 +111,7 @@ zBTProfPt =
     "/zbtprofpt"
     <$= (view lvPt &&& zBT)
 
-trkSumPtProfEta :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+trkSumPtProfEta :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 trkSumPtProfEta =
   prof1DDef
     (binD 0 21 2.1)
@@ -120,7 +120,7 @@ trkSumPtProfEta =
     "/trksumptprofeta"
     <$= (view lvEta &&& trackSumPt)
 
-svTrkSumPtProfEta :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+svTrkSumPtProfEta :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 svTrkSumPtProfEta =
   prof1DDef
     (binD 0 21 2.1)
@@ -129,7 +129,7 @@ svTrkSumPtProfEta =
     "/svtrksumptprofeta"
     <$= (view lvEta &&& svTrackSumPt)
 
-zBTProfEta :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+zBTProfEta :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 zBTProfEta =
   prof1DDef
     (binD 0 21 2.1)
@@ -138,7 +138,7 @@ zBTProfEta =
     "/zbtprofeta"
     <$= (view lvEta &&& zBT)
 
-svTrkSumPtProfTrkSumPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+svTrkSumPtProfTrkSumPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 svTrkSumPtProfTrkSumPt =
   prof1DDef
     (binD 0 10 100)
@@ -147,7 +147,7 @@ svTrkSumPtProfTrkSumPt =
     "/svtrksumptproftrksumpt"
     <$= (svTrackSumPt &&& trackSumPt)
 
-zBTProfTrkSumPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+zBTProfTrkSumPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 zBTProfTrkSumPt =
   prof1DDef
     (binD 0 10 100)
@@ -156,7 +156,7 @@ zBTProfTrkSumPt =
     "/zbtproftrksumpt"
     <$= (trackSumPt &&& zBT)
 
-nPVTrksH :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+nPVTrksH :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 nPVTrksH =
   hist1DDef
     (binD 0 20 20)
@@ -165,7 +165,7 @@ nPVTrksH =
     "/npvtrks"
     <$= fromIntegral . length . pvTracks
 
-nSVTrksH :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+nSVTrksH :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 nSVTrksH =
   hist1DDef
     (binD 0 10 10)
@@ -174,7 +174,7 @@ nSVTrksH =
     "/nsvtrks"
     <$= fromIntegral . length . svTracks
 
-nPVTrksProfPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+nPVTrksProfPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 nPVTrksProfPt =
   prof1DDef
     (binD 25 18 250)
@@ -183,7 +183,7 @@ nPVTrksProfPt =
     "/npvtrksprofpt"
     <$= (view lvPt &&& (fromIntegral . length . pvTracks))
 
-nSVTrksProfPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+nSVTrksProfPt :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 nSVTrksProfPt =
   prof1DDef
     (binD 25 18 250)
@@ -192,7 +192,7 @@ nSVTrksProfPt =
     "/nsvtrksprofpt"
     <$= (view lvPt &&& (fromIntegral . length . svTracks))
 
-bfragHs :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => Fill a
+bfragHs :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a) => FillSimple a
 bfragHs = mconcat
   [ trkSumPtH
   , svTrkSumPtH

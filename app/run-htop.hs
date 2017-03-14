@@ -64,11 +64,16 @@ main = do
   BS.writeFile (outfile args) (compress . encodeLazy $ imh)
 
 
+type VarMap = M.Map T.Text
+
+toMap :: T.Text -> Vars a -> M.Map T.Text a
+toMap nomname (Variations nom def) = M.insert nomname nom def
+
 fillFile
-  :: [(TreeName, TR IO (SystMap SF))]
-  -> Maybe (Int, Double, SystMap YodaFolder)
+  :: [(TreeName, TR IO (Vars (Corrected SF Event)))]
+  -> Maybe (Int, Double, VarMap YodaFolder)
   -> String
-  -> IO (Maybe (Int, Double, SystMap YodaFolder))
+  -> IO (Maybe (Int, Double, VarMap YodaFolder))
 fillFile systs m fn = do
   putStrLn $ "analyzing file " <> fn
 
@@ -86,7 +91,7 @@ fillFile systs m fn = do
 
   let sow = float2Double sow'
 
-  systHs <- fmap M.unions . forM systs $ \(tn, readws) -> do
+  systHs <- fmap M.unions . forM systs $ \(tn, readevt) -> do
     t <- ttree f tn
     putStrLn $ "looping over tree " <> tn
 
@@ -102,7 +107,7 @@ fillFile systs m fn = do
           if dsid == 0
             then return . correctedT $ M.singleton "data" (evt, sf "data" 1)
             else do
-              ws <- readws
+              e <- readevt
               return . correctedT $ (evt,) <$> ws
 
     F.purely L.fold defHs l
@@ -121,5 +126,5 @@ fillFile systs m fn = do
         n' `seq` sm' `seq` return (Just (dsid, n', sm'))
 
   where
-    defHs :: F.Fold (CorrectedT SF SystMap Event) (SystMap YodaFolder)
-    defHs = withWeights . channel "/elmujj" elmujj $ eventHs
+    defHs :: Fill Event
+    defHs = withVariations . channel "/elmujj" elmujj $ eventHs
