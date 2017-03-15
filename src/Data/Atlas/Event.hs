@@ -16,16 +16,16 @@ module Data.Atlas.Event
   , truthjets
   , eventHs, overlapRemoval
   , readEvent, elmujj, pruneJets
+  , eventWeight, probeJets
+  , recoVsTruthHs, truthMatchedProbeJets
   ) where
 
 import qualified Control.Foldl            as F
 import           Control.Lens
 import           Data.Atlas.Corrected
 import           Data.HEP.LorentzVector   as X
-import qualified Data.Map.Strict          as M
 import           Data.Maybe               (catMaybes, maybeToList)
 import           Data.Monoid
-import qualified Data.Text                as T
 import           Data.TTree
 import           Data.Tuple               (swap)
 import           GHC.Float
@@ -54,6 +54,11 @@ data Event =
     , _truthjets   :: Maybe [TruthJet]
     } deriving (Generic, Show)
 
+
+withWeight :: Event -> Corrected (Vars SF) Event
+withWeight evt =
+  let wgts = view eventWeight evt
+  in withCorrection (evt, wgts)
 
 readMET :: MonadIO m => String -> String -> TR m PtEtaPhiE
 readMET m p = do
@@ -110,18 +115,28 @@ truthMatchedProbeJets e =
   in catMaybes $ fmap sequence ms
 
 
-eventHs :: FillSimple Event
-eventHs = mconcat
-  [ muH
-  , prefixYF "/met" . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
-    <$> ptH <$= view met
-  , prefixYF "/jets" . over (traverse.xlabel) ("jet " <>)
-    <$> F.handles (to sequence.folded) lvHs <$= view jets
-  , prefixYF "/electrons" . over (traverse.xlabel) ("electron " <>)
-    <$> F.handles (to sequence.folded) electronHs <$= view electrons
-  , prefixYF "/muons" . over (traverse.xlabel) ("muon " <>)
-    <$> F.handles (to sequence.folded) muonHs <$= view muons
-  ]
+
+-- what I really would like here:
+-- Corrected (Vars SF) Event
+-- this highlights the fact that the variations are in the SFs
+-- not in the rest of the event.
+-- when I runCorrected here I will get (Event, Vars SF)
+-- so the event will only be walked *ONE TIME*
+-- as it's written now, the event will be re-selected/walked
+-- once for each SF variation.
+eventHs :: F.Fold Event (Vars YodaFolder)
+eventHs =
+  F.premap withWeight . withVariedSFs . channel "/elmujj" elmujj . mconcat $
+    [ muH
+    , prefixYF "/met" . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
+      <$> ptH <$= view met
+    , prefixYF "/jets" . over (traverse.xlabel) ("jet " <>)
+      <$> F.handles (to sequence.folded) lvHs <$= view jets
+    , prefixYF "/electrons" . over (traverse.xlabel) ("electron " <>)
+      <$> F.handles (to sequence.folded) electronHs <$= view electrons
+    , prefixYF "/muons" . over (traverse.xlabel) ("muon " <>)
+      <$> F.handles (to sequence.folded) muonHs <$= view muons
+    ]
 
   -- , prefixYF "/probejets" . over (traverse.xlabel) ("probe jet " <>)
   --   <$> jetHs <$$$= probeJets

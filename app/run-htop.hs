@@ -9,7 +9,9 @@
 module Main where
 
 import           Codec.Compression.GZip   (compress)
+import           Control.Applicative      (liftA2)
 import qualified Control.Foldl            as F
+import           Control.Lens
 import           Control.Monad            (forM, when)
 import qualified Data.ByteString.Lazy     as BS
 import qualified Data.Map.Strict          as M
@@ -23,10 +25,8 @@ import           Options.Generic
 import           System.IO                (BufferMode (..), hSetBuffering,
                                            stdout)
 
-import           Data.Atlas.Corrected
 import           Data.Atlas.Event
 import           Data.Atlas.Histogramming
-import           Data.Atlas.Systematics
 import           Data.TFile
 import           Data.TTree
 
@@ -53,7 +53,7 @@ main = do
 
   let fnl = L.select fns :: L.ListT IO String
       f = F.FoldM
-            (fillFile allVariations)
+            (fillFile ["nominal"])
             (return Nothing)
             return
 
@@ -61,19 +61,17 @@ main = do
 
   putStrLn ("writing to file " ++ outfile args)
 
-  BS.writeFile (outfile args) (compress . encodeLazy $ imh)
+  BS.writeFile (outfile args) (compress . encodeLazy $ over (traverse._3) (toMap "nominal") imh)
 
-
-type VarMap = M.Map T.Text
 
 toMap :: T.Text -> Vars a -> M.Map T.Text a
 toMap nomname (Variations nom def) = M.insert nomname nom def
 
 fillFile
-  :: [(TreeName, TR IO (Vars (Corrected SF Event)))]
-  -> Maybe (Int, Double, VarMap YodaFolder)
+  :: [TreeName]
+  -> Maybe (Int, Double, Vars YodaFolder)
   -> String
-  -> IO (Maybe (Int, Double, VarMap YodaFolder))
+  -> IO (Maybe (Int, Double, Vars YodaFolder))
 fillFile systs m fn = do
   putStrLn $ "analyzing file " <> fn
 
@@ -91,7 +89,7 @@ fillFile systs m fn = do
 
   let sow = float2Double sow'
 
-  systHs <- fmap M.unions . forM systs $ \(tn, readevt) -> do
+  (systHs :: Vars YodaFolder) <- fmap mconcat . forM systs $ \tn -> do
     t <- ttree f tn
     putStrLn $ "looping over tree " <> tn
 
@@ -102,29 +100,21 @@ fillFile systs m fn = do
       putStrLn "continuing."
 
     let l = if nt then L.empty else runTTreeL tmp t
-        tmp = do
-          evt <- overlapRemoval . pruneJets <$> readEvent (dsid == 0)
-          if dsid == 0
-            then return . correctedT $ M.singleton "data" (evt, sf "data" 1)
-            else do
-              e <- readevt
-              return . correctedT $ (evt,) <$> ws
+        tmp = overlapRemoval . pruneJets <$> readEvent (dsid == 0)
 
-    F.purely L.fold defHs l
+    F.purely L.fold eventHs l :: IO (Vars YodaFolder)
 
   putStrLn $ "closing file " <> fn
   tfileClose f
 
   case m of
       Nothing ->
-        sow `seq` systHs `seq` return (Just (dsid, sow, systHs))
+        systHs `seq` return (Just (dsid, sow, systHs))
       Just (dsid', n, hs') -> do
         when (dsid /= dsid')
           $ error "attempting to analyze different dsids in one run!!!"
         let n' = n+sow
-            sm' = M.unionWith mergeYF systHs hs'
+            sm' = liftA2 mergeYF systHs hs'
         n' `seq` sm' `seq` return (Just (dsid, n', sm'))
 
   where
-    defHs :: Fill Event
-    defHs = withVariations . channel "/elmujj" elmujj $ eventHs

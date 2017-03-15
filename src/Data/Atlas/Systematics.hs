@@ -27,6 +27,6 @@ puWgt :: MonadIO m => TR m (Vars SF)
 puWgt = do
   puw <- float2Double <$> readBranch "SFPileUp"
   puwup <- float2Double <$> readBranch "SFPileUp_UP"
-  puwdown <- float2Double <$> readBranch "SFPileUp_Down"
+  puwdown <- float2Double <$> readBranch "SFPileUp_DOWN"
   return . fmap (sf "pileupwgt") . Variations puw
     $ [("puwup", puwup), ("puwdown", puwdown)]
