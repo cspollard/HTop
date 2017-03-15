@@ -29,8 +29,6 @@ import           Data.Atlas.Histogramming
 import           Data.TFile
 import           Data.TTree
 
-type TreeName = String
-type SystName = T.Text
 
 data Args =
   Args
@@ -67,7 +65,7 @@ toMap :: T.Text -> Vars a -> M.Map T.Text a
 toMap nomname (Variations nom def) = M.insert nomname nom def
 
 fillFile
-  :: [TreeName]
+  :: [String]
   -> Maybe (Int, Double, Vars (Folder YodaObj))
   -> String
   -> IO (Maybe (Int, Double, Vars (Folder YodaObj)))
