@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Data.Atlas.Electron where
 
@@ -6,6 +7,7 @@ import           Control.Applicative      (ZipList (..))
 import           Control.Lens
 import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
+import           Data.Atlas.Variation
 import           Data.Serialize
 import           Data.TTree
 import           GHC.Float
@@ -39,5 +41,5 @@ readElectrons = do
     ci2i :: CInt -> Int
     ci2i = fromEnum
 
-electronHs :: FillSimple Electron
+electronHs :: Foldl (Corrected SF Electron) (Vars (Folder YodaObj))
 electronHs = lvHs

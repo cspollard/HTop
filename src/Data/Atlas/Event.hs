@@ -18,6 +18,7 @@ module Data.Atlas.Event
   , readEvent, elmujj, pruneJets
   , eventWeight, probeJets
   , recoVsTruthHs, truthMatchedProbeJets
+  , withWeight
   ) where
 
 import qualified Control.Foldl            as F
@@ -84,18 +85,25 @@ readEvent isData =
       ci2i = fromEnum
 
 
-muH :: FillSimple Event
+muH :: Foldl (Corrected SF Event) (Vars (Folder YodaObj))
 muH =
-  hist1DDef
-    (binD 0 25 100)
-    "$< \\mu >$"
-    (dsigdXpbY "\\mu" "1")
-    "/mu"
-    <$= view mu
+  sequenceA . singleton "/mu"
+  <$> hist1DDef (binD 0 25 100) "$< \\mu >$" (dsigdXpbY "\\mu" "1")
+  <$= view mu
+
+metH :: Foldl (Corrected SF Event) (Vars (Folder YodaObj))
+metH =
+  fmap (prefixF "/met" . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>))
+  <$> ptH
+  <$= view met
 
 
-recoVsTruthHs :: FillSimple (Jet, TruthJet)
-recoVsTruthHs = h <$= swap . bimap zBT zBT
+recoVsTruthHs :: Foldl (Corrected SF (Jet, TruthJet)) (Vars (Folder YodaObj))
+recoVsTruthHs =
+  sequenceA . singleton "/recobfragvstruebfrag"
+  <$> h
+  <$= swap . bimap zBT zBT
+
   where
     h =
       hist2DDef
@@ -103,7 +111,6 @@ recoVsTruthHs = h <$= swap . bimap zBT zBT
         (binD 0 22 1.1)
         "true $z_{p_{\\mathrm T}}$"
         "reco $z_{p_{\\mathrm T}}$"
-        "/recobfragvstruebfrag"
 
 
 truthMatchedProbeJets
@@ -115,31 +122,31 @@ truthMatchedProbeJets e =
   in catMaybes $ fmap sequence ms
 
 
+runCorrectedVars :: Corrected (Vars b) a -> Vars (Corrected b a)
+runCorrectedVars = fmap withCorrection . sequenceA . runCorrected
 
--- what I really would like here:
--- Corrected (Vars SF) Event
--- this highlights the fact that the variations are in the SFs
--- not in the rest of the event.
--- when I runCorrected here I will get (Event, Vars SF)
--- so the event will only be walked *ONE TIME*
--- as it's written now, the event will be re-selected/walked
--- once for each SF variation.
-eventHs :: F.Fold Event (Vars YodaFolder)
+eventHs :: Foldl Event (Vars (Folder YodaObj))
 eventHs =
-  F.premap withWeight . withVariedSFs . channel "/elmujj" elmujj . mconcat $
+  bindF (runCorrectedVars . withWeight)
+  . channelWithLabel "/elmujj" (elmujj . fst . runCorrected)
+  $ mconcat
     [ muH
-    , prefixYF "/met" . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
-      <$> ptH <$= view met
-    , prefixYF "/jets" . over (traverse.xlabel) ("jet " <>)
+    , metH
+    , fmap (prefixF "/jets" . over (traverse.xlabel) ("jet " <>))
       <$> F.handles (to sequence.folded) lvHs <$= view jets
-    , prefixYF "/electrons" . over (traverse.xlabel) ("electron " <>)
+    , fmap (prefixF "/electrons" . over (traverse.xlabel) ("electron " <>))
       <$> F.handles (to sequence.folded) electronHs <$= view electrons
-    , prefixYF "/muons" . over (traverse.xlabel) ("muon " <>)
+    , fmap (prefixF "/muons" . over (traverse.xlabel) ("muon " <>))
       <$> F.handles (to sequence.folded) muonHs <$= view muons
+    -- , probeJetHs
     ]
 
-  -- , prefixYF "/probejets" . over (traverse.xlabel) ("probe jet " <>)
-  --   <$> jetHs <$$$= probeJets
+-- probeJetHs :: F.Fold Event (Vars YodaFolder)
+-- probeJetHs =
+--   F.premap probeJets . F.handles folded . withVariedSFs
+--     $ prefixYF "/probejets" . over (traverse.xlabel) ("probe jet " <>)
+--       <$> jetHs
+
   -- , prefixYF "/truthbjets" . over (traverse.xlabel) ("truth $b$-jet " <>)
   --   <$> F.handles (to sequence.folded) truthJetHs
   --   <$= ( concat . maybeToList . view truthjets )
@@ -194,9 +201,7 @@ elmujj e =
       mus = _muons e
       js = _jets e
   in length els == 1
-      && all ((> 28) . view lvPt) els
       && length mus == 1
-      && all ((> 28) . view lvPt) mus
       && length js == 2
       && lvDREta (head js) (head $ tail js) > 1.0
 

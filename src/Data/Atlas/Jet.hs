@@ -98,10 +98,10 @@ readJets isData = do
 
   pvtrks' <-
     jetTracksTLV
-    "JetTracksPt"
-    "JetTracksEta"
-    "JetTracksPhi"
-    "JetTracksE"
+      "JetTracksPt"
+      "JetTracksEta"
+      "JetTracksPhi"
+      "JetTracksE"
   pvtrksTight <- jetTracksIsTight
 
   let f x y = ZipList . fmap snd . filter fst . getZipList $ (,) <$> x <*> y
@@ -149,31 +149,28 @@ jetTracksTLV spt seta sphi se = do
     return . ZipList . fmap ZipList $ V.toList trks
 
 
-mv2c10H :: FillSimple Jet
+mv2c10H :: Foldl (Corrected SF Jet) (Vars (Folder YodaObj))
 mv2c10H =
-  hist1DDef
-    (binD (-1) 25 1)
-    "MV2c10"
-    (dsigdXpbY "\\mathrm{MV2c10}" "1")
-    "/mv2c10"
-    <$= view mv2c10
+  sequenceA . singleton "/mv2c10"
+  <$> hist1DDef (binD (-1) 25 1) "MV2c10" (dsigdXpbY "\\mathrm{MV2c10}" "1")
+  <$= view mv2c10
 
-jetHs :: FillSimple Jet
+jetHs :: Foldl (Corrected SF Jet) (Vars (Folder YodaObj))
 jetHs =
-  channels
+  channelsWithLabels
     [ ("/allJetFlavs", const True)
-    , ("/bottom", bLabeled)
-    , ("/notbottom", notBLabeled)
+    , ("/bottom", bLabeled . fst . runCorrected)
+    , ("/notbottom", notBLabeled . fst . runCorrected)
     ]
-  $ channels
-    [ ("/2psvtrks", (>= 2) . length . svTracks)
-    , ("/2svtrks", (== 2) . length . svTracks)
-    , ("/3svtrks", (== 3) . length . svTracks)
-    , ("/4psvtrks", (>= 4) . length . svTracks)
+  $ channelsWithLabels
+    [ ("/2psvtrks", (>= 2) . length . svTracks . fst . runCorrected)
+    , ("/2svtrks", (== 2) . length . svTracks . fst . runCorrected)
+    , ("/3svtrks", (== 3) . length . svTracks . fst . runCorrected)
+    , ("/4psvtrks", (>= 4) . length . svTracks . fst . runCorrected)
     ]
-  $ channels
+  $ channelsWithLabels
     ( ("/inclusive", const True)
-    : ("/pt_gt200", (> 200) . view lvPt)
+    : ("/pt_gt200", (> 200) . view lvPt . fst . runCorrected)
     : bins' "/pt" (view lvPt) [20, 30, 50, 75, 100, 150, 200]
     ++ bins' "/eta" (view lvAbsEta) [0, 0.5, 1.0, 1.5, 2.0, 2.5]
     )
@@ -184,10 +181,14 @@ jetHs =
     ]
 
   where
-    bins' :: T.Text -> (Jet -> Double) -> [Double] -> [(T.Text, Jet -> Bool)]
+    bins'
+      :: T.Text
+      -> (Jet -> Double)
+      -> [Double]
+      -> [(T.Text, Corrected SF Jet -> Bool)]
     bins' lab f (b0:b1:bs) =
       ( fixT $ lab <> "_" <> T.pack (show b0) <> "_" <> T.pack (show b1)
-      , \j -> let x = f j in b0 < x && x < b1
+      , (\j -> let x = f j in b0 < x && x < b1) . fst . runCorrected
       ) : bins' lab f (b1:bs)
 
     bins' _ _ _ = []

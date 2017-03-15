@@ -9,7 +9,6 @@
 module Main where
 
 import           Codec.Compression.GZip   (compress)
-import           Control.Applicative      (liftA2)
 import qualified Control.Foldl            as F
 import           Control.Lens
 import           Control.Monad            (forM, when)
@@ -69,9 +68,9 @@ toMap nomname (Variations nom def) = M.insert nomname nom def
 
 fillFile
   :: [TreeName]
-  -> Maybe (Int, Double, Vars YodaFolder)
+  -> Maybe (Int, Double, Vars (Folder YodaObj))
   -> String
-  -> IO (Maybe (Int, Double, Vars YodaFolder))
+  -> IO (Maybe (Int, Double, Vars (Folder YodaObj)))
 fillFile systs m fn = do
   putStrLn $ "analyzing file " <> fn
 
@@ -89,7 +88,7 @@ fillFile systs m fn = do
 
   let sow = float2Double sow'
 
-  (systHs :: Vars YodaFolder) <- fmap mconcat . forM systs $ \tn -> do
+  (systHs :: Vars (Folder YodaObj)) <- fmap mconcat . forM systs $ \tn -> do
     t <- ttree f tn
     putStrLn $ "looping over tree " <> tn
 
@@ -102,7 +101,7 @@ fillFile systs m fn = do
     let l = if nt then L.empty else runTTreeL tmp t
         tmp = overlapRemoval . pruneJets <$> readEvent (dsid == 0)
 
-    F.purely L.fold eventHs l :: IO (Vars YodaFolder)
+    F.purely L.fold eventHs l :: IO (Vars (Folder YodaObj))
 
   putStrLn $ "closing file " <> fn
   tfileClose f
@@ -114,7 +113,5 @@ fillFile systs m fn = do
         when (dsid /= dsid')
           $ error "attempting to analyze different dsids in one run!!!"
         let n' = n+sow
-            sm' = liftA2 mergeYF systHs hs'
+            sm' = mappend systHs hs'
         n' `seq` sm' `seq` return (Just (dsid, n', sm'))
-
-  where
