@@ -23,6 +23,7 @@ module Data.Atlas.Event
 
 import qualified Control.Foldl            as F
 import           Control.Lens
+import           Control.Monad            (join)
 import           Data.Atlas.Corrected
 import           Data.HEP.LorentzVector   as X
 import           Data.Maybe               (catMaybes, maybeToList)
@@ -141,11 +142,30 @@ eventHs =
     -- , probeJetHs
     ]
 
--- probeJetHs :: F.Fold Event (Vars YodaFolder)
--- probeJetHs =
---   F.premap probeJets . F.handles folded . withVariedSFs
---     $ prefixYF "/probejets" . over (traverse.xlabel) ("probe jet " <>)
---       <$> jetHs
+probeJets :: Event -> [Corrected (Vars SF) Jet]
+probeJets evt =
+  case view jets evt of
+    [j1, j2] -> probeJet j1 j2 ++ probeJet j2 j1
+    _        -> []
+  where
+    probeJet j j' = sequenceA $ do
+      bt <- view isBTagged j
+      if bt && hasSV j'
+        then return [j']
+        else return []
+
+-- probeJetHs :: F.Fold (Corrected SF Event) (Vars YodaFolder)
+-- TODO
+-- this is SUPER UGLY
+-- HERE
+probeJetHs :: F.Fold (Vars (Corrected SF Jet)) r -> F.Fold (Corrected SF Event) r
+probeJetHs =
+  F.premap (fmap (fmap join . sequence) . sequence . fmap (fmap runCorrectedVars . probeJets))
+  . F.handles folded
+  -- . F.premap pure
+  -- $ prefixYF "/probejets" . over (traverse.xlabel) ("probe jet " <>)
+  --   <$> jetHs
+  --   <$= view jets
 
   -- , prefixYF "/truthbjets" . over (traverse.xlabel) ("truth $b$-jet " <>)
   --   <$> F.handles (to sequence.folded) truthJetHs
@@ -181,18 +201,6 @@ met = lens _met $ \e x -> e { _met = x }
 
 truthjets :: Lens' Event (Maybe [TruthJet])
 truthjets = lens _truthjets $ \e x -> e { _truthjets = x }
-
-probeJets :: Event -> [Corrected (Vars SF) Jet]
-probeJets evt =
-  case view jets evt of
-    [j1, j2] -> probeJet j1 j2 ++ probeJet j2 j1
-    _        -> []
-  where
-    probeJet j j' = sequenceA $ do
-      bt <- view isBTagged j
-      if bt && hasSV j'
-        then return [j']
-        else return []
 
 
 elmujj :: Event -> Bool

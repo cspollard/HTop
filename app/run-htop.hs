@@ -10,13 +10,10 @@ module Main where
 
 import           Codec.Compression.GZip   (compress)
 import qualified Control.Foldl            as F
-import           Control.Lens
 import           Control.Monad            (forM, when)
 import qualified Data.ByteString.Lazy     as BS
-import qualified Data.Map.Strict          as M
 import           Data.Semigroup
 import           Data.Serialize           (encodeLazy)
-import qualified Data.Text                as T
 import           GHC.Float
 import           List.Transformer
 import qualified List.Transformer         as L
@@ -58,11 +55,8 @@ main = do
 
   putStrLn ("writing to file " ++ outfile args)
 
-  BS.writeFile (outfile args) (compress . encodeLazy $ over (traverse._3) (toMap "nominal") imh)
+  BS.writeFile (outfile args) (compress . encodeLazy $ imh)
 
-
-toMap :: T.Text -> Vars a -> M.Map T.Text a
-toMap nomname (Variations nom def) = M.insert nomname nom def
 
 fillFile
   :: [String]
