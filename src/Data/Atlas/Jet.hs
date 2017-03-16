@@ -11,7 +11,6 @@ module Data.Atlas.Jet where
 import           Control.Applicative      (ZipList (..))
 import           Control.Lens
 import           Data.Atlas.BFrag
-import           Data.Atlas.Corrected
 import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
 import           Data.Atlas.TruthJet
@@ -88,9 +87,8 @@ readJets isData = do
         imap (\i -> pure . sf ("btagSFjet" <> T.pack (show i))) . fmap float2Double
           <$> readBranch "JetBtagSF"
 
-  let tagged =
-        curry withCorrection
-        <$> fmap (> 0.8244273) mv2c10s <*> mv2c10sfs
+  let withsf x xsf = setWgt xsf >> return x
+      tagged = withsf <$> fmap (> 0.8244273) mv2c10s <*> mv2c10sfs
 
 
   jvts <- fmap float2Double <$> readBranch "JetJVT"

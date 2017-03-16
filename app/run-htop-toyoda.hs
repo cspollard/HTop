@@ -26,7 +26,6 @@ main = mainWith writeFiles
 
 writeFiles :: String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
 writeFiles outf pm' = do
-  mapMOf_  (traverse.traverse.traverse) (print . printYodaObj "item") pm'
   let (pm, d) = collapseProcs pm'
       pm'' = variationsToMap "PowPyNom" (sequenceA pm) & at "data" .~ d
 

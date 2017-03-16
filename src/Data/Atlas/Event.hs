@@ -22,6 +22,7 @@ module Data.Atlas.Event
 
 import qualified Control.Foldl            as F
 import           Control.Lens
+import           Control.Monad            (join)
 import           Data.HEP.LorentzVector   as X
 import           Data.Maybe               (catMaybes, maybeToList)
 import           Data.Monoid
@@ -61,6 +62,7 @@ readMET m p = do
 
 readEvent :: MonadIO m => Bool -> TR m (PhysObj Event)
 readEvent isData = do
+  liftIO $ print "readEvent"
   wgt <- evtWgt isData
   evt <-
     Event
@@ -117,7 +119,6 @@ truthMatchedProbeJets e =
       ms = (fmap.fmap) (`matchJTJ` tjs) js
   in catMaybes $ fmap sequence ms
 
-
 eventHs :: Fills Event
 eventHs =
   channelWithLabel "/elmujj" elmujj
@@ -130,9 +131,19 @@ eventHs =
       <$> F.handles (to sequence.folded) electronHs <$= view electrons
     , prefixF "/muons" . over (traverse.traverse.xlabel) ("muon " <>)
       <$> F.handles (to sequence.folded) muonHs <$= view muons
-    -- , probeJetHs
+    , prefixF "/probejets" . over (traverse.traverse.xlabel) ("probe jet " <>)
+      <$> F.premap (fmap join . sequenceA) (F.handles folded jetHs)
+      <$= probeJets
+
     ]
 
+-- fmap join
+-- [PhysObj (PhysObj a)]
+-- sequenceA
+-- PhysObj [PhysObj a]
+
+-- TODO
+-- can I make this into a traversal?
 probeJets :: Event -> [PhysObj Jet]
 probeJets evt =
   case view jets evt of
