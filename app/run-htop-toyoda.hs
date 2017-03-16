@@ -24,23 +24,25 @@ import           Data.YODA.Obj
 main :: IO ()
 main = mainWith writeFiles
 
-writeFiles :: String -> ProcMap (Vars (Folder YodaObj)) -> IO ()
-writeFiles outf pm =
-  iforM_ (variationsToMap "PowPyNom" $ collapseProcs pm) $
-      \varname hs ->
-        T.writeFile
-        (outf ++ '/' : T.unpack varname ++ ".yoda")
-        (ifoldMap printYodaObj $ folderToMap hs)
+writeFiles :: String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
+writeFiles outf pm' = do
+  mapMOf_  (traverse.traverse.traverse) (print . printYodaObj "item") pm'
+  let (pm, d) = collapseProcs pm'
+      pm'' = variationsToMap "PowPyNom" (sequenceA pm) & at "data" .~ d
 
--- TODO
--- this will make n copies of the data histogram
--- because it will have no systematics.
--- laziness might prevent this, but still...
-collapseProcs :: ProcMap (Vars (Folder YodaObj)) -> Vars (Folder YodaObj)
+  iforM_ pm''
+    $ \varname hs ->
+      T.writeFile
+      (outf ++ '/' : T.unpack varname ++ ".yoda")
+      (ifoldMap printYodaObj $ folderToMap hs)
+
+
+collapseProcs :: ProcMap (Folder (Vars YodaObj)) -> (Folder (Vars YodaObj), Maybe (Folder YodaObj))
 collapseProcs pm =
   let preds = sans 0 pm
 
-      dat = pm ^. at 0 . _Just . at "data"
+      dat :: Maybe (Folder YodaObj)
+      dat = (fmap.fmap) (view nominal) $ pm ^. at 0
 
       systttbarDSIDs = (+410000) <$> [1, 2, 3, 4] :: [Int]
       (systttbar', systpreds) =
@@ -48,7 +50,7 @@ collapseProcs pm =
 
       -- the "nominal" variations from the ttbar systematic samples
       -- are actually variations
-      systttbar = view nominal <$> systttbar'
+      systttbar = over (traverse.traverse) (view nominal) systttbar'
 
       -- TODO
       -- partial!
@@ -56,13 +58,14 @@ collapseProcs pm =
 
       bkgs = fold $ sans 410000 systpreds
 
+      ttbar :: Folder (Vars YodaObj)
       ttbar =
-        foldr (\(k, hs) v -> v & at k ?~ hs) ttbar'
+        foldr (\(k, fs) fv -> inF2 (M.intersectionWith (\s v -> v & at k ?~ s)) fs fv) ttbar'
         $ fmap (first (procDict IM.!))
           . IM.toList
           $ systttbar
 
-  in mappend ttbar bkgs
+  in (mappend ttbar bkgs, dat)
 
 procDict :: IM.IntMap T.Text
 procDict =

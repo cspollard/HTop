@@ -60,9 +60,9 @@ main = do
 
 fillFile
   :: [String]
-  -> Maybe (Int, Double, Vars (Folder YodaObj))
+  -> Maybe (Int, Double, Folder (Vars YodaObj))
   -> String
-  -> IO (Maybe (Int, Double, Vars (Folder YodaObj)))
+  -> IO (Maybe (Int, Double, Folder (Vars YodaObj)))
 fillFile systs m fn = do
   putStrLn $ "analyzing file " <> fn
 
@@ -80,7 +80,7 @@ fillFile systs m fn = do
 
   let sow = float2Double sow'
 
-  (systHs :: Vars (Folder YodaObj)) <- fmap mconcat . forM systs $ \tn -> do
+  systHs <- fmap mconcat . forM systs $ \tn -> do
     t <- ttree f tn
     putStrLn $ "looping over tree " <> tn
 
@@ -91,9 +91,9 @@ fillFile systs m fn = do
       putStrLn "continuing."
 
     let l = if nt then L.empty else runTTreeL tmp t
-        tmp = overlapRemoval . pruneJets <$> readEvent (dsid == 0)
+        tmp = fmap (overlapRemoval . pruneJets) <$> readEvent (dsid == 0)
 
-    F.purely L.fold eventHs l :: IO (Vars (Folder YodaObj))
+    F.purely L.fold eventHs l :: IO (Folder (Vars YodaObj))
 
   putStrLn $ "closing file " <> fn
   tfileClose f

@@ -12,7 +12,6 @@ import           Control.Lens
 import           Data.Atlas.BFrag
 import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
-import           Data.Atlas.Variation
 import           Data.List                (deleteFirstsBy)
 import           Data.TTree
 import qualified Data.Vector              as V
@@ -29,7 +28,7 @@ data TruthJet =
 instance HasLorentzVector TruthJet where
   toPtEtaPhiE = lens _tjPtEtaPhiE $ \tj x -> tj { _tjPtEtaPhiE = x }
 
-truthJetHs :: Foldl (Corrected SF TruthJet) (Vars (Folder YodaObj))
+truthJetHs :: Fills TruthJet
 truthJetHs = mconcat [ lvHs, bfragHs ]
 
 data BHadron =

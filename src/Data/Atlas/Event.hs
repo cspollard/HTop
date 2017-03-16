@@ -16,15 +16,12 @@ module Data.Atlas.Event
   , truthjets
   , eventHs, overlapRemoval
   , readEvent, elmujj, pruneJets
-  , eventWeight, probeJets
+  , probeJets
   , recoVsTruthHs, truthMatchedProbeJets
-  , withWeight
   ) where
 
 import qualified Control.Foldl            as F
 import           Control.Lens
-import           Control.Monad            (join)
-import           Data.Atlas.Corrected
 import           Data.HEP.LorentzVector   as X
 import           Data.Maybe               (catMaybes, maybeToList)
 import           Data.Monoid
@@ -35,7 +32,7 @@ import           GHC.Generics             (Generic)
 
 import           Data.Atlas.BFrag         as X
 import           Data.Atlas.Electron      as X
-import           Data.Atlas.Histogramming
+import           Data.Atlas.Histogramming as X
 import           Data.Atlas.Jet           as X
 import           Data.Atlas.Muon          as X
 import           Data.Atlas.PtEtaPhiE     as X
@@ -47,7 +44,6 @@ data Event =
   Event
     { _runNumber   :: Int
     , _eventNumber :: Int
-    , _eventWeight :: Vars SF
     , _mu          :: Double
     , _electrons   :: [Electron]
     , _muons       :: [Muon]
@@ -56,12 +52,6 @@ data Event =
     , _truthjets   :: Maybe [TruthJet]
     } deriving (Generic, Show)
 
-
-withWeight :: Event -> Corrected (Vars SF) Event
-withWeight evt =
-  let wgts = view eventWeight evt
-  in withCorrection (evt, wgts)
-
 readMET :: MonadIO m => String -> String -> TR m PtEtaPhiE
 readMET m p = do
   et <- float2Double <$> readBranch m
@@ -69,39 +59,44 @@ readMET m p = do
   return $ PtEtaPhiE et 0 phi et
 
 
-readEvent :: MonadIO m => Bool -> TR m Event
-readEvent isData =
+readEvent :: MonadIO m => Bool -> TR m (PhysObj Event)
+readEvent isData = do
+  wgt <- evtWgt isData
+  evt <-
     Event
-      <$> fmap ci2i (readBranch "Run")
-      <*> fmap ci2i (readBranch "Event")
-      <*> evtWgt isData
-      <*> fmap float2Double (readBranch "Mu")
-      <*> readElectrons
-      <*> readMuons
-      <*> readJets isData
-      <*> readMET "ETMiss" "ETMissPhi"
-      <*> if isData then return Nothing else Just <$> readTruthJets
-    where
-      ci2i :: CInt -> Int
-      ci2i = fromEnum
+    <$> fmap ci2i (readBranch "Run")
+    <*> fmap ci2i (readBranch "Event")
+    <*> fmap float2Double (readBranch "Mu")
+    <*> readElectrons
+    <*> readMuons
+    <*> readJets isData
+    <*> readMET "ETMiss" "ETMissPhi"
+    <*> if isData then return Nothing else Just <$> readTruthJets
+
+  return $ setWgt wgt >> return evt
+
+  where
+    ci2i :: CInt -> Int
+    ci2i = fromEnum
 
 
-muH :: Foldl (Corrected SF Event) (Vars (Folder YodaObj))
+muH :: Fills Event
 muH =
-  sequenceA . singleton "/mu"
+  singleton "/mu"
   <$> hist1DDef (binD 0 25 100) "$< \\mu >$" (dsigdXpbY "\\mu" "1")
   <$= view mu
 
-metH :: Foldl (Corrected SF Event) (Vars (Folder YodaObj))
+metH :: Fills Event
 metH =
-  fmap (prefixF "/met" . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>))
+  prefixF "/met"
+  . over (traverse.traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
   <$> ptH
   <$= view met
 
 
-recoVsTruthHs :: Foldl (Corrected SF (Jet, TruthJet)) (Vars (Folder YodaObj))
+recoVsTruthHs :: Fills (Jet, TruthJet)
 recoVsTruthHs =
-  sequenceA . singleton "/recobfragvstruebfrag"
+  singleton "/recobfragvstruebfrag"
   <$> h
   <$= swap . bimap zBT zBT
 
@@ -115,7 +110,7 @@ recoVsTruthHs =
 
 
 truthMatchedProbeJets
-  :: Event -> [Corrected (Vars SF) (Jet, TruthJet)]
+  :: Event -> [PhysObj (Jet, TruthJet)]
 truthMatchedProbeJets e =
   let tjs = concat . maybeToList $ view truthjets e
       js = probeJets e
@@ -123,26 +118,22 @@ truthMatchedProbeJets e =
   in catMaybes $ fmap sequence ms
 
 
-runCorrectedVars :: Corrected (Vars b) a -> Vars (Corrected b a)
-runCorrectedVars = fmap withCorrection . sequenceA . runCorrected
-
-eventHs :: Foldl Event (Vars (Folder YodaObj))
+eventHs :: Fills Event
 eventHs =
-  bindF (runCorrectedVars . withWeight)
-  . channelWithLabel "/elmujj" (elmujj . fst . runCorrected)
+  channelWithLabel "/elmujj" elmujj
   $ mconcat
     [ muH
     , metH
-    , fmap (prefixF "/jets" . over (traverse.xlabel) ("jet " <>))
+    , prefixF "/jets" . over (traverse.traverse.xlabel) ("jet " <>)
       <$> F.handles (to sequence.folded) lvHs <$= view jets
-    , fmap (prefixF "/electrons" . over (traverse.xlabel) ("electron " <>))
+    , prefixF "/electrons" . over (traverse.traverse.xlabel) ("electron " <>)
       <$> F.handles (to sequence.folded) electronHs <$= view electrons
-    , fmap (prefixF "/muons" . over (traverse.xlabel) ("muon " <>))
+    , prefixF "/muons" . over (traverse.traverse.xlabel) ("muon " <>)
       <$> F.handles (to sequence.folded) muonHs <$= view muons
     -- , probeJetHs
     ]
 
-probeJets :: Event -> [Corrected (Vars SF) Jet]
+probeJets :: Event -> [PhysObj Jet]
 probeJets evt =
   case view jets evt of
     [j1, j2] -> probeJet j1 j2 ++ probeJet j2 j1
@@ -153,25 +144,10 @@ probeJets evt =
       if bt && hasSV j'
         then return [j']
         else return []
-
--- probeJetHs :: F.Fold (Corrected SF Event) (Vars YodaFolder)
--- TODO
--- this is SUPER UGLY
--- HERE
-probeJetHs :: F.Fold (Vars (Corrected SF Jet)) r -> F.Fold (Corrected SF Event) r
-probeJetHs =
-  F.premap (fmap (fmap join . sequence) . sequence . fmap (fmap runCorrectedVars . probeJets))
-  . F.handles folded
-  -- . F.premap pure
-  -- $ prefixYF "/probejets" . over (traverse.xlabel) ("probe jet " <>)
-  --   <$> jetHs
-  --   <$= view jets
-
-  -- , prefixYF "/truthbjets" . over (traverse.xlabel) ("truth $b$-jet " <>)
-  --   <$> F.handles (to sequence.folded) truthJetHs
-  --   <$= ( concat . maybeToList . view truthjets )
-  -- , fmap (prefixYF "/truthrecojets")
-  --   $ recoVsTruthHs <$$$= truthMatchedProbeJets
+--
+-- -- TODO
+-- probeJetHs :: Fills Jet
+-- probeJetHs = jetHs
 
 
 
@@ -180,9 +156,6 @@ runNumber = lens _runNumber $ \e x -> e { _runNumber = x }
 
 eventNumber :: Lens' Event Int
 eventNumber = lens _eventNumber $ \e x -> e { _eventNumber = x }
-
-eventWeight :: Lens' Event (Vars SF)
-eventWeight = lens _eventWeight $ \e x -> e { _eventWeight = x }
 
 mu :: Lens' Event Double
 mu = lens _mu $ \e x -> e { _mu = x }
@@ -203,12 +176,13 @@ truthjets :: Lens' Event (Maybe [TruthJet])
 truthjets = lens _truthjets $ \e x -> e { _truthjets = x }
 
 
-elmujj :: Event -> Bool
+elmujj :: Event -> PhysObj Bool
 elmujj e =
   let els = _electrons e
       mus = _muons e
       js = _jets e
-  in length els == 1
+  in return
+    $ length els == 1
       && length mus == 1
       && length js == 2
       && lvDREta (head js) (head $ tail js) > 1.0

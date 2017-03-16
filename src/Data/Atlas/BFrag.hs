@@ -5,7 +5,6 @@ module Data.Atlas.BFrag where
 
 import           Control.Lens
 import           Data.Atlas.Histogramming
-import           Data.Atlas.Variation
 import           Data.Foldable            (fold)
 import           Data.Semigroup
 
@@ -248,5 +247,5 @@ zBL = undefined
 
 bfragHs
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Foldl (Corrected SF  a) (Vars (Folder YodaObj))
+  => Fills a
 bfragHs = mempty

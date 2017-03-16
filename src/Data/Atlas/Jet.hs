@@ -14,7 +14,6 @@ import           Data.Atlas.BFrag
 import           Data.Atlas.Corrected
 import           Data.Atlas.Histogramming
 import           Data.Atlas.PtEtaPhiE
-import           Data.Atlas.Systematics
 import           Data.Atlas.TruthJet
 import           Data.Monoid              hiding ((<>))
 import           Data.Semigroup
@@ -42,7 +41,7 @@ data Jet =
   Jet
     { _jPtEtaPhiE  :: PtEtaPhiE
     , _mv2c10      :: Double
-    , _isBTagged   :: Corrected (Vars SF) Bool
+    , _isBTagged   :: PhysObj Bool
     , _jvt         :: Double
     , _pvTrks      :: [PtEtaPhiE]
     , _svTrks      :: [PtEtaPhiE]
@@ -149,28 +148,28 @@ jetTracksTLV spt seta sphi se = do
     return . ZipList . fmap ZipList $ V.toList trks
 
 
-mv2c10H :: Foldl (Corrected SF Jet) (Vars (Folder YodaObj))
+mv2c10H :: Fills Jet
 mv2c10H =
-  sequenceA . singleton "/mv2c10"
+  singleton "/mv2c10"
   <$> hist1DDef (binD (-1) 25 1) "MV2c10" (dsigdXpbY "\\mathrm{MV2c10}" "1")
   <$= view mv2c10
 
-jetHs :: Foldl (Corrected SF Jet) (Vars (Folder YodaObj))
+jetHs :: Fills Jet
 jetHs =
   channelsWithLabels
-    [ ("/allJetFlavs", const True)
-    , ("/bottom", bLabeled . fst . runCorrected)
-    , ("/notbottom", notBLabeled . fst . runCorrected)
+    [ ("/allJetFlavs", pure . const True)
+    , ("/bottom", pure . bLabeled)
+    , ("/notbottom", pure . notBLabeled)
     ]
   $ channelsWithLabels
-    [ ("/2psvtrks", (>= 2) . length . svTracks . fst . runCorrected)
-    , ("/2svtrks", (== 2) . length . svTracks . fst . runCorrected)
-    , ("/3svtrks", (== 3) . length . svTracks . fst . runCorrected)
-    , ("/4psvtrks", (>= 4) . length . svTracks . fst . runCorrected)
+    [ ("/2psvtrks", pure . (>= 2) . length . svTracks)
+    , ("/2svtrks", pure . (== 2) . length . svTracks)
+    , ("/3svtrks", pure . (== 3) . length . svTracks)
+    , ("/4psvtrks", pure . (>= 4) . length . svTracks)
     ]
   $ channelsWithLabels
-    ( ("/inclusive", const True)
-    : ("/pt_gt200", (> 200) . view lvPt . fst . runCorrected)
+    ( ("/inclusive", pure . const True)
+    : ("/pt_gt200", pure . (> 200) . view lvPt)
     : bins' "/pt" (view lvPt) [20, 30, 50, 75, 100, 150, 200]
     ++ bins' "/eta" (view lvAbsEta) [0, 0.5, 1.0, 1.5, 2.0, 2.5]
     )
@@ -185,10 +184,10 @@ jetHs =
       :: T.Text
       -> (Jet -> Double)
       -> [Double]
-      -> [(T.Text, Corrected SF Jet -> Bool)]
+      -> [(T.Text, Jet -> PhysObj Bool)]
     bins' lab f (b0:b1:bs) =
       ( fixT $ lab <> "_" <> T.pack (show b0) <> "_" <> T.pack (show b1)
-      , (\j -> let x = f j in b0 < x && x < b1) . fst . runCorrected
+      , pure . (\j -> let x = f j in b0 < x && x < b1)
       ) : bins' lab f (b1:bs)
 
     bins' _ _ _ = []
@@ -228,7 +227,7 @@ pvTrks, svTrks :: Lens' Jet [PtEtaPhiE]
 pvTrks = lens _pvTrks $ \j x -> j { _pvTrks = x }
 svTrks = lens _svTrks $ \j x -> j { _svTrks = x }
 
-isBTagged :: Lens' Jet (Corrected (Vars SF) Bool)
+isBTagged :: Lens' Jet (PhysObj Bool)
 isBTagged = lens _isBTagged $ \j x -> j { _isBTagged = x }
 
 truthFlavor :: Lens' Jet (Maybe JetFlavor)
