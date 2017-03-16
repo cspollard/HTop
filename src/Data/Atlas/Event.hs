@@ -125,15 +125,15 @@ eventHs =
     [ muH
     , metH
     , prefixF "/jets" . over (traverse.traverse.xlabel) ("jet " <>)
-      <$> F.handles (to sequence.folded) lvHs <$= view jets
+      <$> F.handles (to sequence.folded) lvHs
+      <$= view jets
     , prefixF "/electrons" . over (traverse.traverse.xlabel) ("electron " <>)
-      <$> F.handles (to sequence.folded) electronHs <$= view electrons
+      <$> F.handles (to sequence.folded) electronHs
+      <$= view electrons
     , prefixF "/muons" . over (traverse.traverse.xlabel) ("muon " <>)
-      <$> F.handles (to sequence.folded) muonHs <$= view muons
-    , prefixF "/probejets" . over (traverse.traverse.xlabel) ("probe jet " <>)
-      <$> F.premap (fmap join . sequenceA) (F.handles folded jetHs)
-      <$= probeJets
-
+      <$> F.handles (to sequence.folded) muonHs
+      <$= view muons
+    , probeJetHs
     ]
 
 -- TODO
@@ -149,10 +149,16 @@ probeJets evt =
       if bt && hasSV j'
         then return [j']
         else return []
---
--- -- TODO
--- probeJetHs :: Fills Jet
--- probeJetHs = jetHs
+
+probeJetHs :: Fills Event
+probeJetHs = mconcat
+  [ prefixF "/probejets" . over (traverse.traverse.xlabel) ("probe jet " <>)
+    <$> F.premap (fmap join . sequenceA) (F.handles folded jetHs)
+    <$= probeJets
+  , F.premap (fmap join . sequenceA) (F.handles folded recoVsTruthHs)
+    <$= truthMatchedProbeJets
+  ]
+
 
 
 
