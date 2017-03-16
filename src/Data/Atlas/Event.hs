@@ -62,7 +62,6 @@ readMET m p = do
 
 readEvent :: MonadIO m => Bool -> TR m (PhysObj Event)
 readEvent isData = do
-  liftIO $ print "readEvent"
   wgt <- evtWgt isData
   evt <-
     Event
@@ -136,11 +135,6 @@ eventHs =
       <$= probeJets
 
     ]
-
--- fmap join
--- [PhysObj (PhysObj a)]
--- sequenceA
--- PhysObj [PhysObj a]
 
 -- TODO
 -- can I make this into a traversal?
