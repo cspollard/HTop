@@ -28,15 +28,17 @@ writeFiles :: String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
 writeFiles outf pm' = do
   let (pm, d) = collapseProcs pm'
       pm'' = variationsToMap "PowPyNom" (sequenceA pm) & at "data" .~ d
+      f varname hs =
+        T.writeFile
+        (outf ++ '/' : T.unpack varname ++ ".yoda")
+        (ifoldMap printYodaObj $ folderToMap hs)
 
-  iforM_ pm''
-    $ \varname hs ->
-      T.writeFile
-      (outf ++ '/' : T.unpack varname ++ ".yoda")
-      (ifoldMap printYodaObj $ folderToMap hs)
+  imapM_ f pm''
 
 
-collapseProcs :: ProcMap (Folder (Vars YodaObj)) -> (Folder (Vars YodaObj), Maybe (Folder YodaObj))
+collapseProcs
+  :: ProcMap (Folder (Vars YodaObj))
+  -> (Folder (Vars YodaObj), Maybe (Folder YodaObj))
 collapseProcs pm =
   let preds = sans 0 pm
 
