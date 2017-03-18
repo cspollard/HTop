@@ -18,9 +18,6 @@ import qualified Data.Text.IO         as T
 import           Data.YODA.Obj
 
 
--- TODO
--- this does not deal with systematic uncertainties at all.
-
 main :: IO ()
 main = mainWith writeFiles
 
@@ -28,15 +25,20 @@ writeFiles :: String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
 writeFiles outf pm' = do
   let (pm, d) = collapseProcs pm'
       pm'' = variationsToMap "PowPyNom" (sequenceA pm) & at "data" .~ d
+      f varname hs =
+        T.writeFile
+        (outf ++ '/' : T.unpack varname ++ ".yoda")
+        (ifoldMap printYodaObj $ folderToMap hs)
 
-  iforM_ pm''
-    $ \varname hs ->
-      T.writeFile
-      (outf ++ '/' : T.unpack varname ++ ".yoda")
-      (ifoldMap printYodaObj $ folderToMap hs)
+  imapM_ f pm''
 
 
-collapseProcs :: ProcMap (Folder (Vars YodaObj)) -> (Folder (Vars YodaObj), Maybe (Folder YodaObj))
+-- TODO
+-- there are variations on the data (mu rescaling)
+-- that need to be taken into account here.
+collapseProcs
+  :: ProcMap (Folder (Vars YodaObj))
+  -> (Folder (Vars YodaObj), Maybe (Folder YodaObj))
 collapseProcs pm =
   let preds = sans 0 pm
 

@@ -45,7 +45,7 @@ data Event =
   Event
     { _runNumber   :: Int
     , _eventNumber :: Int
-    , _mu          :: Double
+    , _mu          :: Vars Double
     , _electrons   :: [Electron]
     , _muons       :: [Muon]
     , _jets        :: [Jet]
@@ -59,6 +59,13 @@ readMET m p = do
   phi <- float2Double <$> readBranch p
   return $ PtEtaPhiE et 0 phi et
 
+muVars :: Bool -> Double -> Vars Double
+muVars isData m =
+  if isData
+    -- TODO
+    -- here we assume the scaling has already taken place...
+    then pure m & ix "datapileupup" .~ m*1.09 & ix "datapileupdown" .~ m/1.09
+    else pure m
 
 readEvent :: MonadIO m => Bool -> TR m (PhysObj Event)
 readEvent isData = do
@@ -67,7 +74,7 @@ readEvent isData = do
     Event
     <$> fmap ci2i (readBranch "Run")
     <*> fmap ci2i (readBranch "Event")
-    <*> fmap float2Double (readBranch "Mu")
+    <*> (muVars isData . float2Double <$> readBranch "Mu")
     <*> readElectrons
     <*> readMuons
     <*> readJets isData
@@ -83,9 +90,9 @@ readEvent isData = do
 
 muH :: Fills Event
 muH =
-  singleton "/mu"
-  <$> hist1DDef (binD 0 25 100) "$< \\mu >$" (dsigdXpbY "\\mu" "1")
-  <$= view mu
+  fmap (singleton "/mu")
+  . innerF (onlyObjVars . view mu)
+  $ hist1DDef (binD 0 25 100) "$< \\mu >$" (dsigdXpbY "\\mu" "1")
 
 metH :: Fills Event
 metH =
@@ -168,7 +175,7 @@ runNumber = lens _runNumber $ \e x -> e { _runNumber = x }
 eventNumber :: Lens' Event Int
 eventNumber = lens _eventNumber $ \e x -> e { _eventNumber = x }
 
-mu :: Lens' Event Double
+mu :: Lens' Event (Vars Double)
 mu = lens _mu $ \e x -> e { _mu = x }
 
 electrons :: Lens' Event [Electron]
