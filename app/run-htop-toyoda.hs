@@ -18,9 +18,6 @@ import qualified Data.Text.IO         as T
 import           Data.YODA.Obj
 
 
--- TODO
--- this does not deal with systematic uncertainties at all.
-
 main :: IO ()
 main = mainWith writeFiles
 
@@ -36,6 +33,9 @@ writeFiles outf pm' = do
   imapM_ f pm''
 
 
+-- TODO
+-- there are variations on the data (mu rescaling)
+-- that need to be taken into account here.
 collapseProcs
   :: ProcMap (Folder (Vars YodaObj))
   -> (Folder (Vars YodaObj), Maybe (Folder YodaObj))
