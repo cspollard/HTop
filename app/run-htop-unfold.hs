@@ -24,7 +24,7 @@ import           Data.YODA.Obj
 import           Debug.Trace
 import           Model
 import           RunModel
-import           System.IO        (stdout, hFlush)
+import           System.IO              (hFlush, stdout)
 
 
 type TextMap a = M.Map T.Text a
@@ -62,6 +62,7 @@ tmp lu outfile procs = do
           -- TODO
           -- we're not using real data here.
           (view nominal ttbarrecoh)
+          -- (procs ^?! ix 0 . to folderToMap . ix recohname . nominal)
 
   putStrLn "data:"
   print dataH
@@ -94,9 +95,8 @@ buildModel lu recoH trueH matH bkgHs dataH =
       vdata = fmap (floor . (*lu)) . V.slice 0 (nreco-1) $ getH1DD dataH
       vbkgs = fmap (V.slice 0 (nreco-1) . getH1DD) <$> bkgHs
 
-      ntrue = traceShowId . trace "ntrue" $ views nominal length vtrue'
-      vtrue = V.slice 0 (ntrue-2) <$> vtrue'
-      vvmat = V.slice 0 (ntrue-2) <$> vvmat'
+      vtrue = rebin 2 (+) <$> vtrue'
+      vvmat = rebin 2 (V.zipWith (+)) <$> vvmat'
 
       emptysig = const 0 <$> nom vtrue
 
@@ -178,6 +178,18 @@ buildModel lu recoH trueH matH bkgHs dataH =
     systify v = fmap Just v & nominal .~ Nothing
 
     normmat = liftA2 (V.zipWith (\x v -> (/x) <$> v))
+
+rebin :: Int -> (a -> a -> a) -> V.Vector a -> V.Vector a
+rebin 0 _ v = v
+rebin 1 _ v = v
+rebin k f v =
+  let n = length v
+      m = n `div` k
+      m' = n `mod` k
+      v' = V.generate m (\i -> foldl1 f $ V.slice (i*k) k v)
+  in case m' of
+    0 -> v'
+    l -> V.snoc v' . foldl1 f $ V.slice (m*k) l v
 
 --   let preds = sans 0 procs
 --
