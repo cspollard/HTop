@@ -110,7 +110,7 @@ buildModel lu recoH trueH matH bkgHs dataH =
       -- aMC has negative weights...
       bkgreco =
         traceShowId . trace "bkgreco"
-        -- . (fmap.fmap) (\x -> if x < 0 then 0 else x)
+        . (fmap.fmap) (\x -> if x < 0 then 0 else x)
         $ V.zipWith (-) <$> vreco <*> signalreco
 
       mvbkgs = sequenceA $ vbkgs & at "ttbarlight" ?~ bkgreco
@@ -120,8 +120,8 @@ buildModel lu recoH trueH matH bkgHs dataH =
       -- how are we getting negative numbers in the bkgs?
       -- aMC has negative weights...
       mats =
-        -- (fmap.fmap) (\x -> if x < 0 then 0 else x) <$>
-        normmat vtrue vvmat
+        (fmap.fmap) (\x -> if x < 0 then 0 else x)
+        <$> normmat vtrue vvmat
 
 
       nommod =
