@@ -140,6 +140,9 @@ eventHs =
     , prefixF "/muons" . over (traverse.traverse.xlabel) ("muon " <>)
       <$> F.handles (to sequence.folded) muonHs
       <$= view muons
+    , prefixF "/truthjets" . over (traverse.traverse.xlabel) ("truth jet " <>)
+      <$> F.handles (to sequence._Just.to sequence.folded) truthjetHs
+      <$= view truthjets
     , probeJetHs
     ]
 

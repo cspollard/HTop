@@ -57,14 +57,15 @@ collapseProcs pm =
       -- partial!
       ttbar' = systpreds ^?! ix 410000
 
-      bkgs = fold $ sans 410000 systpreds
+      bkgs =  fold $ sans 410000 systpreds
 
       ttbar :: Folder (Vars YodaObj)
       ttbar =
-        foldr (\(k, fs) fv -> inF2 (M.intersectionWith (\s v -> v & at k ?~ s)) fs fv) ttbar'
-        $ fmap (first (procDict IM.!))
-          . IM.toList
-          $ systttbar
+        foldr (\(k, fs) fv ->
+          inF2 (M.intersectionWith (\s v -> v & at k ?~ s)) fs fv) ttbar'
+          $ fmap (first (procDict IM.!))
+            . IM.toList
+            $ systttbar
 
   in (mappend ttbar bkgs, dat)
 

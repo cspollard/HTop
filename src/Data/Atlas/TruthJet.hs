@@ -4,7 +4,7 @@
 module Data.Atlas.TruthJet
   ( TruthJet(..), tjChargedConsts, tjBHadrons
   , readTruthJets, bhChildren
-  , truthJetHs
+  , truthjetHs
   ) where
 
 import           Control.Applicative      (ZipList (..))
@@ -28,8 +28,8 @@ data TruthJet =
 instance HasLorentzVector TruthJet where
   toPtEtaPhiE = lens _tjPtEtaPhiE $ \tj x -> tj { _tjPtEtaPhiE = x }
 
-truthJetHs :: Fills TruthJet
-truthJetHs = mconcat [ lvHs, bfragHs ]
+truthjetHs :: Fills TruthJet
+truthjetHs = mconcat [ lvHs, bfragHs ]
 
 data BHadron =
   BHadron
