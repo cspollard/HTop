@@ -6,6 +6,7 @@ packages:
 - ../atlas.git/
 - ../ttree.git/
 - ../histogram-extras.git/
+- ../hunfold.git/
 extra-deps:
 - cereal-text-0.1.0.2
 - histogram-fill-cereal-0.6.2.0
