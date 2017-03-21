@@ -6,12 +6,12 @@
 
 module Main where
 
+import           Atlas
+import           Atlas.ToYoda
+import           BFrag.Systematics
 import           Control.Lens
-import           Data.Atlas.Systematics
-import           Data.Atlas.ToYoda
-import qualified Data.Text              as T
-import qualified Data.Text.IO           as T
-import           Data.YODA.Obj
+import qualified Data.Text         as T
+import qualified Data.Text.IO      as T
 
 
 main :: IO ()
@@ -28,11 +28,6 @@ writeFiles lu outf pm' = do
         (ifoldMap printYodaObj $ folderToMap hs)
 
   imapM_ f pm''
-  where
-    scaleH :: Double -> Obj -> Obj
-    scaleH x (H1DD h) = H1DD $ scaling x h
-    scaleH x (P1DD h) = P1DD $ scaling x h
-    scaleH x (H2DD h) = H2DD $ scaling x h
 
 collapseProcs
   :: ProcMap (Folder (Vars YodaObj))

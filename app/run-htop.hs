@@ -8,21 +8,19 @@
 
 module Main where
 
-import           Codec.Compression.GZip   (compress)
-import qualified Control.Foldl            as F
-import           Control.Monad            (forM, when)
-import qualified Data.ByteString.Lazy     as BS
+import           Codec.Compression.GZip (compress)
+import qualified Control.Foldl          as F
+import           Control.Monad          (forM, when)
+import qualified Data.ByteString.Lazy   as BS
 import           Data.Semigroup
-import           Data.Serialize           (encodeLazy)
+import           Data.Serialize         (encodeLazy)
 import           GHC.Float
-import           List.Transformer
-import qualified List.Transformer         as L
+import qualified List.Transformer       as L
 import           Options.Generic
-import           System.IO                (BufferMode (..), hSetBuffering,
-                                           stdout)
+import           System.IO              (BufferMode (..), hSetBuffering, stdout)
 
-import           Data.Atlas.Event
-import           Data.Atlas.Histogramming
+import           Atlas
+import           BFrag.Event
 import           Data.TFile
 import           Data.TTree
 
@@ -69,7 +67,7 @@ fillFile systs m fn = do
   -- check whether or not this is a data file
   f <- tfileOpen fn
   tw <- ttree f "sumWeights"
-  (L.Cons (dsidc :: CInt) _) <- next $ runTTreeL (readBranch "dsid") tw
+  (L.Cons (dsidc :: CInt) _) <- L.next $ runTTreeL (readBranch "dsid") tw
 
   let dsid = fromEnum dsidc
       fo = F.Fold (+) (0 :: Float) id

@@ -8,7 +8,7 @@
 {-# LANGUAGE TupleSections             #-}
 {-# LANGUAGE TypeFamilies              #-}
 
-module Data.Atlas.Event
+module BFrag.Event
   ( Event(..)
   , module X
   , runNumber, eventNumber, mu
@@ -20,25 +20,25 @@ module Data.Atlas.Event
   , recoVsTruthHs, truthMatchedProbeJets
   ) where
 
-import qualified Control.Foldl            as F
+import qualified Control.Foldl          as F
 import           Control.Lens
-import           Control.Monad            (join)
-import           Data.HEP.LorentzVector   as X
-import           Data.Maybe               (catMaybes, maybeToList)
+import           Control.Monad          (join)
+import           Data.HEP.LorentzVector as X
+import           Data.Maybe             (catMaybes, maybeToList)
 import           Data.Monoid
 import           Data.TTree
-import           Data.Tuple               (swap)
+import           Data.Tuple             (swap)
 import           GHC.Float
-import           GHC.Generics             (Generic)
+import           GHC.Generics           (Generic)
 
-import           Data.Atlas.BFrag         as X
-import           Data.Atlas.Electron      as X
-import           Data.Atlas.Histogramming as X
-import           Data.Atlas.Jet           as X
-import           Data.Atlas.Muon          as X
-import           Data.Atlas.PtEtaPhiE     as X
-import           Data.Atlas.Systematics   as X
-import           Data.Atlas.TruthJet      as X
+import           Atlas
+import           BFrag.BFrag            as X
+import           BFrag.Electron         as X
+import           BFrag.Jet              as X
+import           BFrag.Muon             as X
+import           BFrag.PtEtaPhiE        as X
+import           BFrag.Systematics      as X
+import           BFrag.TruthJet         as X
 
 
 data Event =

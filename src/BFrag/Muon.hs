@@ -1,16 +1,16 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.Atlas.Muon where
+module BFrag.Muon where
 
-import           Control.Applicative      (ZipList (..))
+import           Atlas
+import           BFrag.PtEtaPhiE
+import           Control.Applicative (ZipList (..))
 import           Control.Lens
-import           Data.Atlas.Histogramming
-import           Data.Atlas.PtEtaPhiE
 import           Data.Serialize
 import           Data.TTree
 import           GHC.Float
-import           GHC.Generics             (Generic)
+import           GHC.Generics        (Generic)
 
 
 data Muon =

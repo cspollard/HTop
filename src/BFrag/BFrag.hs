@@ -1,12 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
 
-module Data.Atlas.BFrag where
+module BFrag.BFrag where
 
-import           Control.Arrow            ((&&&))
+import           Atlas
+import           Control.Arrow  ((&&&))
 import           Control.Lens
-import           Data.Atlas.Histogramming
-import           Data.Foldable            (fold)
+import           Data.Foldable  (fold)
 import           Data.Semigroup
 
 class HasSVTracks a where

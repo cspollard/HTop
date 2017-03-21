@@ -1,22 +1,22 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.Atlas.TruthJet
+module BFrag.TruthJet
   ( TruthJet(..), tjChargedConsts, tjBHadrons
   , readTruthJets, bhChildren
   , truthjetHs
   ) where
 
-import           Control.Applicative      (ZipList (..))
+import           Atlas
+import           BFrag.BFrag
+import           BFrag.PtEtaPhiE
+import           Control.Applicative (ZipList (..))
 import           Control.Lens
-import           Data.Atlas.BFrag
-import           Data.Atlas.Histogramming
-import           Data.Atlas.PtEtaPhiE
-import           Data.List                (deleteFirstsBy)
+import           Data.List           (deleteFirstsBy)
 import           Data.TTree
-import qualified Data.Vector              as V
+import qualified Data.Vector         as V
 import           GHC.Float
-import           GHC.Generics             (Generic)
+import           GHC.Generics        (Generic)
 
 data TruthJet =
   TruthJet

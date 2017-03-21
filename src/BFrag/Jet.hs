@@ -6,21 +6,21 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 
-module Data.Atlas.Jet where
+module BFrag.Jet where
 
-import           Control.Applicative      (ZipList (..))
+import           Atlas
+import           BFrag.BFrag
+import           BFrag.PtEtaPhiE
+import           BFrag.TruthJet
+import           Control.Applicative (ZipList (..))
 import           Control.Lens
-import           Data.Atlas.BFrag
-import           Data.Atlas.Histogramming
-import           Data.Atlas.PtEtaPhiE
-import           Data.Atlas.TruthJet
-import           Data.Monoid              hiding ((<>))
+import           Data.Monoid         hiding ((<>))
 import           Data.Semigroup
-import qualified Data.Text                as T
+import qualified Data.Text           as T
 import           Data.TTree
-import qualified Data.Vector              as V
+import qualified Data.Vector         as V
 import           GHC.Float
-import           GHC.Generics             (Generic)
+import           GHC.Generics        (Generic)
 
 data JetFlavor = L | C | B | T
     deriving (Generic, Show, Eq, Ord)

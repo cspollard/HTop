@@ -1,4 +1,4 @@
-module Data.Atlas.PtEtaPhiE ( lvsFromTTreeD, lvsFromTTreeF ) where
+module BFrag.PtEtaPhiE ( lvsFromTTreeD, lvsFromTTreeF ) where
 
 import           Control.Applicative    (ZipList (..))
 import           Data.HEP.LorentzVector

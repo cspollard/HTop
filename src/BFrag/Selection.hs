@@ -1,4 +1,4 @@
-module Data.Atlas.Selection where
+module BFrag.Selection where
 
 {- TODO
 -- a cut can fail and always comes with an (in)efficiency SF

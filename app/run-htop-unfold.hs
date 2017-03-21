@@ -9,18 +9,18 @@ module Main where
 
 -- TODO
 -- there is a ton of partial stuff in here.
+import           Atlas
+import           Atlas.ProcessInfo
+import           Atlas.ToYoda
+import           BFrag.Systematics
 import           Control.Applicative    (liftA2)
 import           Control.Arrow          (first, second)
 import           Control.Lens
-import           Data.Atlas.ProcessInfo
-import           Data.Atlas.Systematics
-import           Data.Atlas.ToYoda
 import qualified Data.Histogram.Generic as H
 import qualified Data.IntMap.Strict     as IM
 import qualified Data.Map.Strict        as M
 import qualified Data.Text              as T
 import qualified Data.Vector            as V
-import           Data.YODA.Obj
 import           Debug.Trace
 import           Model
 import           RunModel

@@ -4,20 +4,18 @@
 {-# LANGUAGE TypeFamilies              #-}
 
 
-module Data.Atlas.Systematics
-  ( module X, evtWgt, ttbarSysts
+module BFrag.Systematics
+  ( evtWgt, ttbarSysts
   ) where
 
-import           Control.Arrow        (first)
+import           Atlas
+import           Control.Arrow (first)
 import           Control.Lens
-import           Data.Atlas.Corrected
-import           Data.Atlas.Variation as X
-import qualified Data.IntMap          as IM
-import qualified Data.Map             as M
+import qualified Data.IntMap   as IM
+import qualified Data.Map      as M
 import           Data.Monoid
-import qualified Data.Text            as T
+import qualified Data.Text     as T
 import           Data.TTree
-import           Data.YODA.Obj
 import           GHC.Float
 
 
