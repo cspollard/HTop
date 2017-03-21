@@ -77,9 +77,6 @@ zBTH =
     (dsigdXpbY "z_{p_{\\mathrm T}}" "1")
   <$= zBT
 
-tupGetter :: Getter s a -> Getter s b -> Getter s (a, b)
-tupGetter f g = runGetter ((,) <$> Getter f <*> Getter g)
-
 trkSumPtProfPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
   => Fills a
