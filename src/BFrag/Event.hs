@@ -14,20 +14,18 @@ module BFrag.Event
   , runNumber, eventNumber, mu
   , electrons, muons, jets, met
   , truthjets
-  , eventHs, overlapRemoval
+  , eventHs
   , readEvent, elmujj, pruneJets
   , probeJets
-  , recoVsTruthHs, truthMatchedProbeJets
   ) where
 
 import qualified Control.Foldl          as F
 import           Control.Lens
 import           Control.Monad          (join)
 import           Data.HEP.LorentzVector as X
-import           Data.Maybe             (catMaybes, maybeToList)
+import           Data.Maybe             (fromMaybe)
 import           Data.Monoid
 import           Data.TTree
-import           Data.Tuple             (swap)
 import           GHC.Float
 import           GHC.Generics           (Generic)
 
@@ -81,7 +79,7 @@ readEvent isData = do
     <*> readMET "ETMiss" "ETMissPhi"
     <*> if isData then return Nothing else Just <$> readTruthJets
 
-  return $ setWgt wgt >> return evt
+  return $ onlySFVars wgt evt
 
   where
     ci2i :: CInt -> Int
@@ -102,28 +100,17 @@ metH =
   <$= view met
 
 
-recoVsTruthHs :: Fills (Jet, TruthJet)
-recoVsTruthHs =
-  singleton "/recobfragvstruebfrag"
-  <$> h
-  <$= swap . bimap zBT zBT
+-- TODO
+--
 
-  where
-    h =
-      hist2DDef
-        (binD 0 22 1.1)
-        (binD 0 22 1.1)
-        "true $z_{p_{\\mathrm T}}$"
-        "reco $z_{p_{\\mathrm T}}$"
+-- truthMatchedProbeJets
+--   :: [TruthJet] -> Jet -> [PhysObj (Jet, Maybe TruthJet)]
+-- truthMatchedProbeJets tjs j =
+--   let js = probeJets e
+--       ms :: [PhysObj (Jet, Maybe TruthJet)]
+--       ms = fmap (`matchJTJ` tjs) <$> js
+--   in catMaybes $ fmap sequence ms
 
-
-truthMatchedProbeJets
-  :: Event -> [PhysObj (Jet, TruthJet)]
-truthMatchedProbeJets e =
-  let tjs = concat . maybeToList $ view truthjets e
-      js = probeJets e
-      ms = (fmap.fmap) (`matchJTJ` tjs) js
-  in catMaybes $ fmap sequence ms
 
 eventHs :: Fills Event
 eventHs =
@@ -147,7 +134,7 @@ eventHs =
     ]
 
 -- TODO
--- can I make this into a traversal?
+-- can I make this into a traversal instead of a list?
 probeJets :: Event -> [PhysObj Jet]
 probeJets evt =
   case view jets evt of
@@ -164,9 +151,7 @@ probeJetHs :: Fills Event
 probeJetHs = mconcat
   [ prefixF "/probejets" . over (traverse.traverse.xlabel) ("probe jet " <>)
     <$> F.premap (fmap join . sequenceA) (F.handles folded jetHs)
-    <$= probeJets
-  , F.premap (fmap join . sequenceA) (F.handles folded recoVsTruthHs)
-    <$= truthMatchedProbeJets
+    <$= (\e -> fmap (truthMatch . fromMaybe [] $ view truthjets e) <$> probeJets e)
   ]
 
 
@@ -207,13 +192,6 @@ elmujj e =
       && length mus == 1
       && length js == 2
       && lvDREta (head js) (head $ tail js) > 1.0
-
-
-overlapRemoval :: Event -> Event
-overlapRemoval evt = over jets (filter filt) evt
-  where
-    leps = view electrons evt
-    filt = not . any (< 0.2) . traverse lvDREta leps
 
 
 pruneJets :: Event -> Event

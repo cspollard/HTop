@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections       #-}
 {-# LANGUAGE TypeFamilies        #-}
 
 module BFrag.Jet where
@@ -13,11 +14,14 @@ import           BFrag.BFrag
 import           BFrag.PtEtaPhiE
 import           BFrag.TruthJet
 import           Control.Applicative (ZipList (..))
+import qualified Control.Foldl       as F
 import           Control.Lens
+import           Data.Maybe
 import           Data.Monoid         hiding ((<>))
 import           Data.Semigroup
 import qualified Data.Text           as T
 import           Data.TTree
+import           Data.Tuple          (swap)
 import qualified Data.Vector         as V
 import           GHC.Float
 import           GHC.Generics        (Generic)
@@ -57,12 +61,12 @@ instance HasPVTracks Jet where
   pvTracks = view pvTrks
 
 
-matchJTJ :: Jet -> [TruthJet] -> Maybe (Jet, TruthJet)
-matchJTJ j tjs = getOption $ do
+truthMatch :: [TruthJet] -> Jet -> (Jet, Maybe TruthJet)
+truthMatch tjs j = (j,) . getOption $ do
   Min (Arg dr tj) <-
     foldMap (\tj' -> Option . Just . Min $ Arg (lvDREta j tj') tj') tjs
   if dr < 0.3
-    then return (j, tj)
+    then return tj
     else Option Nothing
 
 
@@ -87,7 +91,7 @@ readJets isData = do
         imap (\i -> pure . sf ("btagSFjet" <> T.pack (show i))) . fmap float2Double
           <$> readBranch "JetBtagSF"
 
-  let withsf x xsf = setWgt xsf >> return x
+  let withsf x xsf = onlySFVars xsf x
       tagged = withsf <$> fmap (> 0.8244273) mv2c10s <*> mv2c10sfs
 
 
@@ -127,6 +131,8 @@ readJets isData = do
       <*> flvs
 
 
+-- TODO
+-- this will need to be updated with AT ntuples!
 -- NB:
 -- track info is already stored as doubles!
 jetTracksTLV
@@ -152,37 +158,49 @@ mv2c10H =
   <$> hist1DDef (binD (-1) 25 1) "MV2c10" (dsigdXpbY "\\mathrm{MV2c10}" "1")
   <$= view mv2c10
 
-jetHs :: Fills Jet
+recoVsTruthHs :: Fills (Jet, TruthJet)
+recoVsTruthHs =
+  singleton "/recobfragvstruebfrag"
+  <$> h
+  <$= swap . bimap zBT zBT
+
+  where
+    h =
+      hist2DDef
+        (binD 0 22 1.1)
+        (binD 0 22 1.1)
+        "true $z_{p_{\\mathrm T}}$"
+        "reco $z_{p_{\\mathrm T}}$"
+
+
+jetHs :: Fills (Jet, Maybe TruthJet)
 jetHs =
   channelsWithLabels
-    [ ("/allJetFlavs", pure . const True)
-    , ("/bottom", pure . bLabeled)
-    , ("/notbottom", pure . notBLabeled)
+    [ ("/allJets", pure . const True)
+    , ("/matched", pure . isJust . snd)
+    , ("/unmatched", pure . isNothing . snd)
     ]
   $ channelsWithLabels
-    [ ("/2psvtrks", pure . (>= 2) . length . svTracks)
-    , ("/2svtrks", pure . (== 2) . length . svTracks)
-    , ("/3svtrks", pure . (== 3) . length . svTracks)
-    , ("/4psvtrks", pure . (>= 4) . length . svTracks)
+    [ ("/2psvtrks", pure . (>= 2) . length . svTracks . fst)
+    , ("/2svtrks", pure . (== 2) . length . svTracks . fst)
+    , ("/3svtrks", pure . (== 3) . length . svTracks . fst)
+    , ("/4psvtrks", pure . (>= 4) . length . svTracks . fst)
     ]
   $ channelsWithLabels
     ( ("/inclusive", pure . const True)
-    : ("/pt_gt200", pure . (> 200) . view lvPt)
-    : bins' "/pt" (view lvPt) [20, 30, 50, 75, 100, 150, 200]
-    ++ bins' "/eta" (view lvAbsEta) [0, 0.5, 1.0, 1.5, 2.0, 2.5]
+    : ("/pt_gt200", pure . (> 200) . view lvPt . fst)
+    : bins' "/pt" (view lvPt . fst) [20, 30, 50, 75, 100, 150, 200]
+    ++ bins' "/eta" (view lvAbsEta . fst) [0, 0.5, 1.0, 1.5, 2.0, 2.5]
     )
-  $ mconcat
-    [ lvHs
-    , mv2c10H
-    , bfragHs
-    ]
+  $ (mconcat [lvHs , mv2c10H , bfragHs] <$= fst)
+    `mappend` (F.premap sequenceA (F.handles _Just recoVsTruthHs) <$= sequenceA)
 
   where
     bins'
       :: T.Text
-      -> (Jet -> Double)
+      -> ((Jet, a) -> Double)
       -> [Double]
-      -> [(T.Text, Jet -> PhysObj Bool)]
+      -> [(T.Text, (Jet, a) -> PhysObj Bool)]
     bins' lab f (b0:b1:bs) =
       ( fixT $ lab <> "_" <> T.pack (show b0) <> "_" <> T.pack (show b1)
       , pure . (\j -> let x = f j in b0 < x && x < b1)

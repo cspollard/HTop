@@ -50,7 +50,7 @@ trkSumPtH
 trkSumPtH =
   singleton "/trksumpt"
   <$> hist1DDef
-    (binD 0 25 500)
+    (binD 0 25 250)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     (dsigdXpbY pt gev)
   <$= trackSumPt
@@ -61,7 +61,7 @@ svTrkSumPtH
 svTrkSumPtH =
   singleton "/svtrksumpt"
   <$> hist1DDef
-    (binD 0 25 500)
+    (binD 0 25 250)
     "$p_{\\mathrm T} \\sum \\mathrm{SV trk}$"
     (dsigdXpbY pt gev)
   <$= svTrackSumPt
@@ -72,7 +72,7 @@ zBTH
 zBTH =
   singleton "/zbt"
   <$> hist1DDef
-    (binD 0 22 1.1)
+    (binD 0 21 1.05)
     "$z_{p_{\\mathrm T}}$"
     (dsigdXpbY "z_{p_{\\mathrm T}}" "1")
   <$= zBT
@@ -105,8 +105,8 @@ zBTVsPt
 zBTVsPt =
   singleton "/zbtvspt"
   <$> hist2DDef
-    (binD 25 15 250)
-    (binD 0 22 1.1)
+    (binD 25 18 250)
+    (binD 0 21 1.05)
     "$p_{\\mathrm T}$ [GeV]"
     "$z_{p_{\\mathrm T}}$"
   <$= (view lvPt &&& zBT)
@@ -117,7 +117,7 @@ zBTProfPt
 zBTProfPt =
   singleton "/zbtprofpt"
   <$> prof1DDef
-    (binD 25 15 250)
+    (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<z_{p_{\\mathrm T}}>$"
   <$= (view lvPt &&& zBT)
@@ -161,7 +161,7 @@ svTrkSumPtProfTrkSumPt
 svTrkSumPtProfTrkSumPt =
   singleton "/svtrksumptproftrksumpt"
   <$> prof1DDef
-    (binD 0 10 100)
+    (binD 0 25 100)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
   <$= (svTrackSumPt &&& trackSumPt)
@@ -172,7 +172,7 @@ zBTProfTrkSumPt
 zBTProfTrkSumPt =
   singleton "/zbtproftrksumpt"
   <$> prof1DDef
-    (binD 0 10 100)
+    (binD 0 25 100)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     "$<z_{p_{\\mathrm T}}>$"
   <$= (trackSumPt &&& zBT)

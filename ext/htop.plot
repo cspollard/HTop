@@ -1,7 +1,7 @@
 # BEGIN PLOT /*
 LogX=0
 LogY=0
-# Legend=0
+Legend=0
 # END PLOT
 
 # BEGIN PLOT /.*/mv2c10

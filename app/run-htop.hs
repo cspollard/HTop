@@ -89,7 +89,7 @@ fillFile systs m fn = do
       putStrLn "continuing."
 
     let l = if nt then L.empty else runTTreeL tmp t
-        tmp = fmap (overlapRemoval . pruneJets) <$> readEvent (dsid == 0)
+        tmp = fmap pruneJets <$> readEvent (dsid == 0)
 
     F.purely L.fold eventHs l :: IO (Folder (Vars YodaObj))
 
