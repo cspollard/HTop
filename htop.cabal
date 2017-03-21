@@ -16,15 +16,15 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Data.Atlas.Electron
-                     , Data.Atlas.Event
-                     , Data.Atlas.Jet
-                     , Data.Atlas.TruthJet
-                     , Data.Atlas.Muon
-                     , Data.Atlas.Selection
-                     , Data.Atlas.PtEtaPhiE
-                     , Data.Atlas.Systematics
-                     , Data.Atlas.BFrag
+  exposed-modules:     BFrag.Electron
+                     , BFrag.Event
+                     , BFrag.Jet
+                     , BFrag.TruthJet
+                     , BFrag.Muon
+                     , BFrag.Selection
+                     , BFrag.PtEtaPhiE
+                     , BFrag.Systematics
+                     , BFrag.BFrag
 
   other-modules:
   other-extensions:
@@ -80,7 +80,7 @@ executable run-htop
                      , atlas == 0.1.*
 
   default-language:    Haskell2010
-  ghc-options:         -Wall -O1
+  ghc-options:         -Wall
   ghc-prof-options:    -Wall -O0 -fprof-auto -caf-all -rtsopts
 
 
@@ -96,7 +96,7 @@ executable run-htop-toyoda
 
   default-language:    Haskell2010
   ghc-options:         -Wall
-  ghc-prof-options:    -Wall -fprof-auto -caf-all -rtsopts
+  ghc-prof-options:    -Wall -O0 -fprof-auto -caf-all -rtsopts
 
 executable run-htop-unfold
   main-is:             app/run-htop-unfold.hs
@@ -113,4 +113,4 @@ executable run-htop-unfold
 
   default-language:    Haskell2010
   ghc-options:         -Wall
-  ghc-prof-options:    -Wall -fprof-auto -caf-all -rtsopts
+  ghc-prof-options:    -Wall -O0 -fprof-auto -caf-all -rtsopts
