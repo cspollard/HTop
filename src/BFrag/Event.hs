@@ -44,6 +44,7 @@ data Event =
     { _runNumber   :: Int
     , _eventNumber :: Int
     , _mu          :: Vars Double
+    , _nPV         :: Double
     , _electrons   :: [Electron]
     , _muons       :: [Muon]
     , _jets        :: [Jet]
@@ -73,6 +74,7 @@ readEvent isData = do
     <$> fmap ci2i (readBranch "Run")
     <*> fmap ci2i (readBranch "Event")
     <*> (muVars isData . float2Double <$> readBranch "Mu")
+    <*> (float2Double <$> readBranch "NPVtx")
     <*> readElectrons
     <*> readMuons
     <*> readJets isData
@@ -90,7 +92,13 @@ muH :: Fills Event
 muH =
   fmap (singleton "/mu")
   . innerF (onlyObjVars . view mu)
-  $ hist1DDef (binD 0 25 100) "$< \\mu >$" (dsigdXpbY "\\mu" "1")
+  $ hist1DDef (binD 0 25 100) "$< \\mu >$" (dsigdXpbY "<\\mu>" "1")
+
+npvH :: Fills Event
+npvH =
+  fmap (singleton "/npv")
+  . innerF (onlyObjVars . view mu)
+  $ hist1DDef (binD 0 25 50) "$< \\mu >$" (dsigdXpbY "npv" "1")
 
 metH :: Fills Event
 metH =
@@ -100,23 +108,12 @@ metH =
   <$= view met
 
 
--- TODO
---
-
--- truthMatchedProbeJets
---   :: [TruthJet] -> Jet -> [PhysObj (Jet, Maybe TruthJet)]
--- truthMatchedProbeJets tjs j =
---   let js = probeJets e
---       ms :: [PhysObj (Jet, Maybe TruthJet)]
---       ms = fmap (`matchJTJ` tjs) <$> js
---   in catMaybes $ fmap sequence ms
-
-
 eventHs :: Fills Event
 eventHs =
   channelWithLabel "/elmujj" elmujj
   $ mconcat
     [ muH
+    , npvH
     , metH
     , prefixF "/jets" . over (traverse.traverse.xlabel) ("jet " <>)
       <$> F.handles (to sequence.folded) lvHs

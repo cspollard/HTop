@@ -42,15 +42,15 @@ tmp lu outfile procs = do
         $ sans 0 procs
 
       nsamps = 100000
-      recohname = "/elmujj/probejets/allJetFlavs/2psvtrks/inclusive/zbt"
-      truehname = "/elmujj/probejets/allJetFlavs/2psvtrks/inclusive/zbt"
+      recohname = "/elmujj/probejets/allJets/4psvtrks/inclusive/zbt"
+      truehname = "/elmujj/probejets/allJets/4psvtrks/inclusive/zbt"
       -- TODO
       -- partial!
       ttbarrecoh = procst ^?! ix "Pow+Py (nominal)" . ix recohname
       ttbartrueh = procst ^?! ix "Pow+Py (nominal)" . ix truehname
       ttbarmath = procst
         ^?! ix "Pow+Py (nominal)"
-          . ix "/elmujj/recobfragvstruebfrag"
+          . ix "/elmujj/probejets/allJets/4psvtrks/inclusive/recobfragvstruebfrag"
       bkgHs = (^?! ix recohname) <$> sans "Pow+Py (nominal)" procst
       (dataH, model, params) =
         buildModel
@@ -60,8 +60,8 @@ tmp lu outfile procs = do
           ttbarmath
           bkgHs
           -- TODO
-          -- we're not using real data here.
-          (view nominal ttbarrecoh)
+          -- the bottom is real data.
+          (ttbarrecoh ^?! variations . ix "PowPyRadDown")
           -- (procs ^?! ix 0 . to folderToMap . ix recohname . nominal)
 
   putStrLn "data:"
