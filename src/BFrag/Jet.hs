@@ -117,7 +117,7 @@ readJets isData = do
 
   flvs <-
     if isData
-      then return $ ZipList (repeat Nothing)
+      then return $ pure Nothing
       else fmap (Just . flavFromCInt) <$> readBranch "JetTruthLabel"
 
   return . getZipList

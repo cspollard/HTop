@@ -106,8 +106,11 @@ vecVecTLV spt seta sphi se = do
 -- better matching criterion?
 matchBTJ :: BHadron -> V.Vector TruthJet -> V.Vector TruthJet
 matchBTJ bh tjs =
-  let mi = V.minIndex $ lvDREta bh <$> tjs
-  in over (ix mi) (g bh) tjs
+  if V.length tjs == 0
+    then tjs
+    else
+      let mi = V.minIndex $ lvDREta bh <$> tjs
+      in over (ix mi) (g bh) tjs
 
   where
     g b j =

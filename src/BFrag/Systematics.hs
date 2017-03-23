@@ -26,10 +26,24 @@ evtWgt isData
   | isData = return mempty
   | otherwise = do
     pu <- puWgt
+    lsf <- lepSF
     evtw <-
       fmap (pure . sf "evtw" . float2Double . product) . traverse readBranch
         $ (["EvtW", "SFZVtx", "SFJVT"] :: [String])
-    return $ evtw <> pu
+    return $ evtw <> pu <> lsf
+
+
+-- TODO
+-- Partial!
+lepSF :: MonadIO m => TR m (Vars SF)
+lepSF = do
+  (nom:vars) <- fmap float2Double <$> readBranch "SFLept"
+  let vars' =
+        M.fromList
+        . imap (\i x -> ("lepsf" <> T.pack (show i), sf "lepsf" x))
+        $ vars
+
+  return $ Variations (sf "lepsf" nom) vars'
 
 puWgt :: MonadIO m => TR m (Vars SF)
 puWgt = do
