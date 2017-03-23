@@ -15,8 +15,7 @@ module BFrag.Event
   , electrons, muons, jets, met
   , truthjets
   , eventHs
-  , readEvent, elmujj, pruneJets
-  , probeJets
+  , readEvent, elmujj, probeJets
   ) where
 
 import qualified Control.Foldl          as F
@@ -135,12 +134,15 @@ eventHs =
 probeJets :: Event -> [PhysObj Jet]
 probeJets evt =
   case view jets evt of
-    [j1, j2] -> probeJet j1 j2 ++ probeJet j2 j1
+    [j1, j2] ->
+      if lvDREta j1 j2 > 1.0
+        then probeJet j1 j2 ++ probeJet j2 j1
+        else []
     _        -> []
   where
     probeJet j j' = sequenceA $ do
       bt <- view isBTagged j
-      if bt && hasSV j'
+      if bt && hasSV j' && (view lvAbsEta j' < 2.1)
         then return [j']
         else return []
 
@@ -187,11 +189,6 @@ elmujj e =
   in return
     $ length els == 1
       && length mus == 1
-      && length js == 2
-      && lvDREta (head js) (head $ tail js) > 1.0
-
-
-pruneJets :: Event -> Event
-pruneJets =
-  over jets
-  $ filter (\j -> view lvPt j > 30 && view lvAbsEta j < 2.1)
+      && case js of
+        [j1, j2] -> lvDREta j1 j2 > 1.0
+        _        -> False
