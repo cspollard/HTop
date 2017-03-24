@@ -69,6 +69,8 @@ executable run-htop
                      , cereal-text == 0.1.*
                      , resourcet == 1.1.*
                      , optparse-generic == 1.1.*
+                     , pipes == 4.3.*
+                     , pipes-bytestring == 2.1.*
                      , histogram-fill == 0.8.*
                      , foldl == 1.2.*
                      , list-transformer == 1.0.*

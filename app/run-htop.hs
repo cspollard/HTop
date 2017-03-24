@@ -11,16 +11,18 @@ module Main where
 import           Codec.Compression.GZip (compress)
 import qualified Control.Foldl          as F
 import           Control.Lens
-import           Control.Monad          (when)
+import           Control.Monad          (forever, when)
 import qualified Data.ByteString.Lazy   as BS
 import qualified Data.Map.Strict        as M
 import           Data.Semigroup
-import           Data.Serialize         (encodeLazy)
+import           Data.Serialize
 import qualified Data.Text              as T
-import           Debug.Trace
 import           GHC.Float
 import qualified List.Transformer       as L
 import           Options.Generic
+import           Pipes                  ((<-<))
+import qualified Pipes                  as P
+import qualified Pipes.ByteString       as PBS
 import           System.IO              (BufferMode (..), hSetBuffering, stdout)
 
 import           Atlas
@@ -28,6 +30,16 @@ import           BFrag.Event
 import           Data.TFile
 import           Data.TTree
 
+
+-- TODO
+-- HERE
+-- need to write out lists of histograms so that they can be removed/whatever
+-- *without reading the entire file into memory*
+
+-- we should also use the comonad instance of folds to remove the ~doubling of
+-- memory usage on >1 file.
+
+-- should we persistify unused sets of histograms?
 
 data Args =
   Args
@@ -55,9 +67,28 @@ main = do
 
   imh <- F.impurely L.foldM f fnl
 
+  -- write out items of this type:
+  -- (Text, (Text, (Int, Double, YodaObj)))
+
+  let hs' :: [((Int, Double), (Text, (Text, YodaObj)))]
+      hs' =
+        case imh of
+          Nothing -> []
+          Just (i, d, m) ->
+            fmap ((i, d),)
+            . concatMap sequenceA
+            . M.toList
+            . folderToMap
+            . fmap (M.toList . variationsToMap "nominal")
+            $ m
+
   putStrLn ("writing to file " ++ outfile args)
 
-  BS.writeFile (outfile args) (compress . encodeLazy $ imh)
+  BS.writeFile (outfile args)
+    . compress
+    . PBS.toLazy
+    $ serializer
+      <-< P.each hs'
 
 
 fillFile
@@ -102,7 +133,6 @@ fillFile (nom, systs) m fn = do
     . (if dsid == 0 then const M.empty else id)
     . transposeM
     . M.fromList
-    -- . fmap (\x -> traceShow (fst x) x)
     . fmap (over _1 T.pack . fmap (folderToMap . fmap (view nominal)))
     <$> mapM loopTree systs
 
@@ -136,11 +166,8 @@ transposeM = M.foldrWithKey f M.empty
     f k inmap outmap = M.unionWith (<>) outmap $ M.singleton k <$> inmap
 
 
-  -- -- [(
-  -- . concat
-  -- -- [[(k, (k', a))]]
-  -- . fmap sequenceA
-  -- -- [(k, [(k', a)])]
-  -- . M.toList
-  -- -- Map k ([k', a])
-  -- $ M.toList <$> m
+-- | Serialize data into strict 'ByteString's.
+serializer :: (Serialize a, Monad m) => P.Pipe a PBS.ByteString m ()
+serializer = forever $ do
+    x <- P.await
+    P.yield (encode x)
