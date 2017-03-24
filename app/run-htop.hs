@@ -128,7 +128,6 @@ fillFile (nom, systs) m fn = do
   systHs :: Folder (M.Map T.Text YodaObj) <-
     Folder
     -- don't run syst trees for data...
-    . (if dsid == 0 then const M.empty else id)
     . transposeM
     . M.fromList
     . fmap (over _1 T.pack . fmap (folderToMap . fmap (view nominal)))
@@ -136,10 +135,13 @@ fillFile (nom, systs) m fn = do
 
   nomHs <- snd <$> loopTree nom
   let hs =
-        inF2
-          (M.intersectionWith (\n v -> over variations (<> v) n))
-          nomHs
-          systHs
+        if dsid == 0
+          then nomHs
+          else
+            inF2
+              (M.intersectionWith (\n v -> over variations (<> v) n))
+              nomHs
+              systHs
 
   putStrLn $ "closing file " <> fn
   tfileClose f
