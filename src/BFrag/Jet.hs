@@ -187,12 +187,12 @@ jetHs =
     , ("/4psvtrks", pure . (>= 4) . length . svTracks . fst)
     ]
   $ channelsWithLabels
-    ( ("/inclusive", pure . const True)
-    : ("/pt_gt200", pure . (> 200) . view lvPt . fst)
-    : bins' "/pt" (view lvPt . fst) [20, 30, 50, 75, 100, 150, 200]
-    ++ bins' "/eta" (view lvAbsEta . fst) [0, 0.5, 1.0, 1.5, 2.0, 2.5]
+    ( pure ("/inclusive", pure . const True)
+    -- : ("/pt_gt200", pure . (> 200) . view lvPt . fst)
+    -- : bins' "/pt" (view lvPt . fst) [20, 30, 50, 75, 100, 150, 200]
+    -- ++ bins' "/eta" (view lvAbsEta . fst) [0, 0.5, 1.0, 1.5, 2.0, 2.5]
     )
-  $ (mconcat [lvHs , mv2c10H , bfragHs] <$= fst)
+  $ (mconcat [lvHs , {- mv2c10H , -} bfragHs] <$= fst)
     `mappend` (F.premap sequenceA (F.handles _Just recoVsTruthHs) <$= sequenceA)
 
   where

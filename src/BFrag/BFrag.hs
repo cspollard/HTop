@@ -225,18 +225,18 @@ bfragHs
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
   => Fills a
 bfragHs = mconcat
-  [ trkSumPtH
-  , svTrkSumPtH
-  , zBTH
-  , trkSumPtProfPt
-  , svTrkSumPtProfPt
-  , zBTProfPt
-  , trkSumPtProfEta
-  , svTrkSumPtProfEta
-  , zBTProfEta
-  , nPVTrksH
-  , nSVTrksH
-  , nPVTrksProfPt
-  , nSVTrksProfPt
-  , zBTVsPt
+  [ zBTH
+  -- , trkSumPtH
+  -- , svTrkSumPtH
+  -- , trkSumPtProfPt
+  -- , svTrkSumPtProfPt
+  -- , zBTProfPt
+  -- , trkSumPtProfEta
+  -- , svTrkSumPtProfEta
+  -- , zBTProfEta
+  -- , nPVTrksH
+  -- , nSVTrksH
+  -- , nPVTrksProfPt
+  -- , nSVTrksProfPt
+  -- , zBTVsPt
   ]

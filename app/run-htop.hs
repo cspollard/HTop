@@ -33,8 +33,6 @@ import           Data.TTree
 
 -- TODO
 -- HERE
--- need to write out lists of histograms so that they can be removed/whatever
--- *without reading the entire file into memory*
 
 -- we should also use the comonad instance of folds to remove the ~doubling of
 -- memory usage on >1 file.
