@@ -89,10 +89,6 @@ main = do
       <-< P.each hs'
 
 
-catchBadRead :: Either b a -> a
-catchBadRead (Left _)  = error "failed to read ttree properly."
-catchBadRead (Right x) = x
-
 fillFile
   :: (String, [String])
   -> Maybe (Int, Double, Folder (Vars YodaObj))
@@ -105,15 +101,14 @@ fillFile (nom, systs') m fn = do
   f <- tfileOpen fn
   tw <- ttree f "sumWeights"
   (Just (dsidc :: CInt)) <-
-    fmap catchBadRead . runTR tw . P.head $ produceTTree (readBranch "dsid")
+    runTR tw . P.head $ produceTTree (readBranch "dsid")
 
   let dsid = fromEnum dsidc
       fo = F.Fold (+) (0 :: Float) id
       systs = if dsid == 410000 then systs' else []
 
   sow <-
-    fmap catchBadRead
-    . runTR tw
+    runTR tw
     . fmap float2Double
     . F.purely P.fold fo
     $ produceTTree (readBranch "totalEventsWeighted")
@@ -139,7 +134,7 @@ fillFile (nom, systs') m fn = do
                     then AllVars
                     else NoVars
 
-        fmap catchBadRead . runTR t . fmap (tn,) $! F.purely P.fold eventHs l
+        runTR t . fmap (tn,) $! F.purely P.fold eventHs l
 
   systHs :: Folder (M.Map T.Text YodaObj) <-
     Folder
