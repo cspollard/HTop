@@ -138,7 +138,6 @@ fillFile (nom, systs') m fn = do
 
   systHs :: Folder (M.Map T.Text YodaObj) <-
     Folder
-    -- don't run syst trees for data...
     . transposeM
     . M.fromList
     . fmap (over _1 T.pack . fmap (folderToMap . fmap (view nominal)))
@@ -146,7 +145,7 @@ fillFile (nom, systs') m fn = do
 
   nomHs <- snd <$> loopTree nom
   let hs =
-        if dsid == 0
+        if dsid == 0 || null systHs
           then nomHs
           else
             inF2
