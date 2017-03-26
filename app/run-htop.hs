@@ -11,7 +11,7 @@ module Main where
 import           Codec.Compression.GZip (compress)
 import qualified Control.Foldl          as F
 import           Control.Lens
-import           Control.Monad          (forever, when)
+import           Control.Monad          (forever, unless, when)
 import qualified Data.ByteString.Lazy   as BS
 import qualified Data.Map.Strict        as M
 import           Data.Semigroup
@@ -22,6 +22,7 @@ import           Options.Generic
 import           Pipes                  ((<-<))
 import qualified Pipes                  as P
 import qualified Pipes.ByteString       as PBS
+import qualified Pipes.Prelude          as P
 import           System.IO              (BufferMode (..), hSetBuffering, stdout)
 
 import           Atlas
@@ -56,13 +57,13 @@ main = do
   -- get the list of input trees
   fns <- filter (not . null) . lines <$> readFile (infiles args)
 
-  let fnl = L.select fns :: L.ListT IO String
+  let fnl = P.each fns :: P.Producer String IO ()
       f = F.FoldM
             (fillFile ("nominal", treeSysts))
             (return Nothing)
             return
 
-  imh <- F.impurely L.foldM f fnl
+  imh <- F.impurely P.foldM f fnl
 
   -- write out items of this type:
   -- (Text, (Text, (Int, Double, YodaObj)))
@@ -88,6 +89,10 @@ main = do
       <-< P.each hs'
 
 
+catchBadRead :: Either b a -> a
+catchBadRead (Left _)  = error "failed to read ttree properly."
+catchBadRead (Right x) = x
+
 fillFile
   :: (String, [String])
   -> Maybe (Int, Double, Folder (Vars YodaObj))
@@ -99,15 +104,18 @@ fillFile (nom, systs) m fn = do
   -- check whether or not this is a data file
   f <- tfileOpen fn
   tw <- ttree f "sumWeights"
-  (L.Cons (dsidc :: CInt) _) <- L.next $ runTTreeL (readBranch "dsid") tw
+  (Just (dsidc :: CInt)) <-
+    fmap catchBadRead . runTR tw . P.head $ produceTTree (readBranch "dsid")
 
   let dsid = fromEnum dsidc
       fo = F.Fold (+) (0 :: Float) id
 
   sow <-
-    fmap float2Double
-      . F.purely L.fold fo
-      $ runTTreeL (readBranch "totalEventsWeighted") tw
+    fmap catchBadRead
+    . runTR tw
+    . fmap float2Double
+    . F.purely P.fold fo
+    $ produceTTree (readBranch "totalEventsWeighted")
 
   let loopTree tn = do
         t <- ttree f tn
@@ -119,10 +127,10 @@ fillFile (nom, systs) m fn = do
           putStrLn $ "missing tree " <> tn <> " in file " <> fn <> "."
           putStrLn "continuing."
 
-        let l = if nt then L.empty else runTTreeL tmp t
+        let l = unless nt $ produceTTree tmp
             tmp = readEvent (dsid == 0)
 
-        fmap (tn,) $! F.purely L.fold eventHs l
+        fmap catchBadRead . runTR t . fmap (tn,) $! F.purely P.fold eventHs l
 
   systHs :: Folder (M.Map T.Text YodaObj) <-
     Folder

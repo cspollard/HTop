@@ -195,20 +195,20 @@ jetHs =
   $ (mconcat [lvHs , {- mv2c10H , -} bfragHs] <$= fst)
     `mappend` (F.premap sequenceA (F.handles _Just recoVsTruthHs) <$= sequenceA)
 
-  where
-    bins'
-      :: T.Text
-      -> ((Jet, a) -> Double)
-      -> [Double]
-      -> [(T.Text, (Jet, a) -> PhysObj Bool)]
-    bins' lab f (b0:b1:bs) =
-      ( fixT $ lab <> "_" <> T.pack (show b0) <> "_" <> T.pack (show b1)
-      , pure . (\j -> let x = f j in b0 < x && x < b1)
-      ) : bins' lab f (b1:bs)
-
-    bins' _ _ _ = []
-
-    fixT = T.replace "-" "m"
+  -- where
+    -- bins'
+    --   :: T.Text
+    --   -> ((Jet, a) -> Double)
+    --   -> [Double]
+    --   -> [(T.Text, (Jet, a) -> PhysObj Bool)]
+    -- bins' lab f (b0:b1:bs) =
+    --   ( fixT $ lab <> "_" <> T.pack (show b0) <> "_" <> T.pack (show b1)
+    --   , pure . (\j -> let x = f j in b0 < x && x < b1)
+    --   ) : bins' lab f (b1:bs)
+    --
+    -- bins' _ _ _ = []
+    --
+    -- fixT = T.replace "-" "m"
 
 bLabeled :: Jet -> Bool
 bLabeled = views truthFlavor (== Just B)
