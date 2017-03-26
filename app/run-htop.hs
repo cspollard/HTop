@@ -98,7 +98,7 @@ fillFile
   -> Maybe (Int, Double, Folder (Vars YodaObj))
   -> String
   -> IO (Maybe (Int, Double, Folder (Vars YodaObj)))
-fillFile (nom, systs) m fn = do
+fillFile (nom, systs') m fn = do
   putStrLn $ "analyzing file " <> fn
 
   -- check whether or not this is a data file
@@ -109,6 +109,7 @@ fillFile (nom, systs) m fn = do
 
   let dsid = fromEnum dsidc
       fo = F.Fold (+) (0 :: Float) id
+      systs = if dsid == 410000 then systs' else []
 
   sow <-
     fmap catchBadRead
@@ -133,9 +134,10 @@ fillFile (nom, systs) m fn = do
             dmc =
               if dsid == 0
                 then Data'
-                else MC' $ case tn of
-                  "nominal" -> AllVars
-                  _         -> NoVars
+                else MC' $
+                  if dsid == 410000 && tn == "nominal"
+                    then AllVars
+                    else NoVars
 
         fmap catchBadRead . runTR t . fmap (tn,) $! F.purely P.fold eventHs l
 
