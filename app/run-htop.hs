@@ -18,7 +18,6 @@ import           Data.Semigroup
 import           Data.Serialize
 import qualified Data.Text              as T
 import           GHC.Float
-import qualified List.Transformer       as L
 import           Options.Generic
 import           Pipes                  ((<-<))
 import qualified Pipes                  as P
