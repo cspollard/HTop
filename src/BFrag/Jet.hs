@@ -12,6 +12,7 @@ module BFrag.Jet where
 import           Atlas
 import           BFrag.BFrag
 import           BFrag.PtEtaPhiE
+import           BFrag.Systematics
 import           BFrag.TruthJet
 import           Control.Applicative (ZipList (..))
 import qualified Control.Foldl       as F
@@ -80,14 +81,14 @@ jetTracksIsTight =
     <$> readBranch "JetTracksisTight"
 
 
-readJets :: MonadIO m => Bool -> TR m [Jet]
-readJets isData = do
+readJets :: MonadIO m => DataMC' -> TR m [Jet]
+readJets dmc = do
   tlvs <- lvsFromTTreeF "JetPt" "JetEta" "JetPhi" "JetE"
   mv2c10s <- fmap float2Double <$> readBranch "JetMV2c10"
   mv2c10sfs :: ZipList (Vars SF) <-
-    if isData
-      then return . pure . pure $ sf "data" 1
-      else
+    case dmc of
+      Data' -> return . pure . pure $ sf "data" 1
+      _ ->
         imap (\i -> pure . sf ("btagSFjet" <> T.pack (show i))) . fmap float2Double
           <$> readBranch "JetBtagSF"
 
@@ -116,9 +117,9 @@ readJets isData = do
       "JetSV1TracksE"
 
   flvs <-
-    if isData
-      then return $ pure Nothing
-      else fmap (Just . flavFromCInt) <$> readBranch "JetTruthLabel"
+    case dmc of
+      Data' -> return $ pure Nothing
+      _     -> fmap (Just . flavFromCInt) <$> readBranch "JetTruthLabel"
 
   return . getZipList
     $ Jet

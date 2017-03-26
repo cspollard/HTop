@@ -57,28 +57,29 @@ readMET m p = do
   phi <- float2Double <$> readBranch p
   return $ PtEtaPhiE et 0 phi et
 
-muVars :: Bool -> Double -> Vars Double
-muVars isData m =
-  if isData
+muVars :: DataMC' -> Double -> Vars Double
+muVars Data' m =
     -- TODO
     -- here we assume the scaling has already taken place...
-    then pure m & ix "datapileupup" .~ m*1.09 & ix "datapileupdown" .~ m/1.09
-    else pure m
+    pure m & ix "datapileupup" .~ m*1.09 & ix "datapileupdown" .~ m/1.09
+muVars _ m = pure m
 
-readEvent :: MonadIO m => Bool -> TR m (PhysObj Event)
-readEvent isData = do
-  wgt <- evtWgt isData
+readEvent :: MonadIO m => DataMC' -> TR m (PhysObj Event)
+readEvent dmc = do
+  wgt <- evtWgt dmc
   evt <-
     Event
     <$> fmap ci2i (readBranch "Run")
     <*> fmap ci2i (readBranch "Event")
-    <*> (muVars isData . float2Double <$> readBranch "Mu")
+    <*> (muVars dmc . float2Double <$> readBranch "Mu")
     <*> (float2Double <$> readBranch "NPVtx")
     <*> readElectrons
     <*> readMuons
-    <*> readJets isData
+    <*> readJets dmc
     <*> readMET "ETMiss" "ETMissPhi"
-    <*> if isData then return Nothing else Just <$> readTruthJets
+    <*> case dmc of
+          Data' -> return Nothing
+          MC' _ -> Just <$> readTruthJets
 
   return $ onlySFVars wgt evt
 

@@ -6,6 +6,7 @@
 
 module BFrag.Systematics
   ( evtWgt, ttbarSysts, treeSysts
+  , DataMC'(..), VarCfg(..)
   ) where
 
 import           Atlas
@@ -19,14 +20,20 @@ import           Data.TTree
 import           GHC.Float
 
 
+-- TODO
+-- how can we tell it to only run nominal weight systs on syst trees
+-- and data (and no syst trees on data)?
+
 type ProcMap = IM.IntMap
 
-evtWgt :: MonadIO m => Bool -> TR m (Vars SF)
-evtWgt isData
-  | isData = return mempty
-  | otherwise = do
-    pu <- puWgt
-    lsf <- lepSF
+data DataMC' = Data' | MC' VarCfg
+data VarCfg = NoVars | AllVars
+
+evtWgt :: MonadIO m => DataMC' -> TR m (Vars SF)
+evtWgt Data' = return mempty
+evtWgt (MC' vcfg) = do
+    pu <- puWgt vcfg
+    lsf <- lepSF vcfg
     evtw <-
       fmap (pure . sf "evtw" . float2Double . product) . traverse readBranch
         $ (["EvtW", "SFZVtx", "SFJVT"] :: [String])
@@ -35,8 +42,9 @@ evtWgt isData
 
 -- TODO
 -- Partial!
-lepSF :: MonadIO m => TR m (Vars SF)
-lepSF = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
+lepSF :: MonadIO m => VarCfg -> TR m (Vars SF)
+lepSF NoVars = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
+lepSF AllVars = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
 -- TODO
 -- in XRedTop there are 38 (!!) lepSF variations. This can't be right.
 -- lepSF = do
@@ -48,13 +56,16 @@ lepSF = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
 --
 --   return $ Variations (sf "lepsf" nom) vars'
 
-puWgt :: MonadIO m => TR m (Vars SF)
-puWgt = do
+puWgt :: MonadIO m => VarCfg -> TR m (Vars SF)
+puWgt vcfg = do
   puw <- float2Double <$> readBranch "SFPileUp"
-  puwup <- float2Double <$> readBranch "SFPileUp_UP"
-  puwdown <- float2Double <$> readBranch "SFPileUp_DOWN"
-  return . fmap (sf "pileupwgt") . Variations puw
-    $ [("puwup", puwup), ("puwdown", puwdown)]
+  case vcfg of
+    NoVars -> return . fmap (sf "pileupwgt") $ pure puw
+    AllVars -> do
+      puwup <- float2Double <$> readBranch "SFPileUp_UP"
+      puwdown <- float2Double <$> readBranch "SFPileUp_DOWN"
+      return . fmap (sf "pileupwgt") . Variations puw
+        $ [("puwup", puwup), ("puwdown", puwdown)]
 
 
 treeSysts :: [String]

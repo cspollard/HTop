@@ -117,6 +117,8 @@ fillFile (nom, systs) m fn = do
     . F.purely P.fold fo
     $ produceTTree (readBranch "totalEventsWeighted")
 
+  print sow
+
   let loopTree tn = do
         t <- ttree f tn
         putStrLn $ "looping over tree " <> tn
@@ -127,8 +129,13 @@ fillFile (nom, systs) m fn = do
           putStrLn $ "missing tree " <> tn <> " in file " <> fn <> "."
           putStrLn "continuing."
 
-        let l = unless nt $ produceTTree tmp
-            tmp = readEvent (dsid == 0)
+        let l = unless nt . produceTTree $ readEvent dmc
+            dmc =
+              if dsid == 0
+                then Data'
+                else MC' $ case tn of
+                  "nominal" -> AllVars
+                  _         -> NoVars
 
         fmap catchBadRead . runTR t . fmap (tn,) $! F.purely P.fold eventHs l
 
