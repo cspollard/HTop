@@ -226,16 +226,16 @@ bfragHs
   => Fills a
 bfragHs = mconcat
   [ zBTH
-  -- , trkSumPtH
-  -- , svTrkSumPtH
+  , trkSumPtH
+  , svTrkSumPtH
   -- , trkSumPtProfPt
   -- , svTrkSumPtProfPt
   -- , zBTProfPt
   -- , trkSumPtProfEta
   -- , svTrkSumPtProfEta
   -- , zBTProfEta
-  -- , nPVTrksH
-  -- , nSVTrksH
+  , nPVTrksH
+  , nSVTrksH
   -- , nPVTrksProfPt
   -- , nSVTrksProfPt
   -- , zBTVsPt

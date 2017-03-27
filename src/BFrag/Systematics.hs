@@ -140,8 +140,11 @@ ttbarSysts preds =
       systttbar = over (traverse.traverse) (view nominal) systttbar'
 
       addSysts x =
-        foldr (\(k, fs) fv ->
-          inF2 (M.intersectionWith (\s v -> v & at k ?~ s)) fs fv) x
+        foldr
+          ( \(k, fs) fv ->
+              inF2 (M.intersectionWith (\s v -> v & at k ?~ s)) fs fv
+          )
+          x
           $ fmap (first (procDict IM.!))
             . IM.toList
             $ systttbar

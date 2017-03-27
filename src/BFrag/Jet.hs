@@ -185,7 +185,10 @@ jetHs =
     [ ("/2psvtrks", pure . (>= 2) . length . svTracks . fst)
     , ("/2svtrks", pure . (== 2) . length . svTracks . fst)
     , ("/3svtrks", pure . (== 3) . length . svTracks . fst)
+    , ("/4svtrks", pure . (== 4) . length . svTracks . fst)
+    , ("/5svtrks", pure . (== 5) . length . svTracks . fst)
     , ("/4psvtrks", pure . (>= 4) . length . svTracks . fst)
+    , ("/6psvtrks", pure . (>= 6) . length . svTracks . fst)
     ]
   $ channelsWithLabels
     ( pure ("/inclusive", pure . const True)

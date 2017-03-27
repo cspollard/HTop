@@ -24,8 +24,8 @@ writeFiles lu outf pm' = do
       pm'' = variationsToMap "PowPyNom" (sequenceA pm) & at "data" .~ d'
       f varname hs =
         T.writeFile
-        (outf ++ '/' : T.unpack varname ++ ".yoda")
-        (ifoldMap printYodaObj $ folderToMap hs)
+          (outf ++ '/' : T.unpack varname ++ ".yoda")
+          (ifoldMap printYodaObj $ folderToMap hs)
 
   imapM_ f pm''
 
