@@ -18,6 +18,9 @@ svTrackSum = fold . svTracks
 svTrackSumPt :: HasSVTracks a => a -> Double
 svTrackSumPt = view lvPt . svTrackSum
 
+nSVTracks :: HasSVTracks a => a -> Int
+nSVTracks = length . svTracks
+
 
 class HasPVTracks a where
   pvTracks :: a -> [PtEtaPhiE]
@@ -28,8 +31,12 @@ pvTrackSum = fold . pvTracks
 pvTrackSumPt :: HasPVTracks a => a -> Double
 pvTrackSumPt = view lvPt . pvTrackSum
 
+nPVTracks :: HasPVTracks a => a -> Int
+nPVTracks = length . pvTracks
+
 trackSumPt :: (HasSVTracks a, HasPVTracks a) => a -> Double
 trackSumPt j = view lvPt . fold $ svTracks j ++ pvTracks j
+
 
 zBT, zBL
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
@@ -197,7 +204,7 @@ nSVTrksH =
     (binD 0 10 10)
     "$n$ SV tracks"
     (dsigdXpbY "n" "1")
-  <$= fromIntegral . length . svTracks
+  <$= fromIntegral . nSVTracks
 
 nPVTrksProfPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
@@ -208,7 +215,7 @@ nPVTrksProfPt =
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<n$ PV tracks $>$"
-  <$= (view lvPt &&& (fromIntegral . length . pvTracks))
+  <$= (view lvPt &&& (fromIntegral . nPVTracks))
 
 nSVTrksProfPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
@@ -219,7 +226,7 @@ nSVTrksProfPt =
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<n$ SV tracks $>$"
-  <$= (view lvPt &&& (fromIntegral . length . svTracks))
+  <$= (view lvPt &&& (fromIntegral . nSVTracks))
 
 bfragHs
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)

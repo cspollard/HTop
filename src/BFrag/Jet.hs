@@ -159,11 +159,12 @@ mv2c10H =
   <$> hist1DDef (binD (-1) 25 1) "MV2c10" (dsigdXpbY "\\mathrm{MV2c10}" "1")
   <$= view mv2c10
 
-recoVsTruthHs :: Fills (Jet, TruthJet)
-recoVsTruthHs =
+zbtMigration :: Fills (Jet, TruthJet)
+zbtMigration =
   singleton "/recobfragvstruebfrag"
   <$> h
   <$= swap . bimap zBT zBT
+
 
   where
     h =
@@ -172,6 +173,37 @@ recoVsTruthHs =
         (binD 0 21 1.05)
         "true $z_{p_{\\mathrm T}}$"
         "reco $z_{p_{\\mathrm T}}$"
+
+nsvMigration :: Fills (Jet, TruthJet)
+nsvMigration =
+  singleton "/recobnsvvstruensv"
+  <$> h
+  <$= swap . bimap (fromIntegral . nSVTracks) (fromIntegral . nSVTracks)
+
+  where
+    h =
+      hist2DDef
+        (binD 0 10 10)
+        (binD 0 10 10)
+        "true $n$ SV tracks"
+        "reco $n$ SV tracks"
+
+npvMigration :: Fills (Jet, TruthJet)
+npvMigration =
+  singleton "/recobnpvvstruenpv"
+  <$> h
+  <$= swap . bimap (fromIntegral . nPVTracks) (fromIntegral . nPVTracks)
+
+  where
+    h =
+      hist2DDef
+        (binD 0 20 20)
+        (binD 0 20 20)
+        "true $n$ PV tracks"
+        "reco $n$ PV tracks"
+
+recoVsTruthHs :: Fills (Jet, TruthJet)
+recoVsTruthHs = mconcat [zbtMigration, nsvMigration, npvMigration]
 
 
 jetHs :: Fills (Jet, Maybe TruthJet)
