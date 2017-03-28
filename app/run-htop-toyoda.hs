@@ -17,6 +17,10 @@ import qualified Data.Text.IO      as T
 main :: IO ()
 main = mainWith writeFiles
 
+-- TODO
+-- migration matrices
+-- etc.
+
 writeFiles :: Double -> String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
 writeFiles lu outf pm' = do
   let (pm, d) = collapseProcs pm'

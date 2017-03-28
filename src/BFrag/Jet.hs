@@ -176,7 +176,7 @@ zbtMigration =
 
 nsvMigration :: Fills (Jet, TruthJet)
 nsvMigration =
-  singleton "/recobnsvvstruensv"
+  singleton "/reconsvvstruensv"
   <$> h
   <$= swap . bimap (fromIntegral . nSVTracks) (fromIntegral . nSVTracks)
 
@@ -190,7 +190,7 @@ nsvMigration =
 
 npvMigration :: Fills (Jet, TruthJet)
 npvMigration =
-  singleton "/recobnpvvstruenpv"
+  singleton "/reconpvvstruenpv"
   <$> h
   <$= swap . bimap (fromIntegral . nPVTracks) (fromIntegral . nPVTracks)
 
@@ -223,8 +223,10 @@ jetHs =
     , ("/6psvtrks", pure . (>= 6) . length . svTracks . fst)
     ]
   $ channelsWithLabels
-    ( pure ("/inclusive", pure . const True)
-    -- : ("/pt_gt200", pure . (> 200) . view lvPt . fst)
+    ( ("/pt_gt40", pure . (> 40) . view lvPt . fst)
+      : ("/pt_gt50", pure . (> 50) . view lvPt . fst)
+      : ("/pt_gt50", pure . (> 75) . view lvPt . fst)
+      : pure ("/inclusive", pure . const True)
     -- : bins' "/pt" (view lvPt . fst) [20, 30, 50, 75, 100, 150, 200]
     -- ++ bins' "/eta" (view lvAbsEta . fst) [0, 0.5, 1.0, 1.5, 2.0, 2.5]
     )
