@@ -9,6 +9,8 @@
 
 module BFrag.Jet where
 
+import Debug.Trace
+
 import           Atlas
 import           BFrag.BFrag
 import           BFrag.PtEtaPhiE
@@ -165,7 +167,6 @@ zbtMigration =
   <$> h
   <$= swap . bimap zBT zBT
 
-
   where
     h =
       hist2DDef
@@ -176,7 +177,7 @@ zbtMigration =
 
 nsvMigration :: Fills (Jet, TruthJet)
 nsvMigration =
-  singleton "/reconsvvstruensv"
+  singleton "/reconsvtrksvstruensvtrks"
   <$> h
   <$= swap . bimap (fromIntegral . nSVTracks) (fromIntegral . nSVTracks)
 
@@ -190,7 +191,7 @@ nsvMigration =
 
 npvMigration :: Fills (Jet, TruthJet)
 npvMigration =
-  singleton "/reconpvvstruenpv"
+  singleton "/reconpvtrksvstruenpvtrks"
   <$> h
   <$= swap . bimap (fromIntegral . nPVTracks) (fromIntegral . nPVTracks)
 
@@ -209,11 +210,6 @@ recoVsTruthHs = mconcat [zbtMigration, nsvMigration, npvMigration]
 jetHs :: Fills (Jet, Maybe TruthJet)
 jetHs =
   channelsWithLabels
-    [ ("/allJets", pure . const True)
-    , ("/matched", pure . isJust . snd)
-    , ("/unmatched", pure . isNothing . snd)
-    ]
-  $ channelsWithLabels
     [ ("/2psvtrks", pure . (>= 2) . length . svTracks . fst)
     , ("/2svtrks", pure . (== 2) . length . svTracks . fst)
     , ("/3svtrks", pure . (== 3) . length . svTracks . fst)
@@ -223,15 +219,26 @@ jetHs =
     , ("/6psvtrks", pure . (>= 6) . length . svTracks . fst)
     ]
   $ channelsWithLabels
-    ( ("/pt_gt40", pure . (> 40) . view lvPt . fst)
-      : ("/pt_gt50", pure . (> 50) . view lvPt . fst)
-      : ("/pt_gt50", pure . (> 75) . view lvPt . fst)
-      : pure ("/inclusive", pure . const True)
+    ( ("/ptgt40", pure . (> 40) . view lvPt . fst)
+      : ("/ptgt50", pure . (> 50) . view lvPt . fst)
+      : ("/ptgt75", pure . (> 75) . view lvPt . fst)
+      : pure ("/ptgt30", pure . const True)
     -- : bins' "/pt" (view lvPt . fst) [20, 30, 50, 75, 100, 150, 200]
     -- ++ bins' "/eta" (view lvAbsEta . fst) [0, 0.5, 1.0, 1.5, 2.0, 2.5]
     )
-  $ (mconcat [lvHs , {- mv2c10H , -} bfragHs] <$= fst)
-    `mappend` (F.premap sequenceA (F.handles _Just recoVsTruthHs) <$= sequenceA)
+  $ channelsWithLabels
+    [ ("/allJets", pure . const True)
+    , ("/unmatched", pure . isNothing . snd)
+    ] allHs
+    `mappend`
+      channelWithLabel "/matched" (pure . isJust . snd . traceShowId) matchedHs
+
+  where
+    allHs = mconcat [lvHs , {- mv2c10H , -} bfragHs] <$= fst
+    matchedHs =
+      mappend
+        allHs
+        $ F.premap sequenceA (F.handles _Just recoVsTruthHs) <$= sequenceA
 
   -- where
     -- bins'
