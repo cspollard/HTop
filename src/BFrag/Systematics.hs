@@ -26,8 +26,8 @@ import           GHC.Float
 
 type ProcMap = IM.IntMap
 
-data DataMC' = Data' | MC' VarCfg
-data VarCfg = NoVars | AllVars
+data DataMC' = Data' | MC' VarCfg deriving Show
+data VarCfg = NoVars | AllVars deriving Show
 
 evtWgt :: MonadIO m => DataMC' -> TR m (Vars SF)
 evtWgt Data' = return mempty
