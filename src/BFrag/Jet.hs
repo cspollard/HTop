@@ -229,7 +229,7 @@ jetHs =
     , ("/unmatched", pure . isNothing . snd)
     ] allHs
     `mappend`
-      channelWithLabel "/matched" (pure . isJust . snd . traceShowId) matchedHs
+      channelWithLabel "/matched" (pure . isJust . snd) matchedHs
 
   where
     allHs = mconcat [lvHs , {- mv2c10H , -} bfragHs] <$= fst

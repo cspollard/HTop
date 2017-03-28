@@ -37,7 +37,8 @@ import           Data.TTree
 -- we should also use the comonad instance of folds to remove the ~doubling of
 -- memory usage on >1 file.
 
--- should we persistify unused sets of histograms?
+-- TODO
+-- we are writing a lot more than we need to here.
 
 data Args =
   Args

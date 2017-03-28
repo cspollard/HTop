@@ -20,12 +20,11 @@ import           Data.TTree
 import           GHC.Float
 
 
+type ProcMap = IM.IntMap
+
 -- TODO
 -- how can we tell it to only run nominal weight systs on syst trees
 -- and data (and no syst trees on data)?
-
-type ProcMap = IM.IntMap
-
 data DataMC' = Data' | MC' VarCfg deriving Show
 data VarCfg = NoVars | AllVars deriving Show
 
