@@ -51,7 +51,7 @@ tmp lu outfile procs = do
       ttbartrueh = trace "ttbartrueh" $ procst ^?! ix "Pow+Py (nominal)" . ix truehname
       ttbarmath = procst
         ^?! ix "Pow+Py (nominal)"
-          . ix "/elmujj/probejets/4psvtrks/ptgt30/matched/recobfragvstruebfragmig"
+          . ix "/elmujj/probejets/4psvtrks/ptgt30/matched/recobfragvstruebfrag"
       bkgHs = (^?! ix recohname) <$> sans "Pow+Py (nominal)" procst
       (dataH, model, params) =
         buildModel
