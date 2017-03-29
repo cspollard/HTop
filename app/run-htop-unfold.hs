@@ -42,15 +42,15 @@ tmp lu outfile procs = do
         $ sans 0 procs
 
       nsamps = 100000
-      recohname = "/elmujj/probejets/allJets/4psvtrks/inclusive/zbt"
-      truehname = "/elmujj/probejets/allJets/4psvtrks/inclusive/zbt"
+      recohname = "/elmujj/probejets/4psvtrks/ptgt30/matched/zbt"
+      truehname = "/elmujj/truthjets/zbt"
       -- TODO
       -- partial!
       ttbarrecoh = procst ^?! ix "Pow+Py (nominal)" . ix recohname
       ttbartrueh = procst ^?! ix "Pow+Py (nominal)" . ix truehname
       ttbarmath = procst
         ^?! ix "Pow+Py (nominal)"
-          . ix "/elmujj/probejets/allJets/4psvtrks/inclusive/recobfragvstruebfrag"
+          . ix "/elmujj/probejets/4psvtrks/ptgt30/matched/recobfragvstruebfragmig"
       bkgHs = (^?! ix recohname) <$> sans "Pow+Py (nominal)" procst
       (dataH, model, params) =
         buildModel
