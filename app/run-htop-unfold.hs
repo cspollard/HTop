@@ -89,18 +89,18 @@ buildModel lu recoH trueH matH bkgHs dataH =
       -- currently cutting off last truth and reco bins!
       vtrue = getH1DD <$> trueH
       vreco = getH1DD <$> recoH
-      vdata = getH1DD dataH
-      vmat = getH2DD <$> matH
+      vdata = floor <$> getH1DD dataH
+      vvmat = getH2DD <$> matH
       vbkgs = fmap getH1DD <$> bkgHs
 
-      nreco = traceShowId . trace "nreco" $ views nominal length vreco'
+      -- nreco = traceShowId . trace "nreco" $ views nominal length vreco'
       -- vreco = V.slice 0 (nreco-1) <$> vreco'
       -- vvmat' = fmap (V.slice 0 (nreco-1)) . getH2DD <$> matH
       -- vdata = fmap (floor . (*lu)) . V.slice 0 (nreco-1) $ getH1DD dataH
       -- vbkgs = fmap (V.slice 0 (nreco-1) . getH1DD) <$> bkgHs
 
-      vtrue = rebin 2 (+) <$> vtrue'
-      vvmat = rebin 2 (V.zipWith (+)) <$> vvmat'
+      -- vtrue = rebin 2 (+) <$> vtrue'
+      -- vvmat = rebin 2 (V.zipWith (+)) <$> vvmat'
 
       emptysig = const 0 <$> nom vtrue
 
