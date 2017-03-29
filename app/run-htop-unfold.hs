@@ -46,8 +46,8 @@ tmp lu outfile procs = do
       truehname = "/elmujj/truthjets/zbt"
       -- TODO
       -- partial!
-      ttbarrecoh = procst ^?! ix "Pow+Py (nominal)" . ix recohname
-      ttbartrueh = procst ^?! ix "Pow+Py (nominal)" . ix truehname
+      ttbarrecoh = trace "ttbarrecoh" $ procst ^?! ix "Pow+Py (nominal)" . ix recohname
+      ttbartrueh = trace "ttbartrueh" $ procst ^?! ix "Pow+Py (nominal)" . ix truehname
       ttbarmath = procst
         ^?! ix "Pow+Py (nominal)"
           . ix "/elmujj/probejets/4psvtrks/ptgt30/matched/recobfragvstruebfragmig"
