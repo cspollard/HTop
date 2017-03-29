@@ -9,8 +9,6 @@
 
 module BFrag.Jet where
 
-import Debug.Trace
-
 import           Atlas
 import           BFrag.BFrag
 import           BFrag.PtEtaPhiE
@@ -163,7 +161,7 @@ mv2c10H =
 
 zbtMigration :: Fills (Jet, TruthJet)
 zbtMigration =
-  singleton "/recobfragvstruebfrag"
+  singleton "/recozbtvstruezbt"
   <$> h
   <$= swap . bimap zBT zBT
 
@@ -231,7 +229,7 @@ jetHs =
     , ("/unmatched", pure . isNothing . snd)
     ] allHs
     `mappend`
-      channelWithLabel "/matched" (pure . isJust . snd . traceShowId) matchedHs
+      channelWithLabel "/matched" (pure . isJust . snd) matchedHs
 
   where
     allHs = mconcat [lvHs , {- mv2c10H , -} bfragHs] <$= fst
