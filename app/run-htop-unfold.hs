@@ -61,7 +61,8 @@ tmp lu outfile procs = do
           bkgHs
           -- TODO
           -- the bottom is real data.
-          (ttbarrecoh ^?! variations . ix "PowPyRadDown")
+          (ttbarrecoh ^. nominal)
+          -- (ttbarrecoh ^?! variations . ix "PowPyRadDown")
           -- (procs ^?! ix 0 . to folderToMap . ix recohname . nominal)
 
   putStrLn "data:"
