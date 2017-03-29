@@ -34,6 +34,7 @@ main = mainWith tmp
 
 tmp :: Double -> String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
 tmp lu outfile procs = do
+  mapMOf_ (ix 410000.to (M.keys.folderToMap).traverse) print procs
   let procst =
         M.fromList
         . fmap (first processTitle . second folderToMap)
