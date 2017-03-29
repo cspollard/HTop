@@ -61,7 +61,7 @@ tmp lu outfile procs = do
           bkgHs
           -- TODO
           -- the bottom is real data.
-          (ttbarrecoh ^. nominal)
+          (over (noted._H1DD) (scaling 38000) $ ttbarrecoh ^. nominal)
           -- (ttbarrecoh ^?! variations . ix "PowPyRadDown")
           -- (procs ^?! ix 0 . to folderToMap . ix recohname . nominal)
 
