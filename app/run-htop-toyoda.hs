@@ -46,7 +46,15 @@ writeFiles lu outf pm' = do
           . (^?! ix "/elmujj/truthjets/zbt" . noted . _H1DD)
           . folderToMap
 
-      migs = M.intersectionWith (\t m -> over (noted._H2DD) (normToX t) <$> m) truths mats
+      -- TODO
+      -- yoda is going to divide these by the (2D) bin width before drawing
+      -- them; should we compensate?
+      migs =
+        M.intersectionWith
+          (\t m -> over (noted._H2DD) (normToX t) <$> m)
+          truths
+          mats
+
       migs' = migs <&> inF (M.mapKeysMonotonic (`mappend` "mig"))
 
       pm''' = M.intersectionWith mappend pm'' migs'
