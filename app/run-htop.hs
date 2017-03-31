@@ -177,7 +177,7 @@ transposeM = M.foldrWithKey f M.empty
     f k inmap outmap = M.unionWith (<>) outmap $ M.singleton k <$> inmap
 
 
--- | Serialize data into strict 'ByteString's.
+-- | Serialize data into strict ByteStrings.
 serializer :: (Serialize a, Monad m) => P.Pipe a PBS.ByteString m ()
 serializer = forever $ do
     x <- P.await

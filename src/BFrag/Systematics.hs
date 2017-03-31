@@ -40,7 +40,7 @@ evtWgt (MC' vcfg) = do
 
 
 -- TODO
--- Partial!
+-- partial!
 lepSF :: MonadIO m => VarCfg -> TR m (Vars SF)
 lepSF NoVars = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
 lepSF AllVars = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"

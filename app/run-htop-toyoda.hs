@@ -17,7 +17,6 @@ import           Data.Maybe             (fromJust)
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as T
 
-
 main :: IO ()
 main = mainWith writeFiles
 
