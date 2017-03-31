@@ -65,6 +65,7 @@ writeFiles lu outf pm' = do
 
   imapM_ f pm'''
 
+
 collapseProcs
   :: ProcMap (Folder (Vars YodaObj))
   -> (Folder (Vars YodaObj), Maybe (Folder YodaObj))
