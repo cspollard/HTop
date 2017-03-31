@@ -87,10 +87,13 @@ buildModel lu recoH trueH matH bkgHs dataH = do
   vdata <-
     withSystemRandom . asGenIO . sample . traverse poisson $ getH1DD dataH
 
+  -- TODO
+  -- TODO
+  -- doing stat only here!
   let vtrue = getH1DD <$> trueH
-      vreco = getH1DD <$> recoH
+      vreco = getH1DD <$> set variations mempty recoH
       vvmat = getH2DD <$> matH
-      vbkgs = fmap getH1DD <$> bkgHs
+      vbkgs = fmap getH1DD . set variations mempty <$> bkgHs
 
       emptysig = const 0 <$> nom vtrue
 
