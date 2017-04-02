@@ -23,7 +23,6 @@ import qualified Data.Text                     as T
 import qualified Data.Vector                   as V
 import           Model
 import           RunModel
-import           System.IO                     (hFlush, stdout)
 import           System.Random.MWC.Probability
 
 
@@ -71,8 +70,6 @@ tmp lu outfile procs = do
   putStrLn "\nmodel:"
   print model
   putStrLn "\nvariations:"
-  imapM_ (\i x -> print i >> views mpVariation print x) params
-  hFlush stdout
   runModel nsamps outfile dataH model params
 
 buildModel
@@ -84,7 +81,6 @@ buildModel
   -> YodaObj
   -> IO (V.Vector Int, Model Double, TextMap (ModelParam Double))
 buildModel lu recoH trueH matH bkgHs dataH = do
-  print "here!"
   vdata <-
     withSystemRandom . asGenIO . sample . traverse poisson $ getH1DD dataH
 

@@ -36,7 +36,7 @@ writeFiles lu outf pm' = do
       -- partial
       mats =
         pm''
-        <&> filterFolder (Just "recobfragvstruebfrag$")
+        <&> filterFolder (Just "recozbtvstruezbt$")
 
       truths =
         pm''

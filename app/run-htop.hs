@@ -8,17 +8,17 @@
 
 module Main where
 
-import qualified Control.Foldl    as F
+import qualified Control.Foldl   as F
 import           Control.Lens
-import           Control.Monad    (unless, when)
-import qualified Data.Map.Strict  as M
+import           Control.Monad   (unless, when)
+import qualified Data.Map.Strict as M
 import           Data.Semigroup
-import qualified Data.Text        as T
+import qualified Data.Text       as T
 import           GHC.Float
 import           Options.Generic
-import qualified Pipes            as P
-import qualified Pipes.Prelude    as P
-import           System.IO        (BufferMode (..), hSetBuffering, stdout)
+import qualified Pipes           as P
+import qualified Pipes.Prelude   as P
+import           System.IO       (BufferMode (..), hSetBuffering, stdout)
 
 import           Atlas
 import           BFrag.Event
@@ -88,8 +88,6 @@ fillFile (nom, systs') m fn = do
     . fmap (Sum . float2Double)
     . F.purely P.fold fo
     $ produceTTree (readBranch "totalEventsWeighted")
-
-  print sow
 
   let loopTree tn = do
         t <- ttree f tn
