@@ -8,22 +8,17 @@
 
 module Main where
 
-import           Codec.Compression.GZip (compress)
-import qualified Control.Foldl          as F
+import qualified Control.Foldl    as F
 import           Control.Lens
-import           Control.Monad          (forever, unless, when)
-import qualified Data.ByteString.Lazy   as BS
-import qualified Data.Map.Strict        as M
+import           Control.Monad    (unless, when)
+import qualified Data.Map.Strict  as M
 import           Data.Semigroup
-import           Data.Serialize
-import qualified Data.Text              as T
+import qualified Data.Text        as T
 import           GHC.Float
 import           Options.Generic
-import           Pipes                  ((<-<))
-import qualified Pipes                  as P
-import qualified Pipes.ByteString       as PBS
-import qualified Pipes.Prelude          as P
-import           System.IO              (BufferMode (..), hSetBuffering, stdout)
+import qualified Pipes            as P
+import qualified Pipes.Prelude    as P
+import           System.IO        (BufferMode (..), hSetBuffering, stdout)
 
 import           Atlas
 import           BFrag.Event
@@ -32,13 +27,9 @@ import           Data.TTree
 
 
 -- TODO
--- HERE
 
 -- we should also use the comonad instance of folds to remove the ~doubling of
 -- memory usage on >1 file.
-
--- TODO
--- we are writing a lot more than we need to here.
 
 data Args =
   Args
@@ -58,43 +49,27 @@ main = do
   -- get the list of input trees
   fns <- filter (not . null) . lines <$> readFile (infiles args)
 
-  let fnl = P.each fns :: P.Producer String IO ()
-      f = F.FoldM
-            (fillFile ("nominal", treeSysts))
-            (return Nothing)
-            return
+  imh <-
+    P.foldM
+      (fillFile ("nominal", treeSysts))
+      (return Nothing)
+      return
+      (P.each fns)
 
-  imh <- F.impurely P.foldM f fnl
-
-  -- write out items of this type:
-  -- (Text, (Text, (Int, Double, YodaObj)))
-
-  let hs' :: [((Int, Double), (Text, (Text, YodaObj)))]
-      hs' =
-        case imh of
-          Nothing -> []
-          Just (i, d, m) ->
-            fmap ((i, d),)
-            . concatMap sequenceA
-            . M.toList
-            . folderToMap
-            . fmap (M.toList . variationsToMap "nominal")
-            $ m
-
-  putStrLn ("writing to file " ++ outfile args)
-
-  BS.writeFile (outfile args)
-    . compress
-    . PBS.toLazy
-    $ serializer
-      <-< P.each hs'
+  maybe
+    (error "no input files!")
+    ( \x -> do
+      putStrLn ("writing to file " ++ outfile args)
+      encodeFile (outfile args) x
+    )
+    imh
 
 
 fillFile
   :: (String, [String])
-  -> Maybe (Int, Double, Folder (Vars YodaObj))
+  -> Maybe (Int, Sum Double, Folder (Vars YodaObj))
   -> String
-  -> IO (Maybe (Int, Double, Folder (Vars YodaObj)))
+  -> IO (Maybe (Int, Sum Double, Folder (Vars YodaObj)))
 fillFile (nom, systs') m fn = do
   putStrLn $ "analyzing file " <> fn
 
@@ -110,7 +85,7 @@ fillFile (nom, systs') m fn = do
 
   sow <-
     runTR tw
-    . fmap float2Double
+    . fmap (Sum . float2Double)
     . F.purely P.fold fo
     $ produceTTree (readBranch "totalEventsWeighted")
 
@@ -163,9 +138,9 @@ fillFile (nom, systs') m fn = do
       Just (dsid', n, hs') -> do
         when (dsid /= dsid')
           $ error "attempting to analyze different dsids in one run!!!"
-        let n' = n+sow
+        let n' = mappend n sow
             sm' = mappend hs hs'
-        n' `seq` sm' `seq` return (Just (dsid, n', sm'))
+        sm' `seq` return (Just (dsid, n', sm'))
 
 
 transposeM
@@ -175,10 +150,3 @@ transposeM = M.foldrWithKey f M.empty
   where
     f :: k -> M.Map k' a -> M.Map k' (M.Map k a) -> M.Map k' (M.Map k a)
     f k inmap outmap = M.unionWith (<>) outmap $ M.singleton k <$> inmap
-
-
--- | Serialize data into strict ByteStrings.
-serializer :: (Serialize a, Monad m) => P.Pipe a PBS.ByteString m ()
-serializer = forever $ do
-    x <- P.await
-    P.yield (encode x)

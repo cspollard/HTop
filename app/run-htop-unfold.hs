@@ -84,6 +84,7 @@ buildModel
   -> YodaObj
   -> IO (V.Vector Int, Model Double, TextMap (ModelParam Double))
 buildModel lu recoH trueH matH bkgHs dataH = do
+  print "here!"
   vdata <-
     withSystemRandom . asGenIO . sample . traverse poisson $ getH1DD dataH
 
