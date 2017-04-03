@@ -168,7 +168,7 @@ zbtMigration =
   where
     h =
       hist2DDef
-        (binD 0 21 1.05)
+        (binD 0 7 1.05)
         (binD 0 21 1.05)
         "true $z_{p_{\\mathrm T}}$"
         "reco $z_{p_{\\mathrm T}}$"
