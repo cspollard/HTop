@@ -232,7 +232,7 @@ jetHs =
       channelWithLabel "/matched" (pure . isJust . snd) matchedHs
 
   where
-    allHs = mconcat [lvHs , {- mv2c10H , -} bfragHs] <$= fst
+    allHs = mconcat [lvHs , {- mv2c10H , -} bfragHs 21] <$= fst
     matchedHs =
       mappend
         allHs

@@ -10,6 +10,7 @@ module Main where
 import           Atlas
 import           Atlas.ToYoda
 import           BFrag.Systematics
+import           Control.Applicative
 import           Control.Lens
 import qualified Data.Histogram.Generic as H
 import qualified Data.Map.Strict        as M
@@ -29,10 +30,10 @@ main = mainWith writeFiles
 -- etc.
 
 writeFiles :: Double -> String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
-writeFiles lu outf pm' =
-  let (pm, d) = collapseProcs pm'
-      d' = over (_Just.traverse.noted) (scaleH $ 1.0/lu) d
-      pm'' = variationsToMap "PowPyNom" (sequenceA pm) & at "data" .~ d'
+writeFiles _ outf pm' =
+  let (pm, d) = over (_1.traverse) (liftA2 scaleH' lumi) $ collapseProcs pm'
+
+      pm'' = variationsToMap "PowPyNom" (sequenceA pm) & at "data" .~ d
 
       -- TODO
       -- TODO
@@ -86,6 +87,9 @@ collapseProcs pm =
   -- partial
   in (preds' ^?! ix 410000, dat)
 
+
+scaleH' :: Double -> Annotated Obj -> Annotated Obj
+scaleH' x = over noted (scaleH x)
 
 normAlongY :: (Bin bx, BinEq by) => Hist2D bx by -> Hist2D bx by
 normAlongY = H.liftY (set integral 1)

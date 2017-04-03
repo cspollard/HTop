@@ -1,5 +1,12 @@
 lepton ID, trigger, iso SFs
 other event SFs and their uncertainties
-tree-level uncertainties
-2D histograms (& migration matrices)
-space leaks
+check for space leaks
+
+2D histograms and corresponding 1D histograms should have some guarantee
+of having the same axis-labels and binning
+
+
+
+is the Map structure good enough for folder?
+almost seems like a labeled tree would be better...
+but then is there an obvious way to "trim" the tree??

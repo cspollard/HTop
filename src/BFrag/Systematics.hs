@@ -5,7 +5,7 @@
 
 
 module BFrag.Systematics
-  ( evtWgt, ttbarSysts, treeSysts
+  ( evtWgt, ttbarSysts, treeSysts, lumi
   , DataMC'(..), VarCfg(..)
   ) where
 
@@ -27,6 +27,9 @@ type ProcMap = IM.IntMap
 -- and data (and no syst trees on data)?
 data DataMC' = Data' | MC' VarCfg deriving Show
 data VarCfg = NoVars | AllVars deriving Show
+
+lumi :: Vars Double
+lumi = Variations 38000 [("LumiUp", 41800), ("LumiDown", 34200)]
 
 evtWgt :: MonadIO m => DataMC' -> TR m (Vars SF)
 evtWgt Data' = return mempty

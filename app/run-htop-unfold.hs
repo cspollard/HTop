@@ -99,9 +99,9 @@ buildModel lu recoH trueH matH bkgHs dataH = do
   -- TODO
   -- TODO
   -- doing stat only here!
-  let vtrue = getH1DD <$> trueH
+  let vtrue = rebin 3 (+) . getH1DD <$> trueH
       vreco = getH1DD <$> set variations mempty recoH
-      vvmat = getH2DD <$> matH
+      vvmat = rebin 3 (V.zipWith (+)) . getH2DD <$> matH
       vbkgs = fmap getH1DD <$> bkgHs
 
   let emptysig = const 0 <$> nom vtrue
@@ -181,6 +181,7 @@ buildModel lu recoH trueH matH bkgHs dataH = do
     systify v = fmap Just v & nominal .~ Nothing
 
     normmat = liftA2 (V.zipWith (\x v -> (/x) <$> v))
+
 
 rebin :: Int -> (a -> a -> a) -> V.Vector a -> V.Vector a
 rebin 0 _ v = v

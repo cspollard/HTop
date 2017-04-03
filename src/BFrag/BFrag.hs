@@ -75,11 +75,11 @@ svTrkSumPtH =
 
 zBTH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
-zBTH =
+  => Int -> Fills a
+zBTH nbins =
   singleton "/zbt"
   <$> hist1DDef
-    (binD 0 21 1.05)
+    (binD 0 nbins 1.05)
     "$z_{p_{\\mathrm T}}$"
     (dsigdXpbY "z_{p_{\\mathrm T}}" "1")
   <$= zBT
@@ -230,9 +230,9 @@ nSVTrksProfPt =
 
 bfragHs
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
-bfragHs = mconcat
-  [ zBTH
+  => Int -> Fills a
+bfragHs nbins = mconcat
+  [ zBTH nbins
   , trkSumPtH
   , svTrkSumPtH
   -- , trkSumPtProfPt
