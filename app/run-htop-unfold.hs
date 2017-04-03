@@ -85,23 +85,20 @@ buildModel
   -> IO (V.Vector Int, Model Double, TextMap (ModelParam Double))
 buildModel lu recoH trueH matH bkgHs dataH = do
 
-  -- TODO
-  -- TODO
-  -- errr?
+  -- I have to do this because poisson is broken for > 1000...
   let poiss x
-        | x < 5 = poisson x
+        | x < 500 = poisson x
         | otherwise = round <$> normal x (sqrt x)
 
   vdata <-
     withSystemRandom . asGenIO . sample . traverse poiss $ getH1DD dataH
 
-
   -- TODO
   -- TODO
   -- doing stat only here!
-  let vtrue = rebin 3 (+) . getH1DD <$> trueH
+  let vtrue = getH1DD <$> trueH
       vreco = getH1DD <$> set variations mempty recoH
-      vvmat = rebin 3 (V.zipWith (+)) . getH2DD <$> matH
+      vvmat = getH2DD <$> matH
       vbkgs = fmap getH1DD <$> bkgHs
 
   let emptysig = const 0 <$> nom vtrue
