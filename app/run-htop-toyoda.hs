@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedLists           #-}
 {-# LANGUAGE OverloadedStrings         #-}
@@ -6,16 +7,19 @@
 
 module Main where
 
-import qualified Data.Map.Strict as M
-import qualified Data.Vector.Generic as VG
 import           Atlas
 import           Atlas.ToYoda
 import           BFrag.Systematics
 import           Control.Lens
 import qualified Data.Histogram.Generic as H
+import qualified Data.Map.Strict        as M
 import           Data.Maybe             (fromJust)
 import qualified Data.Text              as T
-import qualified Data.Text.IO           as T
+import qualified Data.Vector.Generic    as VG
+import           Pipes                  ((<-<))
+import qualified Pipes                  as P
+import           Pipes.Prelude          as P
+import           System.IO
 
 main :: IO ()
 main = mainWith writeFiles
@@ -25,7 +29,7 @@ main = mainWith writeFiles
 -- etc.
 
 writeFiles :: Double -> String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
-writeFiles lu outf pm' = do
+writeFiles lu outf pm' =
   let (pm, d) = collapseProcs pm'
       d' = over (_Just.traverse.noted) (scaleH $ 1.0/lu) d
       pm'' = variationsToMap "PowPyNom" (sequenceA pm) & at "data" .~ d'
@@ -58,12 +62,16 @@ writeFiles lu outf pm' = do
 
       pm''' = M.intersectionWith mappend pm'' migs'
 
-      f varname hs =
-        T.writeFile
-          (outf ++ '/' : T.unpack varname ++ ".yoda")
-          (ifoldMap printYodaObj $ folderToMap hs)
+      write varname hs =
+        withFile (outf ++ '/' : T.unpack varname ++ ".yoda") WriteMode $ \h ->
+          P.runEffect
+          $ P.toHandle h
+            <-< P.map (T.unpack . uncurry printYodaObj)
+            <-< P.each (M.toList hs)
 
-  imapM_ f pm'''
+  in
+    P.runEffect
+    $ P.mapM_ (uncurry write) <-< P.each (M.toList $ folderToMap <$> pm''')
 
 
 collapseProcs

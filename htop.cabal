@@ -93,6 +93,7 @@ executable run-htop-toyoda
                      , vector == 0.11.*
                      , histogram-fill == 0.8.*
                      , text == 1.2.*
+                     , pipes == 4.3.*
                      , atlas == 0.1.*
                      , histogram-extras == 0.2.*
                      , htop == 0.2.*

@@ -9,6 +9,7 @@ module Main where
 
 -- TODO
 -- there is a ton of partial stuff in here.
+
 import           Atlas
 import           Atlas.ProcessInfo
 import           Atlas.ToYoda
@@ -33,12 +34,14 @@ main = mainWith tmp
 
 tmp :: Double -> String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
 tmp lu outfile procs = do
+  mapM_ print $ IM.keys procs
   let procst =
         M.fromList
         . fmap (first processTitle . second folderToMap)
         . IM.toList
         . ttbarSysts
-        $ sans 0 procs
+        . IM.delete 0
+        $ over (traverse.traverse.variations) (const M.empty) procs
 
       nsamps = 100000
       recohname = "/elmujj/probejets/4psvtrks/ptgt30/matched/zbt"
@@ -49,7 +52,7 @@ tmp lu outfile procs = do
       ttbartrueh = procst ^?! ix "Pow+Py (nominal)" . ix truehname
       ttbarmath = procst
         ^?! ix "Pow+Py (nominal)"
-          . ix "/elmujj/probejets/4psvtrks/ptgt30/matched/recobfragvstruebfrag"
+          . ix "/elmujj/probejets/4psvtrks/ptgt30/matched/recozbtvstruezbt"
       bkgHs = (^?! ix recohname) <$> sans "Pow+Py (nominal)" procst
 
   (dataH, model, params) <-
@@ -81,8 +84,17 @@ buildModel
   -> YodaObj
   -> IO (V.Vector Int, Model Double, TextMap (ModelParam Double))
 buildModel lu recoH trueH matH bkgHs dataH = do
+
+  -- TODO
+  -- TODO
+  -- errr?
+  let poiss x
+        | x < 5 = poisson x
+        | otherwise = round <$> normal x (sqrt x)
+
   vdata <-
-    withSystemRandom . asGenIO . sample . traverse poisson $ getH1DD dataH
+    withSystemRandom . asGenIO . sample . traverse poiss $ getH1DD dataH
+
 
   -- TODO
   -- TODO
@@ -90,9 +102,9 @@ buildModel lu recoH trueH matH bkgHs dataH = do
   let vtrue = getH1DD <$> trueH
       vreco = getH1DD <$> set variations mempty recoH
       vvmat = getH2DD <$> matH
-      vbkgs = fmap getH1DD . set variations mempty <$> bkgHs
+      vbkgs = fmap getH1DD <$> bkgHs
 
-      emptysig = const 0 <$> nom vtrue
+  let emptysig = const 0 <$> nom vtrue
 
       signalreco = foldl (V.zipWith (+)) (const 0 <$> nom vreco) <$> vvmat
 
