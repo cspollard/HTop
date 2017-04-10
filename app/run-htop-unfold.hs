@@ -17,6 +17,7 @@ import           BFrag.Systematics
 import           Control.Applicative           (liftA2)
 import           Control.Arrow                 (first, second)
 import           Control.Lens
+import           Control.Monad                 (forM_)
 import qualified Data.Histogram.Generic        as H
 import qualified Data.IntMap.Strict            as IM
 import qualified Data.Map.Strict               as M
@@ -35,6 +36,7 @@ main = mainWith tmp
 tmp :: Double -> String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
 tmp lu outfile procs = do
   mapM_ print $ IM.keys procs
+
   let procst =
         M.fromList
         . fmap (first processTitle . second folderToMap)
@@ -43,7 +45,7 @@ tmp lu outfile procs = do
         . IM.delete 0
         $ over (traverse.traverse.variations) (const M.empty) procs
 
-      nsamps = 100000
+      nsamps = 1000
       recohname = "/elmujj/probejets/4psvtrks/ptgt30/matched/zbt"
       truehname = "/elmujj/truthjets/zbt"
       -- TODO
@@ -55,25 +57,38 @@ tmp lu outfile procs = do
           . ix "/elmujj/probejets/4psvtrks/ptgt30/matched/recozbtvstruezbt"
       bkgHs = (^?! ix recohname) <$> sans "Pow+Py (nominal)" procst
 
-  (dataH, model, params) <-
-    buildModel
-      lu
-      ttbarrecoh
-      ttbartrueh
-      ttbarmath
-      bkgHs
-      -- TODO
-      -- the bottom is real data.
-      (over (noted._H1DD) (scaling 38000) $ ttbarrecoh ^. nominal)
+      (model, params) =
+        buildModel
+          lu
+          ttbarrecoh
+          ttbartrueh
+          ttbarmath
+          bkgHs
+
+
+  -- TODO
+  -- the bottom is real data.
+  let dataH = (over (noted._H1DD) (scaling 38000) $ ttbarrecoh ^. nominal)
       -- (ttbarrecoh ^?! variations . ix "PowPyRadDown")
       -- (procs ^?! ix 0 . to folderToMap . ix recohname . nominal)
 
-  putStrLn "data:"
-  print dataH
+      -- I have to do this because poisson is broken for > 1000...
+      poiss x
+        | x < 500 = poisson x
+        | otherwise = round <$> normal x (sqrt x)
+
   putStrLn "\nmodel:"
   print model
-  putStrLn "\nvariations:"
-  runModel nsamps outfile dataH model params
+
+  forM_ ([1..100] :: [Int]) $ \i -> do
+    vdata <-
+      withSystemRandom . asGenIO . sample . traverse poiss $ getH1DD dataH
+
+    putStrLn "data:"
+    print vdata
+
+    runModel nsamps (outfile ++ '/' : show i ++ ".dat") vdata model params
+
 
 buildModel
   :: Double
@@ -81,18 +96,8 @@ buildModel
   -> Vars YodaObj
   -> Vars YodaObj
   -> TextMap (Vars YodaObj)
-  -> YodaObj
-  -> IO (V.Vector Int, Model Double, TextMap (ModelParam Double))
-buildModel lu recoH trueH matH bkgHs dataH = do
-
-  -- I have to do this because poisson is broken for > 1000...
-  let poiss x
-        | x < 500 = poisson x
-        | otherwise = round <$> normal x (sqrt x)
-
-  vdata <-
-    withSystemRandom . asGenIO . sample . traverse poiss $ getH1DD dataH
-
+  -> (Model Double, TextMap (ModelParam Double))
+buildModel lu recoH trueH matH bkgHs =
   -- TODO
   -- TODO
   -- doing stat only here!
@@ -101,7 +106,7 @@ buildModel lu recoH trueH matH bkgHs dataH = do
       vvmat = getH2DD <$> matH
       vbkgs = fmap getH1DD <$> bkgHs
 
-  let emptysig = const 0 <$> nom vtrue
+      emptysig = const 0 <$> nom vtrue
 
       signalreco = foldl (V.zipWith (+)) (const 0 <$> nom vreco) <$> vvmat
 
@@ -154,31 +159,33 @@ buildModel lu recoH trueH matH bkgHs dataH = do
 
       params = M.union sysparams trueparams
 
-  return (vdata, nommod, params)
+  in (nommod, params)
 
   where
     -- TODO
     -- partial!
-    getH1DD (Annotated _ (H1DD h)) =
-      views histData (fmap (view sumW)) h
-    getH1DD _ = error "attempting to get H1DD from a different YodaObj."
-
-    -- TODO
-    -- partial!
-    getH2DD (Annotated _ (H2DD h)) =
-      (fmap.fmap) (view sumW)
-      -- TODO
-      -- not positive about the orientation here
-      . V.fromList
-      . fmap (view histData . snd)
-      $ H.listSlicesAlongY h
-    getH2DD _ = error "attempting to get H2DD from a different YodaObj."
-
     nom = view nominal
     systify v = fmap Just v & nominal .~ Nothing
 
     normmat = liftA2 (V.zipWith (\x v -> (/x) <$> v))
 
+
+getH1DD :: Annotated Obj -> V.Vector Double
+getH1DD (Annotated _ (H1DD h)) =
+  views histData (fmap (view sumW)) h
+getH1DD _ = error "attempting to get H1DD from a different YodaObj."
+
+-- TODO
+-- partial!
+getH2DD :: Annotated Obj -> V.Vector (V.Vector Double)
+getH2DD (Annotated _ (H2DD h)) =
+  (fmap.fmap) (view sumW)
+  -- TODO
+  -- not positive about the orientation here
+  . V.fromList
+  . fmap (view histData . snd)
+  $ H.listSlicesAlongY h
+getH2DD _ = error "attempting to get H2DD from a different YodaObj."
 
 rebin :: Int -> (a -> a -> a) -> V.Vector a -> V.Vector a
 rebin 0 _ v = v
