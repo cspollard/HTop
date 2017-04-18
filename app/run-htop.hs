@@ -27,8 +27,7 @@ import           Data.TTree
 
 
 -- TODO
-
--- we should also use the comonad instance of folds to remove the ~doubling of
+-- we should use the comonad instance of Fold to remove the ~doubling of
 -- memory usage on >1 file.
 
 data Args =
@@ -108,8 +107,10 @@ fillFile (nom, systs') m fn = do
                     then AllVars
                     else NoVars
 
+        putStrLn "about to runTR."
         runTR t . fmap (tn,) $! F.purely P.fold eventHs l
 
+  putStrLn "finished looping."
   systHs :: Folder (M.Map T.Text YodaObj) <-
     Folder
     . transposeM

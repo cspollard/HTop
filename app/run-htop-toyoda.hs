@@ -36,8 +36,6 @@ writeFiles _ outf pm' =
       pm'' = variationsToMap "PowPyNom" (sequenceA pm) & at "data" .~ d
 
       -- TODO
-      -- TODO
-      -- THIS NAME CHANGED RECENTLY
       -- partial
       mats =
         pm''

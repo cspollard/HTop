@@ -10,12 +10,13 @@ module BFrag.Systematics
   ) where
 
 import           Atlas
-import           Control.Arrow (first)
+import           Control.Arrow  (first)
 import           Control.Lens
-import qualified Data.IntMap   as IM
-import qualified Data.Map      as M
-import           Data.Monoid
-import qualified Data.Text     as T
+import qualified Data.IntMap    as IM
+import qualified Data.Map       as M
+-- import           Data.Monoid
+import           Data.Semigroup
+import qualified Data.Text      as T
 import           Data.TTree
 import           GHC.Float
 
@@ -45,11 +46,11 @@ evtWgt (MC' vcfg) = do
 -- TODO
 -- partial!
 lepSF :: MonadIO m => VarCfg -> TR m (Vars SF)
-lepSF NoVars = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
-lepSF AllVars = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
+lepSF _ = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
 -- TODO
 -- in XRedTop there are 38 (!!) lepSF variations. This can't be right.
--- lepSF = do
+-- lepSF NoVars = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
+-- lepSF AllVars = do
 --   (nom:vars) <- fmap float2Double <$> readBranch "SFLept"
 --   let vars' =
 --         M.fromList
@@ -146,7 +147,7 @@ ttbarSysts preds =
       addSysts x =
         foldr
           ( \(k, fs) fv ->
-              inF2 (M.intersectionWith (\s v -> v & at k ?~ s)) fs fv
+              inF2 (M.intersectionWith (\s v -> v & variations . at k ?~ s)) fs fv
           )
           x
           $ fmap (first (procDict IM.!))

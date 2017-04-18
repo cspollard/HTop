@@ -61,7 +61,9 @@ muVars :: DataMC' -> Double -> Vars Double
 muVars Data' m =
     -- TODO
     -- here we assume the scaling has already taken place...
-    pure m & ix "datapileupup" .~ m*1.09 & ix "datapileupdown" .~ m/1.09
+    pure m
+      & variations . ix "datapileupup" .~ m*1.09
+      & variations . ix "datapileupdown" .~ m/1.09
 muVars _ m = pure m
 
 readEvent :: MonadIO m => DataMC' -> TR m (PhysObj Event)
