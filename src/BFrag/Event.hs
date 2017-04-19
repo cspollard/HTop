@@ -94,13 +94,13 @@ muH :: Fills Event
 muH =
   fmap (singleton "/mu")
   . innerF (onlyObjVars . view mu)
-  $ hist1DDef (binD 0 25 100) "$< \\mu >$" (dsigdXpbY "<\\mu>" "1")
+  $ hist1DDef (binD 0 25 100) "$< \\mu >$" (dndx "<\\mu>" "1")
 
 npvH :: Fills Event
 npvH =
   fmap (singleton "/npv")
   . innerF (onlyObjVars . view mu)
-  $ hist1DDef (binD 0 25 50) "$< \\mu >$" (dsigdXpbY "npv" "1")
+  $ hist1DDef (binD 0 25 50) "$< \\mu >$" (dndx "npv" "1")
 
 metH :: Fills Event
 metH =

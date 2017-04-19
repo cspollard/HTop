@@ -106,10 +106,8 @@ fillFile (nom, systs') m fn = do
                     then AllVars
                     else NoVars
 
-        putStrLn "about to runTR."
         runTR t . fmap (tn,) $! F.purely P.fold eventHs l
 
-  putStrLn "finished looping."
   systHs :: Folder (StrictMap T.Text YodaObj) <-
     Folder
     . fmap strictMap

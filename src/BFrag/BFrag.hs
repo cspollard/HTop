@@ -59,7 +59,7 @@ trkSumPtH =
   <$> hist1DDef
     (binD 0 25 250)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
-    (dsigdXpbY pt gev)
+    (dndx pt gev)
   <$= trackSumPt
 
 svTrkSumPtH
@@ -70,7 +70,7 @@ svTrkSumPtH =
   <$> hist1DDef
     (binD 0 25 250)
     "$p_{\\mathrm T} \\sum \\mathrm{SV trk}$"
-    (dsigdXpbY pt gev)
+    (dndx pt gev)
   <$= svTrackSumPt
 
 zBTH
@@ -81,7 +81,7 @@ zBTH nbins =
   <$> hist1DDef
     (binD 0 nbins 1.05)
     "$z_{p_{\\mathrm T}}$"
-    (dsigdXpbY "z_{p_{\\mathrm T}}" "1")
+    (dndx "z_{p_{\\mathrm T}}" "1")
   <$= zBT
 
 trkSumPtProfPt
@@ -192,7 +192,7 @@ nPVTrksH =
   <$> hist1DDef
     (binD 0 20 20)
     "$n$ PV tracks"
-    (dsigdXpbY "n" "1")
+    (dndx "n" "1")
   <$= fromIntegral . length . pvTracks
 
 nSVTrksH
@@ -203,7 +203,7 @@ nSVTrksH =
   <$> hist1DDef
     (binD 0 10 10)
     "$n$ SV tracks"
-    (dsigdXpbY "n" "1")
+    (dndx "n" "1")
   <$= fromIntegral . nSVTracks
 
 nPVTrksProfPt
