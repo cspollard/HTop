@@ -28,7 +28,7 @@ import           RunModel
 import           System.Random.MWC.Probability
 
 
-type TextMap a = M.Map T.Text a
+type TextMap a = StrictMap T.Text a
 
 main :: IO ()
 main = mainWith tmp
@@ -38,12 +38,13 @@ tmp lu outfile procs = do
   mapM_ print $ IM.keys procs
 
   let procst =
-        M.fromList
+        strictMap
+        . M.fromList
         . fmap (first processTitle . second folderToMap)
         . IM.toList
         . ttbarSysts
         . IM.delete 0
-        $ over (traverse.traverse.variations) (const M.empty) procs
+        $ over (traverse.traverse.variations) (const mempty) procs
 
       nsamps = 1000
       recohname = "/elmujj/probejets/4psvtrks/ptgt30/matched/zbt"
@@ -87,7 +88,7 @@ tmp lu outfile procs = do
     putStrLn "data:"
     print vdata
 
-    runModel nsamps (outfile ++ '/' : show i ++ ".dat") vdata model params
+    runModel nsamps (outfile ++ '/' : show i ++ ".dat") vdata model (unSM params)
 
 
 buildModel
@@ -131,24 +132,27 @@ buildModel lu recoH trueH matH bkgHs =
 
       nommod =
         Model
-          (nom mvbkgs)
+          (unSM $ nom mvbkgs)
           emptysig
           (nom mats)
           -- TODO
           -- lumi uncertainty
           lu
 
+      -- TODO
+      -- HERE!
       sysparams =
         view variations
         . fmap (ModelParam 0.0 (Normal 0.0 1.0))
         $ ModelVar
-          <$> systify mvbkgs
+          <$> systify (fmap unSM mvbkgs)
           <*> pure Nothing
           <*> systify mats
           <*> pure Nothing
 
       trueparams =
-        M.fromList
+        strictMap
+        . M.fromList
         . V.toList
         . flip imap (nom vtrue)
         $ \i x ->
@@ -157,13 +161,11 @@ buildModel lu recoH trueH matH bkgHs =
             $ ModelVar Nothing (Just (emptysig & ix i .~ 1)) Nothing Nothing
           )
 
-      params = M.union sysparams trueparams
+      params = mappend sysparams trueparams
 
   in (nommod, params)
 
   where
-    -- TODO
-    -- partial!
     nom = view nominal
     systify v = fmap Just v & nominal .~ Nothing
 

@@ -11,14 +11,13 @@ import           Atlas
 import           Atlas.ToYoda
 import           BFrag.Systematics
 import           Control.Applicative
-import           Control.Lens
+import           Control.Lens           hiding (each)
 import qualified Data.Histogram.Generic as H
 import qualified Data.Map.Strict        as M
 import           Data.Maybe             (fromJust)
 import qualified Data.Text              as T
 import qualified Data.Vector.Generic    as VG
-import           Pipes                  ((<-<))
-import qualified Pipes                  as P
+import           Pipes
 import           Pipes.Prelude          as P
 import           System.IO
 
@@ -52,25 +51,25 @@ writeFiles _ outf pm' =
       -- yoda is going to divide these by the (2D) bin width before drawing
       -- them; should we compensate?
       migs =
-        M.intersectionWith
+        intersectionWith
           (\t m -> over (noted._H2DD) (normToX t) <$> m)
           truths
           mats
 
       migs' = migs <&> inF (M.mapKeysMonotonic (`mappend` "mig"))
 
-      pm''' = M.intersectionWith mappend pm'' migs'
+      pm''' = intersectionWith mappend pm'' migs'
 
       write varname hs =
         withFile (outf ++ '/' : T.unpack varname ++ ".yoda") WriteMode $ \h ->
-          P.runEffect
+          runEffect
           $ P.toHandle h
             <-< P.map (T.unpack . uncurry printYodaObj)
-            <-< P.each (M.toList hs)
+            <-< each (M.toList hs)
 
   in
-    P.runEffect
-    $ P.mapM_ (uncurry write) <-< P.each (M.toList $ folderToMap <$> pm''')
+    runEffect
+    $ P.mapM_ (uncurry write) <-< each (M.toList . unSM $ folderToMap <$> pm''')
 
 
 collapseProcs

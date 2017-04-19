@@ -8,22 +8,21 @@
 
 module Main where
 
+import           Atlas
+import           BFrag.Event
 import qualified Control.Foldl   as F
 import           Control.Lens
 import           Control.Monad   (unless, when)
 import qualified Data.Map.Strict as M
 import           Data.Semigroup
 import qualified Data.Text       as T
+import           Data.TFile
+import           Data.TTree
 import           GHC.Float
 import           Options.Generic
 import qualified Pipes           as P
 import qualified Pipes.Prelude   as P
 import           System.IO       (BufferMode (..), hSetBuffering, stdout)
-
-import           Atlas
-import           BFrag.Event
-import           Data.TFile
-import           Data.TTree
 
 
 -- TODO
@@ -111,8 +110,9 @@ fillFile (nom, systs') m fn = do
         runTR t . fmap (tn,) $! F.purely P.fold eventHs l
 
   putStrLn "finished looping."
-  systHs :: Folder (M.Map T.Text YodaObj) <-
+  systHs :: Folder (StrictMap T.Text YodaObj) <-
     Folder
+    . fmap strictMap
     . transposeM
     . M.fromList
     . fmap (over _1 T.pack . fmap (folderToMap . fmap (view nominal)))
