@@ -35,10 +35,10 @@ import           Pipes
 
 data Event =
   Event
-  { _runNumber   :: CUInt
-  , _eventNumber :: CULong
-  , _events      :: These (PhysObj TrueEvent) (PhysObj RecoEvent)
-  } deriving (Generic)
+    { _runNumber   :: CUInt
+    , _eventNumber :: CULong
+    , _events      :: These (PhysObj TrueEvent) (PhysObj RecoEvent)
+    } deriving (Generic)
 
 
 events :: Lens' Event (These (PhysObj TrueEvent) (PhysObj RecoEvent))
@@ -64,7 +64,7 @@ readEventNumber = do
   return x
 
 recoVariations
-  :: (Monad m)
+  :: Monad m
   => StrictMap T.Text (Producer ((CUInt, CULong), PhysObj RecoEvent) m ())
   -> Producer (StrictMap T.Text (Maybe ((CUInt, CULong), PhysObj RecoEvent))) m ()
 recoVariations = alignPipesBy fst
