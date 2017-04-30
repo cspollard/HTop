@@ -34,7 +34,12 @@ readElectrons = do
   chs <- fmap float2Double <$> readBranch "el_charge"
   d0sigs <- fmap float2Double <$> readBranch "el_d0sig"
   ptvc20s <- fmap float2Double <$> readBranch "el_ptvarcone20"
-  return . getZipList $ Electron <$> tlvs <*> cletas <*> chs <*> d0sigs <*> ptvc20s
+
+  let es = getZipList
+        $ Electron <$> tlvs <*> cletas <*> chs <*> d0sigs <*> ptvc20s
+
+  liftIO $ print es
+  return es
 
 electronHs :: Fills Electron
 electronHs = lvHs

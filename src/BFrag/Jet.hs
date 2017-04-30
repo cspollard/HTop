@@ -99,16 +99,18 @@ readJets dmc = do
       Data' -> return $ pure Nothing
       _     -> fmap (Just . flavFromCInt) <$> readBranch "jet_truthflav"
 
-  return . getZipList
-    $ Jet
-      <$> tlvs
-      <*> mv2c10s
-      <*> tagged
-      <*> jvts
-      <*> fmap getZipList pvtrks
-      <*> fmap getZipList svtrks
-      <*> flvs
+  let js = getZipList
+        $ Jet
+          <$> tlvs
+          <*> mv2c10s
+          <*> tagged
+          <*> jvts
+          <*> fmap getZipList pvtrks
+          <*> fmap getZipList svtrks
+          <*> flvs
 
+  liftIO $ print js
+  return js
 
 -- TODO
 -- this will need to be updated with AT ntuples!

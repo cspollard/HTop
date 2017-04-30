@@ -32,7 +32,11 @@ readMuons = do
   chs <- fmap float2Double <$> readBranch "mu_charge"
   d0sigs <- fmap float2Double <$> readBranch "mu_d0sig"
   ptvc30s <- fmap float2Double <$> readBranch "mu_ptvarcone30"
-  return . getZipList $ Muon <$> tlvs <*> chs <*> d0sigs <*> ptvc30s
+
+  let ms = getZipList $ Muon <$> tlvs <*> chs <*> d0sigs <*> ptvc30s
+
+  liftIO $ print ms
+  return ms
 
 muonHs :: Fills Muon
 muonHs = lvHs
