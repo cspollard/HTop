@@ -16,7 +16,7 @@ import           GHC.Generics        (Generic)
 data Muon =
   Muon
     { mPtEtaPhiE   :: PtEtaPhiE
-    , mCharge      :: Int
+    , mCharge      :: Double
     , mD0Sig       :: Double
     , mPtVarCone30 :: Double
     } deriving (Show, Generic)
@@ -29,14 +29,10 @@ instance HasLorentzVector Muon where
 readMuons :: (MonadIO m, MonadFail m) => TreeRead m [Muon]
 readMuons = do
   tlvs <- lvsFromTTreeF "mu_pt" "mu_eta" "mu_phi" "mu_e"
-  chs <- fmap ci2i <$> readBranch "mu_charge"
+  chs <- fmap float2Double <$> readBranch "mu_charge"
   d0sigs <- fmap float2Double <$> readBranch "mu_d0sig"
   ptvc30s <- fmap float2Double <$> readBranch "mu_ptvarcone30"
   return . getZipList $ Muon <$> tlvs <*> chs <*> d0sigs <*> ptvc30s
-
-  where
-    ci2i :: CInt -> Int
-    ci2i = fromEnum
 
 muonHs :: Fills Muon
 muonHs = lvHs
