@@ -47,7 +47,7 @@ evtWgt (MC' vcfg) = do
 -- TODO
 -- partial!
 lepSF :: (MonadIO m, MonadFail m) => VarCfg -> TreeRead m (Vars SF)
-lepSF _ = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
+lepSF _ = pure . sf "lepsf" . float2Double . head <$> readBranch "weight_leptonSF"
 -- TODO
 -- in XRedTop there are 38 (!!) lepSF variations. This can't be right.
 -- lepSF NoVars = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
