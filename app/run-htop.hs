@@ -48,6 +48,10 @@ main = do
 
   mapM_ (fillFile ["nominal"]) fns
 
+
+-- TODO
+-- all these liftIOs
+-- could be put into TTree
 fillFile
   :: (MonadIO m, MonadFail m)
   => [String]
@@ -91,7 +95,7 @@ fillFile systs fn = do
               if dsid == 0
                 then Data'
                 else MC' $
-                  if dsid == 410000 && tn == "nominal"
+                  if dsid == 410501 && tn == "nominal"
                     then AllVars
                     else NoVars
 
