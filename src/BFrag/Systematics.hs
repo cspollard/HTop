@@ -36,10 +36,11 @@ evtWgt :: (MonadFail m, MonadIO m) => DataMC' -> TreeRead m (Vars SF)
 evtWgt Data' = return mempty
 evtWgt (MC' vcfg) = do
     pu <- puWgt vcfg
+    jvt <- jvtWgt vcfg
     lsf <- lepSF vcfg
     evtw <-
       fmap (pure . sf "evtw" . float2Double . product) . traverse readBranch
-        $ (["EvtW", "SFZVtx", "SFJVT"] :: [String])
+        $ (["EvtW", "SFZVtx", "weight_jvt"] :: [String])
     return $ evtw <> pu <> lsf
 
 
@@ -61,14 +62,26 @@ lepSF _ = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
 
 puWgt :: (MonadIO m, MonadFail m) => VarCfg -> TreeRead m (Vars SF)
 puWgt vcfg = do
-  puw <- float2Double <$> readBranch "SFPileUp"
+  puw <- float2Double <$> readBranch "weight_pileup"
   case vcfg of
-    NoVars -> return . fmap (sf "pileupwgt") $ pure puw
+    NoVars -> return . fmap (sf "puwgt") $ pure puw
     AllVars -> do
-      puwup <- float2Double <$> readBranch "SFPileUp_UP"
-      puwdown <- float2Double <$> readBranch "SFPileUp_DOWN"
-      return . fmap (sf "pileupwgt") . Variations puw
-        $ [("puwup", puwup), ("puwdown", puwdown)]
+      puwup <- float2Double <$> readBranch "weight_pileup_UP"
+      puwdown <- float2Double <$> readBranch "weight_pileup_DOWN"
+      return . fmap (sf "puwgt") . Variations puw
+        $ [("puwgtup", puwup), ("puwgtdown", puwdown)]
+
+
+jvtWgt :: (MonadIO m, MonadFail m) => VarCfg -> TreeRead m (Vars SF)
+jvtWgt vcfg = do
+  jvtw <- float2Double <$> readBranch "weight_jvt"
+  case vcfg of
+    NoVars -> return . fmap (sf "jvtwgt") $ pure jvtw
+    AllVars -> do
+      jvtwup <- float2Double <$> readBranch "weight_jvt_UP"
+      jvtwdown <- float2Double <$> readBranch "weight_jvt_DOWN"
+      return . fmap (sf "jvtwgt") . Variations jvtw
+        $ [("jvtwgtup", jvtwup), ("jvtwgtdown", jvtwdown)]
 
 
 treeSysts :: [String]
