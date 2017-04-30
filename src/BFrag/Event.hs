@@ -35,8 +35,8 @@ import           Pipes
 
 data Event =
   Event
-  { _runNumber   :: CInt
-  , _eventNumber :: CInt
+  { _runNumber   :: CUInt
+  , _eventNumber :: CULong
   , _events      :: These (PhysObj TrueEvent) (PhysObj RecoEvent)
   } deriving (Generic)
 
@@ -51,7 +51,7 @@ recoEvent :: Traversal' Event (PhysObj RecoEvent)
 recoEvent = events . there
 
 
-readRunNumber :: (MonadIO m, MonadFail m) => TreeRead m UInt
+readRunNumber :: (MonadIO m, MonadFail m) => TreeRead m CUInt
 readRunNumber = readBranch "runNumber"
 
 readEventNumber :: (MonadIO m, MonadFail m) => TreeRead m CULong
@@ -59,14 +59,14 @@ readEventNumber = readBranch "eventNumber"
 
 recoVariations
   :: (Monad m)
-  => StrictMap T.Text (Producer ((CInt, CInt), PhysObj RecoEvent) m ())
-  -> Producer (StrictMap T.Text (Maybe ((CInt, CInt), PhysObj RecoEvent))) m ()
+  => StrictMap T.Text (Producer ((CUInt, CULong), PhysObj RecoEvent) m ())
+  -> Producer (StrictMap T.Text (Maybe ((CUInt, CULong), PhysObj RecoEvent))) m ()
 recoVariations = alignPipesBy fst
 
 
 readReco
   :: (MonadFail m, MonadIO m)
-  => DataMC' -> TreeRead m ((CInt, CInt), PhysObj RecoEvent)
+  => DataMC' -> TreeRead m ((CUInt, CULong), PhysObj RecoEvent)
 readReco dmc =
   (,)
   <$>
@@ -91,10 +91,10 @@ readReco dmc =
 
 
 
-runNumber :: Lens' Event CInt
+runNumber :: Lens' Event CUInt
 runNumber = lens _runNumber $ \e x -> e { _runNumber = x }
 
-eventNumber :: Lens' Event CInt
+eventNumber :: Lens' Event CULong
 eventNumber = lens _eventNumber $ \e x -> e { _eventNumber = x }
 
 
