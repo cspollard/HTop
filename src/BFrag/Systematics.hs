@@ -32,7 +32,7 @@ data VarCfg = NoVars | AllVars deriving Show
 lumi :: Vars Double
 lumi = Variations 38000 [("LumiUp", 41800), ("LumiDown", 34200)]
 
-evtWgt :: MonadIO m => DataMC' -> TR m (Vars SF)
+evtWgt :: (MonadFail m, MonadIO m) => DataMC' -> TreeRead m (Vars SF)
 evtWgt Data' = return mempty
 evtWgt (MC' vcfg) = do
     pu <- puWgt vcfg
@@ -45,7 +45,7 @@ evtWgt (MC' vcfg) = do
 
 -- TODO
 -- partial!
-lepSF :: MonadIO m => VarCfg -> TR m (Vars SF)
+lepSF :: (MonadIO m, MonadFail m) => VarCfg -> TreeRead m (Vars SF)
 lepSF _ = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
 -- TODO
 -- in XRedTop there are 38 (!!) lepSF variations. This can't be right.
@@ -59,7 +59,7 @@ lepSF _ = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
 --
 --   return $ Variations (sf "lepsf" nom) vars'
 
-puWgt :: MonadIO m => VarCfg -> TR m (Vars SF)
+puWgt :: (MonadIO m, MonadFail m) => VarCfg -> TreeRead m (Vars SF)
 puWgt vcfg = do
   puw <- float2Double <$> readBranch "SFPileUp"
   case vcfg of

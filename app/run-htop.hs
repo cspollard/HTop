@@ -11,7 +11,6 @@ module Main where
 import           Atlas
 import           BFrag.Event
 import qualified Control.Foldl   as F
-import           Control.Lens
 import           Control.Monad   (unless, when)
 import qualified Data.Map.Strict as M
 import           Data.Semigroup
@@ -20,7 +19,7 @@ import           Data.TFile
 import           Data.TTree
 import           GHC.Float
 import           Options.Generic
-import qualified Pipes           as P
+import           Pipes
 import qualified Pipes.Prelude   as P
 import           System.IO       (BufferMode (..), hSetBuffering, stdout)
 
@@ -47,57 +46,47 @@ main = do
   -- get the list of input trees
   fns <- filter (not . null) . lines <$> readFile (infiles args)
 
-  imh <-
-    P.foldM
-      (fillFile ("nominal", treeSysts))
-      (return Nothing)
-      return
-      (P.each fns)
-
-  maybe
-    (error "no input files!")
-    ( \x -> do
-      putStrLn ("writing to file " ++ outfile args)
-      encodeFile (outfile args) x
-    )
-    imh
-
+  mapM_ (fillFile ["nominal"]) fns
 
 fillFile
-  :: (String, [String])
-  -> Maybe (Int, Sum Double, Folder (Vars YodaObj))
+  :: (MonadIO m, MonadFail m)
+  => [String]
+  -- -> Maybe (Int, Sum Double, Folder (Vars YodaObj))
   -> String
-  -> IO (Maybe (Int, Sum Double, Folder (Vars YodaObj)))
-fillFile (nom, systs') m fn = do
-  putStrLn $ "analyzing file " <> fn
+  -- -> m (Maybe (Int, Sum Double, Folder (Vars YodaObj)))
+  -> m ()
+fillFile systs fn = do
+  liftIO . putStrLn $ "analyzing file " <> fn
 
   -- check whether or not this is a data file
-  f <- tfileOpen fn
-  tw <- ttree f "sumWeights"
+  f <- liftIO $ tfileOpen fn
+  liftIO . putStrLn $ "checking sumWeights"
+
+  tw <- liftIO $ ttree f "sumWeights"
   (Just (dsidc :: CInt)) <-
-    runTR tw . P.head $ produceTTree (readBranch "dsid")
+    P.head $ produceTTree (readBranch "dsid") tw
 
   let dsid = fromEnum dsidc
       fo = F.Fold (+) (0 :: Float) id
-      systs = if dsid == 410000 then systs' else []
 
   sow <-
-    runTR tw
-    . fmap (Sum . float2Double)
+    fmap (Sum . float2Double)
     . F.purely P.fold fo
-    $ produceTTree (readBranch "totalEventsWeighted")
+    $ produceTTree (readBranch "totalEventsWeighted") tw
 
-  let loopTree tn = do
-        t <- ttree f tn
-        putStrLn $ "looping over tree " <> tn
+  liftIO . putStrLn $ "sum of weights: " ++ show (getSum sow)
+
+  let treeProd tn = do
+        t <- liftIO $ ttree f tn
+        liftIO . putStrLn $ "looping over tree " <> tn
 
         -- deal with possible missing trees
-        nt <- isNullTree t
+        nt <- liftIO $ isNullTree t
         when nt $ do
-          putStrLn $ "missing tree " <> tn <> " in file " <> fn <> "."
-          putStrLn "continuing."
+          liftIO . putStrLn $ "missing tree " <> tn <> " in file " <> fn <> "."
+          liftIO $ putStrLn "continuing."
 
-        let l = unless nt . produceTTree $ readEvent dmc
+        let l = unless nt $ produceTTree (readReco dmc) t
             dmc =
               if dsid == 0
                 then Data'
@@ -106,38 +95,13 @@ fillFile (nom, systs') m fn = do
                     then AllVars
                     else NoVars
 
-        runTR t . fmap (tn,) $! F.purely P.fold eventHs l
+        return (T.pack tn, l)
 
-  systHs :: Folder (StrictMap T.Text YodaObj) <-
-    Folder
-    . fmap strictMap
-    . transposeM
-    . M.fromList
-    . fmap (over _1 T.pack . fmap (folderToMap . fmap (view nominal)))
-    <$> mapM loopTree systs
+  trees <- recoVariations . strictMap . M.fromList <$> mapM treeProd systs
+  runEffect $ for trees (liftIO . print)
 
-  nomHs <- snd <$> loopTree nom
-  let hs =
-        if dsid == 0 || null systHs
-          then nomHs
-          else
-            inF2
-              (M.intersectionWith (\n v -> over variations (<> v) n))
-              nomHs
-              systHs
-
-  putStrLn $ "closing file " <> fn
-  tfileClose f
-
-  case m of
-      Nothing ->
-        hs `seq` return (Just (dsid, sow, hs))
-      Just (dsid', n, hs') -> do
-        when (dsid /= dsid')
-          $ error "attempting to analyze different dsids in one run!!!"
-        let n' = mappend n sow
-            sm' = mappend hs hs'
-        sm' `seq` return (Just (dsid, n', sm'))
+  liftIO . putStrLn $ "closing file " <> fn
+  liftIO $ tfileClose f
 
 
 transposeM

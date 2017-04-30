@@ -1,21 +1,19 @@
-module BFrag.PtEtaPhiE ( lvsFromTTreeD, lvsFromTTreeF ) where
+module BFrag.PtEtaPhiE
+  ( lvsFromTTreeF
+  ) where
 
 import           Control.Applicative    (ZipList (..))
 import           Data.HEP.LorentzVector
 import           Data.TTree
 import           GHC.Float
 
-lvsFromTTreeD :: MonadIO m => String -> String -> String -> String -> TR m (ZipList PtEtaPhiE)
-lvsFromTTreeD ptn etan phin en = do
-  pts <- readBranch ptn
-  etas <- readBranch etan
-  phis <- readBranch phin
-  es <- readBranch en
-
-  return $ PtEtaPhiE <$> pts <*> etas <*> phis <*> es
-
-
-lvsFromTTreeF :: MonadIO m => String -> String -> String -> String -> TR m (ZipList PtEtaPhiE)
+lvsFromTTreeF
+  :: (MonadIO m, MonadFail m)
+  => String
+  -> String
+  -> String
+  -> String
+  -> TreeRead m (ZipList PtEtaPhiE)
 lvsFromTTreeF ptn etan phin en = do
   pts <- fmap float2Double <$> readBranch ptn
   etas <- fmap float2Double <$> readBranch etan

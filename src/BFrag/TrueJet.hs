@@ -1,10 +1,10 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module BFrag.TruthJet
-  ( TruthJet(..), tjChargedConsts, tjBHadrons
-  , readTruthJets, bhChildren
-  , truthjetHs
+module BFrag.TrueJet
+  ( TrueJet(..), tjChargedConsts, tjBHadrons
+  , readTrueJets, bhChildren
+  , trueJetHs
   ) where
 
 import           Atlas
@@ -18,18 +18,18 @@ import qualified Data.Vector         as V
 import           GHC.Float
 import           GHC.Generics        (Generic)
 
-data TruthJet =
-  TruthJet
+data TrueJet =
+  TrueJet
     { _tjPtEtaPhiE     :: PtEtaPhiE
     , _tjChargedConsts :: [PtEtaPhiE]
     , _tjBHadrons      :: [BHadron]
     } deriving (Generic, Show)
 
-instance HasLorentzVector TruthJet where
+instance HasLorentzVector TrueJet where
   toPtEtaPhiE = lens _tjPtEtaPhiE $ \tj x -> tj { _tjPtEtaPhiE = x }
 
-truthjetHs :: Fills TruthJet
-truthjetHs = mconcat [ lvHs, bfragHs 7 ]
+trueJetHs :: Fills TrueJet
+trueJetHs = mconcat [ lvHs, bfragHs 7 ]
 
 data BHadron =
   BHadron
@@ -40,10 +40,10 @@ data BHadron =
 instance HasLorentzVector BHadron where
   toPtEtaPhiE = lens _bhPtEtaPhiE $ \b x -> b { _bhPtEtaPhiE = x }
 
-instance HasSVTracks TruthJet where
+instance HasSVTracks TrueJet where
   svTracks = toListOf (tjBHadrons.traverse.bhChildren.traverse)
 
-instance HasPVTracks TruthJet where
+instance HasPVTracks TrueJet where
   pvTracks tj =
     let bchs = svTracks tj
         chparts = view tjChargedConsts tj
@@ -51,30 +51,30 @@ instance HasPVTracks TruthJet where
     where
       eq x y = lvDREta x y < 0.01
 
-readBHadrons :: MonadIO m => TR m [BHadron]
+readBHadrons :: (MonadIO m, MonadFail m) => TreeRead m [BHadron]
 readBHadrons = do
   tlvs <-
     lvsFromTTreeF
-      "TruthBhadPt"
-      "TruthBhadEta"
-      "TruthBhadPhi"
-      "TruthBhadE"
+      "TrueBhadPt"
+      "TrueBhadEta"
+      "TrueBhadPhi"
+      "TrueBhadE"
 
   chtlvs <-
     vecVecTLV
-      "TruthBhadChiPt"
-      "TruthBhadChiEta"
-      "TruthBhadChiPhi"
-      "TruthBhadChiE"
+      "TrueBhadChiPt"
+      "TrueBhadChiEta"
+      "TrueBhadChiPhi"
+      "TrueBhadChiE"
 
   return . getZipList $ BHadron <$> tlvs <*> chtlvs
 
-readTruthJets :: MonadIO m => TR m [TruthJet]
-readTruthJets = do
-  tlvs <- lvsFromTTreeF "TruthJetPt" "TruthJetEta" "TruthJetPhi" "TruthJetE"
+readTrueJets :: (MonadIO m, MonadFail m) => TreeRead m [TrueJet]
+readTrueJets = do
+  tlvs <- lvsFromTTreeF "TrueJetPt" "TrueJetEta" "TrueJetPhi" "TrueJetE"
   chconsts <-
-    vecVecTLV "TruthJetChPt" "TruthJetChEta" "TruthJetChPhi" "TruthJetChE"
-  let tmp = V.fromList . getZipList $ TruthJet <$> tlvs <*> chconsts <*> pure []
+    vecVecTLV "TrueJetChPt" "TrueJetChEta" "TrueJetChPhi" "TrueJetChE"
+  let tmp = V.fromList . getZipList $ TrueJet <$> tlvs <*> chconsts <*> pure []
 
   bhads <- filter ((> 5) . view lvPt) <$> readBHadrons
 
@@ -86,8 +86,8 @@ readTruthJets = do
 
 
 vecVecTLV
-  :: MonadIO m
-  => String -> String -> String -> String -> TR m (ZipList [PtEtaPhiE])
+  :: (MonadIO m, MonadFail m)
+  => String -> String -> String -> String -> TreeRead m (ZipList [PtEtaPhiE])
 vecVecTLV spt seta sphi se = do
     partpts <- (fmap.fmap) float2Double . fromVVector <$> readBranch spt
     partetas <- (fmap.fmap) float2Double . fromVVector <$> readBranch seta
@@ -104,7 +104,7 @@ vecVecTLV spt seta sphi se = do
 
 -- TODO
 -- better matching criterion?
-matchBTJ :: BHadron -> V.Vector TruthJet -> V.Vector TruthJet
+matchBTJ :: BHadron -> V.Vector TrueJet -> V.Vector TrueJet
 matchBTJ bh tjs =
   if V.length tjs == 0
     then tjs
@@ -119,10 +119,10 @@ matchBTJ bh tjs =
         else j
 
 
-tjChargedConsts :: Lens' TruthJet [PtEtaPhiE]
+tjChargedConsts :: Lens' TrueJet [PtEtaPhiE]
 tjChargedConsts = lens _tjChargedConsts $ \tj x -> tj { _tjChargedConsts = x }
 
-tjBHadrons :: Lens' TruthJet [BHadron]
+tjBHadrons :: Lens' TrueJet [BHadron]
 tjBHadrons = lens _tjBHadrons $ \tj x -> tj { _tjBHadrons = x }
 
 bhChildren :: Lens' BHadron [PtEtaPhiE]
