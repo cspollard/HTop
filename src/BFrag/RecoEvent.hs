@@ -4,7 +4,7 @@
 module BFrag.RecoEvent
   ( module X
   , RecoEvent(RecoEvent)
-  , mu, nPV, electrons, muons, jets, met
+  , mu, electrons, muons, jets, met
   , readRecoEvent, recoEventHs
   , probeJets, elmujj
   ) where
@@ -26,7 +26,7 @@ import           GHC.Generics      (Generic)
 data RecoEvent =
   RecoEvent
     { _mu        :: Vars Double
-    , _nPV       :: Double
+    -- , _nPV       :: Double
     , _electrons :: [Electron]
     , _muons     :: [Muon]
     , _jets      :: [Jet]
@@ -37,8 +37,8 @@ data RecoEvent =
 mu :: Lens' RecoEvent (Vars Double)
 mu = lens _mu $ \e x -> e { _mu = x }
 
-nPV :: Lens' RecoEvent Double
-nPV = lens _nPV $ \e x -> e { _nPV = x }
+-- nPV :: Lens' RecoEvent Double
+-- nPV = lens _nPV $ \e x -> e { _nPV = x }
 
 electrons :: Lens' RecoEvent [Electron]
 electrons = lens _electrons $ \e x -> e { _electrons = x }
@@ -74,8 +74,8 @@ readRecoEvent dmc = do
   wgt <- evtWgt dmc
   evt <-
     RecoEvent
-    <$> (muVars dmc . float2Double <$> readBranch "Mu")
-    <*> (float2Double <$> readBranch "NPVtx")
+    <$> (muVars dmc . float2Double <$> readBranch "mu")
+    -- <*> (float2Double <$> readBranch "NPVtx")
     <*> readElectrons
     <*> readMuons
     <*> readJets dmc

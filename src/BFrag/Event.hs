@@ -51,10 +51,10 @@ recoEvent :: Traversal' Event (PhysObj RecoEvent)
 recoEvent = events . there
 
 
-readRunNumber :: (MonadIO m, MonadFail m) => TreeRead m CInt
+readRunNumber :: (MonadIO m, MonadFail m) => TreeRead m UInt
 readRunNumber = readBranch "runNumber"
 
-readEventNumber :: (MonadIO m, MonadFail m) => TreeRead m CInt
+readEventNumber :: (MonadIO m, MonadFail m) => TreeRead m CULong
 readEventNumber = readBranch "eventNumber"
 
 recoVariations

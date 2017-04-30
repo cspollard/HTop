@@ -61,6 +61,8 @@ instance HasPVTracks Jet where
 readJets :: (MonadIO m, MonadFail m) => DataMC' -> TreeRead m [Jet]
 readJets dmc = do
   tlvs <- lvsFromTTreeF "jet_pt" "jet_eta" "jet_phi" "jet_e"
+  tagged' <-
+    fmap ((> 0) . (fromEnum :: CChar -> Int)) <$> readBranch "jet_isbtagged_77"
   mv2c10s <- fmap float2Double <$> readBranch "jet_mv2c10"
   mv2c10sfs :: ZipList (Vars SF) <-
     case dmc of
@@ -73,7 +75,7 @@ readJets dmc = do
         --   <$> readBranch "JetBtagSF"
 
   let withsf x xsf = onlySFVars xsf x
-      tagged = withsf <$> fmap (> 0.8244273) mv2c10s <*> mv2c10sfs
+      tagged = withsf <$> tagged' <*> mv2c10sfs
 
 
   jvts <- fmap float2Double <$> readBranch "jet_jvt"
