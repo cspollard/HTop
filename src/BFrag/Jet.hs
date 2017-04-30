@@ -120,10 +120,10 @@ jetTracksTLV
   -> String
   -> TreeRead m (ZipList (ZipList PtEtaPhiE))
 jetTracksTLV spt seta sphi se = do
-    trkpts <- fromVVector <$> readBranch spt
-    trketas <- fromVVector <$> readBranch seta
-    trkphis <- fromVVector <$> readBranch sphi
-    trkes <- fromVVector <$> readBranch se
+    trkpts <- (fmap.fmap) float2Double . fromVVector <$> readBranch spt
+    trketas <- (fmap.fmap) float2Double . fromVVector <$> readBranch seta
+    trkphis <- (fmap.fmap) float2Double . fromVVector <$> readBranch sphi
+    trkes <- (fmap.fmap) float2Double . fromVVector <$> readBranch se
 
     let trks = V.zipWith4
             ( \pts etas phis es ->
