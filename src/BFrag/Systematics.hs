@@ -41,7 +41,7 @@ evtWgt (MC' vcfg) = do
     evtw <-
       fmap (pure . sf "evtw" . float2Double . product) . traverse readBranch
         $ (["EvtW", "SFZVtx", "weight_jvt"] :: [String])
-    return $ evtw <> pu <> lsf
+    return $ evtw <> pu <> lsf <> jvt
 
 
 -- TODO
