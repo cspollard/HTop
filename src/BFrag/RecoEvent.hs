@@ -52,10 +52,10 @@ jets = lens _jets $ \e x -> e { _jets = x }
 met :: Lens' RecoEvent PtEtaPhiE
 met = lens _met $ \e x -> e { _met = x }
 
-readMET :: (MonadIO m, MonadFail m) => String -> String -> TreeRead m PtEtaPhiE
-readMET m p = do
-  et <- float2Double <$> readBranch m
-  phi <- float2Double <$> readBranch p
+readMET :: (MonadIO m, MonadFail m) => TreeRead m PtEtaPhiE
+readMET = do
+  et <- float2Double <$> readBranch "met_met"
+  phi <- float2Double <$> readBranch "met_phi"
   return $ PtEtaPhiE et 0 phi et
 
 muVars :: DataMC' -> Double -> Vars Double
@@ -79,7 +79,7 @@ readRecoEvent dmc = do
     <*> readElectrons
     <*> readMuons
     <*> readJets dmc
-    <*> readMET "ETMiss" "ETMissPhi"
+    <*> readMET
 
   return $ onlySFVars wgt evt
 
