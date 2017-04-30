@@ -14,7 +14,6 @@ import           Control.Arrow  (first)
 import           Control.Lens
 import qualified Data.IntMap    as IM
 import qualified Data.Map       as M
--- import           Data.Monoid
 import           Data.Semigroup
 import qualified Data.Text      as T
 import           Data.TTree
