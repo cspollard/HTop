@@ -72,6 +72,7 @@ readRecoEvent
   => DataMC' -> TreeRead m (PhysObj RecoEvent)
 readRecoEvent dmc = do
   wgt <- evtWgt dmc
+  liftIO $ print wgt
   evt <-
     RecoEvent
     <$> (muVars dmc . float2Double <$> readBranch "mu")
