@@ -78,11 +78,14 @@ readTrueJets = do
 
   bhads <- filter ((> 5) . view lvPt) <$> readBHadrons
 
-  return . filter filt . V.toList
+  -- TODO
+  -- we're not filtering
+  -- return . filter filt . V.toList
+  return . V.toList
     $ foldr matchBTJ tmp bhads
 
   where
-    filt j = lengthOf (tjBHadrons.traverse) j == 1 && view lvPt j > 25
+    -- filt j = lengthOf (tjBHadrons.traverse) j == 1 && view lvPt j > 25
 
 
 vecVecTLV
