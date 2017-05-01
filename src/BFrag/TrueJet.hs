@@ -55,25 +55,25 @@ readBHadrons :: (MonadIO m, MonadFail m) => TreeRead m [BHadron]
 readBHadrons = do
   tlvs <-
     lvsFromTTreeF
-      "TrueBhadPt"
-      "TrueBhadEta"
-      "TrueBhadPhi"
-      "TrueBhadE"
+      "bhad_pt"
+      "bhad_eta"
+      "bhad_phi"
+      "bhad_e"
 
   chtlvs <-
     vecVecTLV
-      "TrueBhadChiPt"
-      "TrueBhadChiEta"
-      "TrueBhadChiPhi"
-      "TrueBhadChiE"
+      "bhad_child_pt"
+      "bhad_child_eta"
+      "bhad_child_phi"
+      "bhad_child_e"
 
   return . getZipList $ BHadron <$> tlvs <*> chtlvs
 
 readTrueJets :: (MonadIO m, MonadFail m) => TreeRead m [TrueJet]
 readTrueJets = do
-  tlvs <- lvsFromTTreeF "TrueJetPt" "TrueJetEta" "TrueJetPhi" "TrueJetE"
+  tlvs <- lvsFromTTreeF "jet_pt" "jet_eta" "jet_phi" "jet_e"
   chconsts <-
-    vecVecTLV "TrueJetChPt" "TrueJetChEta" "TrueJetChPhi" "TrueJetChE"
+    vecVecTLV "jet_track_pt" "jet_track_eta" "jet_track_phi" "jet_track_e"
   let tmp = V.fromList . getZipList $ TrueJet <$> tlvs <*> chconsts <*> pure []
 
   bhads <- filter ((> 5) . view lvPt) <$> readBHadrons
