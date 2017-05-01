@@ -107,7 +107,7 @@ fillFile systs fn = do
   -- something is lazy here
   -- is it the tuples?
   trees <- recoVariations . strictMap . M.fromList <$> mapM treeProd systs
-  runEffect $ for (trees >-> P.take 1) (liftIO . print)
+  runEffect $ for trees (liftIO . print)
 
   liftIO . putStrLn $ "closing file " <> fn
   liftIO $ tfileClose f
