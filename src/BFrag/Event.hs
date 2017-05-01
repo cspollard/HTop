@@ -12,7 +12,8 @@ module BFrag.Event
   ( Event(..)
   , module X
   , runNumber, eventNumber
-  , readRunNumber, readEventNumber, readReco, readTrue
+  , readRunNumber, readEventNumber, readRunEventNumber
+  , readReco, readTrue
   , recoEvent, trueEvent, recoVariations
   ) where
 
@@ -64,6 +65,9 @@ readRunNumber = readBranch "runNumber"
 
 readEventNumber :: (MonadIO m, MonadFail m) => TreeRead m CULong
 readEventNumber = readBranch "eventNumber"
+
+readRunEventNumber :: (MonadIO m, MonadFail m) => TreeRead m (CUInt, CULong)
+readRunEventNumber = (,) <$> readRunNumber <*> readEventNumber
 
 recoVariations
   :: Monad m

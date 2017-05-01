@@ -14,6 +14,7 @@ import qualified Control.Foldl   as F
 import           Control.Monad   (unless, when)
 import qualified Data.Map.Strict as M
 import           Data.Semigroup
+import qualified Data.Set        as S
 import qualified Data.Text       as T
 import           Data.TFile
 import           Data.TTree
@@ -68,7 +69,7 @@ fillFile systs fn = do
 
   tw <- liftIO $ ttree tfile "sumWeights"
   (Just (dsidc :: CInt)) <-
-    P.head $ produceTTree (readBranch "dsid") tw
+    P.head $ runTTree (readBranch "dsid") tw
 
   let dsid = fromEnum dsidc
       fo = F.Fold (+) (0 :: Float) id
@@ -78,20 +79,26 @@ fillFile systs fn = do
   sow <-
     fmap (Sum . float2Double)
     . F.purely P.fold fo
-    $ produceTTree (readBranch "totalEventsWeighted") tw
+    $ runTTree (readBranch "totalEventsWeighted") tw
 
   liftIO . putStrLn $ "sum of weights: " ++ show (getSum sow)
 
-  let treeProd tr tn = do
+  let entryFold :: (Monad m, Ord a) => Producer a m () -> m (S.Set a)
+      entryFold = F.purely P.fold $ F.Fold (flip S.insert) S.empty id
+      entryRead = (,) <$> readRunEventNumber <*> readEntry
+      entries t = entryFold $ runTTree entryRead t
+
+      treeProd tr tn = do
         t <- ttree tfile tn
 
         -- deal with possible missing trees
         nt <- isNullTree t
-        when nt $ do
+        when nt $
           liftIO . putStrLn $ "missing tree " <> tn <> " in file " <> fn <> "."
-          liftIO $ putStrLn "continuing."
 
-        let l = unless nt $ produceTTree tr t
+        entryProd <- each <$> if nt then return S.empty else entries t
+
+        let l = unless nt $ produceTTree tr t (entryProd >-> P.map snd)
 
         return (T.pack tn, l)
 
