@@ -38,7 +38,6 @@ readElectrons = do
   let es = getZipList
         $ Electron <$> tlvs <*> cletas <*> chs <*> d0sigs <*> ptvc20s
 
-  liftIO $ print es
   return es
 
 electronHs :: Fills Electron

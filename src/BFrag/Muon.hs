@@ -35,7 +35,6 @@ readMuons = do
 
   let ms = getZipList $ Muon <$> tlvs <*> chs <*> d0sigs <*> ptvc30s
 
-  liftIO $ print ms
   return ms
 
 muonHs :: Fills Muon
