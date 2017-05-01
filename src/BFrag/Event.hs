@@ -12,7 +12,7 @@ module BFrag.Event
   ( Event(..)
   , module X
   , runNumber, eventNumber
-  , readRunNumber, readEventNumber, readReco
+  , readRunNumber, readEventNumber, readReco, readTrue
   , recoEvent, trueEvent, recoVariations
   ) where
 
@@ -32,6 +32,7 @@ import qualified Data.Text              as T
 import           Data.TTree
 import           GHC.Generics           (Generic)
 import           Pipes
+import qualified Pipes.Prelude          as P
 
 data Event =
   Event
@@ -50,6 +51,13 @@ trueEvent = events . here
 recoEvent :: Traversal' Event (PhysObj RecoEvent)
 recoEvent = events . there
 
+runNumber :: Lens' Event CUInt
+runNumber = lens _runNumber $ \e x -> e { _runNumber = x }
+
+eventNumber :: Lens' Event CULong
+eventNumber = lens _eventNumber $ \e x -> e { _eventNumber = x }
+
+
 
 readRunNumber :: (MonadIO m, MonadFail m) => TreeRead m CUInt
 readRunNumber = readBranch "runNumber"
@@ -60,8 +68,8 @@ readEventNumber = readBranch "eventNumber"
 recoVariations
   :: Monad m
   => StrictMap T.Text (Producer ((CUInt, CULong), PhysObj RecoEvent) m ())
-  -> Producer (StrictMap T.Text (Maybe ((CUInt, CULong), PhysObj RecoEvent))) m ()
-recoVariations = alignPipesBy fst
+  -> Producer ((CUInt, CULong), StrictMap T.Text (Maybe (PhysObj RecoEvent))) m ()
+recoVariations ps = alignPipesBy fst ps >-> P.map ((fmap.fmap.fmap) snd)
 
 
 readReco
@@ -72,6 +80,17 @@ readReco dmc =
   <$>
     ( (,) <$> readRunNumber <*> readEventNumber )
   <*> readRecoEvent dmc
+
+
+readTrue
+  :: (MonadFail m, MonadIO m)
+  => TreeRead m ((CUInt, CULong), PhysObj TrueEvent)
+readTrue =
+  (,)
+  <$>
+    ( (,) <$> readRunNumber <*> readEventNumber )
+  <*> readTrueEvent
+
 
 --
 -- eventHs :: Fills Event
@@ -89,13 +108,6 @@ readReco dmc =
   -- channelWithLabel "/elmujj" elmujj
 
 
-
-
-runNumber :: Lens' Event CUInt
-runNumber = lens _runNumber $ \e x -> e { _runNumber = x }
-
-eventNumber :: Lens' Event CULong
-eventNumber = lens _eventNumber $ \e x -> e { _eventNumber = x }
 
 
 -- zbtMigration :: Fills (Jet, TrueJet)

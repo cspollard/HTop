@@ -63,10 +63,10 @@ fillFile systs fn = do
   liftIO . putStrLn $ "analyzing file " <> fn
 
   -- check whether or not this is a data file
-  f <- liftIO $ tfileOpen fn
+  tfile <- liftIO $ tfileOpen fn
   liftIO . putStrLn $ "checking sumWeights"
 
-  tw <- liftIO $ ttree f "sumWeights"
+  tw <- liftIO $ ttree tfile "sumWeights"
   (Just (dsidc :: CInt)) <-
     P.head $ produceTTree (readBranch "dsid") tw
 
@@ -80,35 +80,42 @@ fillFile systs fn = do
 
   liftIO . putStrLn $ "sum of weights: " ++ show (getSum sow)
 
-  let treeProd tn = do
-        t <- liftIO $ ttree f tn
-        liftIO . putStrLn $ "looping over tree " <> tn
+  let treeProd tr tn = do
+        t <- ttree tfile tn
 
         -- deal with possible missing trees
-        nt <- liftIO $ isNullTree t
+        nt <- isNullTree t
         when nt $ do
           liftIO . putStrLn $ "missing tree " <> tn <> " in file " <> fn <> "."
           liftIO $ putStrLn "continuing."
 
-        let l = unless nt $ produceTTree (readReco dmc) t
-            dmc =
-              if dsid == 0
-                then Data'
-                else MC' $
-                  if dsid == 410501 && tn == "nominal"
-                    then AllVars
-                    else NoVars
+        let l = unless nt $ produceTTree tr t
 
         return (T.pack tn, l)
 
-  -- TODO
-  -- something is lazy here
-  -- is it the tuples?
-  trees <- recoVariations . strictMap . M.fromList <$> mapM treeProd systs
-  runEffect $ for trees (liftIO . print)
+  truthTree <- snd <$> treeProd readTrue "particleLevel"
+
+  let dmc =
+        if dsid == 0
+          then Data'
+          else MC' $
+            -- TODO
+            -- we're running all systs here...
+            if dsid == 410501 -- && tn == "nominal"
+              then AllVars
+              else NoVars
+
+  recoTrees <-
+    recoVariations . strictMap . M.fromList
+    <$> mapM (treeProd $ readReco dmc) systs
+
+  let eventProd
+        = alignThesePipes (\(x, _) (x', _) -> compare x x') truthTree recoTrees
+
+  runEffect $ for eventProd (liftIO . print)
 
   liftIO . putStrLn $ "closing file " <> fn
-  liftIO $ tfileClose f
+  liftIO $ tfileClose tfile
 
 
 transposeM
