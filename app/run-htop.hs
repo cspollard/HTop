@@ -11,7 +11,7 @@ module Main where
 import           Atlas
 import           BFrag.Event
 import qualified Control.Foldl   as F
-import           Control.Monad   (unless, when)
+import           Control.Monad   (when)
 import qualified Data.Map.Strict as M
 import           Data.Semigroup
 import qualified Data.Set        as S
@@ -50,9 +50,6 @@ main = do
   mapM_ (fillFile ["nominal"]) fns
 
 
--- TODO
--- all these liftIOs
--- could be put into TTree
 fillFile
   :: (MonadIO m, MonadFail m)
   => [String]
@@ -64,10 +61,13 @@ fillFile systs fn = do
   liftIO . putStrLn $ "analyzing file " <> fn
 
   -- check whether or not this is a data file
-  tfile <- liftIO $ tfileOpen fn
+  tfile <- tfileOpen fn
   liftIO . putStrLn $ "checking sumWeights"
 
-  tw <- liftIO $ ttree tfile "sumWeights"
+  tw <- ttree tfile "sumWeights"
+
+  -- partial.
+  -- throw an error when there is no dsid.
   (Just (dsidc :: CInt)) <-
     P.head $ runTTree (readBranch "dsid") tw
 
@@ -83,8 +83,7 @@ fillFile systs fn = do
 
   liftIO . putStrLn $ "sum of weights: " ++ show (getSum sow)
 
-  let entryFold :: (Monad m, Ord a) => Producer a m () -> m (S.Set a)
-      entryFold = F.purely P.fold $ F.Fold (flip S.insert) S.empty id
+  let entryFold = F.purely P.fold $ F.Fold (flip S.insert) S.empty id
       entryRead = (,) <$> readRunEventNumber <*> readEntry
       entries t = entryFold $ runTTree entryRead t
 
@@ -98,7 +97,7 @@ fillFile systs fn = do
 
         entryProd <- each <$> if nt then return S.empty else entries t
 
-        let l = unless nt $ produceTTree tr t (entryProd >-> P.map snd)
+        let l = produceTTree tr t (entryProd >-> P.map snd)
 
         return (T.pack tn, l)
 
