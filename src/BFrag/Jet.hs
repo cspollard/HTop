@@ -109,7 +109,6 @@ readJets dmc = do
           <*> fmap getZipList svtrks
           <*> flvs
 
-  liftIO $ print js
   return js
 
 -- TODO

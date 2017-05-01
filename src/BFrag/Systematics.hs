@@ -35,11 +35,8 @@ evtWgt :: (MonadFail m, MonadIO m) => DataMC' -> TreeRead m (Vars SF)
 evtWgt Data' = return mempty
 evtWgt (MC' vcfg) = do
     pu <- puWgt vcfg
-    liftIO $ print pu
     jvt <- jvtWgt vcfg
-    liftIO $ print jvt
     lsf <- lepSF vcfg
-    liftIO $ print lsf
     evtw <- pure . sf "evtw" . float2Double <$> readBranch "weight_mc"
     return $ evtw <> pu <> lsf <> jvt
 

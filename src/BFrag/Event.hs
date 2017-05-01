@@ -52,16 +52,10 @@ recoEvent = events . there
 
 
 readRunNumber :: (MonadIO m, MonadFail m) => TreeRead m CUInt
-readRunNumber = do
-  x <- readBranch "runNumber"
-  liftIO $ print x
-  return x
+readRunNumber = readBranch "runNumber"
 
 readEventNumber :: (MonadIO m, MonadFail m) => TreeRead m CULong
-readEventNumber = do
-  x <- readBranch "eventNumber"
-  liftIO $ print x
-  return x
+readEventNumber = readBranch "eventNumber"
 
 recoVariations
   :: Monad m
