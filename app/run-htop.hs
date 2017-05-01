@@ -73,6 +73,8 @@ fillFile systs fn = do
   let dsid = fromEnum dsidc
       fo = F.Fold (+) (0 :: Float) id
 
+  liftIO . putStrLn $ "dsid: " ++ show dsid
+
   sow <-
     fmap (Sum . float2Double)
     . F.purely P.fold fo
@@ -102,7 +104,7 @@ fillFile systs fn = do
         return (T.pack tn, l)
 
   trees <- recoVariations . strictMap . M.fromList <$> mapM treeProd systs
-  runEffect $ for trees (liftIO . print)
+  runEffect $ for (trees >-> P.take 1) (liftIO . print)
 
   liftIO . putStrLn $ "closing file " <> fn
   liftIO $ tfileClose f
