@@ -103,6 +103,9 @@ fillFile systs fn = do
 
         return (T.pack tn, l)
 
+  -- TODO
+  -- something is lazy here
+  -- is it the tuples?
   trees <- recoVariations . strictMap . M.fromList <$> mapM treeProd systs
   runEffect $ for (trees >-> P.take 1) (liftIO . print)
 
