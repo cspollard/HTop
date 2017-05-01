@@ -73,6 +73,8 @@ fillFile systs fn = do
   let dsid = fromEnum dsidc
       fo = F.Fold (+) (0 :: Float) id
 
+  liftIO . putStrLn $ "dsid: " ++ show dsid
+
   sow <-
     fmap (Sum . float2Double)
     . F.purely P.fold fo
