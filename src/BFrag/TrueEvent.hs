@@ -21,8 +21,8 @@ data TrueEvent =
     } deriving (Generic, Show)
 
 
-readTrueEvent :: (MonadIO m, MonadFail m) => TreeRead m TrueEvent
-readTrueEvent = TrueEvent <$> readTrueJets
+readTrueEvent :: (MonadIO m, MonadFail m) => TreeRead m (PhysObj TrueEvent)
+readTrueEvent = pure . TrueEvent <$> readTrueJets
 
 trueJets :: Lens' TrueEvent [TrueJet]
 trueJets = lens _trueJets $ \te x -> te { _trueJets = x }
