@@ -112,7 +112,7 @@ fillFile systs fn = do
     <$> mapM (treeProd $ readReco dmc) systs
 
   let eventProd
-        = alignThesePipes (\(x, _) (x', _) -> compare x x') truthTree recoTrees
+        = alignThesePipes fst fst truthTree recoTrees
 
   runEffect $ for eventProd (liftIO . print)
 
