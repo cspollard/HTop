@@ -47,7 +47,7 @@ main = do
   -- get the list of input trees
   fns <- filter (not . null) . lines <$> readFile (infiles args)
 
-  mapM_ (fillFile ["nominal"]) fns
+  mapM_ (fillFile ["nominal", "JET_21NP_JET_BJES_Response__1up"]) fns
 
 
 fillFile
