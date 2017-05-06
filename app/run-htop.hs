@@ -47,17 +47,18 @@ main = do
   -- get the list of input trees
   fns <- filter (not . null) . lines <$> readFile (infiles args)
 
-  mapM_ (fillFile ["nominal", "JET_21NP_JET_BJES_Response__1up"]) fns
+  mapM_ (fillFile "nominal" ["JET_21NP_JET_BJES_Response__1up"]) fns
 
 
 fillFile
   :: (MonadIO m, MonadFail m)
-  => [String]
+  => String
+  -> [String]
   -- -> Maybe (Int, Sum Double, Folder (Vars YodaObj))
   -> String
   -- -> m (Maybe (Int, Sum Double, Folder (Vars YodaObj)))
   -> m ()
-fillFile systs fn = do
+fillFile nom systs fn = do
   liftIO . putStrLn $ "analyzing file " <> fn
 
   -- check whether or not this is a data file
@@ -87,6 +88,14 @@ fillFile systs fn = do
       entryRead = (,) <$> readRunEventNumber <*> readEntry
       entries t = entryFold $ runTTree entryRead t
 
+      dmc ds tn =
+        if ds == 0
+          then Data'
+          else MC' $
+            if ds == 410501 && tn == "nominal"
+              then AllVars
+              else NoVars
+
       treeProd tr tn = do
         t <- ttree tfile tn
 
@@ -97,25 +106,16 @@ fillFile systs fn = do
 
         entryProd <- each <$> if nt then return S.empty else entries t
 
-        let l = produceTTree tr t (entryProd >-> P.map snd)
+        let l = produceTTree (tr $ dmc dsid tn) t (entryProd >-> P.map snd)
 
         return (T.pack tn, l)
 
   truthTree <- snd <$> treeProd readTrue "particleLevel"
 
-  let dmc =
-        if dsid == 0
-          then Data'
-          else MC' $
-            -- TODO
-            -- we're running all systs here...
-            if dsid == 410501 -- && tn == "nominal"
-              then AllVars
-              else NoVars
 
   recoTrees <-
     recoVariations . strictMap . M.fromList
-    <$> mapM (treeProd $ readReco dmc) systs
+    <$> mapM (treeProd readReco) (nom : systs)
 
   let eventProd
         = alignThesePipes fst fst truthTree recoTrees

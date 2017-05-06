@@ -86,10 +86,12 @@ readReco dmc =
   <*> readRecoEvent dmc
 
 
+-- TODO
+-- how does this work on data?
 readTrue
   :: (MonadFail m, MonadIO m)
-  => TreeRead m ((CUInt, CULong), PhysObj TrueEvent)
-readTrue =
+  => DataMC' -> TreeRead m ((CUInt, CULong), PhysObj TrueEvent)
+readTrue _ =
   (,)
   <$>
     ( (,) <$> readRunNumber <*> readEventNumber )

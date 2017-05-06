@@ -37,14 +37,14 @@ evtWgt (MC' vcfg) = do
     pu <- puWgt vcfg
     jvt <- jvtWgt vcfg
     lsf <- lepSF vcfg
-    evtw <- pure . sf "evtw" . float2Double <$> readBranch "weight_mc"
+    evtw <- pure . sf "weight_mc" . float2Double <$> readBranch "weight_mc"
     return $ evtw <> pu <> lsf <> jvt
 
 
 -- TODO
 -- partial!
 lepSF :: (MonadIO m, MonadFail m) => VarCfg -> TreeRead m (Vars SF)
-lepSF _ = pure . sf "lepsf" . float2Double <$> readBranch "weight_leptonSF"
+lepSF _ = pure . sf "lepton_sf" . float2Double <$> readBranch "weight_leptonSF"
 -- TODO
 -- in XRedTop there are 38 (!!) lepSF variations. This can't be right.
 -- lepSF NoVars = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
@@ -61,11 +61,11 @@ puWgt :: (MonadIO m, MonadFail m) => VarCfg -> TreeRead m (Vars SF)
 puWgt vcfg = do
   puw <- float2Double <$> readBranch "weight_pileup"
   case vcfg of
-    NoVars -> return . fmap (sf "puwgt") $ pure puw
+    NoVars -> return . fmap (sf "weight_pileup") $ pure puw
     AllVars -> do
       puwup <- float2Double <$> readBranch "weight_pileup_UP"
       puwdown <- float2Double <$> readBranch "weight_pileup_DOWN"
-      return . fmap (sf "puwgt") . Variations puw
+      return . fmap (sf "weight_pileup") . Variations puw
         $ [("puwgtup", puwup), ("puwgtdown", puwdown)]
 
 
@@ -73,11 +73,11 @@ jvtWgt :: (MonadIO m, MonadFail m) => VarCfg -> TreeRead m (Vars SF)
 jvtWgt vcfg = do
   jvtw <- float2Double <$> readBranch "weight_jvt"
   case vcfg of
-    NoVars -> return . fmap (sf "jvtwgt") $ pure jvtw
+    NoVars -> return . fmap (sf "weight_jvt") $ pure jvtw
     AllVars -> do
       jvtwup <- float2Double <$> readBranch "weight_jvt_UP"
       jvtwdown <- float2Double <$> readBranch "weight_jvt_DOWN"
-      return . fmap (sf "jvtwgt") . Variations jvtw
+      return . fmap (sf "weight_jvt") . Variations jvtw
         $ [("jvtwgtup", jvtwup), ("jvtwgtdown", jvtwdown)]
 
 
