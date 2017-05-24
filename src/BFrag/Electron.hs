@@ -27,7 +27,7 @@ instance Serialize Electron where
 instance HasLorentzVector Electron where
     toPtEtaPhiE = lens ePtEtaPhiE $ \e lv -> e { ePtEtaPhiE = lv }
 
-readElectrons :: (MonadIO m, MonadFail m) => TreeRead m [Electron]
+readElectrons :: (MonadIO m, MonadThrow m) => TreeRead m [Electron]
 readElectrons = do
   tlvs <- lvsFromTTreeF "el_pt" "el_eta" "el_phi" "el_e"
   cletas <- fmap float2Double <$> readBranch "el_cl_eta"

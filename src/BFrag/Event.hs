@@ -13,8 +13,8 @@ module BFrag.Event
   , module X
   , runNumber, eventNumber
   , readRunNumber, readEventNumber, readRunEventNumber
-  , readReco, readTrue
-  , recoEvent, trueEvent, recoVariations
+  , recoEvent, trueEvent -- , recoVariations
+  -- , eventHs
   ) where
 
 import           Atlas
@@ -26,14 +26,10 @@ import           BFrag.PtEtaPhiE        as X
 import           BFrag.RecoEvent        as X
 import           BFrag.TrueEvent        as X
 import           Control.Lens
-import           Data.These
--- import           Control.Monad.Trans    (lift)
 import           Data.HEP.LorentzVector as X
-import qualified Data.Text              as T
+import           Data.These
 import           Data.TTree
 import           GHC.Generics           (Generic)
-import           Pipes
-import qualified Pipes.Prelude          as P
 
 data Event =
   Event
@@ -46,11 +42,12 @@ data Event =
 events :: Lens' Event (These (PhysObj TrueEvent) (PhysObj RecoEvent))
 events = lens _events $ \e x -> e { _events = x }
 
-trueEvent :: Traversal' Event (PhysObj TrueEvent)
-trueEvent = events . here
+-- trueEvent :: ' Event (Maybe (PhysObj TrueEvent))
+trueEvent :: Getter Event (Maybe (PhysObj TrueEvent))
+trueEvent = events . pre here
 
-recoEvent :: Traversal' Event (PhysObj RecoEvent)
-recoEvent = events . there
+recoEvent :: Getter Event (Maybe (PhysObj RecoEvent))
+recoEvent = events . pre there
 
 runNumber :: Lens' Event CUInt
 runNumber = lens _runNumber $ \e x -> e { _runNumber = x }
@@ -58,44 +55,48 @@ runNumber = lens _runNumber $ \e x -> e { _runNumber = x }
 eventNumber :: Lens' Event CULong
 eventNumber = lens _eventNumber $ \e x -> e { _eventNumber = x }
 
-
-
-readRunNumber :: (MonadIO m, MonadFail m) => TreeRead m CUInt
+readRunNumber :: (MonadIO m, MonadThrow m) => TreeRead m CUInt
 readRunNumber = readBranch "runNumber"
 
-readEventNumber :: (MonadIO m, MonadFail m) => TreeRead m CULong
+readEventNumber :: (MonadIO m, MonadThrow m) => TreeRead m CULong
 readEventNumber = readBranch "eventNumber"
 
-readRunEventNumber :: (MonadIO m, MonadFail m) => TreeRead m (CUInt, CULong)
+readRunEventNumber :: (MonadIO m, MonadThrow m) => TreeRead m (CUInt, CULong)
 readRunEventNumber = (,) <$> readRunNumber <*> readEventNumber
 
-recoVariations
-  :: Monad m
-  => StrictMap T.Text (Producer ((CUInt, CULong), PhysObj RecoEvent) m ())
-  -> Producer ((CUInt, CULong), StrictMap T.Text (Maybe (PhysObj RecoEvent))) m ()
-recoVariations ps = alignPipesBy fst ps >-> P.map ((fmap.fmap.fmap) snd)
-
-
-readReco
-  :: (MonadFail m, MonadIO m)
-  => DataMC' -> TreeRead m ((CUInt, CULong), PhysObj RecoEvent)
-readReco dmc =
-  (,)
-  <$>
-    ( (,) <$> readRunNumber <*> readEventNumber )
-  <*> readRecoEvent dmc
 
 
 -- TODO
--- how does this work on data?
-readTrue
-  :: (MonadFail m, MonadIO m)
-  => DataMC' -> TreeRead m ((CUInt, CULong), PhysObj TrueEvent)
-readTrue _ =
-  (,)
-  <$>
-    ( (,) <$> readRunNumber <*> readEventNumber )
-  <*> readTrueEvent
+-- I think this would be easier to understand
+-- if we had (f (Pipe a b m ()) and turned it into
+-- Pipe (f a) (f b) m ()
+
+-- TODO
+-- this is all really hard to read and understand.
+
+-- TODO
+-- partial
+-- recoVariations
+--   :: Monad m
+--   => StrictMap T.Text (Producer ((CUInt, CULong), RecoEvent) (PhysObjT m) ())
+--   -> Producer ((CUInt, CULong), RecoEvent) (PhysObjT m) ()
+-- recoVariations ps =
+--   alignPipesBy fst ps >-> P.map (fmap (f . (fmap.fmap) snd))
+--   where
+--     f :: StrictMap T.Text (Maybe (PhysObj RecoEvent)) -> PhysObj RecoEvent
+--     f m = fromMaybes . fromJust $ mapToVariation "nominal" m
+--
+--     fromMaybes :: Vars (Maybe (PhysObj a)) -> PhysObj a
+--     fromMaybes = join . PhysObjT . WriterT . fmap (,mempty) . MaybeT
+
+
+-- eventHs :: F.FoldM Vars Event (Folder YodaObj)
+-- eventHs = F.premapM f recoEventHs
+--   where
+--     f e = do
+--       let mre = view recoEvent e
+--       fromMaybe (MF.fail "no reco event") mre
+
 
 
 --

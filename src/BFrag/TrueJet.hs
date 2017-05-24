@@ -51,7 +51,7 @@ instance HasPVTracks TrueJet where
     where
       eq x y = lvDREta x y < 0.01
 
-readBHadrons :: (MonadIO m, MonadFail m) => TreeRead m [BHadron]
+readBHadrons :: (MonadIO m, MonadThrow m) => TreeRead m [BHadron]
 readBHadrons = do
   tlvs <-
     lvsFromTTreeF
@@ -69,7 +69,7 @@ readBHadrons = do
 
   return . getZipList $ BHadron <$> tlvs <*> chtlvs
 
-readTrueJets :: (MonadIO m, MonadFail m) => TreeRead m [TrueJet]
+readTrueJets :: (MonadIO m, MonadThrow m) => TreeRead m [TrueJet]
 readTrueJets = do
   tlvs <- lvsFromTTreeF "jet_pt" "jet_eta" "jet_phi" "jet_e"
   chconsts <-
@@ -89,7 +89,7 @@ readTrueJets = do
 
 
 vecVecTLV
-  :: (MonadIO m, MonadFail m)
+  :: (MonadIO m, MonadThrow m)
   => String -> String -> String -> String -> TreeRead m (ZipList [PtEtaPhiE])
 vecVecTLV spt seta sphi se = do
     partpts <- (fmap.fmap) float2Double . fromVVector <$> readBranch spt

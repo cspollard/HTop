@@ -1,26 +1,20 @@
+{-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedLists           #-}
 {-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE TypeFamilies              #-}
 
 
 module BFrag.Systematics
-  ( evtWgt, ttbarSysts, treeSysts, lumi
+  ( recoWgt, trueWgt, treeSysts, lumi
   , DataMC'(..), VarCfg(..)
   ) where
 
 import           Atlas
-import           Control.Arrow  (first)
-import           Control.Lens
-import qualified Data.IntMap    as IM
-import qualified Data.Map       as M
-import           Data.Semigroup
-import qualified Data.Text      as T
 import           Data.TTree
 import           GHC.Float
 
-
-type ProcMap = IM.IntMap
 
 -- TODO
 -- how can we tell it to only run nominal weight systs on syst trees
@@ -28,27 +22,31 @@ type ProcMap = IM.IntMap
 data DataMC' = Data' | MC' VarCfg deriving Show
 data VarCfg = NoVars | AllVars deriving Show
 
-lumi :: Vars Double
-lumi = Variations 38000 [("LumiUp", 41800), ("LumiDown", 34200)]
+lumi :: Applicative m => VarsT m Double
+lumi = variation 38000 [("LumiUp", 41800), ("LumiDown", 34200)]
 
-evtWgt :: (MonadFail m, MonadIO m) => DataMC' -> TreeRead m (Vars SF)
-evtWgt Data' = return mempty
-evtWgt (MC' vcfg) = do
-    pu <- puWgt vcfg
-    jvt <- jvtWgt vcfg
+recoWgt :: (MonadIO m, MonadThrow m) => DataMC' -> TreeRead m (PhysObj ())
+recoWgt Data' = return $ pure ()
+recoWgt (MC' vcfg) = do
+    tw <- trueWgt
+    puw <- puWgt vcfg
+    jvtw <- jvtWgt vcfg
     lsf <- lepSF vcfg
-    evtw <- pure . sf "weight_mc" . float2Double <$> readBranch "weight_mc"
-    return $ evtw <> pu <> lsf <> jvt
+    return $ tw >> puw >> jvtw >> lsf
+
+
+trueWgt :: (MonadThrow m, MonadIO m) => TreeRead m (PhysObj ())
+trueWgt = tell . sf "evtw" . float2Double <$> readBranch "weight_mc"
 
 
 -- TODO
 -- partial!
-lepSF :: (MonadIO m, MonadFail m) => VarCfg -> TreeRead m (Vars SF)
-lepSF _ = pure . sf "lepton_sf" . float2Double <$> readBranch "weight_leptonSF"
+lepSF :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
+lepSF _ = tell . sf "lepton_sf" . float2Double <$> readBranch "weight_leptonSF"
 -- TODO
 -- in XRedTop there are 38 (!!) lepSF variations. This can't be right.
--- lepSF NoVars = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
--- lepSF AllVars = do
+-- lepSF NoVarsT m = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
+-- lepSF AllVarsT m = do
 --   (nom:vars) <- fmap float2Double <$> readBranch "SFLept"
 --   let vars' =
 --         M.fromList
@@ -57,28 +55,30 @@ lepSF _ = pure . sf "lepton_sf" . float2Double <$> readBranch "weight_leptonSF"
 --
 --   return $ Variations (sf "lepsf" nom) vars'
 
-puWgt :: (MonadIO m, MonadFail m) => VarCfg -> TreeRead m (Vars SF)
+puWgt :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
 puWgt vcfg = do
   puw <- float2Double <$> readBranch "weight_pileup"
   case vcfg of
-    NoVars -> return . fmap (sf "weight_pileup") $ pure puw
+    NoVars -> return . tell $ sf "weight_pileup" puw
     AllVars -> do
       puwup <- float2Double <$> readBranch "weight_pileup_UP"
       puwdown <- float2Double <$> readBranch "weight_pileup_DOWN"
-      return . fmap (sf "weight_pileup") . Variations puw
-        $ [("puwgtup", puwup), ("puwgtdown", puwdown)]
+      return . varSF
+        $ sf "weight_pileup"
+          <$> variation puw [("puwgtup", puwup), ("puwgtdown", puwdown)]
 
 
-jvtWgt :: (MonadIO m, MonadFail m) => VarCfg -> TreeRead m (Vars SF)
+jvtWgt :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
 jvtWgt vcfg = do
   jvtw <- float2Double <$> readBranch "weight_jvt"
   case vcfg of
-    NoVars -> return . fmap (sf "weight_jvt") $ pure jvtw
+    NoVars -> return . tell $ sf "weight_jvt" jvtw
     AllVars -> do
       jvtwup <- float2Double <$> readBranch "weight_jvt_UP"
       jvtwdown <- float2Double <$> readBranch "weight_jvt_DOWN"
-      return . fmap (sf "weight_jvt") . Variations jvtw
-        $ [("jvtwgtup", jvtwup), ("jvtwgtdown", jvtwdown)]
+      return . varSF
+        $ sf "weight_jvt"
+          <$> variation jvtw [("jvtwgtup", jvtwup), ("jvtwgtdown", jvtwdown)]
 
 
 treeSysts :: [String]
@@ -141,37 +141,37 @@ treeSysts =
   ]
 
 
--- TODO
--- is this partial?
-ttbarSysts
-  :: ProcMap (Folder (Vars YodaObj)) -> ProcMap (Folder (Vars YodaObj))
-ttbarSysts preds =
-  let systttbarDSIDs = (+410000) <$> [1, 2, 3, 4] :: [Int]
-      (systttbar', systpreds) =
-        IM.partitionWithKey (\k _ -> k `elem` systttbarDSIDs) preds
-
-      -- the "nominal" variations from the ttbar systematic samples
-      -- are actually variations
-      systttbar = over (traverse.traverse) (view nominal) systttbar'
-
-      addSysts x =
-        foldr
-          ( \(k, fs) fv ->
-              inF2 (M.intersectionWith (\s v -> v & variations . at k ?~ s)) fs fv
-          )
-          x
-          $ fmap (first (procDict IM.!))
-            . IM.toList
-            $ systttbar
-
-  in over (ix 410000) addSysts systpreds
-
-
-procDict :: IM.IntMap T.Text
-procDict =
-  [ (410000, "PowPyNom")
-  , (410001, "PowPyRadUp")
-  , (410002, "PowPyRadDown")
-  , (410003, "aMCHer")
-  , (410004, "PowHer")
-  ]
+-- -- TODO
+-- -- is this partial?
+-- ttbarSysts
+--   :: ProcMap (VarsT m (Folder YodaObj)) -> ProcMap (VarsT m (Folder YodaObj))
+-- ttbarSysts preds =
+--   let systttbarDSIDs = (+410000) <$> [1, 2, 3, 4] :: [Int]
+--       (systttbar', systpreds) =
+--         IM.partitionWithKey (\k _ -> k `elem` systttbarDSIDs) preds
+--
+--       -- the "nominal" variations from the ttbar systematic samples
+--       -- are actually variations
+--       systttbar = over (traverse.traverse) (view nominal) systttbar'
+--
+--       addSysts x =
+--         foldr
+--           ( \(k, fs) fv ->
+--               inF2 (M.intersectionWith (\s v -> v & variations . at k ?~ s)) fs fv
+--           )
+--           x
+--           $ fmap (first (procDict IM.!))
+--             . IM.toList
+--             $ systttbar
+--
+--   in over (ix 410000) addSysts systpreds
+--
+--
+-- procDict :: IM.IntMap T.Text
+-- procDict =
+--   [ (410000, "PowPyNom")
+--   , (410001, "PowPyRadUp")
+--   , (410002, "PowPyRadDown")
+--   , (410003, "aMCHer")
+--   , (410004, "PowHer")
+--   ]

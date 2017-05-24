@@ -8,7 +8,7 @@ import           Data.TTree
 import           GHC.Float
 
 lvsFromTTreeF
-  :: (MonadIO m, MonadFail m)
+  :: (MonadIO m, MonadThrow m)
   => String
   -> String
   -> String

@@ -8,12 +8,11 @@ module BFrag.TrueEvent
   ) where
 
 import           Atlas
-import           BFrag.TrueJet  as X
-import qualified Control.Foldl  as F
+import           BFrag.Systematics
+import           BFrag.TrueJet     as X
 import           Control.Lens
-import           Data.Semigroup
 import           Data.TTree
-import           GHC.Generics   (Generic)
+import           GHC.Generics      (Generic)
 
 data TrueEvent =
   TrueEvent
@@ -21,14 +20,17 @@ data TrueEvent =
     } deriving (Generic, Show)
 
 
-readTrueEvent :: (MonadIO m, MonadFail m) => TreeRead m (PhysObj TrueEvent)
-readTrueEvent = pure . TrueEvent <$> readTrueJets
+readTrueEvent :: (MonadIO m, MonadThrow m) => TreeRead m (PhysObj TrueEvent)
+readTrueEvent = do
+  js <- readTrueJets
+  w <- trueWgt
+  return $ w >> pure (TrueEvent js)
 
 trueJets :: Lens' TrueEvent [TrueJet]
 trueJets = lens _trueJets $ \te x -> te { _trueJets = x }
 
 trueEventHs :: Fills TrueEvent
-trueEventHs =
-  prefixF "/truthjets" . over (traverse.traverse.xlabel) ("truth jet " <>)
-  <$> F.handles (to sequence.folded) trueJetHs
-  <$= view trueJets
+trueEventHs = mempty
+  -- prefixF "/truthjets" . over (traverse.traverse.xlabel) ("truth jet " <>)
+  -- <$> F.handles (to sequence.folded) trueJetHs
+  -- <$= view trueJets

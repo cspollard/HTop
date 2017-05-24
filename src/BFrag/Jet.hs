@@ -15,7 +15,6 @@ import           BFrag.PtEtaPhiE
 import           BFrag.Systematics
 import           Control.Applicative (ZipList (..))
 import           Control.Lens
-import           Data.Monoid         hiding ((<>))
 import           Data.TTree
 import qualified Data.Vector         as V
 import           GHC.Float
@@ -46,7 +45,7 @@ data Jet =
     , _pvTrks      :: [PtEtaPhiE]
     , _svTrks      :: [PtEtaPhiE]
     , _truthFlavor :: Maybe JetFlavor
-    } deriving (Generic, Show)
+    } deriving Generic
 
 instance HasLorentzVector Jet where
     toPtEtaPhiE = lens _jPtEtaPhiE $ \j x -> j { _jPtEtaPhiE = x }
@@ -58,13 +57,13 @@ instance HasPVTracks Jet where
   pvTracks = view pvTrks
 
 
-readJets :: (MonadIO m, MonadFail m) => DataMC' -> TreeRead m [Jet]
+readJets :: (MonadIO m, MonadThrow m) => DataMC' -> TreeRead m [Jet]
 readJets dmc = do
   tlvs <- lvsFromTTreeF "jet_pt" "jet_eta" "jet_phi" "jet_e"
   tagged' <-
     fmap ((> 0) . (fromEnum :: CChar -> Int)) <$> readBranch "jet_isbtagged_70"
   mv2c10s <- fmap float2Double <$> readBranch "jet_mv2c10"
-  mv2c10sfs :: ZipList (Vars SF) <-
+  mv2c10sfs :: ZipList SF <-
     case dmc of
       Data'       -> pure $ pure mempty
       MC' NoVars  -> pure $ pure mempty
@@ -74,7 +73,7 @@ readJets dmc = do
         -- imap (\i -> pure . sf ("btagSFjet" <> T.pack (show i))) . fmap float2Double
         --   <$> readBranch "JetBtagSF"
 
-  let withsf x xsf = onlySFVars xsf x
+  let withsf x xsf = tell xsf >> return x
       tagged = withsf <$> tagged' <*> mv2c10sfs
 
 
@@ -111,12 +110,8 @@ readJets dmc = do
 
   return js
 
--- TODO
--- this will need to be updated with AT ntuples!
--- NB:
--- track info is already stored as doubles!
 jetTracksTLV
-  :: (MonadIO m, MonadFail m)
+  :: (MonadIO m, MonadThrow m)
   => String
   -> String
   -> String
@@ -146,7 +141,7 @@ mv2c10H =
 jetHs :: Fills Jet
 jetHs = mempty
 
--- jetHs :: Fills (Jet, Maybe TrueJet)
+-- jetHs :: Fills m (Jet, Maybe TrueJet)
 -- jetHs =
 --   channelsWithLabels
 --     [ ("/2psvtrks", pure . (>= 2) . length . svTracks . fst)

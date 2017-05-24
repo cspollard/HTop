@@ -10,17 +10,22 @@ module Main where
 
 import           Atlas
 import           BFrag.Event
+import           Control.Arrow   (first)
 import qualified Control.Foldl   as F
+import           Control.Lens    hiding (each)
 import           Control.Monad   (when)
+import           Data.Align
 import qualified Data.Map.Strict as M
 import           Data.Semigroup
 import qualified Data.Set        as S
 import qualified Data.Text       as T
 import           Data.TFile
+import           Data.These
 import           Data.TTree
 import           GHC.Float
 import           Options.Generic
 import           Pipes
+import           Pipes.Core
 import qualified Pipes.Prelude   as P
 import           System.IO       (BufferMode (..), hSetBuffering, stdout)
 
@@ -47,18 +52,17 @@ main = do
   -- get the list of input trees
   fns <- filter (not . null) . lines <$> readFile (infiles args)
 
-  mapM_ (fillFile "nominal" ["JET_21NP_JET_BJES_Response__1up"]) fns
+  mapM_ (fillFile treeSysts) fns
 
 
 fillFile
-  :: (MonadIO m, MonadFail m)
-  => String
-  -> [String]
+  :: (MonadIO m, MonadCatch m)
+  => [String]
   -- -> Maybe (Int, Sum Double, Folder (Vars YodaObj))
   -> String
   -- -> m (Maybe (Int, Sum Double, Folder (Vars YodaObj)))
   -> m ()
-fillFile nom systs fn = do
+fillFile systs fn = do
   liftIO . putStrLn $ "analyzing file " <> fn
 
   -- check whether or not this is a data file
@@ -84,7 +88,10 @@ fillFile nom systs fn = do
 
   liftIO . putStrLn $ "sum of weights: " ++ show (getSum sow)
 
-  let entryFold = F.purely P.fold $ F.Fold (flip S.insert) S.empty id
+  let entryFold =
+        F.purely P.fold
+        $ F.Fold (\m (i, j) -> M.insert i j m) M.empty id
+
       entryRead = (,) <$> readRunEventNumber <*> readEntry
       entries t = entryFold $ runTTree entryRead t
 
@@ -96,40 +103,74 @@ fillFile nom systs fn = do
               then AllVars
               else NoVars
 
-      treeProd tr tn = do
-        t <- ttree tfile tn
-
-        -- deal with possible missing trees
-        nt <- isNullTree t
-        when nt $
-          liftIO . putStrLn $ "missing tree " <> tn <> " in file " <> fn <> "."
-
-        entryProd <- each <$> if nt then return S.empty else entries t
-
-        let l = produceTTree (tr $ dmc dsid tn) t (entryProd >-> P.map snd)
-
-        return (T.pack tn, l)
-
-  truthTree <- snd <$> treeProd readTrue "particleLevel"
+  treesl <- mapM (\tn -> (tn,) <$> ttree tfile tn) systs
+  treeEntries <-
+    traverse (\(tn, t) -> fmap (M.singleton tn) <$> entries t) treesl
+  let -- xs :: M.Map (CUInt, CULong) (M.Map String Int)
+      xs = M.unionsWith M.union treeEntries
+      -- trees :: M.Map String TTree
+      trees = M.fromList treesl
 
 
-  recoTrees <-
-    recoVariations . strictMap . M.fromList
-    <$> mapM (treeProd readReco) (nom : systs)
-
-  let eventProd
-        = alignThesePipes fst fst truthTree recoTrees
-
-  runEffect $ for eventProd (liftIO . print)
-
-  liftIO . putStrLn $ "closing file " <> fn
-  liftIO $ tfileClose tfile
+  runEffect $ each xs >-> runTrees readElectrons trees >-> P.print
 
 
-transposeM
-  :: forall k k' a. (Ord k, Ord k')
-  => M.Map k (M.Map k' a) -> M.Map k' (M.Map k a)
-transposeM = M.foldrWithKey f M.empty
-  where
-    f :: k -> M.Map k' a -> M.Map k' (M.Map k a) -> M.Map k' (M.Map k a)
-    f k inmap outmap = M.unionWith (<>) outmap $ M.singleton k <$> inmap
+runTrees
+  :: (MonadThrow m, MonadIO m, Ord k)
+  => TreeRead m a
+  -> M.Map k TTree
+  -> Pipe (M.Map k Int) (M.Map k (Maybe a)) m r
+runTrees tr ts = do
+  is <- await
+  let f _ t i = Just $ first Just <$> readTree tr i t
+      xs = M.mergeWithKey f (fmap (return . (Nothing,))) (const M.empty) ts is
+
+  m <- lift $ sequence xs
+  yield $ fst <$> m
+  runTrees tr $ snd <$> m
+
+
+
+--       readEntries tn = do
+--         t <- ttree tfile tn
+--
+--         -- deal with possible missing trees
+--         nt <- isNullTree t
+--         when nt $
+--           liftIO . putStrLn $ "missing tree " <> tn <> " in file " <> fn <> "."
+--
+--         entryProd <- each <$> if nt then return S.empty else entries t
+--
+--         let l = produceTTree (tr $ dmc dsid tn) t (entryProd >-> P.map snd)
+--
+--         return (T.pack tn, l)
+--
+--   truthTree <- snd <$> treeProd readTrue "particleLevel"
+--
+--
+--   recoTrees <-
+--     recoVariations . strictMap . M.fromList
+--     <$> mapM (treeProd readReco) (nom : systs)
+--
+--   let eventProd = alignThesePipes fst fst truthTree recoTrees >-> P.map toEvent
+--
+--       toEvent ((i, j), k) =
+--         Event i j
+--         . over here snd
+--         . over there snd
+--         $ k
+--
+--   F.impurely P.foldM eventHs eventProd
+--   -- runEffect $ for eventProd (liftIO . print)
+--
+--   liftIO . putStrLn $ "closing file " <> fn
+--   liftIO $ tfileClose tfile
+--
+--
+-- transposeM
+--   :: forall k k' a. (Ord k, Ord k')
+--   => M.Map k (M.Map k' a) -> M.Map k' (M.Map k a)
+-- transposeM = M.foldrWithKey f M.empty
+--   where
+--     f :: k -> M.Map k' a -> M.Map k' (M.Map k a) -> M.Map k' (M.Map k a)
+--     f k inmap outmap = M.unionWith (<>) outmap $ M.singleton k <$> inmap

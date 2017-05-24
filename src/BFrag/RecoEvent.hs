@@ -1,12 +1,15 @@
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE OverloadedLists     #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies        #-}
 
 module BFrag.RecoEvent
   ( module X
   , RecoEvent(RecoEvent)
   , mu, electrons, muons, jets, met
   , readRecoEvent, recoEventHs
-  , probeJets, elmujj
+  , elmujj
   ) where
 
 import           Atlas
@@ -16,7 +19,6 @@ import           BFrag.Jet         as X
 import           BFrag.Muon        as X
 import           BFrag.PtEtaPhiE   as X
 import           BFrag.Systematics as X
-import qualified Control.Foldl     as F
 import           Control.Lens
 import           Data.Semigroup
 import           Data.TTree
@@ -30,8 +32,8 @@ data RecoEvent =
     , _electrons :: [Electron]
     , _muons     :: [Muon]
     , _jets      :: [Jet]
-    , _met       :: PtEtaPhiE
-    } deriving (Generic, Show)
+    , _met       :: PhysObj PtEtaPhiE
+    } deriving Generic
 
 
 mu :: Lens' RecoEvent (Vars Double)
@@ -49,10 +51,10 @@ muons = lens _muons $ \e x -> e { _muons = x }
 jets :: Lens' RecoEvent [Jet]
 jets = lens _jets $ \e x -> e { _jets = x }
 
-met :: Lens' RecoEvent PtEtaPhiE
+met :: Lens' RecoEvent (PhysObj PtEtaPhiE)
 met = lens _met $ \e x -> e { _met = x }
 
-readMET :: (MonadIO m, MonadFail m) => TreeRead m PtEtaPhiE
+readMET :: (MonadIO m, MonadThrow m) => TreeRead m PtEtaPhiE
 readMET = do
   et <- float2Double <$> readBranch "met_met"
   phi <- float2Double <$> readBranch "met_phi"
@@ -62,46 +64,46 @@ muVars :: DataMC' -> Double -> Vars Double
 muVars Data' m =
     -- TODO
     -- here we assume the scaling has already taken place...
-    pure m
-      & variations . ix "datapileupup" .~ m*1.09
-      & variations . ix "datapileupdown" .~ m/1.09
+    variation m [("datapileupup", m*1.09), ("datapileupdown", m/1.09)]
 muVars _ m = pure m
 
 readRecoEvent
-  :: (MonadIO m, MonadFail m)
+  :: (MonadIO m, MonadThrow m)
   => DataMC' -> TreeRead m (PhysObj RecoEvent)
 readRecoEvent dmc = do
-  wgt <- evtWgt dmc
-  evt <-
-    RecoEvent
-    <$> (muVars dmc . float2Double <$> readBranch "mu")
-    -- <*> (float2Double <$> readBranch "NPVtx")
-    <*> readElectrons
-    <*> readMuons
-    <*> readJets dmc
-    <*> readMET
-
-  return $ onlySFVars wgt evt
+  w <- recoWgt dmc
+  mu' <- muVars dmc . float2Double <$> readBranch "mu"
+  els <- readElectrons
+  mus <- readMuons
+  js <- readJets dmc
+  met' <- pure <$> readMET
+  return $ w >> return (RecoEvent mu' els mus js met')
 
 
 muH :: Fills RecoEvent
 muH =
-  fmap (singleton "/mu")
-  . innerF (onlyObjVars . view mu)
-  $ hist1DDef (binD 0 25 100) "$< \\mu >$" (dndx "<\\mu>" "1")
+  singleton "/mu"
+  <$> prebind (varObj . view mu) h
 
-npvH :: Fills RecoEvent
-npvH =
-  fmap (singleton "/npv")
-  . innerF (onlyObjVars . view mu)
-  $ hist1DDef (binD 0 25 50) "$< \\mu >$" (dndx "npv" "1")
+  where
+    h = hist1DDef (binD 0 25 100) "$< \\mu >$" (dndx "<\\mu>" "1")
+
+
+-- TODO
+-- npvH :: Fills RecoEvent
+-- npvH =
+--   singleton "/npv"
+--   <$> preBind (onlyObjVars . view npv) h
+--
+--   where
+--     h = hist1DDef (binD 0 25 50) "$< \\mu >$" (dndx "npv" "1")
+
 
 metH :: Fills RecoEvent
 metH =
   prefixF "/met"
-  . over (traverse.traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
-  <$> ptH
-  <$= view met
+  . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
+  <$> prebind (view met) ptH
 
 
 elmujj :: RecoEvent -> PhysObj Bool
@@ -117,40 +119,40 @@ elmujj e =
         _        -> False
 
 recoEventHs :: Fills RecoEvent
-recoEventHs =
-  mconcat
-    [ muH
-    , npvH
-    , metH
-    , prefixF "/jets" . over (traverse.traverse.xlabel) ("jet " <>)
-      <$> F.handles (to sequence.folded) lvHs
-      <$= view jets
-    , prefixF "/electrons" . over (traverse.traverse.xlabel) ("electron " <>)
-      <$> F.handles (to sequence.folded) electronHs
-      <$= view electrons
-    , prefixF "/muons" . over (traverse.traverse.xlabel) ("muon " <>)
-      <$> F.handles (to sequence.folded) muonHs
-      <$= view muons
-      ]
+recoEventHs = mconcat [ metH, muH ]
+  -- mconcat
+  --   [ muH
+  --   , npvH
+  --   , metH
+  --   , prefixF "/jets" . over (traverse.traverse.xlabel) ("jet " <>)
+  --     <$> F.handles (to sequence.folded) lvHs
+  --     <$= view jets
+  --   , prefixF "/electrons" . over (traverse.traverse.xlabel) ("electron " <>)
+  --     <$> F.handles (to sequence.folded) electronHs
+  --     <$= view electrons
+  --   , prefixF "/muons" . over (traverse.traverse.xlabel) ("muon " <>)
+  --     <$> F.handles (to sequence.folded) muonHs
+  --     <$= view muons
+  --     ]
 
 
 -- TODO
 -- can I make this into a traversal instead of a list?
-probeJets :: RecoEvent -> [PhysObj Jet]
-probeJets evt =
-  case view jets evt of
-    [j1, j2] ->
-      if lvDREta j1 j2 > 1.0
-        then probeJet j1 j2 ++ probeJet j2 j1
-        else []
-    _        -> []
-  where
-    probeJet j j' = sequenceA $ do
-      bt <- view isBTagged j
-      if bt && hasSV j' && (view lvAbsEta j' < 2.1)
-        then return [j']
-        else return []
-
+-- probeJets :: RecoEvent -> [PhysObj Jet]
+-- probeJets evt =
+--   case view jets evt of
+--     [j1, j2] ->
+--       if lvDREta j1 j2 > 1.0
+--         then probeJet j1 j2 ++ probeJet j2 j1
+--         else []
+--     _        -> []
+--   where
+--     probeJet j j' = sequenceA $ do
+--       bt <- view isBTagged j
+--       if bt && hasSV j' && (view lvAbsEta j' < 2.1)
+--         then return [j']
+--         else return []
+--
 -- probeJetHs :: Fills RecoEvent
 -- probeJetHs = mconcat
 --   [ prefixF "/probejets" . over (traverse.traverse.xlabel) ("probe jet " <>)

@@ -26,7 +26,7 @@ instance Serialize Muon
 instance HasLorentzVector Muon where
     toPtEtaPhiE = lens mPtEtaPhiE $ \m lv -> m { mPtEtaPhiE = lv }
 
-readMuons :: (MonadIO m, MonadFail m) => TreeRead m [Muon]
+readMuons :: (MonadIO m, MonadThrow m) => TreeRead m [Muon]
 readMuons = do
   tlvs <- lvsFromTTreeF "mu_pt" "mu_eta" "mu_phi" "mu_e"
   chs <- fmap float2Double <$> readBranch "mu_charge"
