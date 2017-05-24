@@ -112,7 +112,12 @@ fillFile systs fn = do
       trees = M.fromList treesl
 
 
-  runEffect $ each xs >-> runTrees readElectrons trees >-> P.print
+  runEffect
+    $ each xs
+      >-> runTrees (readRecoEvent $ MC' NoVars) trees
+      -- >-> P.map ((fmap.fmap.fmap) $ fmap (view toPtEtaPhiE) . view jets)
+      -- >-> P.map ((fmap.fmap) runPhysObj)
+      >-> P.print
 
 
 runTrees

@@ -45,7 +45,7 @@ data Jet =
     , _pvTrks      :: [PtEtaPhiE]
     , _svTrks      :: [PtEtaPhiE]
     , _truthFlavor :: Maybe JetFlavor
-    } deriving Generic
+    } deriving (Generic, Show)
 
 instance HasLorentzVector Jet where
     toPtEtaPhiE = lens _jPtEtaPhiE $ \j x -> j { _jPtEtaPhiE = x }

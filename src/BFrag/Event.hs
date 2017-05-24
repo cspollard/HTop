@@ -36,7 +36,7 @@ data Event =
     { _runNumber   :: CUInt
     , _eventNumber :: CULong
     , _events      :: These (PhysObj TrueEvent) (PhysObj RecoEvent)
-    } deriving (Generic)
+    } deriving (Generic, Show)
 
 
 events :: Lens' Event (These (PhysObj TrueEvent) (PhysObj RecoEvent))

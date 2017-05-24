@@ -33,7 +33,7 @@ data RecoEvent =
     , _muons     :: [Muon]
     , _jets      :: [Jet]
     , _met       :: PhysObj PtEtaPhiE
-    } deriving Generic
+    } deriving (Generic, Show)
 
 
 mu :: Lens' RecoEvent (Vars Double)
