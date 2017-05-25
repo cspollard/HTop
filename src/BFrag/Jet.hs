@@ -131,17 +131,17 @@ jetTracksTLV spt seta sphi se = do
     return . ZipList . fmap ZipList $ V.toList trks
 
 
-mv2c10H :: Fills Jet
+mv2c10H :: Fills m Jet
 mv2c10H =
   singleton "/mv2c10"
   <$> hist1DDef (binD (-1) 25 1) "MV2c10" (dndx "\\mathrm{MV2c10}" "1")
   <$= view mv2c10
 
 
-jetHs :: Fills Jet
+jetHs :: Fills m Jet
 jetHs = mempty
 
--- jetHs :: Fills m (Jet, Maybe TrueJet)
+-- jetHs :: Fills m m (Jet, Maybe TrueJet)
 -- jetHs =
 --   channelsWithLabels
 --     [ ("/2psvtrks", pure . (>= 2) . length . svTracks . fst)

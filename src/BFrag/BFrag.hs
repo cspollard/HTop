@@ -53,7 +53,7 @@ zBL = undefined
 
 trkSumPtH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 trkSumPtH =
   singleton "/trksumpt"
   <$> hist1DDef
@@ -64,7 +64,7 @@ trkSumPtH =
 
 svTrkSumPtH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 svTrkSumPtH =
   singleton "/svtrksumpt"
   <$> hist1DDef
@@ -75,7 +75,7 @@ svTrkSumPtH =
 
 zBTH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Int -> Fills a
+  => Int -> Fills m a
 zBTH nbins =
   singleton "/zbt"
   <$> hist1DDef
@@ -86,7 +86,7 @@ zBTH nbins =
 
 trkSumPtProfPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 trkSumPtProfPt =
   singleton "/trksumptprofpt"
   <$> prof1DDef
@@ -97,7 +97,7 @@ trkSumPtProfPt =
 
 svTrkSumPtProfPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 svTrkSumPtProfPt =
   singleton "/svtrksumptprofpt"
   <$> prof1DDef
@@ -108,7 +108,7 @@ svTrkSumPtProfPt =
 
 zBTVsPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 zBTVsPt =
   singleton "/zbtvspt"
   <$> hist2DDef
@@ -120,7 +120,7 @@ zBTVsPt =
 
 zBTProfPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 zBTProfPt =
   singleton "/zbtprofpt"
   <$> prof1DDef
@@ -131,7 +131,7 @@ zBTProfPt =
 
 trkSumPtProfEta
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 trkSumPtProfEta =
   singleton "/trksumptprofeta"
   <$> prof1DDef
@@ -142,7 +142,7 @@ trkSumPtProfEta =
 
 svTrkSumPtProfEta
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 svTrkSumPtProfEta =
   singleton "/svtrksumptprofeta"
   <$> prof1DDef
@@ -153,7 +153,7 @@ svTrkSumPtProfEta =
 
 zBTProfEta
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 zBTProfEta =
   singleton "/zbtprofeta"
   <$> prof1DDef
@@ -164,7 +164,7 @@ zBTProfEta =
 
 svTrkSumPtProfTrkSumPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 svTrkSumPtProfTrkSumPt =
   singleton "/svtrksumptproftrksumpt"
   <$> prof1DDef
@@ -175,7 +175,7 @@ svTrkSumPtProfTrkSumPt =
 
 zBTProfTrkSumPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 zBTProfTrkSumPt =
   singleton "/zbtproftrksumpt"
   <$> prof1DDef
@@ -186,7 +186,7 @@ zBTProfTrkSumPt =
 
 nPVTrksH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 nPVTrksH =
   singleton "/npvtrks"
   <$> hist1DDef
@@ -197,7 +197,7 @@ nPVTrksH =
 
 nSVTrksH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 nSVTrksH =
   singleton "/nsvtrks"
   <$> hist1DDef
@@ -208,7 +208,7 @@ nSVTrksH =
 
 nPVTrksProfPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 nPVTrksProfPt =
   singleton "/npvtrksprofpt"
   <$> prof1DDef
@@ -219,7 +219,7 @@ nPVTrksProfPt =
 
 nSVTrksProfPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Fills m a
 nSVTrksProfPt =
   singleton "/nsvtrksprofpt"
   <$> prof1DDef
@@ -230,7 +230,7 @@ nSVTrksProfPt =
 
 bfragHs
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Int -> Fills a
+  => Int -> Fills m a
 bfragHs nbins = mconcat
   [ zBTH nbins
   , trkSumPtH

@@ -8,9 +8,9 @@
 
 module Main where
 
+import           Control.Monad (when)
 import           Atlas
 import           BFrag.Event
-import           Control.Arrow             (first)
 import qualified Control.Foldl             as F
 import           Control.Monad.Trans.Maybe
 import           Data.Functor.Identity
@@ -51,16 +51,18 @@ main = do
   -- get the list of input trees
   fns <- filter (not . null) . lines <$> readFile (infiles args)
 
-  mapM_ (fillFile treeSysts) fns
+  hs <- runVariationT $ mapM_ (fillFile treeSysts) fns
+
+  putStrLn ("writing to file " ++ outfile args)
+  print hs
+  -- encodeFile (outfile args) hs
 
 
 fillFile
   :: (MonadIO m, MonadCatch m)
   => [String]
-  -- -> Maybe (Int, Sum Double, Folder (Vars YodaObj))
   -> String
-  -- -> m (Maybe (Int, Sum Double, Folder (Vars YodaObj)))
-  -> m ()
+  -> VarsT m (Folder YodaObj)
 fillFile systs fn = do
   liftIO . putStrLn $ "analyzing file " <> fn
 
@@ -110,11 +112,16 @@ fillFile systs fn = do
         M.keys nomEntries ++ M.keys trueEntries
         ++ M.keys (M.foldr M.union M.empty systEntries)
 
-  runEffect
+  hs <- F.impurely P.foldM eventHs
     $ each allEntries
       >-> P.map (\x -> (x, lookup' trueEntries nomEntries systEntries x))
       >-> readEvents trueTree nomTree systTrees
-      >-> P.print
+      >-> doEvery 1 (\i _ -> liftIO $ print i)
+
+  liftIO . putStrLn $ "closing file " <> fn
+  liftIO $ tfileClose tfile
+
+  return hs
 
 
   where
@@ -131,6 +138,15 @@ fillFile systs fn = do
       , fmap (M.lookup i) systMaps
       )
 
+
+    doEvery :: Monad m => Int -> (Int -> a -> m ()) -> Pipe a a m r
+    doEvery m f = go m
+      where
+        go n = do
+          x <- await
+          when ((n `mod` m) == 0) (lift $ f n x)
+          yield x
+          go (n+1)
 
 data TreeReadError = TreeReadError deriving (Typeable, Show)
 instance Exception TreeReadError
@@ -170,11 +186,8 @@ readEvents tttrue ttnom ttsysts = do
 
     toEvent :: forall a. PhysObj a -> M.Map T.Text (PhysObj a) -> PhysObj a
     toEvent n s =
-      let systs :: M.Map Text (Maybe (a, Double))
-          systs = runIdentity . getNominal . runPhysObj <$> s
-          n' :: VarsT Identity (Maybe (a, Double))
+      let systs = runIdentity . getNominal . runPhysObj <$> s
           n' = runPhysObj n
-          v :: VarsT Identity (Maybe (a, Double))
           v = variations (pure . mappend (strictMap systs)) n'
       in PhysObjT . WriterT . MaybeT $ (fmap.fmap.fmap) (sf "wgt") v
 

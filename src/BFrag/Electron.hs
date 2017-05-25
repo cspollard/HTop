@@ -40,5 +40,5 @@ readElectrons = do
 
   return es
 
-electronHs :: Fills Electron
+electronHs :: Fills m Electron
 electronHs = lvHs

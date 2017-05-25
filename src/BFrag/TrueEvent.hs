@@ -29,7 +29,7 @@ readTrueEvent = do
 trueJets :: Lens' TrueEvent [TrueJet]
 trueJets = lens _trueJets $ \te x -> te { _trueJets = x }
 
-trueEventHs :: Fills TrueEvent
+trueEventHs :: Fills m TrueEvent
 trueEventHs = mempty
   -- prefixF "/truthjets" . over (traverse.traverse.xlabel) ("truth jet " <>)
   -- <$> F.handles (to sequence.folded) trueJetHs

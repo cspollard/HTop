@@ -80,7 +80,7 @@ readRecoEvent dmc = do
   return $ w >> return (RecoEvent mu' els mus js met')
 
 
-muH :: Fills RecoEvent
+muH :: Fills m RecoEvent
 muH =
   singleton "/mu"
   <$> prebind (varObj . view mu) h
@@ -90,7 +90,7 @@ muH =
 
 
 -- TODO
--- npvH :: Fills RecoEvent
+-- npvH :: Fills m RecoEvent
 -- npvH =
 --   singleton "/npv"
 --   <$> preBind (onlyObjVars . view npv) h
@@ -99,7 +99,7 @@ muH =
 --     h = hist1DDef (binD 0 25 50) "$< \\mu >$" (dndx "npv" "1")
 
 
-metH :: Fills RecoEvent
+metH :: Fills m RecoEvent
 metH =
   prefixF "/met"
   . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
@@ -118,7 +118,7 @@ elmujj e =
         [j1, j2] -> lvDREta j1 j2 > 1.0
         _        -> False
 
-recoEventHs :: Fills RecoEvent
+recoEventHs :: Fills m RecoEvent
 recoEventHs = mconcat [ metH, muH ]
   -- mconcat
   --   [ muH
@@ -153,7 +153,7 @@ recoEventHs = mconcat [ metH, muH ]
 --         then return [j']
 --         else return []
 --
--- probeJetHs :: Fills RecoEvent
+-- probeJetHs :: Fills m RecoEvent
 -- probeJetHs = mconcat
 --   [ prefixF "/probejets" . over (traverse.traverse.xlabel) ("probe jet " <>)
 --     <$> F.premap (fmap join . sequenceA) (F.handles folded jetHs)

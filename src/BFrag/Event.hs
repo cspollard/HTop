@@ -13,8 +13,8 @@ module BFrag.Event
   , module X
   , runNumber, eventNumber
   , readRunNumber, readEventNumber, readRunEventNumber
-  , recoEvent, trueEvent -- , recoVariations
-  -- , eventHs
+  , recoEvent, trueEvent
+  , eventHs
   ) where
 
 import           Atlas
@@ -25,6 +25,7 @@ import           BFrag.Muon             as X
 import           BFrag.PtEtaPhiE        as X
 import           BFrag.RecoEvent        as X
 import           BFrag.TrueEvent        as X
+import qualified Control.Foldl          as F
 import           Control.Lens
 import           Data.HEP.LorentzVector as X
 import           Data.TTree
@@ -61,30 +62,8 @@ readRunEventNumber :: (MonadIO m, MonadThrow m) => TreeRead m (CUInt, CULong)
 readRunEventNumber = (,) <$> readRunNumber <*> readEventNumber
 
 
-
--- TODO
--- I think this would be easier to understand
--- if we had (f (Pipe a b m ()) and turned it into
--- Pipe (f a) (f b) m ()
-
--- TODO
--- this is all really hard to read and understand.
-
--- TODO
--- partial
--- recoVariations
---   :: Monad m
---   => StrictMap T.Text (Producer ((CUInt, CULong), RecoEvent) (PhysObjT m) ())
---   -> Producer ((CUInt, CULong), RecoEvent) (PhysObjT m) ()
--- recoVariations ps =
---   alignPipesBy fst ps >-> P.map (fmap (f . (fmap.fmap) snd))
---   where
---     f :: StrictMap T.Text (Maybe (PhysObj RecoEvent)) -> PhysObj RecoEvent
---     f m = fromMaybes . fromJust $ mapToVariation "nominal" m
---
---     fromMaybes :: Vars (Maybe (PhysObj a)) -> PhysObj a
---     fromMaybes = join . PhysObjT . WriterT . fmap (,mempty) . MaybeT
-
+eventHs :: Monad m => F.FoldM (VarsT m) Event (Folder YodaObj)
+eventHs = F.handlesM recoEvent recoEventHs
 
 -- eventHs :: F.FoldM Vars Event (Folder YodaObj)
 -- eventHs = F.premapM f recoEventHs

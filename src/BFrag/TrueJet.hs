@@ -28,7 +28,7 @@ data TrueJet =
 instance HasLorentzVector TrueJet where
   toPtEtaPhiE = lens _tjPtEtaPhiE $ \tj x -> tj { _tjPtEtaPhiE = x }
 
-trueJetHs :: Fills TrueJet
+trueJetHs :: Fills m TrueJet
 trueJetHs = mconcat [ lvHs, bfragHs 7 ]
 
 data BHadron =
