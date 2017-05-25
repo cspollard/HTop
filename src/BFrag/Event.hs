@@ -27,7 +27,6 @@ import           BFrag.RecoEvent        as X
 import           BFrag.TrueEvent        as X
 import           Control.Lens
 import           Data.HEP.LorentzVector as X
-import           Data.These
 import           Data.TTree
 import           GHC.Generics           (Generic)
 
@@ -35,19 +34,16 @@ data Event =
   Event
     { _runNumber   :: CUInt
     , _eventNumber :: CULong
-    , _events      :: These (PhysObj TrueEvent) (PhysObj RecoEvent)
+    , _trueEvent   :: PhysObj TrueEvent
+    , _recoEvent   :: PhysObj RecoEvent
     } deriving (Generic, Show)
 
 
-events :: Lens' Event (These (PhysObj TrueEvent) (PhysObj RecoEvent))
-events = lens _events $ \e x -> e { _events = x }
+trueEvent :: Lens' Event (PhysObj TrueEvent)
+trueEvent = lens _trueEvent $ \e x -> e { _trueEvent = x }
 
--- trueEvent :: ' Event (Maybe (PhysObj TrueEvent))
-trueEvent :: Getter Event (Maybe (PhysObj TrueEvent))
-trueEvent = events . pre here
-
-recoEvent :: Getter Event (Maybe (PhysObj RecoEvent))
-recoEvent = events . pre there
+recoEvent :: Lens' Event (PhysObj RecoEvent)
+recoEvent = lens _recoEvent $ \e x -> e { _recoEvent = x }
 
 runNumber :: Lens' Event CUInt
 runNumber = lens _runNumber $ \e x -> e { _runNumber = x }

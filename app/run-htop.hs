@@ -10,24 +10,23 @@ module Main where
 
 import           Atlas
 import           BFrag.Event
-import           Control.Arrow   (first)
-import qualified Control.Foldl   as F
-import           Control.Lens    hiding (each)
-import           Control.Monad   (when)
-import           Data.Align
-import qualified Data.Map.Strict as M
+import           Control.Arrow             (first)
+import qualified Control.Foldl             as F
+import           Control.Monad.Trans.Maybe
+import           Data.Functor.Identity
+import           Data.List                 (nub)
+import qualified Data.Map.Strict           as M
 import           Data.Semigroup
-import qualified Data.Set        as S
-import qualified Data.Text       as T
+import qualified Data.Text                 as T
 import           Data.TFile
-import           Data.These
 import           Data.TTree
+import           Data.Typeable
 import           GHC.Float
 import           Options.Generic
 import           Pipes
-import           Pipes.Core
-import qualified Pipes.Prelude   as P
-import           System.IO       (BufferMode (..), hSetBuffering, stdout)
+import qualified Pipes.Prelude             as P
+import           System.IO                 (BufferMode (..), hSetBuffering,
+                                            stdout)
 
 
 -- TODO
@@ -95,45 +94,115 @@ fillFile systs fn = do
       entryRead = (,) <$> readRunEventNumber <*> readEntry
       entries t = entryFold $ runTTree entryRead t
 
-      dmc ds tn =
-        if ds == 0
-          then Data'
-          else MC' $
-            if ds == 410501 && tn == "nominal"
-              then AllVars
-              else NoVars
+  trueTree <- ttree tfile "particleLevel"
+  nomTree <- ttree tfile "nominal"
 
-  treesl <- mapM (\tn -> (tn,) <$> ttree tfile tn) systs
-  treeEntries <-
-    traverse (\(tn, t) -> fmap (M.singleton tn) <$> entries t) treesl
-  let -- xs :: M.Map (CUInt, CULong) (M.Map String Int)
-      xs = M.unionsWith M.union treeEntries
-      -- trees :: M.Map String TTree
-      trees = M.fromList treesl
+  trueEntries <- entries trueTree
+  nomEntries <- entries nomTree
 
+  (systTrees :: M.Map String TTree) <-
+    M.fromList <$> mapM (\tn -> (tn,) <$> ttree tfile tn) systs
+
+  systEntries <- mapM entries systTrees
+
+  let allEntries :: [(CUInt, CULong)]
+      allEntries = nub $
+        M.keys nomEntries ++ M.keys trueEntries
+        ++ M.keys (M.foldr M.union M.empty systEntries)
 
   runEffect
-    $ each xs
-      >-> runTrees (readRecoEvent $ MC' NoVars) trees
-      -- >-> P.map ((fmap.fmap.fmap) $ fmap (view toPtEtaPhiE) . view jets)
-      -- >-> P.map ((fmap.fmap) runPhysObj)
+    $ each allEntries
+      >-> P.map (\x -> (x, lookup' trueEntries nomEntries systEntries x))
+      >-> readEvents trueTree nomTree systTrees
       >-> P.print
 
 
-runTrees
-  :: (MonadThrow m, MonadIO m, Ord k)
-  => TreeRead m a
-  -> M.Map k TTree
-  -> Pipe (M.Map k Int) (M.Map k (Maybe a)) m r
-runTrees tr ts = do
-  is <- await
-  let f _ t i = Just $ first Just <$> readTree tr i t
-      xs = M.mergeWithKey f (fmap (return . (Nothing,))) (const M.empty) ts is
+  where
+    lookup'
+      :: Ord a
+      => M.Map a b
+      -> M.Map a b
+      -> M.Map k (M.Map a b)
+      -> a
+      -> (Maybe b, Maybe b, M.Map k (Maybe b))
+    lookup' trueMap nomMap systMaps i =
+      ( M.lookup i trueMap
+      , M.lookup i nomMap
+      , fmap (M.lookup i) systMaps
+      )
 
-  m <- lift $ sequence xs
-  yield $ fst <$> m
-  runTrees tr $ snd <$> m
 
+data TreeReadError = TreeReadError deriving (Typeable, Show)
+instance Exception TreeReadError
+
+readEvents
+  :: (MonadThrow m, MonadIO m)
+  => TTree
+  -> TTree
+  -> M.Map String TTree
+  -> Pipe ((CUInt, CULong), (Maybe Int, Maybe Int, M.Map String (Maybe Int))) Event m r
+readEvents tttrue ttnom ttsysts = do
+  ((rn, en), (mitrue, minom, isysts)) <- await
+  liftIO $ print isysts
+  let f tr t (Just i) = lift $ readTree tr i t
+      f _ t Nothing   = return (fail "Nothing", t)
+
+      systs' =
+        M.mergeWithKey
+          (\_ t mi -> Just $ f (readRecoEvent $ MC' NoVars) t mi)
+          (const . M.singleton "" $ throwM TreeReadError)
+          (const . M.singleton "" $ throwM TreeReadError)
+          ttsysts
+          isysts
+
+  (true, tttrue') <- f readTrueEvent tttrue mitrue
+  (nom, ttnom') <- f (readRecoEvent $ MC' AllVars) ttnom minom
+  msysts <- sequence systs'
+
+  -- TODO
+  -- traverses Map twice
+  let systs = fst <$> msysts
+      ttsysts' = snd <$> msysts
+
+  -- TODO
+  -- make an Event out of what we've got
+  yield . Event rn en true . toEvent nom $ M.mapKeys T.pack systs
+  readEvents tttrue' ttnom' ttsysts'
+
+  where
+
+    toEvent :: forall a. PhysObj a -> M.Map T.Text (PhysObj a) -> PhysObj a
+    toEvent n s =
+      let systs :: M.Map Text (Maybe (a, Double))
+          systs = runIdentity . getNominal . runPhysObj <$> s
+          n' :: VarsT Identity (Maybe (a, Double))
+          n' = runPhysObj n
+          v :: VarsT Identity (Maybe (a, Double))
+          v = variations (pure . mappend (strictMap systs)) n'
+      in PhysObjT . WriterT . MaybeT $ (fmap.fmap.fmap) (sf "wgt") v
+
+
+combineTrees
+  :: (MonadThrow m, MonadIO m)
+  => (TTree, TreeRead m a)
+  -> (TTree, TreeRead m b)
+  -> (Maybe a -> Maybe b -> c)
+  -> Pipe (Maybe Int, Maybe Int) c m r
+combineTrees (ta, tra) (tb, trb) f = do
+  (mi, mj) <- await
+
+  (ma, ta') <-
+    case mi of
+      Just i  -> lift $ first Just <$> readTree tra i ta
+      Nothing -> return (Nothing, ta)
+
+  (mb, tb') <-
+    case mj of
+      Just j  -> lift $ first Just <$> readTree trb j tb
+      Nothing -> return (Nothing, tb)
+
+  yield $ f ma mb
+  combineTrees (ta', tra) (tb', trb) f
 
 
 --       readEntries tn = do
