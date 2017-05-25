@@ -143,15 +143,14 @@ readEvents
   -> Pipe ((CUInt, CULong), (Maybe Int, Maybe Int, M.Map String (Maybe Int))) Event m r
 readEvents tttrue ttnom ttsysts = do
   ((rn, en), (mitrue, minom, isysts)) <- await
-  liftIO $ print isysts
   let f tr t (Just i) = lift $ readTree tr i t
       f _ t Nothing   = return (fail "Nothing", t)
 
       systs' =
         M.mergeWithKey
           (\_ t mi -> Just $ f (readRecoEvent $ MC' NoVars) t mi)
-          (const . M.singleton "" $ throwM TreeReadError)
-          (const . M.singleton "" $ throwM TreeReadError)
+          (fmap $ const $ throwM TreeReadError)
+          (fmap $ const $ throwM TreeReadError)
           ttsysts
           isysts
 
@@ -164,8 +163,6 @@ readEvents tttrue ttnom ttsysts = do
   let systs = fst <$> msysts
       ttsysts' = snd <$> msysts
 
-  -- TODO
-  -- make an Event out of what we've got
   yield . Event rn en true . toEvent nom $ M.mapKeys T.pack systs
   readEvents tttrue' ttnom' ttsysts'
 
@@ -180,29 +177,6 @@ readEvents tttrue ttnom ttsysts = do
           v :: VarsT Identity (Maybe (a, Double))
           v = variations (pure . mappend (strictMap systs)) n'
       in PhysObjT . WriterT . MaybeT $ (fmap.fmap.fmap) (sf "wgt") v
-
-
-combineTrees
-  :: (MonadThrow m, MonadIO m)
-  => (TTree, TreeRead m a)
-  -> (TTree, TreeRead m b)
-  -> (Maybe a -> Maybe b -> c)
-  -> Pipe (Maybe Int, Maybe Int) c m r
-combineTrees (ta, tra) (tb, trb) f = do
-  (mi, mj) <- await
-
-  (ma, ta') <-
-    case mi of
-      Just i  -> lift $ first Just <$> readTree tra i ta
-      Nothing -> return (Nothing, ta)
-
-  (mb, tb') <-
-    case mj of
-      Just j  -> lift $ first Just <$> readTree trb j tb
-      Nothing -> return (Nothing, tb)
-
-  yield $ f ma mb
-  combineTrees (ta', tra) (tb', trb) f
 
 
 --       readEntries tn = do
