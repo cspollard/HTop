@@ -8,10 +8,10 @@
 
 module Main where
 
-import           Control.Monad (when)
 import           Atlas
 import           BFrag.Event
 import qualified Control.Foldl             as F
+import           Control.Monad             (when)
 import           Control.Monad.Trans.Maybe
 import           Data.Functor.Identity
 import           Data.List                 (nub)
@@ -112,7 +112,8 @@ fillFile systs fn = do
         M.keys nomEntries ++ M.keys trueEntries
         ++ M.keys (M.foldr M.union M.empty systEntries)
 
-  hs <- F.impurely P.foldM eventHs
+  hs <-
+    F.impurely P.foldM eventHs
     $ each allEntries
       >-> P.map (\x -> (x, lookup' trueEntries nomEntries systEntries x))
       >-> readEvents trueTree nomTree systTrees
