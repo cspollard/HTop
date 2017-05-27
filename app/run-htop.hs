@@ -54,7 +54,7 @@ main = do
   -- TODO!
   let fn = head fns
 
-  _ <- runVariationT $ fillFile treeSysts fn
+  (n, v) <- fmap runVariation . runVariationT $ fillFile treeSysts fn
 
   putStrLn ("writing to file " ++ outfile args)
   -- encodeFile (outfile args) hs
