@@ -51,10 +51,12 @@ main = do
   -- get the list of input trees
   fns <- filter (not . null) . lines <$> readFile (infiles args)
 
-  hs <- runVariationT $ mapM_ (fillFile treeSysts) fns
+  -- TODO!
+  let fn = head fns
+
+  _ <- runVariationT $ fillFile treeSysts fn
 
   putStrLn ("writing to file " ++ outfile args)
-  print hs
   -- encodeFile (outfile args) hs
 
 

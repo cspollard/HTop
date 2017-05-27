@@ -60,12 +60,14 @@ readMET = do
   phi <- float2Double <$> readBranch "met_phi"
   return $ PtEtaPhiE et 0 phi et
 
+
 muVars :: DataMC' -> Double -> Vars Double
 muVars Data' m =
     -- TODO
     -- here we assume the scaling has already taken place...
     variation m [("datapileupup", m*1.09), ("datapileupdown", m/1.09)]
 muVars _ m = pure m
+
 
 readRecoEvent
   :: (MonadIO m, MonadThrow m)
