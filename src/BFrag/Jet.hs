@@ -15,6 +15,7 @@ import           BFrag.PtEtaPhiE
 import           BFrag.Systematics
 import           Control.Applicative (ZipList (..))
 import           Control.Lens
+import           Data.Bifunctor
 import           Data.TTree
 import qualified Data.Vector         as V
 import           GHC.Float
@@ -118,10 +119,10 @@ jetTracksTLV
   -> String
   -> TreeRead m (ZipList (ZipList PtEtaPhiE))
 jetTracksTLV spt seta sphi se = do
-    trkpts <- (fmap.fmap) float2Double . fromVVector <$> readBranch spt
+    trkpts <- (fmap.fmap) ((/1e3) . float2Double) . fromVVector <$> readBranch spt
     trketas <- (fmap.fmap) float2Double . fromVVector <$> readBranch seta
     trkphis <- (fmap.fmap) float2Double . fromVVector <$> readBranch sphi
-    trkes <- (fmap.fmap) float2Double . fromVVector <$> readBranch se
+    trkes <- (fmap.fmap) ((/1e3) . float2Double) . fromVVector <$> readBranch se
 
     let trks = V.zipWith4
             ( \pts etas phis es ->
@@ -131,14 +132,14 @@ jetTracksTLV spt seta sphi se = do
     return . ZipList . fmap ZipList $ V.toList trks
 
 
-mv2c10H :: Fills m Jet
+mv2c10H :: Fills Jet
 mv2c10H =
-  singleton "/mv2c10"
-  <$> hist1DDef (binD (-1) 25 1) "MV2c10" (dndx "\\mathrm{MV2c10}" "1")
-  <$= view mv2c10
+  fmap (singleton "/mv2c10") . physObjH
+  $ hist1DDef (binD (-1) 25 1) "MV2c10" (dndx "\\mathrm{MV2c10}" "1")
+    <$= first (view mv2c10)
 
 
-jetHs :: Fills m Jet
+jetHs :: Fills Jet
 jetHs = mempty
 
 -- jetHs :: Fills m m (Jet, Maybe TrueJet)

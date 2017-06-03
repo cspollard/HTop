@@ -28,7 +28,7 @@ data TrueJet =
 instance HasLorentzVector TrueJet where
   toPtEtaPhiE = lens _tjPtEtaPhiE $ \tj x -> tj { _tjPtEtaPhiE = x }
 
-trueJetHs :: Fills m TrueJet
+trueJetHs :: Fills TrueJet
 trueJetHs = mconcat [ lvHs, bfragHs 7 ]
 
 data BHadron =
@@ -92,10 +92,10 @@ vecVecTLV
   :: (MonadIO m, MonadThrow m)
   => String -> String -> String -> String -> TreeRead m (ZipList [PtEtaPhiE])
 vecVecTLV spt seta sphi se = do
-    partpts <- (fmap.fmap) float2Double . fromVVector <$> readBranch spt
+    partpts <- (fmap.fmap) ((/1e3) . float2Double) . fromVVector <$> readBranch spt
     partetas <- (fmap.fmap) float2Double . fromVVector <$> readBranch seta
     partphis <- (fmap.fmap) float2Double . fromVVector <$> readBranch sphi
-    partes <- (fmap.fmap) float2Double . fromVVector <$> readBranch se
+    partes <- (fmap.fmap) ((/1e3) . float2Double) . fromVVector <$> readBranch se
 
     let ps = V.zipWith4
             ( \pts etas phis es ->

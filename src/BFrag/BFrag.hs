@@ -6,6 +6,7 @@ module BFrag.BFrag where
 import           Atlas
 import           Control.Arrow  ((&&&))
 import           Control.Lens
+import           Data.Bifunctor
 import           Data.Foldable  (fold)
 import           Data.Semigroup
 
@@ -53,197 +54,212 @@ zBL = undefined
 
 trkSumPtH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 trkSumPtH =
-  singleton "/trksumpt"
-  <$> hist1DDef
+  fmap (singleton "/trksumpt") . physObjH
+  $ hist1DDef
     (binD 0 25 250)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     (dndx pt gev)
-  <$= trackSumPt
+    <$= first trackSumPt
+
 
 svTrkSumPtH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 svTrkSumPtH =
-  singleton "/svtrksumpt"
-  <$> hist1DDef
+  fmap (singleton "/svtrksumpt") . physObjH
+  $ hist1DDef
     (binD 0 25 250)
     "$p_{\\mathrm T} \\sum \\mathrm{SV trk}$"
     (dndx pt gev)
-  <$= svTrackSumPt
+    <$= first svTrackSumPt
+
 
 zBTH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Int -> Fills m a
+  => Int -> Fills a
 zBTH nbins =
-  singleton "/zbt"
-  <$> hist1DDef
+  fmap (singleton "/zbt") . physObjH
+  $ hist1DDef
     (binD 0 nbins 1.05)
     "$z_{p_{\\mathrm T}}$"
     (dndx "z_{p_{\\mathrm T}}" "1")
-  <$= zBT
+    <$= first zBT
+
 
 trkSumPtProfPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 trkSumPtProfPt =
-  singleton "/trksumptprofpt"
-  <$> prof1DDef
+  fmap (singleton "/trksumptprofpt") . physObjH
+  $ prof1DDef
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
-  <$= (view lvPt &&& trackSumPt)
+    <$= first (view lvPt &&& trackSumPt)
+
 
 svTrkSumPtProfPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 svTrkSumPtProfPt =
-  singleton "/svtrksumptprofpt"
-  <$> prof1DDef
+  fmap (singleton "/svtrksumptprofpt") . physObjH
+  $  prof1DDef
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-  <$= (view lvPt &&& svTrackSumPt)
+    <$= first (view lvPt &&& svTrackSumPt)
+
 
 zBTVsPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 zBTVsPt =
-  singleton "/zbtvspt"
-  <$> hist2DDef
+  fmap (singleton "/zbtvspt") . physObjH
+  $ hist2DDef
     (binD 25 18 250)
     (binD 0 21 1.05)
     "$p_{\\mathrm T}$ [GeV]"
     "$z_{p_{\\mathrm T}}$"
-  <$= (view lvPt &&& zBT)
+    <$= first (view lvPt &&& zBT)
+
 
 zBTProfPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 zBTProfPt =
-  singleton "/zbtprofpt"
-  <$> prof1DDef
+  fmap (singleton "/zbtprofpt") . physObjH
+  $ prof1DDef
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<z_{p_{\\mathrm T}}>$"
-  <$= (view lvPt &&& zBT)
+    <$= first (view lvPt &&& zBT)
+
 
 trkSumPtProfEta
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 trkSumPtProfEta =
-  singleton "/trksumptprofeta"
-  <$> prof1DDef
+  fmap (singleton "/trksumptprofeta") . physObjH
+  $ prof1DDef
     (binD 0 21 2.1)
     "$\\eta$"
     "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
-  <$= (view lvEta &&& trackSumPt)
+    <$= first (view lvEta &&& trackSumPt)
 
 svTrkSumPtProfEta
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 svTrkSumPtProfEta =
-  singleton "/svtrksumptprofeta"
-  <$> prof1DDef
+  fmap (singleton "/svtrksumptprofeta") . physObjH
+  $ prof1DDef
     (binD 0 21 2.1)
     "$\\eta$"
     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-  <$= (view lvEta &&& svTrackSumPt)
+    <$= first (view lvEta &&& svTrackSumPt)
+
 
 zBTProfEta
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 zBTProfEta =
-  singleton "/zbtprofeta"
-  <$> prof1DDef
+  fmap (singleton "/zbtprofeta") . physObjH
+  $ prof1DDef
     (binD 0 21 2.1)
     "$\\eta$"
     "$<z_{p_{\\mathrm T}}>$"
-  <$= (view lvEta &&& zBT)
+    <$= first (view lvEta &&& zBT)
+
 
 svTrkSumPtProfTrkSumPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 svTrkSumPtProfTrkSumPt =
-  singleton "/svtrksumptproftrksumpt"
-  <$> prof1DDef
+  fmap (singleton "/svtrksumptproftrksumpt") . physObjH
+  $ prof1DDef
     (binD 0 25 100)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-  <$= (svTrackSumPt &&& trackSumPt)
+    <$= first (svTrackSumPt &&& trackSumPt)
+
 
 zBTProfTrkSumPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 zBTProfTrkSumPt =
-  singleton "/zbtproftrksumpt"
-  <$> prof1DDef
+  fmap (singleton "/zbtproftrksumpt") . physObjH
+  $ prof1DDef
     (binD 0 25 100)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     "$<z_{p_{\\mathrm T}}>$"
-  <$= (trackSumPt &&& zBT)
+    <$= first (trackSumPt &&& zBT)
 
 nPVTrksH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 nPVTrksH =
-  singleton "/npvtrks"
-  <$> hist1DDef
+  fmap (singleton "/npvtrks") . physObjH
+  $ hist1DDef
     (binD 0 20 20)
     "$n$ PV tracks"
     (dndx "n" "1")
-  <$= fromIntegral . length . pvTracks
+    <$= first (fromIntegral . length . pvTracks)
+
 
 nSVTrksH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 nSVTrksH =
-  singleton "/nsvtrks"
-  <$> hist1DDef
+  fmap (singleton "/nsvtrks") . physObjH
+  $ hist1DDef
     (binD 0 10 10)
     "$n$ SV tracks"
     (dndx "n" "1")
-  <$= fromIntegral . nSVTracks
+    <$= first (fromIntegral . nSVTracks)
+
 
 nPVTrksProfPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 nPVTrksProfPt =
-  singleton "/npvtrksprofpt"
-  <$> prof1DDef
+  fmap (singleton "/npvtrksprofpt") . physObjH
+  $ prof1DDef
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<n$ PV tracks $>$"
-  <$= (view lvPt &&& (fromIntegral . nPVTracks))
+    <$= first (view lvPt &&& (fromIntegral . nPVTracks))
+
 
 nSVTrksProfPt
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills m a
+  => Fills a
 nSVTrksProfPt =
-  singleton "/nsvtrksprofpt"
-  <$> prof1DDef
+  fmap (singleton "/nsvtrksprofpt") . physObjH
+  $ prof1DDef
     (binD 25 18 250)
     "$p_{\\mathrm T}$ [GeV]"
     "$<n$ SV tracks $>$"
-  <$= (view lvPt &&& (fromIntegral . nSVTracks))
+    <$= first (view lvPt &&& (fromIntegral . nSVTracks))
+
 
 bfragHs
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Int -> Fills m a
-bfragHs nbins = mconcat
-  [ zBTH nbins
-  , trkSumPtH
-  , svTrkSumPtH
-  -- , trkSumPtProfPt
-  -- , svTrkSumPtProfPt
-  -- , zBTProfPt
-  -- , trkSumPtProfEta
-  -- , svTrkSumPtProfEta
-  -- , zBTProfEta
-  , nPVTrksH
-  , nSVTrksH
-  -- , nPVTrksProfPt
-  -- , nSVTrksProfPt
-  -- , zBTVsPt
-  ]
+  => Int -> Fills a
+bfragHs nbins =
+  mconcat
+    [ zBTH nbins
+    , trkSumPtH
+    , svTrkSumPtH
+    -- , trkSumPtProfPt
+    -- , svTrkSumPtProfPt
+    -- , zBTProfPt
+    -- , trkSumPtProfEta
+    -- , svTrkSumPtProfEta
+    -- , zBTProfEta
+    , nPVTrksH
+    , nSVTrksH
+    -- , nPVTrksProfPt
+    -- , nSVTrksProfPt
+    -- , zBTVsPt
+    ]

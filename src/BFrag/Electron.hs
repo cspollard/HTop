@@ -33,12 +33,13 @@ readElectrons = do
   cletas <- fmap float2Double <$> readBranch "el_cl_eta"
   chs <- fmap float2Double <$> readBranch "el_charge"
   d0sigs <- fmap float2Double <$> readBranch "el_d0sig"
-  ptvc20s <- fmap float2Double <$> readBranch "el_ptvarcone20"
+  ptvc20s <- fmap ((/1e3) . float2Double) <$> readBranch "el_ptvarcone20"
 
-  let es = getZipList
+  let es =
+        getZipList
         $ Electron <$> tlvs <*> cletas <*> chs <*> d0sigs <*> ptvc20s
 
   return es
 
-electronHs :: Fills m Electron
+electronHs :: Fills Electron
 electronHs = lvHs

@@ -9,9 +9,12 @@
 module BFrag.Systematics
   ( recoWgt, trueWgt, treeSysts, lumi
   , DataMC'(..), VarCfg(..)
+  , procDict
   ) where
 
 import           Atlas
+import qualified Data.IntMap.Strict as IM
+import qualified Data.Text          as T
 import           Data.TTree
 import           GHC.Float
 
@@ -22,8 +25,8 @@ import           GHC.Float
 data DataMC' = Data' | MC' VarCfg deriving Show
 data VarCfg = NoVars | AllVars deriving Show
 
-lumi :: Applicative m => VarsT m Double
-lumi = variation 38000 [("LumiUp", 41800), ("LumiDown", 34200)]
+lumi :: Vars Double
+lumi = Variation 38000 [("LumiUp", 41800), ("LumiDown", 34200)]
 
 recoWgt :: (MonadIO m, MonadThrow m) => DataMC' -> TreeRead m (PhysObj ())
 recoWgt Data' = return $ pure ()
@@ -65,7 +68,7 @@ puWgt vcfg = do
       puwdown <- float2Double <$> readBranch "weight_pileup_DOWN"
       return . varSF
         $ sf "weight_pileup"
-          <$> variation puw [("puwgtup", puwup), ("puwgtdown", puwdown)]
+          <$> Variation puw [("puwgtup", puwup), ("puwgtdown", puwdown)]
 
 
 jvtWgt :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
@@ -78,7 +81,7 @@ jvtWgt vcfg = do
       jvtwdown <- float2Double <$> readBranch "weight_jvt_DOWN"
       return . varSF
         $ sf "weight_jvt"
-          <$> variation jvtw [("jvtwgtup", jvtwup), ("jvtwgtdown", jvtwdown)]
+          <$> Variation jvtw [("jvtwgtup", jvtwup), ("jvtwgtdown", jvtwdown)]
 
 
 treeSysts :: [String]
@@ -141,10 +144,10 @@ treeSysts =
   ]
 
 
--- -- TODO
--- -- is this partial?
+-- TODO
+-- is this partial?
 -- ttbarSysts
---   :: ProcMap (VarsT m (Folder YodaObj)) -> ProcMap (VarsT m (Folder YodaObj))
+--   :: ProcMap (Folder (Vars YodaObj)) -> ProcMap (Folder (Vars YodaObj))
 -- ttbarSysts preds =
 --   let systttbarDSIDs = (+410000) <$> [1, 2, 3, 4] :: [Int]
 --       (systttbar', systpreds) =
@@ -165,13 +168,14 @@ treeSysts =
 --             $ systttbar
 --
 --   in over (ix 410000) addSysts systpreds
---
---
--- procDict :: IM.IntMap T.Text
--- procDict =
---   [ (410000, "PowPyNom")
---   , (410001, "PowPyRadUp")
---   , (410002, "PowPyRadDown")
---   , (410003, "aMCHer")
---   , (410004, "PowHer")
---   ]
+
+
+procDict :: IM.IntMap T.Text
+procDict =
+  [ (410000, "PowPy6")
+  , (410001, "PowPy6RadUp")
+  , (410002, "PowPy6RadDown")
+  , (410003, "aMCHerpp")
+  , (410004, "PowHerpp")
+  , (410501, "PowPy8")
+  ]

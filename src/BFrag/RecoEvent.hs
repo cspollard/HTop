@@ -32,7 +32,7 @@ data RecoEvent =
     , _electrons :: [Electron]
     , _muons     :: [Muon]
     , _jets      :: [Jet]
-    , _met       :: PhysObj PtEtaPhiE
+    , _met       :: PtEtaPhiE
     } deriving (Generic, Show)
 
 
@@ -51,13 +51,13 @@ muons = lens _muons $ \e x -> e { _muons = x }
 jets :: Lens' RecoEvent [Jet]
 jets = lens _jets $ \e x -> e { _jets = x }
 
-met :: Lens' RecoEvent (PhysObj PtEtaPhiE)
+met :: Lens' RecoEvent PtEtaPhiE
 met = lens _met $ \e x -> e { _met = x }
 
 readMET :: (MonadIO m, MonadThrow m) => TreeRead m PtEtaPhiE
 readMET = do
-  et <- float2Double <$> readBranch "met_met"
-  phi <- float2Double <$> readBranch "met_phi"
+  et <- (/1e3) . float2Double <$> readBranch "met_met"
+  phi <- (/1e3) . float2Double <$> readBranch "met_phi"
   return $ PtEtaPhiE et 0 phi et
 
 
@@ -65,7 +65,7 @@ muVars :: DataMC' -> Double -> Vars Double
 muVars Data' m =
     -- TODO
     -- here we assume the scaling has already taken place...
-    variation m [("datapileupup", m*1.09), ("datapileupdown", m/1.09)]
+    Variation m [("datapileupup", m*1.09), ("datapileupdown", m/1.09)]
 muVars _ m = pure m
 
 
@@ -78,34 +78,29 @@ readRecoEvent dmc = do
   els <- readElectrons
   mus <- readMuons
   js <- readJets dmc
-  met' <- pure <$> readMET
+  met' <- readMET
   return $ w >> return (RecoEvent mu' els mus js met')
 
 
-muH :: Fills m RecoEvent
+muH :: Fills RecoEvent
 muH =
   singleton "/mu"
-  <$> prebind (varObj . view mu) h
+  <$> physObjH h =$<< (varObj . view mu)
 
   where
     h = hist1DDef (binD 0 25 100) "$< \\mu >$" (dndx "<\\mu>" "1")
 
 
 -- TODO
--- npvH :: Fills m RecoEvent
--- npvH =
---   singleton "/npv"
---   <$> preBind (onlyObjVars . view npv) h
---
---   where
---     h = hist1DDef (binD 0 25 50) "$< \\mu >$" (dndx "npv" "1")
+-- npvH :: FoldM Vars (RecoEvent, Double) (YodaFolder)
 
 
-metH :: Fills m RecoEvent
+metH :: Fills RecoEvent
 metH =
-  prefixF "/met"
-  . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
-  <$> prebind (view met) ptH
+  over (traverse.traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
+  . singleton "/met/pt"
+  <$> ptH <$= fmap (view met)
+
 
 
 elmujj :: RecoEvent -> PhysObj Bool
@@ -120,7 +115,7 @@ elmujj e =
         [j1, j2] -> lvDREta j1 j2 > 1.0
         _        -> False
 
-recoEventHs :: Fills m RecoEvent
+recoEventHs :: Fills RecoEvent
 recoEventHs = mconcat [ metH, muH ]
   -- mconcat
   --   [ muH

@@ -12,80 +12,62 @@ import           Atlas.ToYoda
 import           BFrag.Systematics
 import           Control.Applicative
 import           Control.Lens           hiding (each)
+import           Data.Bifunctor
 import qualified Data.Histogram.Generic as H
+import qualified Data.IntMap.Strict     as IM
 import qualified Data.Map.Strict        as M
 import           Data.Maybe             (fromJust)
+import           Data.Semigroup
 import qualified Data.Text              as T
 import qualified Data.Vector.Generic    as VG
 import           Pipes
-import           Pipes.Prelude          as P
+import qualified Pipes.Prelude          as P
 import           System.IO
+
+
 
 main :: IO ()
 main = mainWith writeFiles
 
+
 -- TODO
--- migration matrices
--- etc.
+-- we're not writing data.
+-- partial
+writeFiles :: String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
+writeFiles outf pm' =
+  let pm :: Folder (Vars YodaObj)
+      (pm, _) = over (_1.traverse) (liftA2 scaleH' lumi) $ collapseProcs pm'
 
-writeFiles :: Double -> String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
-writeFiles _ outf pm' =
-  let (pm, d) = over (_1.traverse) (liftA2 scaleH' lumi) $ collapseProcs pm'
-
-      pm'' = variationsToMap "PowPyNom" (sequenceA pm) & at "data" .~ d
-
-      -- TODO
-      -- partial
-      mats =
-        pm''
-        <&> filterFolder (Just "recozbtvstruezbt$")
-
-      truths =
-        pm''
-        <&> set outOfRange Nothing
-          . over histVals (view sumW)
-          . (^?! ix "/elmujj/truthjets/zbt" . noted . _H1DD)
-          . folderToMap
-
-      -- TODO
-      -- yoda is going to divide these by the (2D) bin width before drawing
-      -- them; should we compensate?
-      migs =
-        intersectionWith
-          (\t m -> over (noted._H2DD) (normToX t) <$> m)
-          truths
-          mats
-
-      migs' = migs <&> inF (M.mapKeysMonotonic (`mappend` "mig"))
-
-      pm''' = intersectionWith mappend pm'' migs'
-
+      write :: T.Text -> M.Map T.Text YodaObj -> IO ()
       write varname hs =
         withFile (outf ++ '/' : T.unpack varname ++ ".yoda") WriteMode $ \h ->
           runEffect
-          $ P.toHandle h
-            <-< P.map (T.unpack . uncurry printYodaObj)
-            <-< each (M.toList hs)
+          $ each (M.toList hs)
+            >-> P.map (T.unpack . uncurry printYodaObj . first ("/htop" <>))
+            >-> P.toHandle h
 
-  in
-    runEffect
-    $ P.mapM_ (uncurry write) <-< each (M.toList . unSM $ folderToMap <$> pm''')
+      ps = M.toList . unSM . variationToMap "nominal" $ folderToMap <$> sequence pm
+
+  in runEffect $ each ps >-> P.mapM_ (uncurry write)
 
 
+-- TODO
+-- we are ignoring modeling variations here
+-- as well as backgrounds
+-- partial
 collapseProcs
   :: ProcMap (Folder (Vars YodaObj))
-  -> (Folder (Vars YodaObj), Maybe (Folder YodaObj))
+  -> (Folder (Vars YodaObj), Maybe YodaFolder)
 collapseProcs pm =
   let preds = sans 0 pm
       dat = (fmap.fmap) (view nominal) $ pm ^. at 0
-      preds' = ttbarSysts preds
 
   -- TODO
   -- partial
-  in (preds' ^?! ix 410000, dat)
+  in (preds ^?! ix 410501, dat)
 
 
-scaleH' :: Double -> Annotated Obj -> Annotated Obj
+scaleH' :: Double -> YodaObj -> YodaObj
 scaleH' x = over noted (scaleH x)
 
 normAlongY :: (Bin bx, BinEq by) => Hist2D bx by -> Hist2D bx by

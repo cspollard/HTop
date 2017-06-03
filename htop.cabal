@@ -74,6 +74,9 @@ executable run-htop
                      , cereal-text == 0.1.*
                      , resourcet == 1.1.*
                      , optparse-generic == 1.1.*
+                     , mmorph == 1.0.*
+                     , semigroupoids == 5.1.*
+                     , mtl == 2.2.*
                      , pipes == 4.3.*
                      , pipes-bytestring == 2.1.*
                      , histogram-fill == 0.8.*
@@ -93,23 +96,23 @@ executable run-htop
   ghc-prof-options:    -Wall -fprof-auto -caf-all -rtsopts
 
 
--- executable run-htop-toyoda
---   main-is:             app/run-htop-toyoda.hs
---   build-depends:       base == 4.9.*
---                      , lens == 4.15.*
---                      , containers == 0.5.*
---                      , vector == 0.11.*
---                      , histogram-fill == 0.8.*
---                      , text == 1.2.*
---                      , pipes == 4.3.*
---                      , atlas == 0.1.*
---                      , histogram-extras == 0.2.*
---                      , htop == 0.2.*
---
---   default-language:    Haskell2010
---   ghc-options:         -Wall
---   ghc-prof-options:    -Wall -fprof-auto -caf-all -rtsopts
---
+executable run-htop-toyoda
+  main-is:             app/run-htop-toyoda.hs
+  build-depends:       base == 4.9.*
+                     , lens == 4.15.*
+                     , containers == 0.5.*
+                     , vector == 0.11.*
+                     , histogram-fill == 0.8.*
+                     , text == 1.2.*
+                     , pipes == 4.3.*
+                     , atlas == 0.1.*
+                     , histogram-extras == 0.2.*
+                     , htop == 0.2.*
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  ghc-prof-options:    -Wall -fprof-auto -caf-all -rtsopts
+
 -- executable run-htop-unfold
 --   main-is:             app/run-htop-unfold.hs
 --   build-depends:       base == 4.9.*

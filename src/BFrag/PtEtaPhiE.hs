@@ -15,9 +15,9 @@ lvsFromTTreeF
   -> String
   -> TreeRead m (ZipList PtEtaPhiE)
 lvsFromTTreeF ptn etan phin en = do
-  pts <- fmap float2Double <$> readBranch ptn
+  pts <- fmap ((/1e3) . float2Double) <$> readBranch ptn
   etas <- fmap float2Double <$> readBranch etan
   phis <- fmap float2Double <$> readBranch phin
-  es <- fmap float2Double <$> readBranch en
+  es <- fmap ((/1e3) . float2Double) <$> readBranch en
 
   return $ PtEtaPhiE <$> pts <*> etas <*> phis <*> es

@@ -31,11 +31,11 @@ readMuons = do
   tlvs <- lvsFromTTreeF "mu_pt" "mu_eta" "mu_phi" "mu_e"
   chs <- fmap float2Double <$> readBranch "mu_charge"
   d0sigs <- fmap float2Double <$> readBranch "mu_d0sig"
-  ptvc30s <- fmap float2Double <$> readBranch "mu_ptvarcone30"
+  ptvc30s <- fmap ((/1e3) . float2Double) <$> readBranch "mu_ptvarcone30"
 
   let ms = getZipList $ Muon <$> tlvs <*> chs <*> d0sigs <*> ptvc30s
 
   return ms
 
-muonHs :: Fills m Muon
+muonHs :: Fills Muon
 muonHs = lvHs

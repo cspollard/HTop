@@ -1,32 +1,38 @@
 {-# LANGUAGE DeriveGeneric             #-}
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE OverloadedLists           #-}
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE Rank2Types                #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE TupleSections             #-}
+{-# LANGUAGE TypeFamilies              #-}
 
 module Main where
 
 import           Atlas
 import           BFrag.Event
-import qualified Control.Foldl             as F
-import           Control.Monad             (when)
+import qualified Control.Foldl              as F
+import           Control.Lens               hiding (each)
+import           Control.Monad              (when)
+import qualified Control.Monad.Fail         as MF
+import           Control.Monad.State.Strict
 import           Control.Monad.Trans.Maybe
-import           Data.Functor.Identity
-import           Data.List                 (nub)
-import qualified Data.Map.Strict           as M
+import           Data.List                  (nub)
+import qualified Data.Map.Strict            as M
+import           Data.Maybe                 (fromMaybe)
 import           Data.Semigroup
-import qualified Data.Text                 as T
+import qualified Data.Text                  as T
 import           Data.TFile
 import           Data.TTree
 import           Data.Typeable
 import           GHC.Float
 import           Options.Generic
 import           Pipes
-import qualified Pipes.Prelude             as P
-import           System.IO                 (BufferMode (..), hSetBuffering,
-                                            stdout)
+import           Pipes.Lift
+import qualified Pipes.Prelude              as P
+import           System.IO                  (BufferMode (..), hSetBuffering,
+                                             stdout)
 
 
 -- TODO
@@ -54,17 +60,18 @@ main = do
   -- TODO!
   let fn = head fns
 
-  (n, v) <- fmap runVariation . runVariationT $ fillFile treeSysts fn
+
+  hs <- fillFile treeSysts fn
 
   putStrLn ("writing to file " ++ outfile args)
-  -- encodeFile (outfile args) hs
+  encodeFile (outfile args) hs
 
 
 fillFile
   :: (MonadIO m, MonadCatch m)
   => [String]
   -> String
-  -> VarsT m (Folder YodaObj)
+  -> m (Int, Sum Double, Folder (Vars YodaObj))
 fillFile systs fn = do
   liftIO . putStrLn $ "analyzing file " <> fn
 
@@ -77,31 +84,34 @@ fillFile systs fn = do
   -- partial.
   -- throw an error when there is no dsid.
   (Just (dsidc :: CInt)) <-
-    P.head $ runTTree (readBranch "dsid") tw
+    P.head . evalStateP tw $ yield 0 >-> pipeTTree (readBranch "dsid")
 
   let dsid = fromEnum dsidc
-      fo = F.Fold (+) (0 :: Float) id
 
   liftIO . putStrLn $ "dsid: " ++ show dsid
 
   sow <-
-    fmap (Sum . float2Double)
-    . F.purely P.fold fo
-    $ runTTree (readBranch "totalEventsWeighted") tw
+    fmap float2Double
+    . F.purely P.fold F.sum
+    . evalStateP tw
+    $ each ([0..] :: [Int]) >-> pipeTTree (readBranch "totalEventsWeighted")
 
-  liftIO . putStrLn $ "sum of weights: " ++ show (getSum sow)
+  liftIO . putStrLn $ "sum of weights: " ++ show sow
 
   let entryFold =
         F.purely P.fold
         $ F.Fold (\m (i, j) -> M.insert i j m) M.empty id
 
       entryRead = (,) <$> readRunEventNumber <*> readEntry
-      entries t = entryFold $ runTTree entryRead t
+      entries t = entryFold . evalStateP t $ allIdxs >-> pipeTTree entryRead
+      allIdxs = each ([0..] :: [Int])
 
   trueTree <- ttree tfile "particleLevel"
   nomTree <- ttree tfile "nominal"
 
-  trueEntries <- entries trueTree
+  -- TODO
+  -- not running over truth atm
+  trueEntries <- return M.empty
   nomEntries <- entries nomTree
 
   (systTrees :: M.Map String TTree) <-
@@ -109,50 +119,53 @@ fillFile systs fn = do
 
   systEntries <- mapM entries systTrees
 
-  let allEntries :: [(CUInt, CULong)]
-      allEntries = nub $
-        M.keys nomEntries ++ M.keys trueEntries
-        ++ M.keys (M.foldr M.union M.empty systEntries)
+  let allEntries = entryMap trueEntries nomEntries systEntries
+
+  liftIO $ mapM_ print allEntries
 
   hs <-
-    F.impurely P.foldM eventHs
+    F.purely P.fold eventHs
     $ each allEntries
-      >-> P.map (\x -> (x, lookup' trueEntries nomEntries systEntries x))
       >-> readEvents trueTree nomTree systTrees
-      >-> doEvery 1 (\i _ -> liftIO $ print i)
+      >-> P.map return
+      >-> doEvery 1000
+          (\i _ -> liftIO . putStrLn $ show i ++ " entries processed.")
 
   liftIO . putStrLn $ "closing file " <> fn
   liftIO $ tfileClose tfile
-
-  return hs
-
+  return (dsid, Sum sow, hs)
 
   where
-    lookup'
+    entryMap
       :: Ord a
       => M.Map a b
       -> M.Map a b
       -> M.Map k (M.Map a b)
-      -> a
-      -> (Maybe b, Maybe b, M.Map k (Maybe b))
-    lookup' trueMap nomMap systMaps i =
-      ( M.lookup i trueMap
-      , M.lookup i nomMap
-      , fmap (M.lookup i) systMaps
-      )
-
-
-    doEvery :: Monad m => Int -> (Int -> a -> m ()) -> Pipe a a m r
-    doEvery m f = go m
+      -> [(a, (Maybe b, Maybe b, M.Map k (Maybe b)))]
+    entryMap trueMap nomMap systMaps =
+      fmap (\i -> (i, lookup' i)) . nub
+      $ M.keys trueMap ++ M.keys nomMap ++ foldMap M.keys systMaps
       where
-        go n = do
-          x <- await
-          when ((n `mod` m) == 0) (lift $ f n x)
-          yield x
-          go (n+1)
+        lookup' i =
+          ( M.lookup i trueMap
+          , M.lookup i nomMap
+          , fmap (M.lookup i) systMaps
+          )
+
+
+doEvery :: Monad m => Int -> (Int -> a -> m ()) -> Pipe a a m r
+doEvery m f = go 0
+  where
+    go n = do
+      x <- await
+      when ((n `mod` m) == 0) (lift $ f n x)
+      yield x
+      go (n+1)
+
 
 data TreeReadError = TreeReadError deriving (Typeable, Show)
 instance Exception TreeReadError
+
 
 readEvents
   :: (MonadThrow m, MonadIO m)
@@ -162,8 +175,12 @@ readEvents
   -> Pipe ((CUInt, CULong), (Maybe Int, Maybe Int, M.Map String (Maybe Int))) Event m r
 readEvents tttrue ttnom ttsysts = do
   ((rn, en), (mitrue, minom, isysts)) <- await
-  let f tr t (Just i) = lift $ readTree tr i t
-      f _ t Nothing   = return (fail "Nothing", t)
+
+  let f tr t (Just i) = flip runStateT t $ mf <$> readTTreeEntry tr i
+      f _ t Nothing   = return (MF.fail "Nothing", t)
+
+      mf = fromMaybe (MF.fail "Nothing")
+
 
       systs' =
         M.mergeWithKey
@@ -182,59 +199,17 @@ readEvents tttrue ttnom ttsysts = do
   let systs = fst <$> msysts
       ttsysts' = snd <$> msysts
 
-  yield . Event rn en true . toEvent nom $ M.mapKeys T.pack systs
+  yield
+    . Event rn en true
+    . toEvent nom
+    $ M.mapKeys T.pack systs
+
   readEvents tttrue' ttnom' ttsysts'
 
   where
-
     toEvent :: forall a. PhysObj a -> M.Map T.Text (PhysObj a) -> PhysObj a
     toEvent n s =
-      let systs = runIdentity . getNominal . runPhysObj <$> s
-          n' = runPhysObj n
-          v = variations (pure . mappend (strictMap systs)) n'
-      in PhysObjT . WriterT . MaybeT $ (fmap.fmap.fmap) (sf "wgt") v
-
-
---       readEntries tn = do
---         t <- ttree tfile tn
---
---         -- deal with possible missing trees
---         nt <- isNullTree t
---         when nt $
---           liftIO . putStrLn $ "missing tree " <> tn <> " in file " <> fn <> "."
---
---         entryProd <- each <$> if nt then return S.empty else entries t
---
---         let l = produceTTree (tr $ dmc dsid tn) t (entryProd >-> P.map snd)
---
---         return (T.pack tn, l)
---
---   truthTree <- snd <$> treeProd readTrue "particleLevel"
---
---
---   recoTrees <-
---     recoVariations . strictMap . M.fromList
---     <$> mapM (treeProd readReco) (nom : systs)
---
---   let eventProd = alignThesePipes fst fst truthTree recoTrees >-> P.map toEvent
---
---       toEvent ((i, j), k) =
---         Event i j
---         . over here snd
---         . over there snd
---         $ k
---
---   F.impurely P.foldM eventHs eventProd
---   -- runEffect $ for eventProd (liftIO . print)
---
---   liftIO . putStrLn $ "closing file " <> fn
---   liftIO $ tfileClose tfile
---
---
--- transposeM
---   :: forall k k' a. (Ord k, Ord k')
---   => M.Map k (M.Map k' a) -> M.Map k' (M.Map k a)
--- transposeM = M.foldrWithKey f M.empty
---   where
---     f :: k -> M.Map k' a -> M.Map k' (M.Map k a) -> M.Map k' (M.Map k a)
---     f k inmap outmap = M.unionWith (<>) outmap $ M.singleton k <$> inmap
+      let systs = view nominal . runPhysObj' <$> s
+          n' = runPhysObj' n
+          n'' = over variations (mappend $ strictMap systs) n'
+      in PhysObj . WriterT $ MaybeT n''

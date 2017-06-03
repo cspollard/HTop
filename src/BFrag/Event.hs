@@ -25,7 +25,6 @@ import           BFrag.Muon             as X
 import           BFrag.PtEtaPhiE        as X
 import           BFrag.RecoEvent        as X
 import           BFrag.TrueEvent        as X
-import qualified Control.Foldl          as F
 import           Control.Lens
 import           Data.HEP.LorentzVector as X
 import           Data.TTree
@@ -62,10 +61,13 @@ readRunEventNumber :: (MonadIO m, MonadThrow m) => TreeRead m (CUInt, CULong)
 readRunEventNumber = (,) <$> readRunNumber <*> readEventNumber
 
 
-eventHs :: Monad m => F.FoldM (VarsT m) Event (Folder YodaObj)
-eventHs = F.handlesM recoEvent recoEventHs
+eventHs :: Fills Event
+eventHs = recoEventHs =$<< view recoEvent
 
--- eventHs :: F.FoldM Vars Event (Folder YodaObj)
+-- eventHs :: Monad m => F.FoldM (VarsT m) Event (YodaFolder)
+-- eventHs = F.handlesM recoEvent recoEventHs
+
+-- eventHs :: F.FoldM Vars Event (YodaFolder)
 -- eventHs = F.premapM f recoEventHs
 --   where
 --     f e = do
