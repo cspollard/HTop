@@ -41,5 +41,5 @@ readElectrons = do
 
   return es
 
-electronHs :: Fills Electron
+electronHs :: Foldl (Electron, Double) YodaFolder
 electronHs = lvHs

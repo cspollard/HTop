@@ -111,7 +111,7 @@ fillFile systs fn = do
 
   -- TODO
   -- not running over truth atm
-  trueEntries <- return M.empty
+  trueEntries <- entries trueTree
   nomEntries <- entries nomTree
 
   (systTrees :: M.Map String TTree) <-
@@ -121,14 +121,12 @@ fillFile systs fn = do
 
   let allEntries = entryMap trueEntries nomEntries systEntries
 
-  liftIO $ mapM_ print allEntries
-
   hs <-
     F.purely P.fold eventHs
     $ each allEntries
       >-> readEvents trueTree nomTree systTrees
       >-> P.map return
-      >-> doEvery 1000
+      >-> doEvery 100
           (\i _ -> liftIO . putStrLn $ show i ++ " entries processed.")
 
   liftIO . putStrLn $ "closing file " <> fn

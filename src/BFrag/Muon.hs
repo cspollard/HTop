@@ -37,5 +37,5 @@ readMuons = do
 
   return ms
 
-muonHs :: Fills Muon
+muonHs :: Foldl (Muon, Double) YodaFolder
 muonHs = lvHs

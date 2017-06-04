@@ -13,17 +13,20 @@ module BFrag.RecoEvent
   ) where
 
 import           Atlas
-import           BFrag.BFrag       as X
-import           BFrag.Electron    as X
-import           BFrag.Jet         as X
-import           BFrag.Muon        as X
-import           BFrag.PtEtaPhiE   as X
-import           BFrag.Systematics as X
+import           BFrag.BFrag        as X
+import           BFrag.Electron     as X
+import           BFrag.Jet          as X
+import           BFrag.Muon         as X
+import           BFrag.PtEtaPhiE    as X
+import           BFrag.Systematics  as X
+import qualified Control.Foldl      as F
 import           Control.Lens
+import           Data.Bifunctor
+import           Data.Bitraversable
 import           Data.Semigroup
 import           Data.TTree
 import           GHC.Float
-import           GHC.Generics      (Generic)
+import           GHC.Generics       (Generic)
 
 data RecoEvent =
   RecoEvent
@@ -82,25 +85,14 @@ readRecoEvent dmc = do
   return $ w >> return (RecoEvent mu' els mus js met')
 
 
-muH :: Fills RecoEvent
-muH =
-  singleton "/mu"
-  <$> physObjH h =$<< (varObj . view mu)
-
+muH :: Foldl (PhysObj RecoEvent) (Vars YodaObj)
+muH = physObjH h =$<< (varObj . view mu)
   where
     h = hist1DDef (binD 0 25 100) "$< \\mu >$" (dndx "<\\mu>" "1")
 
 
 -- TODO
 -- npvH :: FoldM Vars (RecoEvent, Double) (YodaFolder)
-
-
-metH :: Fills RecoEvent
-metH =
-  over (traverse.traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
-  . singleton "/met/pt"
-  <$> ptH <$= fmap (view met)
-
 
 
 elmujj :: RecoEvent -> PhysObj Bool
@@ -116,21 +108,41 @@ elmujj e =
         _        -> False
 
 recoEventHs :: Fills RecoEvent
-recoEventHs = mconcat [ metH, muH ]
-  -- mconcat
-  --   [ muH
-  --   , npvH
-  --   , metH
-  --   , prefixF "/jets" . over (traverse.traverse.xlabel) ("jet " <>)
-  --     <$> F.handles (to sequence.folded) lvHs
-  --     <$= view jets
-  --   , prefixF "/electrons" . over (traverse.traverse.xlabel) ("electron " <>)
-  --     <$> F.handles (to sequence.folded) electronHs
-  --     <$= view electrons
-  --   , prefixF "/muons" . over (traverse.traverse.xlabel) ("muon " <>)
-  --     <$> F.handles (to sequence.folded) muonHs
-  --     <$= view muons
-  --     ]
+recoEventHs =
+  mconcat
+    [ singleton "/mu" <$> muH
+    -- , singleton "/npv" <$> npvH
+
+    , singleton "/met/pt"
+      . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
+      <$> physObjH (ptH <$= first (view met))
+
+    , prefixF "/jets"
+      . over (traverse.traverse.xlabel) ("jet " <>)
+      <$> lvsHs <$= fmap (view jets)
+
+    , prefixF "/electrons"
+      . over (traverse.traverse.xlabel) ("electron " <>)
+      <$> lvsHs <$= fmap (view electrons)
+
+    , prefixF "/muons"
+      . over (traverse.traverse.xlabel) ("muon " <>)
+      <$> lvsHs <$= fmap (view muons)
+    ]
+    where
+      -- lvsHs
+      --   :: (Foldable f, Applicative f, HasLorentzVector a)
+      --   => Foldl (f a, Double) (Folder YodaObj)
+      lvsHs
+        :: (Foldable f, Applicative f, HasLorentzVector a)
+        => Foldl (PhysObj (f a)) (Folder (Vars YodaObj))
+      lvsHs =
+        mconcat
+        [ fmap (singleton "/pt") . physObjH
+          $ F.handles folded ptH <$= bitraverse id pure
+        , fmap (singleton "/eta") . physObjH
+          $ F.handles folded etaH <$= bitraverse id pure
+        ]
 
 
 -- TODO

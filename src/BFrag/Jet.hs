@@ -39,7 +39,7 @@ flavFromCInt x =
 
 data Jet =
   Jet
-    { _jPtEtaPhiE  :: PtEtaPhiE
+  { _jPtEtaPhiE    :: PtEtaPhiE
     , _mv2c10      :: Double
     , _isBTagged   :: PhysObj Bool
     , _jvt         :: Double

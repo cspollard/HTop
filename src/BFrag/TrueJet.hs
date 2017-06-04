@@ -28,7 +28,7 @@ data TrueJet =
 instance HasLorentzVector TrueJet where
   toPtEtaPhiE = lens _tjPtEtaPhiE $ \tj x -> tj { _tjPtEtaPhiE = x }
 
-trueJetHs :: Fills TrueJet
+trueJetHs :: Foldl (TrueJet, Double) (Folder YodaObj)
 trueJetHs = mconcat [ lvHs, bfragHs 7 ]
 
 data BHadron =
@@ -84,7 +84,7 @@ readTrueJets = do
   return . V.toList
     $ foldr matchBTJ tmp bhads
 
-  where
+  -- where
     -- filt j = lengthOf (tjBHadrons.traverse) j == 1 && view lvPt j > 25
 
 

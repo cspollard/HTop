@@ -64,7 +64,7 @@ collapseProcs pm =
 
   -- TODO
   -- partial
-  in (preds ^?! ix 410501, dat)
+  in (preds ^?! ix 410252, dat)
 
 
 scaleH' :: Double -> YodaObj -> YodaObj
