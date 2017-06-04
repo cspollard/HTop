@@ -18,6 +18,8 @@ import           Data.TTree
 import           GHC.Generics       (Generic)
 
 
+-- TODO
+-- add leptons
 data TrueEvent =
   TrueEvent
     { _trueJets :: [TrueJet]
