@@ -9,10 +9,14 @@ module BFrag.TrueEvent
 
 import           Atlas
 import           BFrag.Systematics
-import           BFrag.TrueJet     as X
+import           BFrag.TrueJet      as X
+import qualified Control.Foldl      as F
 import           Control.Lens
+import           Data.Bitraversable
+import           Data.Semigroup
 import           Data.TTree
-import           GHC.Generics      (Generic)
+import           GHC.Generics       (Generic)
+
 
 data TrueEvent =
   TrueEvent
@@ -26,11 +30,25 @@ readTrueEvent = do
   w <- trueWgt
   return $ w >> pure (TrueEvent js)
 
+
 trueJets :: Lens' TrueEvent [TrueJet]
 trueJets = lens _trueJets $ \te x -> te { _trueJets = x }
 
-trueEventHs :: Fills (TrueEvent, Double)
-trueEventHs = mempty
-  -- prefixF "/truthjets" . over (traverse.traverse.xlabel) ("truth jet " <>)
-  -- <$> F.handles (to sequence.folded) trueJetHs
-  -- <$= view trueJets
+
+trueEventHs :: Fills TrueEvent
+trueEventHs =
+  prefixF "/truejets"
+  . over (traverse.traverse.xlabel) ("true jet " <>)
+  <$> lvsHs <$= fmap (view trueJets)
+
+  where
+    lvsHs
+      :: (Foldable f, Applicative f, HasLorentzVector a)
+      => Foldl (PhysObj (f a)) (Folder (Vars YodaObj))
+    lvsHs =
+      mconcat
+      [ fmap (singleton "/pt") . physObjH
+        $ F.handles folded ptH <$= bitraverse id pure
+      , fmap (singleton "/eta") . physObjH
+        $ F.handles folded etaH <$= bitraverse id pure
+      ]

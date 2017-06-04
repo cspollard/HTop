@@ -130,9 +130,6 @@ recoEventHs =
       <$> lvsHs <$= fmap (view muons)
     ]
     where
-      -- lvsHs
-      --   :: (Foldable f, Applicative f, HasLorentzVector a)
-      --   => Foldl (f a, Double) (Folder YodaObj)
       lvsHs
         :: (Foldable f, Applicative f, HasLorentzVector a)
         => Foldl (PhysObj (f a)) (Folder (Vars YodaObj))

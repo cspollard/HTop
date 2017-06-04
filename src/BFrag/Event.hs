@@ -62,7 +62,22 @@ readRunEventNumber = (,) <$> readRunNumber <*> readEventNumber
 
 
 eventHs :: Fills Event
-eventHs = recoEventHs =$<< view recoEvent
+eventHs =
+  mconcat
+  [ recoEventHs =$<< view recoEvent
+  , trueEventHs =$<< view trueEvent
+  , matchedEventHs =$<< go
+  ]
+
+  where
+    go evt = do
+      tevt <- view trueEvent evt
+      revt <- view recoEvent evt
+      return (tevt, revt)
+
+
+matchedEventHs :: Fills (TrueEvent, RecoEvent)
+matchedEventHs = mempty
 
 -- eventHs :: Monad m => F.FoldM (VarsT m) Event (YodaFolder)
 -- eventHs = F.handlesM recoEvent recoEventHs
