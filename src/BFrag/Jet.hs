@@ -109,7 +109,7 @@ readJets dmc = do
           <*> fmap getZipList svtrks
           <*> flvs
 
-  return js
+  return $ filter ((> 30) . view lvPt) js
 
 jetTracksTLV
   :: (MonadIO m, MonadThrow m)
