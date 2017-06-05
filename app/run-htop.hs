@@ -59,8 +59,9 @@ main = do
 
   let combF (Just (dsid, sow, hs)) f = do
         (dsid', sow', hs') <- fillFile treeSysts f
-        return $ if dsid == dsid'
-          then Just $ (dsid, sow+sow', hs `mappend` hs')
+        let hs'' = mappend hs hs'
+        seq hs'' . return $ if dsid == dsid'
+          then Just (dsid, sow+sow', hs'')
           else Nothing
       combF Nothing f = Just <$> fillFile treeSysts f
 
