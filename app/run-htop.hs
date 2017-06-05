@@ -57,16 +57,23 @@ main = do
   -- get the list of input trees
   fns <- filter (not . null) . lines <$> readFile (infiles args)
 
-  -- TODO!
-  let fn = head fns
+  let combF (Just (dsid, sow, hs)) f = do
+        (dsid', sow', hs') <- fillFile treeSysts f
+        return $ if dsid == dsid'
+          then Just $ (dsid, sow+sow', hs `mappend` hs')
+          else Nothing
+      combF Nothing f = Just <$> fillFile treeSysts f
 
+      foldFiles = F.FoldM combF (return Nothing) return
 
-  hs <- fillFile treeSysts fn
+  hs <- F.impurely P.foldM foldFiles $ each fns
 
   putStrLn ("writing to file " ++ outfile args)
-  encodeFile (outfile args) hs
+  views _Just (encodeFile $ outfile args) hs
 
 
+-- TODO
+-- withFile
 fillFile
   :: (MonadIO m, MonadCatch m)
   => [String]

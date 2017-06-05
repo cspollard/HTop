@@ -19,10 +19,8 @@ import           BFrag.Jet          as X
 import           BFrag.Muon         as X
 import           BFrag.PtEtaPhiE    as X
 import           BFrag.Systematics  as X
-import qualified Control.Foldl      as F
 import           Control.Lens
 import           Data.Bifunctor
-import           Data.Bitraversable
 import           Data.Semigroup
 import           Data.TTree
 import           GHC.Float
