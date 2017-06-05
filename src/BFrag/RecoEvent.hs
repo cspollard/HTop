@@ -129,17 +129,6 @@ recoEventHs =
       . over (traverse.traverse.xlabel) ("muon " <>)
       <$> lvsHs <$= fmap (view muons)
     ]
-    where
-      lvsHs
-        :: (Foldable f, Applicative f, HasLorentzVector a)
-        => Foldl (PhysObj (f a)) (Folder (Vars YodaObj))
-      lvsHs =
-        mconcat
-        [ fmap (singleton "/pt") . physObjH
-          $ F.handles folded ptH <$= bitraverse id pure
-        , fmap (singleton "/eta") . physObjH
-          $ F.handles folded etaH <$= bitraverse id pure
-        ]
 
 
 -- TODO

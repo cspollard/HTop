@@ -40,6 +40,3 @@ readElectrons = do
         $ Electron <$> tlvs <*> cletas <*> chs <*> d0sigs <*> ptvc20s
 
   return es
-
-electronHs :: Foldl (Electron, Double) YodaFolder
-electronHs = lvHs

@@ -139,9 +139,6 @@ mv2c10H =
     <$= first (view mv2c10)
 
 
-jetHs :: Fills Jet
-jetHs = mempty
-
 -- jetHs :: Fills m m (Jet, Maybe TrueJet)
 -- jetHs =
 --   channelsWithLabels
@@ -209,9 +206,6 @@ hasSV :: Jet -> Bool
 hasSV = not . null . svTracks
 
 
--- TODO
--- macro here?
--- can't use template haskell
 mv2c10 :: Lens' Jet Double
 mv2c10 = lens _mv2c10 $ \j x -> j { _mv2c10 = x }
 
