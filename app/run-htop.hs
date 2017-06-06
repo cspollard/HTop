@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric             #-}
 {-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedLists           #-}
 {-# LANGUAGE OverloadedStrings         #-}
@@ -15,9 +16,7 @@ import           BFrag.Event
 import qualified Control.Foldl              as F
 import           Control.Lens               hiding (each)
 import           Control.Monad              (when)
-import qualified Control.Monad.Fail         as MF
 import           Control.Monad.State.Strict
-import           Control.Monad.Trans.Maybe
 import           Data.List                  (nub)
 import qualified Data.Map.Strict            as M
 import           Data.Maybe                 (fromMaybe)
@@ -182,10 +181,12 @@ readEvents
 readEvents tttrue ttnom ttsysts = do
   ((rn, en), (mitrue, minom, isysts)) <- await
 
-  let f tr t (Just i) = flip runStateT t $ mf <$> readTTreeEntry tr i
-      f _ t Nothing   = return (MF.fail "Nothing", t)
+  let f :: (Monoid c, MonadChronicle c m1, MonadIO m) => TreeRead m (m1 a) -> TTree -> Maybe Int -> m (m1 a, TTree)
+      f tr t (Just i) = flip runStateT t $ mf <$> readTTreeEntry tr i
+      f _ t Nothing   = return (confess mempty, t)
 
-      mf = fromMaybe (MF.fail "Nothing")
+      mf :: (Monoid c, MonadChronicle c m) => Maybe (m a) -> m a
+      mf = fromMaybe (confess mempty)
 
 
       systs' =
@@ -218,4 +219,4 @@ readEvents tttrue ttnom ttsysts = do
       let systs = view nominal . runPhysObj' <$> s
           n' = runPhysObj' n
           n'' = over variations (mappend $ strictMap systs) n'
-      in PhysObj . WriterT $ MaybeT n''
+      in varsToPO n''

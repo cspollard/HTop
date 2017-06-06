@@ -39,13 +39,13 @@ recoWgt (MC' vcfg) = do
 
 
 trueWgt :: (MonadThrow m, MonadIO m) => TreeRead m (PhysObj ())
-trueWgt = tell . sf "evtw" . float2Double <$> readBranch "weight_mc"
+trueWgt = dictate . sf "evtw" . float2Double <$> readBranch "weight_mc"
 
 
 -- TODO
 -- partial!
 lepSF :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
-lepSF _ = tell . sf "lepton_sf" . float2Double <$> readBranch "weight_leptonSF"
+lepSF _ = dictate . sf "lepton_sf" . float2Double <$> readBranch "weight_leptonSF"
 -- TODO
 -- in XRedTop there are 38 (!!) lepSF variations. This can't be right.
 -- lepSF NoVarsT m = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
@@ -62,7 +62,7 @@ puWgt :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
 puWgt vcfg = do
   puw <- float2Double <$> readBranch "weight_pileup"
   case vcfg of
-    NoVars -> return . tell $ sf "weight_pileup" puw
+    NoVars -> return . dictate $ sf "weight_pileup" puw
     AllVars -> do
       puwup <- float2Double <$> readBranch "weight_pileup_UP"
       puwdown <- float2Double <$> readBranch "weight_pileup_DOWN"
@@ -75,7 +75,7 @@ jvtWgt :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
 jvtWgt vcfg = do
   jvtw <- float2Double <$> readBranch "weight_jvt"
   case vcfg of
-    NoVars -> return . tell $ sf "weight_jvt" jvtw
+    NoVars -> return . dictate $ sf "weight_jvt" jvtw
     AllVars -> do
       jvtwup <- float2Double <$> readBranch "weight_jvt_UP"
       jvtwdown <- float2Double <$> readBranch "weight_jvt_DOWN"

@@ -74,7 +74,7 @@ readJets dmc = do
         -- imap (\i -> pure . sf ("btagSFjet" <> T.pack (show i))) . fmap float2Double
         --   <$> readBranch "JetBtagSF"
 
-  let withsf x xsf = tell xsf >> return x
+  let withsf x xsf = dictate xsf >> return x
       tagged = withsf <$> tagged' <*> mv2c10sfs
 
 

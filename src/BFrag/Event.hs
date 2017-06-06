@@ -79,35 +79,6 @@ eventHs =
 matchedEventHs :: Fills (TrueEvent, RecoEvent)
 matchedEventHs = mempty
 
--- eventHs :: Monad m => F.FoldM (VarsT m) Event (YodaFolder)
--- eventHs = F.handlesM recoEvent recoEventHs
-
--- eventHs :: F.FoldM Vars Event (YodaFolder)
--- eventHs = F.premapM f recoEventHs
---   where
---     f e = do
---       let mre = view recoEvent e
---       fromMaybe (MF.fail "no reco event") mre
-
-
-
---
--- eventHs :: Fills Event
--- eventHs =
---   mconcat
---     [ F.handles (recoEvent._Just) recoEventHs
---     , F.handles _Just trueEventHs
---       <$= view trueEvent
---     -- TODO
---     -- probeJetHs
---     ]
-
-  -- TODO
-  -- TODO
-  -- channelWithLabel "/elmujj" elmujj
-
-
-
 
 -- zbtMigration :: Fills (Jet, TrueJet)
 -- zbtMigration =

@@ -13,18 +13,18 @@ module BFrag.RecoEvent
   ) where
 
 import           Atlas
-import           BFrag.BFrag        as X
-import           BFrag.Electron     as X
-import           BFrag.Jet          as X
-import           BFrag.Muon         as X
-import           BFrag.PtEtaPhiE    as X
-import           BFrag.Systematics  as X
+import           BFrag.BFrag       as X
+import           BFrag.Electron    as X
+import           BFrag.Jet         as X
+import           BFrag.Muon        as X
+import           BFrag.PtEtaPhiE   as X
+import           BFrag.Systematics as X
+import qualified Control.Foldl     as F
 import           Control.Lens
-import           Data.Bifunctor
 import           Data.Semigroup
 import           Data.TTree
 import           GHC.Float
-import           GHC.Generics       (Generic)
+import           GHC.Generics      (Generic)
 
 data RecoEvent =
   RecoEvent
@@ -105,15 +105,18 @@ elmujj e =
         [j1, j2] -> lvDREta j1 j2 > 1.0
         _        -> False
 
+
+-- so much boilerplate
 recoEventHs :: Fills RecoEvent
 recoEventHs =
-  mconcat
+  channelWithLabel "/elmujj" elmujj
+  $ mconcat
     [ singleton "/mu" <$> muH
     -- , singleton "/npv" <$> npvH
 
     , singleton "/met/pt"
       . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
-      <$> physObjH (ptH <$= first (view met))
+      <$> physObjH ptH <$= fmap (view met)
 
     , prefixF "/jets"
       . over (traverse.traverse.xlabel) ("jet " <>)
@@ -126,25 +129,50 @@ recoEventHs =
     , prefixF "/muons"
       . over (traverse.traverse.xlabel) ("muon " <>)
       <$> lvsHs <$= fmap (view muons)
+
+    , prefixF "/probejets"
+      . over (traverse.traverse.xlabel) ("probe jet " <>)
+      <$> F.handles both (bfragHs 7) <$= probeJets
     ]
 
 
 -- TODO
--- can I make this into a traversal instead of a list?
--- probeJets :: RecoEvent -> [PhysObj Jet]
--- probeJets evt =
---   case view jets evt of
---     [j1, j2] ->
---       if lvDREta j1 j2 > 1.0
---         then probeJet j1 j2 ++ probeJet j2 j1
---         else []
---     _        -> []
---   where
---     probeJet j j' = sequenceA $ do
---       bt <- view isBTagged j
---       if bt && hasSV j' && (view lvAbsEta j' < 2.1)
---         then return [j']
---         else return []
+-- should this be [PhysObj Jet]??
+probeJets :: PhysObj RecoEvent -> (PhysObj Jet, PhysObj Jet)
+probeJets porevt = (porevt >>= probeJet' 1, porevt >>= probeJet' 2)
+  -- case view jets evt of
+  --   [j1, j2] ->
+  --     if lvDREta j1 j2 > 1.0
+  --       then (probeJet j1 j2, probeJet j2 j1)
+  --       else (fail "dR(j1, j2) < 1.0", fail "dR(j1, j2) < 1.0")
+  --
+  --   _ -> (fail "njet != 2", fail "njet != 2")
+  where
+    probeJet :: Jet -> Jet -> PhysObj Jet
+    probeJet j j' = do
+      bt <- view isBTagged j
+      guard $ bt && hasSV j' && (view lvAbsEta j' < 2.1)
+      return j'
+
+
+    probeJet' :: Int -> RecoEvent -> PhysObj Jet
+    probeJet' 1 revt =
+      case view jets revt of
+        [j1, j2] -> do
+          guard $ lvDREta j1 j2 > 1.0
+          probeJet j2 j1
+        _ -> fail "njet != 2"
+
+    probeJet' 2 revt =
+      case view jets revt of
+        [j1, j2] -> do
+          guard $ lvDREta j1 j2 > 1.0
+          probeJet j1 j2
+        _ -> fail "njet != 2"
+
+    probeJet' _ _ = fail "njet != 2"
+
+
 --
 -- probeJetHs :: Fills m RecoEvent
 -- probeJetHs = mconcat
