@@ -8,7 +8,7 @@ module BFrag.RecoEvent
   ( module X
   , RecoEvent(RecoEvent)
   , mu, electrons, muons, jets, met
-  , readRecoEvent, recoEventHs
+  , readRecoEvent, recoEventHs, probeJets
   , elmujj
   ) where
 
@@ -132,46 +132,27 @@ recoEventHs =
 
     , prefixF "/probejets"
       . over (traverse.traverse.xlabel) ("probe jet " <>)
-      <$> F.handles both (bfragHs 7) <$= probeJets
+      <$> F.handles folded (bfragHs 7) <$= fmap join . sequenceL . fmap probeJets
     ]
 
 
 -- TODO
 -- should this be [PhysObj Jet]??
-probeJets :: PhysObj RecoEvent -> (PhysObj Jet, PhysObj Jet)
-probeJets porevt = (porevt >>= probeJet' 1, porevt >>= probeJet' 2)
-  -- case view jets evt of
-  --   [j1, j2] ->
-  --     if lvDREta j1 j2 > 1.0
-  --       then (probeJet j1 j2, probeJet j2 j1)
-  --       else (fail "dR(j1, j2) < 1.0", fail "dR(j1, j2) < 1.0")
-  --
-  --   _ -> (fail "njet != 2", fail "njet != 2")
+probeJets :: RecoEvent -> [PhysObj Jet]
+probeJets revt = fmap join . sequenceL . return $
+  case view jets revt of
+    [j1, j2] ->
+      if lvDREta j1 j2 > 1.0
+        then [probeJet j1 j2, probeJet j2 j1]
+        else []
+    _ -> []
+
   where
     probeJet :: Jet -> Jet -> PhysObj Jet
     probeJet j j' = do
       bt <- view isBTagged j
       guard $ bt && hasSV j' && (view lvAbsEta j' < 2.1)
       return j'
-
-
-    probeJet' :: Int -> RecoEvent -> PhysObj Jet
-    probeJet' 1 revt =
-      case view jets revt of
-        [j1, j2] -> do
-          guard $ lvDREta j1 j2 > 1.0
-          probeJet j2 j1
-        _ -> fail "njet != 2"
-
-    probeJet' 2 revt =
-      case view jets revt of
-        [j1, j2] -> do
-          guard $ lvDREta j1 j2 > 1.0
-          probeJet j1 j2
-        _ -> fail "njet != 2"
-
-    probeJet' _ _ = fail "njet != 2"
-
 
 --
 -- probeJetHs :: Fills m RecoEvent

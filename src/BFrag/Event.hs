@@ -28,7 +28,6 @@ import           BFrag.TrueEvent        as X
 import qualified Control.Foldl          as F
 import           Control.Lens
 import           Data.HEP.LorentzVector as X
-import           Data.Maybe             (catMaybes)
 import           Data.Semigroup         (Arg (..), Min (..), Option (..))
 import           Data.TTree
 import           Data.Tuple             (swap)
@@ -81,13 +80,18 @@ eventHs =
 
 
 matchedEventHs :: Fills (TrueEvent, RecoEvent)
-matchedEventHs = F.handles folded matchedJetHs <$= sequenceL . fmap go
+matchedEventHs = F.handles folded matchedJetHs <$= fmap join . sequenceL . fmap go
   where
+    go :: (TrueEvent, RecoEvent) -> [PhysObj (Jet, TrueJet)]
     go (tevt, revt) =
-      let tjs = view trueJets tevt
-          rjs = view jets revt
-          matches = catMaybes $ sequence . trueMatch tjs <$> rjs
+      let rjs = probeJets revt
+          tjs = toListOf (trueJets . traverse . filtered tfilt) tevt
+          matches = (fromMaybe' =<<) . fmap (sequence . trueMatch tjs) <$> rjs
       in matches
+
+    tfilt j = lengthOf (tjBHadrons.traverse) j == 1 && view lvPt j > 25
+    fromMaybe' (Just x) = return x
+    fromMaybe' Nothing  = confess mempty
 
 
 trueMatch :: [TrueJet] -> Jet -> (Jet, Maybe TrueJet)
