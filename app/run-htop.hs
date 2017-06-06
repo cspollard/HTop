@@ -116,8 +116,6 @@ fillFile systs fn = do
   trueTree <- ttree tfile "particleLevel"
   nomTree <- ttree tfile "nominal"
 
-  -- TODO
-  -- not running over truth atm
   trueEntries <- entries trueTree
   nomEntries <- entries nomTree
 
@@ -131,10 +129,11 @@ fillFile systs fn = do
   hs <-
     F.purely P.fold eventHs
     $ each allEntries
-      >-> readEvents trueTree nomTree systTrees
-      >-> P.map return
       >-> doEvery 100
-          (\i _ -> liftIO . putStrLn $ show i ++ " entries processed.")
+          ( \i _ -> liftIO . putStrLn $ show i ++ " entries processed." )
+      >-> readEvents trueTree nomTree systTrees
+      -- >-> doEvery 1 (\_ -> liftIO . print)
+      >-> P.map return
 
   liftIO . putStrLn $ "closing file " <> fn
   liftIO $ tfileClose tfile
@@ -214,9 +213,9 @@ readEvents tttrue ttnom ttsysts = do
   readEvents tttrue' ttnom' ttsysts'
 
   where
-    toEvent :: forall a. PhysObj a -> M.Map T.Text (PhysObj a) -> PhysObj a
+    toEvent :: PhysObj a -> M.Map T.Text (PhysObj a) -> PhysObj a
     toEvent n s =
       let systs = view nominal . runPhysObj' <$> s
           n' = runPhysObj' n
-          n'' = over variations (mappend $ strictMap systs) n'
+          n'' = n' & variations %~ mappend (strictMap systs)
       in varsToPO n''
