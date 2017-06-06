@@ -25,9 +25,13 @@ import           BFrag.Muon             as X
 import           BFrag.PtEtaPhiE        as X
 import           BFrag.RecoEvent        as X
 import           BFrag.TrueEvent        as X
+import qualified Control.Foldl          as F
 import           Control.Lens
 import           Data.HEP.LorentzVector as X
+import           Data.Maybe             (catMaybes)
+import           Data.Semigroup         (Arg (..), Min (..), Option (..))
 import           Data.TTree
+import           Data.Tuple             (swap)
 import           GHC.Generics           (Generic)
 
 data Event =
@@ -77,54 +81,73 @@ eventHs =
 
 
 matchedEventHs :: Fills (TrueEvent, RecoEvent)
-matchedEventHs = mempty
+matchedEventHs = F.handles folded matchedJetHs <$= sequenceL . fmap go
+  where
+    go (tevt, revt) =
+      let tjs = view trueJets tevt
+          rjs = view jets revt
+          matches = catMaybes $ sequence . trueMatch tjs <$> rjs
+      in matches
 
 
--- zbtMigration :: Fills (Jet, TrueJet)
--- zbtMigration =
---   singleton "/recozbtvstruezbt"
---   <$> h
---   <$= swap . bimap zBT zBT
---
---   where
---     h =
---       hist2DDef
---         (binD 0 7 1.05)
---         (binD 0 21 1.05)
---         "true $z_{p_{\\mathrm T}}$"
---         "reco $z_{p_{\\mathrm T}}$"
---
--- nsvMigration :: Fills (Jet, TrueJet)
--- nsvMigration =
---   singleton "/reconsvtrksvstruensvtrks"
---   <$> h
---   <$= swap . bimap (fromIntegral . nSVTracks) (fromIntegral . nSVTracks)
---
---   where
---     h =
---       hist2DDef
---         (binD 0 10 10)
---         (binD 0 10 10)
---         "true $n$ SV tracks"
---         "reco $n$ SV tracks"
---
--- npvMigration :: Fills (Jet, TrueJet)
--- npvMigration =
---   singleton "/reconpvtrksvstruenpvtrks"
---   <$> h
---   <$= swap . bimap (fromIntegral . nPVTracks) (fromIntegral . nPVTracks)
---
---   where
---     h =
---       hist2DDef
---         (binD 0 20 20)
---         (binD 0 20 20)
---         "true $n$ PV tracks"
---         "reco $n$ PV tracks"
---
--- recoVsTrueHs :: Fills (Jet, TrueJet)
--- recoVsTrueHs = mconcat [zbtMigration, nsvMigration, npvMigration]
---
+trueMatch :: [TrueJet] -> Jet -> (Jet, Maybe TrueJet)
+trueMatch tjs j = (j,) . getOption $ do
+  Min (Arg dr tj) <-
+    foldMap (\tj' -> Option . Just . Min $ Arg (lvDREta j tj') tj') tjs
+  if dr < 0.3
+    then return tj
+    else Option Nothing
+
+
+matchedJetHs :: Fills (Jet, TrueJet)
+matchedJetHs = mconcat [zbtMigration, nsvMigration, npvMigration]
+
+
+zbtMigration :: Fills (Jet, TrueJet)
+zbtMigration =
+  singleton "/recozbtvstruezbt"
+  <$> physObjH h
+  <$= fmap (swap . bimap zBT zBT)
+
+  where
+    h =
+      hist2DDef
+        (binD 0 7 1.05)
+        (binD 0 21 1.05)
+        "true $z_{p_{\\mathrm T}}$"
+        "reco $z_{p_{\\mathrm T}}$"
+
+
+nsvMigration :: Fills (Jet, TrueJet)
+nsvMigration =
+  singleton "/reconsvtrksvstruensvtrks"
+  <$> physObjH h
+  <$= fmap (swap . bimap (fromIntegral . nSVTracks) (fromIntegral . nSVTracks))
+
+  where
+    h =
+      hist2DDef
+        (binD 0 10 10)
+        (binD 0 10 10)
+        "true $n$ SV tracks"
+        "reco $n$ SV tracks"
+
+
+npvMigration :: Fills (Jet, TrueJet)
+npvMigration =
+  singleton "/reconpvtrksvstruenpvtrks"
+  <$> physObjH h
+  <$= fmap (swap . bimap (fromIntegral . nPVTracks) (fromIntegral . nPVTracks))
+
+  where
+    h =
+      hist2DDef
+        (binD 0 20 20)
+        (binD 0 20 20)
+        "true $n$ PV tracks"
+        "reco $n$ PV tracks"
+
+
 -- matchjetHs :: Fills (Jet, Maybe TrueJet)
 -- matchjetHs =
 --   channelsWithLabels
@@ -158,10 +181,3 @@ matchedEventHs = mempty
 --         allHs
 --         $ F.premap sequenceA (F.handles _Just recoVsTrueHs) <$= sequenceA
 --
--- trueMatch :: [TrueJet] -> Jet -> (Jet, Maybe TrueJet)
--- trueMatch tjs j = (j,) . getOption $ do
---   Min (Arg dr tj) <-
---     foldMap (\tj' -> Option . Just . Min $ Arg (lvDREta j tj') tj') tjs
---   if dr < 0.3
---     then return tj
---     else Option Nothing
