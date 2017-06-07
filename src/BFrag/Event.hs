@@ -122,7 +122,7 @@ matchedJetHs =
     ]
   . mconcat
   $ (prefixF "/matchedJets" <$> bfragHs <$= fmap snd)
-    : (prefixF "/matchedTruthJets" <$> bfragHs <$= fmap fst)
+    : (prefixF "/matchedTruthJets" <$> mappend zbtTrueH bfragHs <$= fmap fst)
     : [zbtMigration, zbtChargedMigration, nsvMigration, npvMigration]
 
 

@@ -3,7 +3,7 @@
 
 module BFrag.TrueJet
   ( TrueJet(..), tjChargedConsts, tjBHadrons
-  , readTrueJets, bhChildren, zBTTrue
+  , readTrueJets, bhChildren, zBTTrue, zbtTrueH
   ) where
 
 import           Atlas
@@ -11,6 +11,7 @@ import           BFrag.BFrag
 import           BFrag.PtEtaPhiE
 import           Control.Applicative (ZipList (..))
 import           Control.Lens
+import           Data.Bifunctor
 import           Data.List           (deleteFirstsBy)
 import           Data.TTree
 import qualified Data.Vector         as V
@@ -53,6 +54,15 @@ zBTTrue :: TrueJet -> Double
 zBTTrue (TrueJet tlv _ bs) =
   view lvPt (foldOf (traverse.toPtEtaPhiE) bs) / view lvPt tlv
 
+zbtTrueH :: Fills TrueJet
+zbtTrueH = fmap (singleton "/zbttrue") $ physObjH h
+  where
+    h =
+      hist1DDef
+        (binD 0 7 1.05)
+        "$z_{p_{\\mathrm T}}$"
+        (dndx "z_{p_{\\mathrm T}}" "1")
+        <$= first zBT
 
 readBHadrons :: (MonadIO m, MonadThrow m) => TreeRead m [BHadron]
 readBHadrons = do
