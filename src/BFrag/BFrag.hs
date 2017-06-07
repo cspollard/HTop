@@ -77,10 +77,10 @@ svTrkSumPtH =
 
 zBTH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Int -> Foldl (a, Double) YodaObj
-zBTH nbins =
+  => Foldl (a, Double) YodaObj
+zBTH =
   hist1DDef
-    (binD 0 nbins 1.05)
+    (binD 0 7 1.05)
     "$z_{p_{\\mathrm T}}$"
     (dndx "z_{p_{\\mathrm T}}" "1")
     <$= first zBT
@@ -110,14 +110,15 @@ nSVTrksH =
 
 bfragHs
   :: (HasPVTracks a, HasSVTracks a, HasLorentzVector a)
-  => Int -> Fills a
-bfragHs nbins =
+  => Fills a
+bfragHs =
   mconcat
-  [ fmap (singleton "/zbt") . physObjH $ zBTH nbins
+  [ fmap (singleton "/zbt") . physObjH $ zBTH
   , fmap (singleton "/trksumpt") . physObjH $ trkSumPtH
   , fmap (singleton "/svtrksumpt") . physObjH $ svTrkSumPtH
   , fmap (singleton "/npvtrks") . physObjH $ nPVTrksH
   , fmap (singleton "/nsvtrks") . physObjH $ nSVTrksH
+  , lvHs
 
 --     -- , trkSumPtProfPt
 --     -- , svTrkSumPtProfPt

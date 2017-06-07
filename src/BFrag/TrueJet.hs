@@ -4,7 +4,6 @@
 module BFrag.TrueJet
   ( TrueJet(..), tjChargedConsts, tjBHadrons
   , readTrueJets, bhChildren
-  , trueJetHs
   ) where
 
 import           Atlas
@@ -27,9 +26,6 @@ data TrueJet =
 
 instance HasLorentzVector TrueJet where
   toPtEtaPhiE = lens _tjPtEtaPhiE $ \tj x -> tj { _tjPtEtaPhiE = x }
-
-trueJetHs :: Fills TrueJet
-trueJetHs = mconcat [ lvHs, bfragHs 7 ]
 
 data BHadron =
   BHadron

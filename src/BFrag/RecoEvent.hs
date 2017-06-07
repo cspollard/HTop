@@ -120,20 +120,22 @@ recoEventHs =
 
     , prefixF "/jets"
       . over (traverse.traverse.xlabel) ("jet " <>)
-      <$> lvsHs <$= fmap (view jets)
+      <$> F.handles folded lvHs <$= sequenceL . fmap (view jets)
 
     , prefixF "/electrons"
       . over (traverse.traverse.xlabel) ("electron " <>)
-      <$> lvsHs <$= fmap (view electrons)
+      <$> F.handles folded lvHs <$= sequenceL . fmap (view electrons)
 
     , prefixF "/muons"
       . over (traverse.traverse.xlabel) ("muon " <>)
-      <$> lvsHs <$= fmap (view muons)
+      <$> F.handles folded lvHs <$= sequenceL . fmap (view muons)
 
     , prefixF "/probejets"
       . over (traverse.traverse.xlabel) ("probe jet " <>)
-      <$> F.handles folded (bfragHs 7) <$= fmap join . sequenceL . fmap probeJets
+      <$> F.handles folded bfragHs
+      <$= fmap join . sequenceL . fmap probeJets
     ]
+
 
 
 -- TODO
@@ -153,11 +155,3 @@ probeJets revt = fmap join . sequenceL . return $
       bt <- view isBTagged j
       guard $ bt && hasSV j' && (view lvAbsEta j' < 2.1)
       return j'
-
---
--- probeJetHs :: Fills m RecoEvent
--- probeJetHs = mconcat
---   [ prefixF "/probejets" . over (traverse.traverse.xlabel) ("probe jet " <>)
---     <$> F.premap (fmap join . sequenceA) (F.handles folded jetHs)
---     <$= (\e -> fmap (trueMatch . fromMaybe [] $ view truejets e) <$> probeJets e)
---   ]

@@ -10,6 +10,7 @@ module BFrag.TrueEvent
 import           Atlas
 import           BFrag.Systematics
 import           BFrag.TrueJet     as X
+import BFrag.BFrag
 import qualified Control.Foldl     as F
 import           Control.Lens
 import           Data.Semigroup
@@ -40,4 +41,4 @@ trueEventHs :: Fills TrueEvent
 trueEventHs =
   prefixF "/truejets"
   . over (traverse.traverse.xlabel) ("true jet " <>)
-  <$> F.handles folded trueJetHs <$= sequenceL . fmap (view trueJets)
+  <$> F.handles folded bfragHs <$= sequenceL . fmap (view trueJets)
