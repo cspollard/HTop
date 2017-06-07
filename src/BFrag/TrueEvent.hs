@@ -8,9 +8,9 @@ module BFrag.TrueEvent
   ) where
 
 import           Atlas
+import           BFrag.BFrag
 import           BFrag.Systematics
 import           BFrag.TrueJet     as X
-import BFrag.BFrag
 import qualified Control.Foldl     as F
 import           Control.Lens
 import           Data.Semigroup

@@ -3,7 +3,7 @@
 
 module BFrag.TrueJet
   ( TrueJet(..), tjChargedConsts, tjBHadrons
-  , readTrueJets, bhChildren
+  , readTrueJets, bhChildren, zBTTrue
   ) where
 
 import           Atlas
@@ -33,6 +33,7 @@ data BHadron =
     , _bhChildren  :: [PtEtaPhiE]
     } deriving (Generic, Show)
 
+
 instance HasLorentzVector BHadron where
   toPtEtaPhiE = lens _bhPtEtaPhiE $ \b x -> b { _bhPtEtaPhiE = x }
 
@@ -47,6 +48,12 @@ instance HasPVTracks TrueJet where
     where
       eq x y = lvDREta x y < 0.01
 
+
+zBTTrue :: TrueJet -> Double
+zBTTrue (TrueJet tlv _ bs) =
+  view lvPt (foldOf (traverse.toPtEtaPhiE) bs) / view lvPt tlv
+
+
 readBHadrons :: (MonadIO m, MonadThrow m) => TreeRead m [BHadron]
 readBHadrons = do
   tlvs <-
@@ -56,12 +63,16 @@ readBHadrons = do
       "bhad_phi"
       "bhad_e"
 
-  chtlvs <-
-    vecVecTLV
-      "bhad_child_pt"
-      "bhad_child_eta"
-      "bhad_child_phi"
-      "bhad_child_e"
+  -- TODO
+  -- these are broken in ntuples
+  let chtlvs = pure []
+
+  -- chtlvs <-
+  --   vecVecTLV
+  --     "bhad_child_pt"
+  --     "bhad_child_eta"
+  --     "bhad_child_phi"
+  --     "bhad_child_e"
 
   return . getZipList $ BHadron <$> tlvs <*> chtlvs
 
