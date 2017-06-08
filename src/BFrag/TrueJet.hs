@@ -62,7 +62,7 @@ zbtTrueH = fmap (singleton "/zbttrue") $ physObjH h
         (binD 0 7 1.05)
         "$z_{p_{\\mathrm T}}$"
         (dndx "z_{p_{\\mathrm T}}" "1")
-        <$= first zBT
+        <$= first zBTTrue
 
 readBHadrons :: (MonadIO m, MonadThrow m) => TreeRead m [BHadron]
 readBHadrons = do
@@ -75,14 +75,14 @@ readBHadrons = do
 
   -- TODO
   -- these are broken in ntuples
-  let chtlvs = pure []
+  -- let chtlvs = pure []
 
-  -- chtlvs <-
-  --   vecVecTLV
-  --     "bhad_child_pt"
-  --     "bhad_child_eta"
-  --     "bhad_child_phi"
-  --     "bhad_child_e"
+  chtlvs <-
+    vecVecTLV
+      "bhad_child_pt"
+      "bhad_child_eta"
+      "bhad_child_phi"
+      "bhad_child_e"
 
   return . getZipList $ BHadron <$> tlvs <*> chtlvs
 

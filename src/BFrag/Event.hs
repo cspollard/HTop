@@ -105,25 +105,26 @@ trueMatch tjs j = (j,) . getOption $ do
 
 matchedJetHs :: Fills (TrueJet, Jet)
 matchedJetHs =
-  channelsWithLabels
-    [ ("/2psvtrks", pure . (>= 2) . length . svTracks . snd)
-    , ("/2svtrks", pure . (== 2) . length . svTracks . snd)
-    , ("/3svtrks", pure . (== 3) . length . svTracks . snd)
-    , ("/4svtrks", pure . (== 4) . length . svTracks . snd)
-    , ("/5svtrks", pure . (== 5) . length . svTracks . snd)
-    , ("/4psvtrks", pure . (>= 4) . length . svTracks . snd)
-    , ("/6psvtrks", pure . (>= 6) . length . svTracks . snd)
+  fmap (prefixF "/matched")
+  $ channelsWithLabels
+    [ ("/2precosvtrks", pure . (>= 2) . length . svTracks . snd)
+    , ("/2recosvtrks", pure . (== 2) . length . svTracks . snd)
+    , ("/3recosvtrks", pure . (== 3) . length . svTracks . snd)
+    , ("/4recosvtrks", pure . (== 4) . length . svTracks . snd)
+    , ("/5recosvtrks", pure . (== 5) . length . svTracks . snd)
+    , ("/4recopsvtrks", pure . (>= 4) . length . svTracks . snd)
+    , ("/6recopsvtrks", pure . (>= 6) . length . svTracks . snd)
     ]
-  . channelsWithLabels
-    [ ("/ptgt30", pure . (> 30) . view lvPt . snd)
-    , ("/ptgt40", pure . (> 40) . view lvPt . snd)
-    , ("/ptgt50", pure . (> 50) . view lvPt . snd)
-    , ("/ptgt75", pure . (> 75) . view lvPt . snd)
-    ]
-  . mconcat
-  $ (prefixF "/matchedJets" <$> bfragHs <$= fmap snd)
-    : (prefixF "/matchedTruthJets" <$> mappend zbtTrueH bfragHs <$= fmap fst)
-    : [zbtMigration, zbtChargedMigration, nsvMigration, npvMigration]
+    . channelsWithLabels
+      [ ("/recoptgt30", pure . (> 30) . view lvPt . snd)
+      , ("/recoptgt40", pure . (> 40) . view lvPt . snd)
+      , ("/recoptgt50", pure . (> 50) . view lvPt . snd)
+      , ("/recoptgt75", pure . (> 75) . view lvPt . snd)
+      ]
+    . mconcat
+    $ (prefixF "/probejets" <$> bfragHs <$= fmap snd)
+      : (prefixF "/truejets" <$> mappend zbtTrueH bfragHs <$= fmap fst)
+      : [zbtMigration, zbtChargedMigration, nsvMigration, npvMigration]
 
 
 zbtChargedMigration :: Fills (TrueJet, Jet)

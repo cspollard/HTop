@@ -26,6 +26,7 @@ import           Data.TTree
 import           GHC.Float
 import           GHC.Generics      (Generic)
 
+
 data RecoEvent =
   RecoEvent
     { _mu        :: Vars Double
