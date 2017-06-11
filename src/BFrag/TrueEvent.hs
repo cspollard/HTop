@@ -8,12 +8,18 @@ module BFrag.TrueEvent
   ) where
 
 import           Atlas
+import           BFrag.BFrag
 import           BFrag.Systematics
 import           BFrag.TrueJet     as X
+import qualified Control.Foldl     as F
 import           Control.Lens
+import           Data.Semigroup
 import           Data.TTree
 import           GHC.Generics      (Generic)
 
+
+-- TODO
+-- add leptons
 data TrueEvent =
   TrueEvent
     { _trueJets :: [TrueJet]
@@ -26,11 +32,13 @@ readTrueEvent = do
   w <- trueWgt
   return $ w >> pure (TrueEvent js)
 
+
 trueJets :: Lens' TrueEvent [TrueJet]
 trueJets = lens _trueJets $ \te x -> te { _trueJets = x }
 
-trueEventHs :: Fills (TrueEvent, Double)
-trueEventHs = mempty
-  -- prefixF "/truthjets" . over (traverse.traverse.xlabel) ("truth jet " <>)
-  -- <$> F.handles (to sequence.folded) trueJetHs
-  -- <$= view trueJets
+
+trueEventHs :: Fills TrueEvent
+trueEventHs =
+  prefixF "/truejets"
+  . over (traverse.traverse.xlabel) ("true jet " <>)
+  <$> F.handles folded bfragHs <$= sequenceL . fmap (view trueJets)

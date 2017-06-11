@@ -39,13 +39,13 @@ recoWgt (MC' vcfg) = do
 
 
 trueWgt :: (MonadThrow m, MonadIO m) => TreeRead m (PhysObj ())
-trueWgt = tell . sf "evtw" . float2Double <$> readBranch "weight_mc"
+trueWgt = dictate . sf "evtw" . float2Double <$> readBranch "weight_mc"
 
 
 -- TODO
 -- partial!
 lepSF :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
-lepSF _ = tell . sf "lepton_sf" . float2Double <$> readBranch "weight_leptonSF"
+lepSF _ = dictate . sf "lepton_sf" . float2Double <$> readBranch "weight_leptonSF"
 -- TODO
 -- in XRedTop there are 38 (!!) lepSF variations. This can't be right.
 -- lepSF NoVarsT m = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
@@ -62,7 +62,7 @@ puWgt :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
 puWgt vcfg = do
   puw <- float2Double <$> readBranch "weight_pileup"
   case vcfg of
-    NoVars -> return . tell $ sf "weight_pileup" puw
+    NoVars -> return . dictate $ sf "weight_pileup" puw
     AllVars -> do
       puwup <- float2Double <$> readBranch "weight_pileup_UP"
       puwdown <- float2Double <$> readBranch "weight_pileup_DOWN"
@@ -75,7 +75,7 @@ jvtWgt :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
 jvtWgt vcfg = do
   jvtw <- float2Double <$> readBranch "weight_jvt"
   case vcfg of
-    NoVars -> return . tell $ sf "weight_jvt" jvtw
+    NoVars -> return . dictate $ sf "weight_jvt" jvtw
     AllVars -> do
       jvtwup <- float2Double <$> readBranch "weight_jvt_UP"
       jvtwdown <- float2Double <$> readBranch "weight_jvt_DOWN"
@@ -100,47 +100,47 @@ treeSysts =
   , "JET_21NP_JET_EffectiveNP_5__1up"
   , "JET_21NP_JET_EffectiveNP_6__1down"
   , "JET_21NP_JET_EffectiveNP_6__1up"
-  , "JET_21NP_JET_EffectiveNP_7__1down"
-  , "JET_21NP_JET_EffectiveNP_7__1up"
-  , "JET_21NP_JET_EffectiveNP_8restTerm__1down"
-  , "JET_21NP_JET_EffectiveNP_8restTerm__1up"
-  , "JET_21NP_JET_EtaIntercalibration_Modelling__1down"
-  , "JET_21NP_JET_EtaIntercalibration_Modelling__1up"
-  , "JET_21NP_JET_EtaIntercalibration_NonClosure__1down"
-  , "JET_21NP_JET_EtaIntercalibration_NonClosure__1up"
-  , "JET_21NP_JET_EtaIntercalibration_TotalStat__1down"
-  , "JET_21NP_JET_EtaIntercalibration_TotalStat__1up"
-  , "JET_21NP_JET_Flavor_Composition__1down"
-  , "JET_21NP_JET_Flavor_Composition__1up"
-  , "JET_21NP_JET_Flavor_Response__1down"
-  , "JET_21NP_JET_Flavor_Response__1up"
-  , "JET_21NP_JET_Pileup_OffsetMu__1down"
-  , "JET_21NP_JET_Pileup_OffsetMu__1up"
-  , "JET_21NP_JET_Pileup_OffsetNPV__1down"
-  , "JET_21NP_JET_Pileup_OffsetNPV__1up"
-  , "JET_21NP_JET_Pileup_PtTerm__1down"
-  , "JET_21NP_JET_Pileup_PtTerm__1up"
-  , "JET_21NP_JET_Pileup_RhoTopology__1down"
-  , "JET_21NP_JET_Pileup_RhoTopology__1up"
-  , "JET_21NP_JET_PunchThrough_MC15__1down"
-  , "JET_21NP_JET_PunchThrough_MC15__1up"
-  , "JET_21NP_JET_SingleParticle_HighPt__1down"
-  , "JET_21NP_JET_SingleParticle_HighPt__1up"
-  , "JET_JER_SINGLE_NP__1up"
-  , "EG_RESOLUTION_ALL__1down"
-  , "EG_RESOLUTION_ALL__1up"
-  , "EG_SCALE_ALL__1down"
-  , "EG_SCALE_ALL__1up"
-  , "MUON_ID__1down"
-  , "MUON_ID__1up"
-  , "MUON_MS__1down"
-  , "MUON_MS__1up"
-  , "MUON_SAGITTA_RESBIAS__1down"
-  , "MUON_SAGITTA_RESBIAS__1up"
-  , "MUON_SAGITTA_RHO__1down"
-  , "MUON_SAGITTA_RHO__1up"
-  , "MUON_SCALE__1down"
-  , "MUON_SCALE__1up"
+  -- , "JET_21NP_JET_EffectiveNP_7__1down"
+  -- , "JET_21NP_JET_EffectiveNP_7__1up"
+  -- , "JET_21NP_JET_EffectiveNP_8restTerm__1down"
+  -- , "JET_21NP_JET_EffectiveNP_8restTerm__1up"
+  -- , "JET_21NP_JET_EtaIntercalibration_Modelling__1down"
+  -- , "JET_21NP_JET_EtaIntercalibration_Modelling__1up"
+  -- , "JET_21NP_JET_EtaIntercalibration_NonClosure__1down"
+  -- , "JET_21NP_JET_EtaIntercalibration_NonClosure__1up"
+  -- , "JET_21NP_JET_EtaIntercalibration_TotalStat__1down"
+  -- , "JET_21NP_JET_EtaIntercalibration_TotalStat__1up"
+  -- , "JET_21NP_JET_Flavor_Composition__1down"
+  -- , "JET_21NP_JET_Flavor_Composition__1up"
+  -- , "JET_21NP_JET_Flavor_Response__1down"
+  -- , "JET_21NP_JET_Flavor_Response__1up"
+  -- , "JET_21NP_JET_Pileup_OffsetMu__1down"
+  -- , "JET_21NP_JET_Pileup_OffsetMu__1up"
+  -- , "JET_21NP_JET_Pileup_OffsetNPV__1down"
+  -- , "JET_21NP_JET_Pileup_OffsetNPV__1up"
+  -- , "JET_21NP_JET_Pileup_PtTerm__1down"
+  -- , "JET_21NP_JET_Pileup_PtTerm__1up"
+  -- , "JET_21NP_JET_Pileup_RhoTopology__1down"
+  -- , "JET_21NP_JET_Pileup_RhoTopology__1up"
+  -- , "JET_21NP_JET_PunchThrough_MC15__1down"
+  -- , "JET_21NP_JET_PunchThrough_MC15__1up"
+  -- , "JET_21NP_JET_SingleParticle_HighPt__1down"
+  -- , "JET_21NP_JET_SingleParticle_HighPt__1up"
+  -- , "JET_JER_SINGLE_NP__1up"
+  -- , "EG_RESOLUTION_ALL__1down"
+  -- , "EG_RESOLUTION_ALL__1up"
+  -- , "EG_SCALE_ALL__1down"
+  -- , "EG_SCALE_ALL__1up"
+  -- , "MUON_ID__1down"
+  -- , "MUON_ID__1up"
+  -- , "MUON_MS__1down"
+  -- , "MUON_MS__1up"
+  -- , "MUON_SAGITTA_RESBIAS__1down"
+  -- , "MUON_SAGITTA_RESBIAS__1up"
+  -- , "MUON_SAGITTA_RHO__1down"
+  -- , "MUON_SAGITTA_RHO__1up"
+  -- , "MUON_SCALE__1down"
+  -- , "MUON_SCALE__1up"
   ]
 
 

@@ -39,7 +39,7 @@ flavFromCInt x =
 
 data Jet =
   Jet
-    { _jPtEtaPhiE  :: PtEtaPhiE
+  { _jPtEtaPhiE    :: PtEtaPhiE
     , _mv2c10      :: Double
     , _isBTagged   :: PhysObj Bool
     , _jvt         :: Double
@@ -74,7 +74,7 @@ readJets dmc = do
         -- imap (\i -> pure . sf ("btagSFjet" <> T.pack (show i))) . fmap float2Double
         --   <$> readBranch "JetBtagSF"
 
-  let withsf x xsf = tell xsf >> return x
+  let withsf x xsf = dictate xsf >> return x
       tagged = withsf <$> tagged' <*> mv2c10sfs
 
 
@@ -109,7 +109,7 @@ readJets dmc = do
           <*> fmap getZipList svtrks
           <*> flvs
 
-  return js
+  return $ filter ((> 30) . view lvPt) js
 
 jetTracksTLV
   :: (MonadIO m, MonadThrow m)
@@ -138,9 +138,6 @@ mv2c10H =
   $ hist1DDef (binD (-1) 25 1) "MV2c10" (dndx "\\mathrm{MV2c10}" "1")
     <$= first (view mv2c10)
 
-
-jetHs :: Fills Jet
-jetHs = mempty
 
 -- jetHs :: Fills m m (Jet, Maybe TrueJet)
 -- jetHs =
@@ -209,9 +206,6 @@ hasSV :: Jet -> Bool
 hasSV = not . null . svTracks
 
 
--- TODO
--- macro here?
--- can't use template haskell
 mv2c10 :: Lens' Jet Double
 mv2c10 = lens _mv2c10 $ \j x -> j { _mv2c10 = x }
 

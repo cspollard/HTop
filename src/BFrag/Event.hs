@@ -25,9 +25,12 @@ import           BFrag.Muon             as X
 import           BFrag.PtEtaPhiE        as X
 import           BFrag.RecoEvent        as X
 import           BFrag.TrueEvent        as X
+import qualified Control.Foldl          as F
 import           Control.Lens
 import           Data.HEP.LorentzVector as X
+import           Data.Semigroup         (Arg (..), Min (..), Option (..))
 import           Data.TTree
+import           Data.Tuple             (swap)
 import           GHC.Generics           (Generic)
 
 data Event =
@@ -62,120 +65,123 @@ readRunEventNumber = (,) <$> readRunNumber <*> readEventNumber
 
 
 eventHs :: Fills Event
-eventHs = recoEventHs =$<< view recoEvent
+eventHs =
+  mconcat
+  [ recoEventHs =$<< view recoEvent
+  , trueEventHs =$<< view trueEvent
+  , matchedEventHs =$<< go
+  ]
 
--- eventHs :: Monad m => F.FoldM (VarsT m) Event (YodaFolder)
--- eventHs = F.handlesM recoEvent recoEventHs
-
--- eventHs :: F.FoldM Vars Event (YodaFolder)
--- eventHs = F.premapM f recoEventHs
---   where
---     f e = do
---       let mre = view recoEvent e
---       fromMaybe (MF.fail "no reco event") mre
-
-
-
---
--- eventHs :: Fills Event
--- eventHs =
---   mconcat
---     [ F.handles (recoEvent._Just) recoEventHs
---     , F.handles _Just trueEventHs
---       <$= view trueEvent
---     -- TODO
---     -- probeJetHs
---     ]
-
-  -- TODO
-  -- TODO
-  -- channelWithLabel "/elmujj" elmujj
+  where
+    go evt = do
+      tevt <- view trueEvent evt
+      revt <- view recoEvent evt
+      return (tevt, revt)
 
 
+matchedEventHs :: Fills (TrueEvent, RecoEvent)
+matchedEventHs = F.handles folded matchedJetHs <$= fmap join . sequenceL . fmap go
+  where
+    go :: (TrueEvent, RecoEvent) -> [PhysObj (TrueJet, Jet)]
+    go (tevt, revt) =
+      let rjs = probeJets revt
+          tjs = toListOf (trueJets . traverse . filtered tfilt) tevt
+          matches = (fromMaybe' =<<) . fmap (fmap swap . sequence . trueMatch tjs) <$> rjs
+      in matches
+
+    tfilt j = lengthOf (tjBHadrons.traverse) j == 1 && view lvPt j > 25
+    fromMaybe' (Just x) = return x
+    fromMaybe' Nothing  = confess mempty
 
 
--- zbtMigration :: Fills (Jet, TrueJet)
--- zbtMigration =
---   singleton "/recozbtvstruezbt"
---   <$> h
---   <$= swap . bimap zBT zBT
---
---   where
---     h =
---       hist2DDef
---         (binD 0 7 1.05)
---         (binD 0 21 1.05)
---         "true $z_{p_{\\mathrm T}}$"
---         "reco $z_{p_{\\mathrm T}}$"
---
--- nsvMigration :: Fills (Jet, TrueJet)
--- nsvMigration =
---   singleton "/reconsvtrksvstruensvtrks"
---   <$> h
---   <$= swap . bimap (fromIntegral . nSVTracks) (fromIntegral . nSVTracks)
---
---   where
---     h =
---       hist2DDef
---         (binD 0 10 10)
---         (binD 0 10 10)
---         "true $n$ SV tracks"
---         "reco $n$ SV tracks"
---
--- npvMigration :: Fills (Jet, TrueJet)
--- npvMigration =
---   singleton "/reconpvtrksvstruenpvtrks"
---   <$> h
---   <$= swap . bimap (fromIntegral . nPVTracks) (fromIntegral . nPVTracks)
---
---   where
---     h =
---       hist2DDef
---         (binD 0 20 20)
---         (binD 0 20 20)
---         "true $n$ PV tracks"
---         "reco $n$ PV tracks"
---
--- recoVsTrueHs :: Fills (Jet, TrueJet)
--- recoVsTrueHs = mconcat [zbtMigration, nsvMigration, npvMigration]
---
--- matchjetHs :: Fills (Jet, Maybe TrueJet)
--- matchjetHs =
---   channelsWithLabels
---     [ ("/2psvtrks", pure . (>= 2) . length . svTracks . fst)
---     , ("/2svtrks", pure . (== 2) . length . svTracks . fst)
---     , ("/3svtrks", pure . (== 3) . length . svTracks . fst)
---     , ("/4svtrks", pure . (== 4) . length . svTracks . fst)
---     , ("/5svtrks", pure . (== 5) . length . svTracks . fst)
---     , ("/4psvtrks", pure . (>= 4) . length . svTracks . fst)
---     , ("/6psvtrks", pure . (>= 6) . length . svTracks . fst)
---     ]
---   $ channelsWithLabels
---     ( ("/ptgt40", pure . (> 40) . view lvPt . fst)
---       : ("/ptgt50", pure . (> 50) . view lvPt . fst)
---       : ("/ptgt75", pure . (> 75) . view lvPt . fst)
---       : pure ("/ptgt30", pure . const True)
---     -- : bins' "/pt" (view lvPt . fst) [20, 30, 50, 75, 100, 150, 200]
---     -- ++ bins' "/eta" (view lvAbsEta . fst) [0, 0.5, 1.0, 1.5, 2.0, 2.5]
---     )
---   $ channelsWithLabels
---     [ ("/allJets", pure . const True)
---     , ("/unmatched", pure . isNothing . snd)
---     ] allHs
---     `mappend`
---       channelWithLabel "/matched" (pure . isJust . snd) matchedHs
---
---   where
---     allHs = mconcat [lvHs , {- mv2c10H , -} bfragHs 21] <$= fst
---     matchedHs =
---       mappend
---         allHs
---         $ F.premap sequenceA (F.handles _Just recoVsTrueHs) <$= sequenceA
---
--- trueMatch :: [TrueJet] -> Jet -> (Jet, Maybe TrueJet)
--- trueMatch tjs j = (j,) . getOption $ do
---   Min (Arg dr tj) <-
---     foldMap (\tj' -> Option . Just . Min $ Arg (lvDREta j tj') tj') tjs
---   if dr < 0.3
---     then return tj
---     else Option Nothing
+trueMatch :: [TrueJet] -> Jet -> (Jet, Maybe TrueJet)
+trueMatch tjs j = (j,) . getOption $ do
+  Min (Arg dr tj) <-
+    foldMap (\tj' -> Option . Just . Min $ Arg (lvDREta j tj') tj') tjs
+  if dr < 0.3
+    then return tj
+    else Option Nothing
+
+
+matchedJetHs :: Fills (TrueJet, Jet)
+matchedJetHs =
+  fmap (prefixF "/matched")
+  $ channelsWithLabels
+    [ ("/2precosvtrks", pure . (>= 2) . length . svTracks . snd)
+    , ("/2recosvtrks", pure . (== 2) . length . svTracks . snd)
+    , ("/3recosvtrks", pure . (== 3) . length . svTracks . snd)
+    , ("/4recosvtrks", pure . (== 4) . length . svTracks . snd)
+    , ("/5recosvtrks", pure . (== 5) . length . svTracks . snd)
+    , ("/4recopsvtrks", pure . (>= 4) . length . svTracks . snd)
+    , ("/6recopsvtrks", pure . (>= 6) . length . svTracks . snd)
+    ]
+    . channelsWithLabels
+      [ ("/recoptgt30", pure . (> 30) . view lvPt . snd)
+      , ("/recoptgt40", pure . (> 40) . view lvPt . snd)
+      , ("/recoptgt50", pure . (> 50) . view lvPt . snd)
+      , ("/recoptgt75", pure . (> 75) . view lvPt . snd)
+      ]
+    . mconcat
+    $ (prefixF "/probejets" <$> bfragHs <$= fmap snd)
+      : (prefixF "/truejets" <$> mappend zbtTrueH bfragHs <$= fmap fst)
+      : [zbtMigration, zbtChargedMigration, nsvMigration, npvMigration]
+
+
+zbtChargedMigration :: Fills (TrueJet, Jet)
+zbtChargedMigration =
+  singleton "/recozbtvstruechargedzbt"
+  <$> physObjH h
+  <$= fmap (bimap zBT zBT)
+
+  where
+    h =
+      hist2DDef
+        (binD 0 7 1.05)
+        (binD 0 21 1.05)
+        "true charged $z_{p_{\\mathrm T}}$"
+        "reco $z_{p_{\\mathrm T}}$"
+
+
+zbtMigration :: Fills (TrueJet, Jet)
+zbtMigration =
+  singleton "/recozbtvstruezbt"
+  <$> physObjH h
+  <$= fmap (bimap zBTTrue zBT)
+
+  where
+    h =
+      hist2DDef
+        (binD 0 7 1.05)
+        (binD 0 21 1.05)
+        "true $z_{p_{\\mathrm T}}$"
+        "reco $z_{p_{\\mathrm T}}$"
+
+
+nsvMigration :: Fills (TrueJet, Jet)
+nsvMigration =
+  singleton "/reconsvtrksvstruensvtrks"
+  <$> physObjH h
+  <$= fmap (bimap (fromIntegral . nSVTracks) (fromIntegral . nSVTracks))
+
+  where
+    h =
+      hist2DDef
+        (binD 0 10 10)
+        (binD 0 10 10)
+        "true $n$ SV tracks"
+        "reco $n$ SV tracks"
+
+
+npvMigration :: Fills (TrueJet, Jet)
+npvMigration =
+  singleton "/reconpvtrksvstruenpvtrks"
+  <$> physObjH h
+  <$= fmap (bimap (fromIntegral . nPVTracks) (fromIntegral . nPVTracks))
+
+  where
+    h =
+      hist2DDef
+        (binD 0 20 20)
+        (binD 0 20 20)
+        "true $n$ PV tracks"
+        "reco $n$ PV tracks"

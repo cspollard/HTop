@@ -8,7 +8,7 @@ module BFrag.RecoEvent
   ( module X
   , RecoEvent(RecoEvent)
   , mu, electrons, muons, jets, met
-  , readRecoEvent, recoEventHs
+  , readRecoEvent, recoEventHs, probeJets
   , elmujj
   ) where
 
@@ -19,11 +19,13 @@ import           BFrag.Jet         as X
 import           BFrag.Muon        as X
 import           BFrag.PtEtaPhiE   as X
 import           BFrag.Systematics as X
+import qualified Control.Foldl     as F
 import           Control.Lens
 import           Data.Semigroup
 import           Data.TTree
 import           GHC.Float
 import           GHC.Generics      (Generic)
+
 
 data RecoEvent =
   RecoEvent
@@ -82,25 +84,14 @@ readRecoEvent dmc = do
   return $ w >> return (RecoEvent mu' els mus js met')
 
 
-muH :: Fills RecoEvent
-muH =
-  singleton "/mu"
-  <$> physObjH h =$<< (varObj . view mu)
-
+muH :: Foldl (PhysObj RecoEvent) (Vars YodaObj)
+muH = physObjH h =$<< (varObj . view mu)
   where
     h = hist1DDef (binD 0 25 100) "$< \\mu >$" (dndx "<\\mu>" "1")
 
 
 -- TODO
 -- npvH :: FoldM Vars (RecoEvent, Double) (YodaFolder)
-
-
-metH :: Fills RecoEvent
-metH =
-  over (traverse.traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
-  . singleton "/met/pt"
-  <$> ptH <$= fmap (view met)
-
 
 
 elmujj :: RecoEvent -> PhysObj Bool
@@ -115,44 +106,53 @@ elmujj e =
         [j1, j2] -> lvDREta j1 j2 > 1.0
         _        -> False
 
+
+-- so much boilerplate
 recoEventHs :: Fills RecoEvent
-recoEventHs = mconcat [ metH, muH ]
-  -- mconcat
-  --   [ muH
-  --   , npvH
-  --   , metH
-  --   , prefixF "/jets" . over (traverse.traverse.xlabel) ("jet " <>)
-  --     <$> F.handles (to sequence.folded) lvHs
-  --     <$= view jets
-  --   , prefixF "/electrons" . over (traverse.traverse.xlabel) ("electron " <>)
-  --     <$> F.handles (to sequence.folded) electronHs
-  --     <$= view electrons
-  --   , prefixF "/muons" . over (traverse.traverse.xlabel) ("muon " <>)
-  --     <$> F.handles (to sequence.folded) muonHs
-  --     <$= view muons
-  --     ]
+recoEventHs =
+  channelWithLabel "/elmujj" elmujj
+  $ mconcat
+    [ singleton "/mu" <$> muH
+    -- , singleton "/npv" <$> npvH
+
+    , singleton "/met/pt"
+      . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
+      <$> physObjH ptH <$= fmap (view met)
+
+    , prefixF "/jets"
+      . over (traverse.traverse.xlabel) ("jet " <>)
+      <$> F.handles folded lvHs <$= sequenceL . fmap (view jets)
+
+    , prefixF "/electrons"
+      . over (traverse.traverse.xlabel) ("electron " <>)
+      <$> F.handles folded lvHs <$= sequenceL . fmap (view electrons)
+
+    , prefixF "/muons"
+      . over (traverse.traverse.xlabel) ("muon " <>)
+      <$> F.handles folded lvHs <$= sequenceL . fmap (view muons)
+
+    , prefixF "/probejets"
+      . over (traverse.traverse.xlabel) ("probe jet " <>)
+      <$> F.handles folded bfragHs
+      <$= fmap join . sequenceL . fmap probeJets
+    ]
+
 
 
 -- TODO
--- can I make this into a traversal instead of a list?
--- probeJets :: RecoEvent -> [PhysObj Jet]
--- probeJets evt =
---   case view jets evt of
---     [j1, j2] ->
---       if lvDREta j1 j2 > 1.0
---         then probeJet j1 j2 ++ probeJet j2 j1
---         else []
---     _        -> []
---   where
---     probeJet j j' = sequenceA $ do
---       bt <- view isBTagged j
---       if bt && hasSV j' && (view lvAbsEta j' < 2.1)
---         then return [j']
---         else return []
---
--- probeJetHs :: Fills m RecoEvent
--- probeJetHs = mconcat
---   [ prefixF "/probejets" . over (traverse.traverse.xlabel) ("probe jet " <>)
---     <$> F.premap (fmap join . sequenceA) (F.handles folded jetHs)
---     <$= (\e -> fmap (trueMatch . fromMaybe [] $ view truejets e) <$> probeJets e)
---   ]
+-- should this be [PhysObj Jet]??
+probeJets :: RecoEvent -> [PhysObj Jet]
+probeJets revt = fmap join . sequenceL . return $
+  case view jets revt of
+    [j1, j2] ->
+      if lvDREta j1 j2 > 1.0
+        then [probeJet j1 j2, probeJet j2 j1]
+        else []
+    _ -> []
+
+  where
+    probeJet :: Jet -> Jet -> PhysObj Jet
+    probeJet j j' = do
+      bt <- view isBTagged j
+      guard $ bt && hasSV j' && (view lvAbsEta j' < 2.1)
+      return j'

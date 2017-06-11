@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric             #-}
 {-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedLists           #-}
 {-# LANGUAGE OverloadedStrings         #-}
@@ -15,9 +16,9 @@ import           BFrag.Event
 import qualified Control.Foldl              as F
 import           Control.Lens               hiding (each)
 import           Control.Monad              (when)
-import qualified Control.Monad.Fail         as MF
 import           Control.Monad.State.Strict
-import           Control.Monad.Trans.Maybe
+import           Data.Bifunctor             (first)
+import qualified Data.HashMap.Strict        as HM
 import           Data.List                  (nub)
 import qualified Data.Map.Strict            as M
 import           Data.Maybe                 (fromMaybe)
@@ -57,16 +58,24 @@ main = do
   -- get the list of input trees
   fns <- filter (not . null) . lines <$> readFile (infiles args)
 
-  -- TODO!
-  let fn = head fns
+  let combF (Just (dsid, sow, hs)) f = do
+        (dsid', sow', hs') <- fillFile treeSysts f
+        let hs'' = mappend hs hs'
+        seq hs'' . return $ if dsid == dsid'
+          then Just (dsid, sow+sow', hs'')
+          else Nothing
+      combF Nothing f = Just <$> fillFile treeSysts f
 
+      foldFiles = F.FoldM combF (return Nothing) return
 
-  hs <- fillFile treeSysts fn
+  hs <- F.impurely P.foldM foldFiles $ each fns
 
   putStrLn ("writing to file " ++ outfile args)
-  encodeFile (outfile args) hs
+  views _Just (encodeFile $ outfile args) hs
 
 
+-- TODO
+-- bracket
 fillFile
   :: (MonadIO m, MonadCatch m)
   => [String]
@@ -109,9 +118,7 @@ fillFile systs fn = do
   trueTree <- ttree tfile "particleLevel"
   nomTree <- ttree tfile "nominal"
 
-  -- TODO
-  -- not running over truth atm
-  trueEntries <- return M.empty
+  trueEntries <- entries trueTree
   nomEntries <- entries nomTree
 
   (systTrees :: M.Map String TTree) <-
@@ -121,15 +128,14 @@ fillFile systs fn = do
 
   let allEntries = entryMap trueEntries nomEntries systEntries
 
-  liftIO $ mapM_ print allEntries
-
   hs <-
     F.purely P.fold eventHs
     $ each allEntries
+      >-> doEvery 100
+          ( \i _ -> liftIO . putStrLn $ show i ++ " entries processed." )
       >-> readEvents trueTree nomTree systTrees
+      -- >-> doEvery 1 (\_ -> liftIO . print)
       >-> P.map return
-      >-> doEvery 1000
-          (\i _ -> liftIO . putStrLn $ show i ++ " entries processed.")
 
   liftIO . putStrLn $ "closing file " <> fn
   liftIO $ tfileClose tfile
@@ -176,10 +182,12 @@ readEvents
 readEvents tttrue ttnom ttsysts = do
   ((rn, en), (mitrue, minom, isysts)) <- await
 
-  let f tr t (Just i) = flip runStateT t $ mf <$> readTTreeEntry tr i
-      f _ t Nothing   = return (MF.fail "Nothing", t)
+  let f :: (Monoid c, MonadChronicle c m1, MonadIO m) => TreeRead m (m1 a) -> TTree -> Maybe Int -> m (m1 a, TTree)
+      f tr t (Just i) = flip runStateT t $ mf <$> readTTreeEntry tr i
+      f _ t Nothing   = return (confess mempty, t)
 
-      mf = fromMaybe (MF.fail "Nothing")
+      mf :: (Monoid c, MonadChronicle c m) => Maybe (m a) -> m a
+      mf = fromMaybe (confess mempty)
 
 
       systs' =
@@ -202,14 +210,16 @@ readEvents tttrue ttnom ttsysts = do
   yield
     . Event rn en true
     . toEvent nom
-    $ M.mapKeys T.pack systs
+    . HM.fromList
+    . fmap (first T.pack)
+    $ M.toList systs
 
   readEvents tttrue' ttnom' ttsysts'
 
   where
-    toEvent :: forall a. PhysObj a -> M.Map T.Text (PhysObj a) -> PhysObj a
+    toEvent :: PhysObj a -> StrictMap T.Text (PhysObj a) -> PhysObj a
     toEvent n s =
       let systs = view nominal . runPhysObj' <$> s
           n' = runPhysObj' n
-          n'' = over variations (mappend $ strictMap systs) n'
-      in PhysObj . WriterT $ MaybeT n''
+          n'' = n' & variations %~ mappend systs
+      in varsToPO n''

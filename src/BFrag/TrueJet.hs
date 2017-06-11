@@ -3,8 +3,7 @@
 
 module BFrag.TrueJet
   ( TrueJet(..), tjChargedConsts, tjBHadrons
-  , readTrueJets, bhChildren
-  , trueJetHs
+  , readTrueJets, bhChildren, zBTTrue, zbtTrueH
   ) where
 
 import           Atlas
@@ -12,6 +11,7 @@ import           BFrag.BFrag
 import           BFrag.PtEtaPhiE
 import           Control.Applicative (ZipList (..))
 import           Control.Lens
+import           Data.Bifunctor
 import           Data.List           (deleteFirstsBy)
 import           Data.TTree
 import qualified Data.Vector         as V
@@ -28,14 +28,12 @@ data TrueJet =
 instance HasLorentzVector TrueJet where
   toPtEtaPhiE = lens _tjPtEtaPhiE $ \tj x -> tj { _tjPtEtaPhiE = x }
 
-trueJetHs :: Fills TrueJet
-trueJetHs = mconcat [ lvHs, bfragHs 7 ]
-
 data BHadron =
   BHadron
     { _bhPtEtaPhiE :: PtEtaPhiE
     , _bhChildren  :: [PtEtaPhiE]
     } deriving (Generic, Show)
+
 
 instance HasLorentzVector BHadron where
   toPtEtaPhiE = lens _bhPtEtaPhiE $ \b x -> b { _bhPtEtaPhiE = x }
@@ -51,6 +49,21 @@ instance HasPVTracks TrueJet where
     where
       eq x y = lvDREta x y < 0.01
 
+
+zBTTrue :: TrueJet -> Double
+zBTTrue (TrueJet tlv _ bs) =
+  view lvPt (foldOf (traverse.toPtEtaPhiE) bs) / view lvPt tlv
+
+zbtTrueH :: Fills TrueJet
+zbtTrueH = fmap (singleton "/zbttrue") $ physObjH h
+  where
+    h =
+      hist1DDef
+        (binD 0 7 1.05)
+        "$z_{p_{\\mathrm T}}$"
+        (dndx "z_{p_{\\mathrm T}}" "1")
+        <$= first zBTTrue
+
 readBHadrons :: (MonadIO m, MonadThrow m) => TreeRead m [BHadron]
 readBHadrons = do
   tlvs <-
@@ -59,6 +72,10 @@ readBHadrons = do
       "bhad_eta"
       "bhad_phi"
       "bhad_e"
+
+  -- TODO
+  -- these are broken in ntuples
+  -- let chtlvs = pure []
 
   chtlvs <-
     vecVecTLV
@@ -84,7 +101,7 @@ readTrueJets = do
   return . V.toList
     $ foldr matchBTJ tmp bhads
 
-  where
+  -- where
     -- filt j = lengthOf (tjBHadrons.traverse) j == 1 && view lvPt j > 25
 
 

@@ -36,6 +36,3 @@ readMuons = do
   let ms = getZipList $ Muon <$> tlvs <*> chs <*> d0sigs <*> ptvc30s
 
   return ms
-
-muonHs :: Fills Muon
-muonHs = lvHs

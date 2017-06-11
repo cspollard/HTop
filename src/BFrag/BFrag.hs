@@ -4,7 +4,6 @@
 module BFrag.BFrag where
 
 import           Atlas
-import           Control.Arrow  ((&&&))
 import           Control.Lens
 import           Data.Bifunctor
 import           Data.Foldable  (fold)
@@ -49,15 +48,16 @@ zBT j =
     0.0 -> 0.0
     x   -> view lvPt svtrksum / x
 
+
 -- TODO!!!
 zBL = undefined
 
+
 trkSumPtH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Foldl (a, Double) YodaObj
 trkSumPtH =
-  fmap (singleton "/trksumpt") . physObjH
-  $ hist1DDef
+  hist1DDef
     (binD 0 25 250)
     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
     (dndx pt gev)
@@ -66,10 +66,9 @@ trkSumPtH =
 
 svTrkSumPtH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Foldl (a, Double) YodaObj
 svTrkSumPtH =
-  fmap (singleton "/svtrksumpt") . physObjH
-  $ hist1DDef
+  hist1DDef
     (binD 0 25 250)
     "$p_{\\mathrm T} \\sum \\mathrm{SV trk}$"
     (dndx pt gev)
@@ -78,129 +77,20 @@ svTrkSumPtH =
 
 zBTH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Int -> Fills a
-zBTH nbins =
-  fmap (singleton "/zbt") . physObjH
-  $ hist1DDef
-    (binD 0 nbins 1.05)
+  => Foldl (a, Double) YodaObj
+zBTH =
+  hist1DDef
+    (binD 0 7 1.05)
     "$z_{p_{\\mathrm T}}$"
     (dndx "z_{p_{\\mathrm T}}" "1")
     <$= first zBT
 
 
-trkSumPtProfPt
-  :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
-trkSumPtProfPt =
-  fmap (singleton "/trksumptprofpt") . physObjH
-  $ prof1DDef
-    (binD 25 18 250)
-    "$p_{\\mathrm T}$ [GeV]"
-    "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
-    <$= first (view lvPt &&& trackSumPt)
-
-
-svTrkSumPtProfPt
-  :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
-svTrkSumPtProfPt =
-  fmap (singleton "/svtrksumptprofpt") . physObjH
-  $  prof1DDef
-    (binD 25 18 250)
-    "$p_{\\mathrm T}$ [GeV]"
-    "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-    <$= first (view lvPt &&& svTrackSumPt)
-
-
-zBTVsPt
-  :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
-zBTVsPt =
-  fmap (singleton "/zbtvspt") . physObjH
-  $ hist2DDef
-    (binD 25 18 250)
-    (binD 0 21 1.05)
-    "$p_{\\mathrm T}$ [GeV]"
-    "$z_{p_{\\mathrm T}}$"
-    <$= first (view lvPt &&& zBT)
-
-
-zBTProfPt
-  :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
-zBTProfPt =
-  fmap (singleton "/zbtprofpt") . physObjH
-  $ prof1DDef
-    (binD 25 18 250)
-    "$p_{\\mathrm T}$ [GeV]"
-    "$<z_{p_{\\mathrm T}}>$"
-    <$= first (view lvPt &&& zBT)
-
-
-trkSumPtProfEta
-  :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
-trkSumPtProfEta =
-  fmap (singleton "/trksumptprofeta") . physObjH
-  $ prof1DDef
-    (binD 0 21 2.1)
-    "$\\eta$"
-    "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
-    <$= first (view lvEta &&& trackSumPt)
-
-svTrkSumPtProfEta
-  :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
-svTrkSumPtProfEta =
-  fmap (singleton "/svtrksumptprofeta") . physObjH
-  $ prof1DDef
-    (binD 0 21 2.1)
-    "$\\eta$"
-    "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-    <$= first (view lvEta &&& svTrackSumPt)
-
-
-zBTProfEta
-  :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
-zBTProfEta =
-  fmap (singleton "/zbtprofeta") . physObjH
-  $ prof1DDef
-    (binD 0 21 2.1)
-    "$\\eta$"
-    "$<z_{p_{\\mathrm T}}>$"
-    <$= first (view lvEta &&& zBT)
-
-
-svTrkSumPtProfTrkSumPt
-  :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
-svTrkSumPtProfTrkSumPt =
-  fmap (singleton "/svtrksumptproftrksumpt") . physObjH
-  $ prof1DDef
-    (binD 0 25 100)
-    "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
-    "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
-    <$= first (svTrackSumPt &&& trackSumPt)
-
-
-zBTProfTrkSumPt
-  :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
-zBTProfTrkSumPt =
-  fmap (singleton "/zbtproftrksumpt") . physObjH
-  $ prof1DDef
-    (binD 0 25 100)
-    "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
-    "$<z_{p_{\\mathrm T}}>$"
-    <$= first (trackSumPt &&& zBT)
-
 nPVTrksH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Foldl (a, Double) YodaObj
 nPVTrksH =
-  fmap (singleton "/npvtrks") . physObjH
-  $ hist1DDef
+  hist1DDef
     (binD 0 20 20)
     "$n$ PV tracks"
     (dndx "n" "1")
@@ -209,57 +99,167 @@ nPVTrksH =
 
 nSVTrksH
   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
+  => Foldl (a, Double) YodaObj
 nSVTrksH =
-  fmap (singleton "/nsvtrks") . physObjH
-  $ hist1DDef
+  hist1DDef
     (binD 0 10 10)
     "$n$ SV tracks"
     (dndx "n" "1")
     <$= first (fromIntegral . nSVTracks)
 
 
-nPVTrksProfPt
-  :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
-nPVTrksProfPt =
-  fmap (singleton "/npvtrksprofpt") . physObjH
-  $ prof1DDef
-    (binD 25 18 250)
-    "$p_{\\mathrm T}$ [GeV]"
-    "$<n$ PV tracks $>$"
-    <$= first (view lvPt &&& (fromIntegral . nPVTracks))
-
-
-nSVTrksProfPt
-  :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Fills a
-nSVTrksProfPt =
-  fmap (singleton "/nsvtrksprofpt") . physObjH
-  $ prof1DDef
-    (binD 25 18 250)
-    "$p_{\\mathrm T}$ [GeV]"
-    "$<n$ SV tracks $>$"
-    <$= first (view lvPt &&& (fromIntegral . nSVTracks))
-
-
 bfragHs
-  :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
-  => Int -> Fills a
-bfragHs nbins =
+  :: (HasPVTracks a, HasSVTracks a, HasLorentzVector a)
+  => Fills a
+bfragHs =
   mconcat
-    [ zBTH nbins
-    , trkSumPtH
-    , svTrkSumPtH
-    -- , trkSumPtProfPt
-    -- , svTrkSumPtProfPt
-    -- , zBTProfPt
-    -- , trkSumPtProfEta
-    -- , svTrkSumPtProfEta
-    -- , zBTProfEta
-    , nPVTrksH
-    , nSVTrksH
-    -- , nPVTrksProfPt
-    -- , nSVTrksProfPt
-    -- , zBTVsPt
-    ]
+  [ fmap (singleton "/zbt") . physObjH $ zBTH
+  , fmap (singleton "/trksumpt") . physObjH $ trkSumPtH
+  , fmap (singleton "/svtrksumpt") . physObjH $ svTrkSumPtH
+  , fmap (singleton "/npvtrks") . physObjH $ nPVTrksH
+  , fmap (singleton "/nsvtrks") . physObjH $ nSVTrksH
+  , lvHs
+
+--     -- , trkSumPtProfPt
+--     -- , svTrkSumPtProfPt
+--     -- , zBTProfPt
+--     -- , trkSumPtProfEta
+--     -- , svTrkSumPtProfEta
+--     -- , zBTProfEta
+--     -- , nPVTrksProfPt
+--     -- , nSVTrksProfPt
+--     -- , zBTVsPt
+  ]
+
+
+-- trkSumPtProfPt
+--   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
+--   => Foldl (a, Double) YodaObj
+-- trkSumPtProfPt =
+--   fmap (singleton "/trksumptprofpt")
+--   $ prof1DDef
+--     (binD 25 18 250)
+--     "$p_{\\mathrm T}$ [GeV]"
+--     "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
+--     <$= first (view lvPt &&& trackSumPt)
+--
+--
+-- svTrkSumPtProfPt
+--   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
+--   => Foldl (a, Double) YodaObj
+-- svTrkSumPtProfPt =
+--   fmap (singleton "/svtrksumptprofpt")
+--   $  prof1DDef
+--     (binD 25 18 250)
+--     "$p_{\\mathrm T}$ [GeV]"
+--     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
+--     <$= first (view lvPt &&& svTrackSumPt)
+--
+--
+-- zBTVsPt
+--   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
+--   => Foldl (a, Double) YodaObj
+-- zBTVsPt =
+--   fmap (singleton "/zbtvspt")
+--   $ hist2DDef
+--     (binD 25 18 250)
+--     (binD 0 21 1.05)
+--     "$p_{\\mathrm T}$ [GeV]"
+--     "$z_{p_{\\mathrm T}}$"
+--     <$= first (view lvPt &&& zBT)
+--
+--
+-- zBTProfPt
+--   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
+--   => Foldl (a, Double) YodaObj
+-- zBTProfPt =
+--   fmap (singleton "/zbtprofpt")
+--   $ prof1DDef
+--     (binD 25 18 250)
+--     "$p_{\\mathrm T}$ [GeV]"
+--     "$<z_{p_{\\mathrm T}}>$"
+--     <$= first (view lvPt &&& zBT)
+--
+--
+-- trkSumPtProfEta
+--   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
+--   => Foldl (a, Double) YodaObj
+-- trkSumPtProfEta =
+--   fmap (singleton "/trksumptprofeta")
+--   $ prof1DDef
+--     (binD 0 21 2.1)
+--     "$\\eta$"
+--     "$<p_{\\mathrm T} \\sum \\mathrm{trk}>$"
+--     <$= first (view lvEta &&& trackSumPt)
+--
+-- svTrkSumPtProfEta
+--   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
+--   => Foldl (a, Double) YodaObj
+-- svTrkSumPtProfEta =
+--   fmap (singleton "/svtrksumptprofeta")
+--   $ prof1DDef
+--     (binD 0 21 2.1)
+--     "$\\eta$"
+--     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
+--     <$= first (view lvEta &&& svTrackSumPt)
+--
+--
+-- zBTProfEta
+--   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
+--   => Foldl (a, Double) YodaObj
+-- zBTProfEta =
+--   fmap (singleton "/zbtprofeta")
+--   $ prof1DDef
+--     (binD 0 21 2.1)
+--     "$\\eta$"
+--     "$<z_{p_{\\mathrm T}}>$"
+--     <$= first (view lvEta &&& zBT)
+--
+--
+-- svTrkSumPtProfTrkSumPt
+--   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
+--   => Foldl (a, Double) YodaObj
+-- svTrkSumPtProfTrkSumPt =
+--   fmap (singleton "/svtrksumptproftrksumpt")
+--   $ prof1DDef
+--     (binD 0 25 100)
+--     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
+--     "$<p_{\\mathrm T} \\sum \\mathrm{SV trk}>$"
+--     <$= first (svTrackSumPt &&& trackSumPt)
+--
+--
+-- zBTProfTrkSumPt
+--   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
+--   => Foldl (a, Double) YodaObj
+-- zBTProfTrkSumPt =
+--   fmap (singleton "/zbtproftrksumpt")
+--   $ prof1DDef
+--     (binD 0 25 100)
+--     "$p_{\\mathrm T} \\sum \\mathrm{trk}$"
+--     "$<z_{p_{\\mathrm T}}>$"
+--     <$= first (trackSumPt &&& zBT)
+--
+--
+--
+-- nPVTrksProfPt
+--   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
+--   => Foldl (a, Double) YodaObj
+-- nPVTrksProfPt =
+--   fmap (singleton "/npvtrksprofpt")
+--   $ prof1DDef
+--     (binD 25 18 250)
+--     "$p_{\\mathrm T}$ [GeV]"
+--     "$<n$ PV tracks $>$"
+--     <$= first (view lvPt &&& (fromIntegral . nPVTracks))
+--
+--
+-- nSVTrksProfPt
+--   :: (HasLorentzVector a, HasSVTracks a, HasPVTracks a)
+--   => Foldl (a, Double) YodaObj
+-- nSVTrksProfPt =
+--   fmap (singleton "/nsvtrksprofpt")
+--   $ prof1DDef
+--     (binD 25 18 250)
+--     "$p_{\\mathrm T}$ [GeV]"
+--     "$<n$ SV tracks $>$"
+--     <$= first (view lvPt &&& (fromIntegral . nSVTracks))
