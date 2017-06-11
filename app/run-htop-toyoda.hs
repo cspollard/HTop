@@ -13,6 +13,7 @@ import           BFrag.Systematics
 import           Control.Applicative
 import           Control.Lens           hiding (each)
 import           Data.Bifunctor
+import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
 import qualified Data.IntMap.Strict     as IM
 import qualified Data.Map.Strict        as M
@@ -46,7 +47,7 @@ writeFiles outf pm' =
             >-> P.map (T.unpack . uncurry printYodaObj . first ("/htop" <>))
             >-> P.toHandle h
 
-      ps = M.toList . unSM . variationToMap "nominal" $ folderToMap <$> sequence pm
+      ps = HM.toList . variationToMap "nominal" $ folderToMap <$> sequence pm
 
   in runEffect $ each ps >-> P.mapM_ (uncurry write)
 
