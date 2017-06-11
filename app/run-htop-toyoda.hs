@@ -21,6 +21,7 @@ import           Data.Maybe             (fromJust)
 import           Data.Semigroup
 import qualified Data.Text              as T
 import qualified Data.Vector.Generic    as VG
+import           GHC.Exts               (IsList (..))
 import           Pipes
 import qualified Pipes.Prelude          as P
 import           System.IO
@@ -47,7 +48,8 @@ writeFiles outf pm' =
             >-> P.map (T.unpack . uncurry printYodaObj . first ("/htop" <>))
             >-> P.toHandle h
 
-      ps = HM.toList . variationToMap "nominal" $ folderToMap <$> sequence pm
+      ps :: [(T.Text, M.Map T.Text YodaObj)]
+      ps = toList . variationToMap "nominal" . sequence $ folderToMap pm
 
   in runEffect $ each ps >-> P.mapM_ (uncurry write)
 

@@ -18,7 +18,6 @@ import           Control.Lens               hiding (each)
 import           Control.Monad              (when)
 import           Control.Monad.State.Strict
 import           Data.Bifunctor             (first)
-import qualified Data.HashMap.Strict        as HM
 import           Data.List                  (nub)
 import qualified Data.Map.Strict            as M
 import           Data.Maybe                 (fromMaybe)
@@ -27,6 +26,7 @@ import qualified Data.Text                  as T
 import           Data.TFile
 import           Data.TTree
 import           Data.Typeable
+import           GHC.Exts                   (IsList (..))
 import           GHC.Float
 import           Options.Generic
 import           Pipes
@@ -210,7 +210,7 @@ readEvents tttrue ttnom ttsysts = do
   yield
     . Event rn en true
     . toEvent nom
-    . HM.fromList
+    . fromList
     . fmap (first T.pack)
     $ M.toList systs
 
