@@ -16,7 +16,7 @@ import           BFrag.Systematics
 import           Control.Applicative (ZipList (..))
 import           Control.Lens
 import           Data.Bifunctor
-import           Data.Semigroup (Any(..))
+import           Data.Semigroup      (Any (..))
 import           Data.TTree
 import qualified Data.Vector         as V
 import           GHC.Float

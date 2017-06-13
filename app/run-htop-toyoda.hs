@@ -13,9 +13,7 @@ import           BFrag.Systematics
 import           Control.Applicative
 import           Control.Lens           hiding (each)
 import           Data.Bifunctor
-import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
-import qualified Data.IntMap.Strict     as IM
 import qualified Data.Map.Strict        as M
 import           Data.Maybe             (fromJust)
 import           Data.Semigroup
@@ -36,9 +34,9 @@ main = mainWith writeFiles
 -- we're not writing data.
 -- partial
 writeFiles :: String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
-writeFiles outf pm' =
-  let pm :: Folder (Vars YodaObj)
-      (pm, _) = over (_1.traverse) (liftA2 scaleH' lumi) $ collapseProcs pm'
+writeFiles outf pm' = void . sequence $ do
+  pm'' <- fst $ collapseProcs pm'
+  let pm = liftA2 scaleH' lumi <$> pm''
 
       write :: T.Text -> M.Map T.Text YodaObj -> IO ()
       write varname hs =
@@ -51,23 +49,24 @@ writeFiles outf pm' =
       ps :: [(T.Text, M.Map T.Text YodaObj)]
       ps = toList . variationToMap "nominal" . sequence $ folderToMap pm
 
-  in runEffect $ each ps >-> P.mapM_ (uncurry write)
+  return . runEffect $ each ps >-> P.mapM_ (uncurry write)
 
 
 -- TODO
+-- we only grab the first dsid currently.
 -- we are ignoring modeling variations here
 -- as well as backgrounds
 -- partial
 collapseProcs
   :: ProcMap (Folder (Vars YodaObj))
-  -> (Folder (Vars YodaObj), Maybe YodaFolder)
+  -> (Maybe (Folder (Vars YodaObj)), Maybe YodaFolder)
 collapseProcs pm =
   let preds = sans 0 pm
       dat = (fmap.fmap) (view nominal) $ pm ^. at 0
 
   -- TODO
   -- partial
-  in (preds ^?! ix 410252, dat)
+  in (firstOf traverse preds, dat)
 
 
 scaleH' :: Double -> YodaObj -> YodaObj
