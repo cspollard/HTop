@@ -69,8 +69,8 @@ readRunEventNumber = (,) <$> readRunNumber <*> readEventNumber
 eventHs :: Fills Event
 eventHs =
   mconcat
-  [ channelWithLabel "elmujj" elmujj recoEventHs =$<< view recoEvent
-  , channelWithLabel "elmujjtrue" (return . elmujjTrue) trueEventHs
+  [ channelWithLabel "/elmujj" elmujj recoEventHs =$<< view recoEvent
+  , channelWithLabel "/elmujjtrue" (return . elmujjTrue) trueEventHs
     =$<< view trueEvent
   , matchedEventHs =$<< go
   ]
@@ -84,7 +84,7 @@ eventHs =
 
 matchedEventHs :: Fills (TrueEvent, RecoEvent)
 matchedEventHs =
-  channelWithLabel "elmujjmatch" filt
+  channelWithLabel "/elmujjmatch" filt
   $ F.handles folded matchedJetHs <$= fmap join . sequenceL . fmap go
 
   where
