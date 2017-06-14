@@ -17,6 +17,7 @@ module BFrag.Event
   , eventHs
   ) where
 
+
 import           Atlas
 import           BFrag.BFrag            as X
 import           BFrag.Electron         as X
@@ -32,6 +33,7 @@ import           Data.Semigroup         (Arg (..), Min (..), Option (..))
 import           Data.TTree
 import           Data.Tuple             (swap)
 import           GHC.Generics           (Generic)
+
 
 data Event =
   Event
@@ -67,8 +69,9 @@ readRunEventNumber = (,) <$> readRunNumber <*> readEventNumber
 eventHs :: Fills Event
 eventHs =
   mconcat
-  [ recoEventHs =$<< view recoEvent
-  , trueEventHs =$<< view trueEvent
+  [ channelWithLabel "elmujj" elmujj recoEventHs =$<< view recoEvent
+  , channelWithLabel "elmujjtrue" (return . elmujjTrue) trueEventHs
+    =$<< view trueEvent
   , matchedEventHs =$<< go
   ]
 
@@ -80,16 +83,25 @@ eventHs =
 
 
 matchedEventHs :: Fills (TrueEvent, RecoEvent)
-matchedEventHs = F.handles folded matchedJetHs <$= fmap join . sequenceL . fmap go
+matchedEventHs =
+  channelWithLabel "elmujjmatch" filt
+  $ F.handles folded matchedJetHs <$= fmap join . sequenceL . fmap go
+
   where
+    filt :: (TrueEvent, RecoEvent) -> PhysObj Bool
+    filt (tevt, revt) = do
+      x <- elmujj revt
+      let y = elmujjTrue tevt
+      return $ x && y
+
+
     go :: (TrueEvent, RecoEvent) -> [PhysObj (TrueJet, Jet)]
     go (tevt, revt) =
       let rjs = probeJets revt
-          tjs = toListOf (trueJets . traverse . filtered tfilt) tevt
+          tjs = toListOf (trueJets . traverse . filtered trueBJet) tevt
           matches = (fromMaybe' =<<) . fmap (fmap swap . sequence . trueMatch tjs) <$> rjs
       in matches
 
-    tfilt j = lengthOf (tjBHadrons.traverse) j == 1 && view lvPt j > 25
     fromMaybe' (Just x) = return x
     fromMaybe' Nothing  = confess mempty
 

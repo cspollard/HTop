@@ -22,6 +22,8 @@ library
                      , BFrag.TrueEvent
                      , BFrag.Jet
                      , BFrag.TrueJet
+                     , BFrag.TrueElectron
+                     , BFrag.TrueMuon
                      , BFrag.Muon
                      , BFrag.Selection
                      , BFrag.PtEtaPhiE

@@ -4,6 +4,7 @@
 module BFrag.TrueJet
   ( TrueJet(..), tjChargedConsts, tjBHadrons
   , readTrueJets, bhChildren, zBTTrue, zbtTrueH
+  , trueBJet
   ) where
 
 import           Atlas
@@ -55,7 +56,7 @@ zBTTrue (TrueJet tlv _ bs) =
   view lvPt (foldOf (traverse.toPtEtaPhiE) bs) / view lvPt tlv
 
 zbtTrueH :: Fills TrueJet
-zbtTrueH = fmap (singleton "/zbttrue") $ physObjH h
+zbtTrueH = singleton "/zbttrue" <$> physObjH h
   where
     h =
       hist1DDef
@@ -95,14 +96,12 @@ readTrueJets = do
 
   bhads <- filter ((> 5) . view lvPt) <$> readBHadrons
 
-  -- TODO
-  -- we're not filtering
-  -- return . filter filt . V.toList
   return . V.toList
     $ foldr matchBTJ tmp bhads
 
-  -- where
-    -- filt j = lengthOf (tjBHadrons.traverse) j == 1 && view lvPt j > 25
+
+trueBJet :: TrueJet -> Bool
+trueBJet j = lengthOf (tjBHadrons.traverse) j == 1 && view lvPt j > 25
 
 
 vecVecTLV
