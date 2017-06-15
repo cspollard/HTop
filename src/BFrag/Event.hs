@@ -69,9 +69,8 @@ readRunEventNumber = (,) <$> readRunNumber <*> readEventNumber
 eventHs :: Fills Event
 eventHs =
   mconcat
-  [ channelWithLabel "/elmujj" elmujj recoEventHs =$<< view recoEvent
-  , channelWithLabel "/elmujjtrue" (return . elmujjTrue) trueEventHs
-    =$<< view trueEvent
+  [ recoEventHs =$<< view recoEvent
+  , trueEventHs =$<< view trueEvent
   , matchedEventHs =$<< go
   ]
 
