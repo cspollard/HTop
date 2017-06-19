@@ -180,7 +180,7 @@ zbtDiff =
     h =
       hist1DDef
         (binD (-1) 50 1)
-        "charged $z_{p_{\\mathrm T}}$ (true - reco)"
+        "$z_{p_{\\mathrm T}}$ (true - charged reco)"
         (dndx "z_{p_{\\mathrm T}}" "1")
 
 
@@ -213,7 +213,7 @@ ptSVDiff =
     h =
       hist1DDef
         (binD (-10) 55 100)
-        "SV $p_{\\mathrm T}$ (true - reco)"
+        "SV $p_{\\mathrm T}$ (true - charged reco)"
         (dndx pt gev)
 
 
@@ -232,7 +232,7 @@ ptSVChargedDiff =
     h =
       hist1DDef
         (binD (-10) 55 100)
-        "SV $p_{\\mathrm T}$ (true - reco)"
+        "charged SV $p_{\\mathrm T}$ (true - reco)"
         (dndx pt gev)
 
 
