@@ -49,7 +49,7 @@ trueElectrons = lens _trueElectrons $ \te x -> te { _trueElectrons = x }
 
 trueEventHs :: Fills TrueEvent
 trueEventHs =
-  channelWithLabel "elmujjtrue" (return . elmujjTrue)
+  channelWithLabel "/elmujjtrue" (return . elmujjTrue)
   $ prefixF "/truejets"
     . over (traverse.traverse.xlabel) ("true jet " <>)
     <$> F.handles folded bfragHs <$= sequenceL . fmap (view trueJets)

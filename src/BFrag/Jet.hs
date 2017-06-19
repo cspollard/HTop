@@ -44,8 +44,8 @@ data Jet =
     , _mv2c10      :: Double
     , _isBTagged   :: PhysObj Bool
     , _jvt         :: Double
-    , _pvTrks      :: [PtEtaPhiE]
-    , _svTrks      :: [PtEtaPhiE]
+    , _pvTrks      :: PhysObj [PtEtaPhiE]
+    , _svTrks      :: PhysObj [PtEtaPhiE]
     , _truthFlavor :: Maybe JetFlavor
     } deriving (Generic, Show)
 
@@ -106,11 +106,11 @@ readJets dmc = do
           <*> mv2c10s
           <*> tagged
           <*> jvts
-          <*> fmap getZipList pvtrks
-          <*> fmap getZipList svtrks
+          <*> fmap (pure . getZipList) pvtrks
+          <*> fmap (pure . getZipList) svtrks
           <*> flvs
 
-  return $ filter ((> 30) . view lvPt) js
+  return js
 
 jetTracksTLV
   :: (MonadIO m, MonadThrow m)
@@ -214,7 +214,7 @@ jvt :: Lens' Jet Double
 jvt = lens _jvt $ \j x -> j { _jvt = x }
 
 
-pvTrks, svTrks :: Lens' Jet [PtEtaPhiE]
+pvTrks, svTrks :: Lens' Jet (PhysObj [PtEtaPhiE])
 pvTrks = lens _pvTrks $ \j x -> j { _pvTrks = x }
 svTrks = lens _svTrks $ \j x -> j { _svTrks = x }
 

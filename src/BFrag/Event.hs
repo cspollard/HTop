@@ -118,31 +118,43 @@ matchedJetHs :: Fills (TrueJet, Jet)
 matchedJetHs =
   fmap (prefixF "/matched")
   $ channelsWithLabels
-    [ ("/2precosvtrks", pure . (>= 2) . length . svTracks . snd)
-    , ("/2recosvtrks", pure . (== 2) . length . svTracks . snd)
-    , ("/3recosvtrks", pure . (== 3) . length . svTracks . snd)
-    , ("/4recosvtrks", pure . (== 4) . length . svTracks . snd)
-    , ("/5recosvtrks", pure . (== 5) . length . svTracks . snd)
-    , ("/4recopsvtrks", pure . (>= 4) . length . svTracks . snd)
-    , ("/6recopsvtrks", pure . (>= 6) . length . svTracks . snd)
+    [ ("/2precosvtrks", recoSVTrkCut (>= 2))
+    , ("/2recosvtrks", recoSVTrkCut (== 2))
+    , ("/3recosvtrks", recoSVTrkCut (== 3))
+    , ("/4recosvtrks", recoSVTrkCut (== 4))
+    , ("/5recosvtrks", recoSVTrkCut (== 5))
+    , ("/4recopsvtrks", recoSVTrkCut (>= 4))
+    , ("/6recopsvtrks", recoSVTrkCut (>= 6))
     ]
     . channelsWithLabels
-      [ ("/recoptgt30", pure . (> 30) . view lvPt . snd)
-      , ("/recoptgt40", pure . (> 40) . view lvPt . snd)
-      , ("/recoptgt50", pure . (> 50) . view lvPt . snd)
-      , ("/recoptgt75", pure . (> 75) . view lvPt . snd)
+      [ ("/recoptgt30", recoPtCut 30)
+      , ("/recoptgt40", recoPtCut 40)
+      , ("/recoptgt50", recoPtCut 50)
+      , ("/recoptgt75", recoPtCut 75)
       ]
     . mconcat
     $ (prefixF "/probejets" <$> bfragHs <$= fmap snd)
       : (prefixF "/truejets" <$> mappend zbtTrueH bfragHs <$= fmap fst)
-      : [zbtMigration, zbtChargedMigration, nsvMigration, npvMigration]
+      : [ zbtMigration
+        , zbtChargedMigration
+        , zbtDiff
+        , zbtChargedDiff
+        , ptSVDiff
+        , ptSVChargedDiff
+        , nsvMigration
+        , npvMigration
+        ]
+
+  where
+    recoSVTrkCut f = fmap (f . length) . svTracks . snd
+    recoPtCut ptMin = pure . (> ptMin) . view lvPt . snd
 
 
 zbtChargedMigration :: Fills (TrueJet, Jet)
 zbtChargedMigration =
-  singleton "/recozbtvstruechargedzbt"
+  singleton "/recozbtcvstruezbtc"
   <$> physObjH h
-  <$= fmap (bimap zBT zBT)
+  =$<< zbts
 
   where
     h =
@@ -150,14 +162,92 @@ zbtChargedMigration =
         (binD 0 7 1.05)
         (binD 0 21 1.05)
         "true charged $z_{p_{\\mathrm T}}$"
-        "reco $z_{p_{\\mathrm T}}$"
+        "reco charged $z_{p_{\\mathrm T}}$"
+
+
+zbtDiff :: Fills (TrueJet, Jet)
+zbtDiff =
+  singleton "/truezbtcminusrecozbtc"
+  <$> physObjH h
+  =$<< f
+
+  where
+    f (tj, rj) = do
+      let tz = zBTTrue tj
+      rz <- zBTCharged rj
+      return $ tz - rz
+
+    h =
+      hist1DDef
+        (binD (-1) 50 1)
+        "charged $z_{p_{\\mathrm T}}$ (true - reco)"
+        (dndx "z_{p_{\\mathrm T}}" "1")
+
+
+zbtChargedDiff :: Fills (TrueJet, Jet)
+zbtChargedDiff =
+  singleton "/truezbtcminusrecozbtc"
+  <$> physObjH h
+  =$<< fmap (uncurry (-)) . zbts
+
+  where
+    h =
+      hist1DDef
+        (binD (-1) 50 1)
+        "charged $z_{p_{\\mathrm T}}$ (true - reco)"
+        (dndx "z_{p_{\\mathrm T}}" "1")
+
+
+ptSVDiff :: Fills (TrueJet, Jet)
+ptSVDiff =
+  singleton "/trueptsvminusrecoptsv"
+  <$> physObjH h
+  =$<< f
+
+  where
+    f (tj, rj) = do
+      let tpt = view lvPt $ svTrue tj
+      rpt <- view lvPt <$> svTrackSum rj
+      return $ tpt - rpt
+
+    h =
+      hist1DDef
+        (binD (-10) 55 100)
+        "SV $p_{\\mathrm T}$ (true - reco)"
+        (dndx pt gev)
+
+
+ptSVChargedDiff :: Fills (TrueJet, Jet)
+ptSVChargedDiff =
+  singleton "/trueptsvminusrecoptsv"
+  <$> physObjH h
+  =$<< f
+
+  where
+    f (tj, rj) = do
+      tpt <- view lvPt <$> svTrackSum tj
+      rpt <- view lvPt <$> svTrackSum rj
+      return $ tpt - rpt
+
+    h =
+      hist1DDef
+        (binD (-10) 55 100)
+        "SV $p_{\\mathrm T}$ (true - reco)"
+        (dndx pt gev)
+
+
+zbts :: (TrueJet, Jet) -> PhysObj (Double, Double)
+zbts (tj, rj) = do
+  tjz <- zBTCharged tj
+  rjz <- zBTCharged rj
+  return (tjz, rjz)
 
 
 zbtMigration :: Fills (TrueJet, Jet)
 zbtMigration =
-  singleton "/recozbtvstruezbt"
+  singleton "/recozbtcvstruezbt"
   <$> physObjH h
-  <$= fmap (bimap zBTTrue zBT)
+  =$<< zbts
 
   where
     h =
@@ -165,16 +255,21 @@ zbtMigration =
         (binD 0 7 1.05)
         (binD 0 21 1.05)
         "true $z_{p_{\\mathrm T}}$"
-        "reco $z_{p_{\\mathrm T}}$"
+        "reco charged $z_{p_{\\mathrm T}}$"
 
 
 nsvMigration :: Fills (TrueJet, Jet)
 nsvMigration =
   singleton "/reconsvtrksvstruensvtrks"
   <$> physObjH h
-  <$= fmap (bimap (fromIntegral . nSVTracks) (fromIntegral . nSVTracks))
+  =$<< f
 
   where
+    f (tj, rj) = do
+       tnt <- fromIntegral <$> nSVTracks tj
+       rnt <- fromIntegral <$> nSVTracks rj
+       return (tnt, rnt)
+
     h =
       hist2DDef
         (binD 0 10 10)
@@ -187,9 +282,14 @@ npvMigration :: Fills (TrueJet, Jet)
 npvMigration =
   singleton "/reconpvtrksvstruenpvtrks"
   <$> physObjH h
-  <$= fmap (bimap (fromIntegral . nPVTracks) (fromIntegral . nPVTracks))
+  =$<< f
 
   where
+    f (tj, rj) = do
+       tnt <- fromIntegral <$> nPVTracks tj
+       rnt <- fromIntegral <$> nPVTracks rj
+       return (tnt, rnt)
+
     h =
       hist2DDef
         (binD 0 20 20)

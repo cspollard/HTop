@@ -2,6 +2,12 @@
 LogX=0
 LogY=0
 Legend=0
+RatioPlotYMin=0.95
+RatioPlotYMax=1.05
+# END PLOT
+
+# BEGIN PLOT /.*jets/pt$
+Rebin=4
 # END PLOT
 
 # BEGIN PLOT .*mu$

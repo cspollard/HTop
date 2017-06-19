@@ -4,7 +4,7 @@
 module BFrag.TrueJet
   ( TrueJet(..), tjChargedConsts, tjBHadrons
   , readTrueJets, bhChildren, zBTTrue, zbtTrueH
-  , trueBJet
+  , trueBJet, svTrue
   ) where
 
 import           Atlas
@@ -40,20 +40,25 @@ instance HasLorentzVector BHadron where
   toPtEtaPhiE = lens _bhPtEtaPhiE $ \b x -> b { _bhPtEtaPhiE = x }
 
 instance HasSVTracks TrueJet where
-  svTracks = toListOf (tjBHadrons.traverse.bhChildren.traverse)
+  svTracks = pure . toListOf (tjBHadrons.traverse.bhChildren.traverse)
 
 instance HasPVTracks TrueJet where
-  pvTracks tj =
-    let bchs = svTracks tj
-        chparts = view tjChargedConsts tj
-    in deleteFirstsBy eq chparts bchs
+  pvTracks tj = do
+    bchs <- svTracks tj
+    let chparts = view tjChargedConsts tj
+    pure $ deleteFirstsBy eq chparts bchs
     where
       eq x y = lvDREta x y < 0.01
+
+
+svTrue :: TrueJet -> PtEtaPhiE
+svTrue = foldOf $ tjBHadrons . traverse . toPtEtaPhiE
 
 
 zBTTrue :: TrueJet -> Double
 zBTTrue (TrueJet tlv _ bs) =
   view lvPt (foldOf (traverse.toPtEtaPhiE) bs) / view lvPt tlv
+
 
 zbtTrueH :: Fills TrueJet
 zbtTrueH = singleton "/zbttrue" <$> physObjH h
@@ -64,6 +69,7 @@ zbtTrueH = singleton "/zbttrue" <$> physObjH h
         "$z_{p_{\\mathrm T}}$"
         (dndx "z_{p_{\\mathrm T}}" "1")
         <$= first zBTTrue
+
 
 readBHadrons :: (MonadIO m, MonadThrow m) => TreeRead m [BHadron]
 readBHadrons = do
