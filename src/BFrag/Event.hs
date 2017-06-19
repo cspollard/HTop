@@ -167,7 +167,7 @@ zbtChargedMigration =
 
 zbtDiff :: Fills (TrueJet, Jet)
 zbtDiff =
-  singleton "/truezbtcminusrecozbtc"
+  singleton "/truezbtminusrecozbtc"
   <$> physObjH h
   =$<< f
 
@@ -200,7 +200,7 @@ zbtChargedDiff =
 
 ptSVDiff :: Fills (TrueJet, Jet)
 ptSVDiff =
-  singleton "/trueptsvminusrecoptsv"
+  singleton "/trueptsvminusrecoptsvc"
   <$> physObjH h
   =$<< f
 
@@ -219,7 +219,7 @@ ptSVDiff =
 
 ptSVChargedDiff :: Fills (TrueJet, Jet)
 ptSVChargedDiff =
-  singleton "/trueptsvminusrecoptsv"
+  singleton "/trueptsvcminusrecoptsvc"
   <$> physObjH h
   =$<< f
 

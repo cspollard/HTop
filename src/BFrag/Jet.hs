@@ -40,14 +40,14 @@ flavFromCInt x =
 
 data Jet =
   Jet
-  { _jPtEtaPhiE    :: PtEtaPhiE
-    , _mv2c10      :: Double
-    , _isBTagged   :: PhysObj Bool
-    , _jvt         :: Double
-    , _pvTrks      :: PhysObj [PtEtaPhiE]
-    , _svTrks      :: PhysObj [PtEtaPhiE]
-    , _truthFlavor :: Maybe JetFlavor
-    } deriving (Generic, Show)
+  { _jPtEtaPhiE  :: PtEtaPhiE
+  , _mv2c10      :: Double
+  , _isBTagged   :: PhysObj Bool
+  , _jvt         :: Double
+  , _pvTrks      :: PhysObj [PtEtaPhiE]
+  , _svTrks      :: PhysObj [PtEtaPhiE]
+  , _truthFlavor :: Maybe JetFlavor
+  } deriving (Generic, Show)
 
 instance HasLorentzVector Jet where
     toPtEtaPhiE = lens _jPtEtaPhiE $ \j x -> j { _jPtEtaPhiE = x }
@@ -112,6 +112,7 @@ readJets dmc = do
 
   return js
 
+
 jetTracksTLV
   :: (MonadIO m, MonadThrow m)
   => String
@@ -139,54 +140,6 @@ mv2c10H =
   $ hist1DDef (binD (-1) 25 1) "MV2c10" (dndx "\\mathrm{MV2c10}" "1")
     <$= first (view mv2c10)
 
-
--- jetHs :: Fills m m (Jet, Maybe TrueJet)
--- jetHs =
---   channelsWithLabels
---     [ ("/2psvtrks", pure . (>= 2) . length . svTracks . fst)
---     , ("/2svtrks", pure . (== 2) . length . svTracks . fst)
---     , ("/3svtrks", pure . (== 3) . length . svTracks . fst)
---     , ("/4svtrks", pure . (== 4) . length . svTracks . fst)
---     , ("/5svtrks", pure . (== 5) . length . svTracks . fst)
---     , ("/4psvtrks", pure . (>= 4) . length . svTracks . fst)
---     , ("/6psvtrks", pure . (>= 6) . length . svTracks . fst)
---     ]
---   $ channelsWithLabels
---     ( ("/ptgt40", pure . (> 40) . view lvPt . fst)
---       : ("/ptgt50", pure . (> 50) . view lvPt . fst)
---       : ("/ptgt75", pure . (> 75) . view lvPt . fst)
---       : pure ("/ptgt30", pure . const True)
---     -- : bins' "/pt" (view lvPt . fst) [20, 30, 50, 75, 100, 150, 200]
---     -- ++ bins' "/eta" (view lvAbsEta . fst) [0, 0.5, 1.0, 1.5, 2.0, 2.5]
---     )
---   $ channelsWithLabels
---     [ ("/allJets", pure . const True)
---     , ("/unmatched", pure . isNothing . snd)
---     ] allHs
---     `mappend`
---       channelWithLabel "/matched" (pure . isJust . snd) matchedHs
---
---   where
---     allHs = mconcat [lvHs , {- mv2c10H , -} bfragHs 21] <$= fst
---     matchedHs =
---       mappend
---         allHs
---         $ F.premap sequenceA (F.handles _Just recoVsTrueHs) <$= sequenceA
-
-  -- where
-    -- bins'
-    --   :: T.Text
-    --   -> ((Jet, a) -> Double)
-    --   -> [Double]
-    --   -> [(T.Text, (Jet, a) -> PhysObj Bool)]
-    -- bins' lab f (b0:b1:bs) =
-    --   ( fixT $ lab <> "_" <> T.pack (show b0) <> "_" <> T.pack (show b1)
-    --   , pure . (\j -> let x = f j in b0 < x && x < b1)
-    --   ) : bins' lab f (b1:bs)
-    --
-    -- bins' _ _ _ = []
-    --
-    -- fixT = T.replace "-" "m"
 
 bLabeled :: Jet -> Bool
 bLabeled = views truthFlavor (== Just B)
