@@ -95,6 +95,9 @@ readJets dmc = do
       "jet_sv1_track_phi"
       "jet_sv1_track_e"
 
+
+  svtrks' = traverse 
+
   flvs <-
     case dmc of
       Data' -> return $ pure Nothing

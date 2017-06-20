@@ -122,9 +122,9 @@ matchedJetHs =
     , ("/2recosvtrks", recoSVTrkCut (== 2))
     , ("/3recosvtrks", recoSVTrkCut (== 3))
     , ("/4recosvtrks", recoSVTrkCut (== 4))
-    , ("/4precopsvtrks", recoSVTrkCut (>= 4))
+    , ("/4precosvtrks", recoSVTrkCut (>= 4))
     , ("/5recosvtrks", recoSVTrkCut (== 5))
-    , ("/6recopsvtrks", recoSVTrkCut (>= 6))
+    , ("/6precosvtrks", recoSVTrkCut (>= 6))
     ]
     . channelsWithLabels
       [ ("/recoptgt30", recoPtCut 30)
