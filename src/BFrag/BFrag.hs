@@ -123,7 +123,7 @@ nSVTrksH =
   where
     h =
       hist1DDef
-        (binD 0 10 10)
+        (binD 0 20 20)
         "$n$ SV tracks"
         (dndx "n" "1")
 
