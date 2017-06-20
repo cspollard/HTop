@@ -48,11 +48,13 @@ library
                      , cereal-text == 0.1.*
                      , histogram-fill == 0.8.*
                      , histogram-fill-cereal == 0.6.*
+                     , primitive == 0.6.*
                      , semigroups == 0.18.*
                      , bifunctors == 5.4.*
                      , foldl == 1.2.*
                      , pipes == 4.3.*
                      , these == 0.7.*
+                     , mwc-probability == 1.3.*
                      , hhep == 0.3.*
                      , histogram-extras == 0.2.*
                      , ttree == 0.2.*
