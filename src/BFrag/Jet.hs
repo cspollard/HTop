@@ -129,9 +129,8 @@ readJets dmc = do
   where
     throwResolution :: PrimMonad m => Double -> PtEtaPhiE -> Prob m PtEtaPhiE
     throwResolution res p = do
-      scale <- normal 1 res
-      let scale' = if scale <= 0 then 0 else scale
-      return . over lvPt (*scale') $ over lvE (*scale') p
+      scale <- max 0 <$> normal 1 res
+      return $ over lvPt (*scale) $ over lvE (*scale) p
 
     throwEfficiency :: PrimMonad m => Double -> a -> Prob m (Maybe a)
     throwEfficiency eff x = do
@@ -149,14 +148,23 @@ readJets dmc = do
       res10 <- traverse (throwResolution 0.10) ps
       res20 <- traverse (throwResolution 0.20) ps
 
-      return . varObj . Variation ps
-        $ [ ("svtrkeff90", eff90)
-          , ("svtrkeff95", eff95)
-          , ("svtrkeff98", eff98)
-          , ("svtrkres05", res05)
-          , ("svtrkres10", res10)
-          , ("svtrkres20", res20)
-          ]
+      let svtrks =
+            varObj . Variation (reassess ps)
+            $ [ ("svtrkeff90", reassess eff90)
+              , ("svtrkeff95", reassess eff95)
+              , ("svtrkeff98", reassess eff98)
+              , ("svtrkres05", reassess res05)
+              , ("svtrkres10", reassess res10)
+              , ("svtrkres20", reassess res20)
+              ]
+
+          reassess = minLen . filter ((> 0.5) . view lvPt)
+
+          -- remove SVs that no longer have 2 tracks
+          minLen xs@(_:_:_) = xs
+          minLen _          = []
+
+      return svtrks
 
 
 jetTracksTLV
@@ -202,9 +210,13 @@ tLabeled = views truthFlavor (== Just T)
 notBLabeled :: Jet -> Bool
 notBLabeled = getAny . views (truthFlavor._Just) (Any . (/= B))
 
-hasSV :: Jet -> Bool
-hasSV = not . null . svTracks
-
+hasSV :: Jet -> PhysObj Bool
+hasSV j = do
+  svtrks <- view svTrks j
+  return $
+    case svtrks of
+      (_:_:_) -> True
+      _       -> False
 
 mv2c10 :: Lens' Jet Double
 mv2c10 = lens _mv2c10 $ \j x -> j { _mv2c10 = x }

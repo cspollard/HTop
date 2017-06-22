@@ -140,8 +140,6 @@ recoEventHs =
 
 
 
--- TODO
--- should this be [PhysObj Jet]??
 probeJets :: RecoEvent -> [PhysObj Jet]
 probeJets revt = fmap join . sequenceL . return $
   case view jets revt of
@@ -155,5 +153,6 @@ probeJets revt = fmap join . sequenceL . return $
     probeJet :: Jet -> Jet -> PhysObj Jet
     probeJet j j' = do
       bt <- view isBTagged j
-      guard $ bt && hasSV j' && (view lvAbsEta j' < 2.1)
+      sv <- hasSV j'
+      guard $ bt && sv && (view lvAbsEta j' < 2.1)
       return j'
