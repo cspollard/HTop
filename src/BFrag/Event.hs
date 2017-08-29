@@ -98,8 +98,7 @@ matchedEventHs =
     go (tevt, revt) =
       let rjs = probeJets revt
           tjs = toListOf (trueJets . traverse . filtered trueBJet) tevt
-          matches = (fromMaybe' =<<) . fmap (fmap swap . sequence . trueMatch tjs) <$> rjs
-      in matches
+      in (fromMaybe' =<<) . fmap (fmap swap . sequence . trueMatch tjs) <$> rjs
 
     fromMaybe' (Just x) = return x
     fromMaybe' Nothing  = confess mempty

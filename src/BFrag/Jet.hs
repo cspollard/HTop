@@ -132,6 +132,7 @@ readJets dmc = do
       scale <- max 0 <$> normal 1 res
       return $ over lvPt (*scale) $ over lvE (*scale) p
 
+
     throwEfficiency :: PrimMonad m => Double -> a -> Prob m (Maybe a)
     throwEfficiency eff x = do
       pass <- bernoulli eff
@@ -140,22 +141,22 @@ readJets dmc = do
 
     svTrkUncerts :: PrimMonad m => [PtEtaPhiE] -> Prob m (PhysObj [PtEtaPhiE])
     svTrkUncerts ps = do
-      eff90 <- catMaybes <$> traverse (throwEfficiency 0.90) ps
       eff95 <- catMaybes <$> traverse (throwEfficiency 0.95) ps
       eff98 <- catMaybes <$> traverse (throwEfficiency 0.98) ps
+      eff99 <- catMaybes <$> traverse (throwEfficiency 0.99) ps
 
       res05 <- traverse (throwResolution 0.05) ps
       res10 <- traverse (throwResolution 0.10) ps
       res20 <- traverse (throwResolution 0.20) ps
 
       let svtrks =
-            varObj . Variation (reassess ps)
-            $ [ ("svtrkeff90", reassess eff90)
-              , ("svtrkeff95", reassess eff95)
-              , ("svtrkeff98", reassess eff98)
-              , ("svtrkres05", reassess res05)
-              , ("svtrkres10", reassess res10)
-              , ("svtrkres20", reassess res20)
+            varObj . fmap reassess . Variation ps
+            $ [ ("svtrkeff95", eff95)
+              , ("svtrkeff98", eff98)
+              , ("svtrkeff99", eff99)
+              , ("svtrkres05", res05)
+              , ("svtrkres10", res10)
+              , ("svtrkres20", res20)
               ]
 
           reassess = minLen . filter ((> 0.5) . view lvPt)
