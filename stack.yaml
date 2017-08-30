@@ -20,7 +20,7 @@ packages:
 
 - location:
     git: https://github.com/cspollard/atlas.git
-    commit: deb78e817933b3f20bb169de24916b37c4deffb0
+    commit: 16b9aa7
   extra-dep: true
 
 - location:
