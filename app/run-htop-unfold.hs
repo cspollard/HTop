@@ -20,6 +20,7 @@ import qualified Data.IntMap.Strict     as IM
 import           Data.Monoid            (Sum (..))
 import qualified Data.Text              as T
 import qualified Data.Vector            as V
+import           Debug.Trace
 import           GHC.Exts               (IsString)
 import           Model
 import           RunModel
@@ -47,11 +48,10 @@ main = do
           Left s  -> error s
           Right x -> x IM.! 410501
 
-      ttbarrecoh = tt ^?! ix recohname . traverse . to getH1DD
-      ttbartrueh :: Vars (V.Vector Double)
-      ttbartrueh = getH1DD <$> tt ^?! ix truehname
-      ttbarmath :: Vars (V.Vector (V.Vector Double))
-      ttbarmath = getH2DD <$> tt ^?! ix matrixname
+      ttbarrecoh = trace "ttbarrecoh" $ tt ^?! ix recohname . traverse . to getH1DD
+      ttbartrueh = trace "ttbartrueh" $ getH1DD <$> tt ^?! ix truehname
+      ttbarmath = trace "ttbarmath" $ getH2DD <$> tt ^?! ix matrixname
+
       (model, params) =
         buildModel
           (Variation 37000 [("LumiUp", 74000)])
