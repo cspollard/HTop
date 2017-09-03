@@ -47,13 +47,13 @@ writeFiles outf pm' = void . sequence $ do
             >-> P.toHandle h
 
       ps :: [(T.Text, M.Map T.Text YodaObj)]
-      ps = toList . variationToMap "nominal" . sequence $ folderToMap pm
+      ps = toList . variationToMap "nominal" . sequence $ _toMap pm
 
   return . runEffect $ each ps >-> P.mapM_ (uncurry write)
 
 
 -- TODO
--- we only grab the first dsid currently.
+-- we only grab the first dsid currently
 -- we are ignoring modeling variations here
 -- as well as backgrounds
 -- partial

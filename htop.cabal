@@ -111,6 +111,7 @@ executable run-htop-unfold
     build-depends:
         base -any,
         lens -any,
+        unordered-containers -any,
         containers -any,
         text -any,
         vector -any,

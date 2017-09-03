@@ -11,161 +11,112 @@ module Main where
 -- there is a ton of partial stuff in here.
 
 import           Atlas
-import           Atlas.ProcessInfo
-import           Atlas.ToYoda
-import           BFrag.Systematics
-import           Control.Applicative           (liftA2)
-import           Control.Arrow                 (first, second)
+import           Control.Applicative    (liftA2)
 import           Control.Lens
-import           Control.Monad                 (forM_)
-import qualified Data.Histogram.Generic        as H
-import qualified Data.IntMap.Strict            as IM
-import qualified Data.Map.Strict               as M
-import qualified Data.Text                     as T
-import qualified Data.Vector                   as V
+import           Data.HashMap.Strict    (HashMap)
+import qualified Data.HashMap.Strict    as HM
+import qualified Data.Histogram.Generic as H
+import qualified Data.IntMap.Strict     as IM
+import           Data.Monoid            (Sum (..))
+import qualified Data.Text              as T
+import qualified Data.Vector            as V
+import           GHC.Exts               (IsString)
 import           Model
 import           RunModel
-import           System.Random.MWC.Probability
+import           System.Environment     (getArgs)
 
 
-type TextMap a = StrictMap T.Text a
+type TextMap = HashMap T.Text
 
+matrixname, recohname, truehname :: IsString s => s
+matrixname = "/htop/elmujjmatch/matched/4precosvtrks/recoptgt30/recozbtcvstruezbtc"
+recohname = "/htop/elmujjmatch/matched/4precosvtrks/recoptgt30/probejets/zbt"
+truehname = "/htop/elmujjmatch/matched/4precosvtrks/recoptgt30/truejets/zbttrue"
+
+regex :: String
+regex = matrixname ++ "|" ++ recohname ++ "|" ++ truehname
+
+-- TODO
+-- partial!
 main :: IO ()
-main = mainWith tmp
+main = do
+  (outfile:infs) <- getArgs
+  procs <- decodeFiles (Just regex) infs
+  let (Sum ttsumw, tt) =
+        case procs of
+          Left s  -> error s
+          Right x -> x IM.! 410501
 
-tmp :: Double -> String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
-tmp lu outfile procs = do
-  mapM_ print $ IM.keys procs
-
-  let procst =
-        strictMap
-        . M.fromList
-        . fmap (first processTitle . second folderToMap)
-        . IM.toList
-        . ttbarSysts
-        . IM.delete 0
-        $ over (traverse.traverse.variations) (const mempty) procs
-
-      nsamps = 1000
-      recohname = "/elmujj/probejets/4psvtrks/ptgt30/matched/zbt"
-      truehname = "/elmujj/truthjets/zbt"
-      -- TODO
-      -- partial!
-      ttbarrecoh = procst ^?! ix "Pow+Py (nominal)" . ix recohname
-      ttbartrueh = procst ^?! ix "Pow+Py (nominal)" . ix truehname
-      ttbarmath = procst
-        ^?! ix "Pow+Py (nominal)"
-          . ix "/elmujj/probejets/4psvtrks/ptgt30/matched/recozbtvstruezbt"
-      bkgHs = (^?! ix recohname) <$> sans "Pow+Py (nominal)" procst
-
+      ttbarrecoh = tt ^?! ix recohname . traverse . to getH1DD
+      ttbartrueh :: Vars (V.Vector Double)
+      ttbartrueh = getH1DD <$> tt ^?! ix truehname
+      ttbarmath :: Vars (V.Vector (V.Vector Double))
+      ttbarmath = getH2DD <$> tt ^?! ix matrixname
       (model, params) =
         buildModel
-          lu
-          ttbarrecoh
-          ttbartrueh
+          (Variation 37000 [("LumiUp", 74000)])
+          (over (traverse.traverse) (/ttsumw) ttbartrueh)
           ttbarmath
-          bkgHs
+          mempty
 
+      datah :: V.Vector Int
+      datah = floor . (/ttsumw) . (*37000) <$> ttbarrecoh
 
-  -- TODO
-  -- the bottom is real data.
-  let dataH = (over (noted._H1DD) (scaling 38000) $ ttbarrecoh ^. nominal)
-      -- (ttbarrecoh ^?! variations . ix "PowPyRadDown")
-      -- (procs ^?! ix 0 . to folderToMap . ix recohname . nominal)
-
-      -- I have to do this because poisson is broken for > 1000...
-      poiss x
-        | x < 500 = poisson x
-        | otherwise = round <$> normal x (sqrt x)
 
   putStrLn "\nmodel:"
   print model
 
-  forM_ ([1..100] :: [Int]) $ \i -> do
-    vdata <-
-      withSystemRandom . asGenIO . sample . traverse poiss $ getH1DD dataH
+  putStrLn "data:"
+  print datah
 
-    putStrLn "data:"
-    print vdata
-
-    runModel nsamps (outfile ++ '/' : show i ++ ".dat") vdata model (unSM params)
+  runModel 10000 outfile datah model params
 
 
 buildModel
-  :: Double
-  -> Vars YodaObj
-  -> Vars YodaObj
-  -> Vars YodaObj
-  -> TextMap (Vars YodaObj)
+  :: Vars Double
+  -> Vars (V.Vector Double)
+  -> Vars (V.Vector (V.Vector Double))
+  -> Vars (TextMap (V.Vector Double))
   -> (Model Double, TextMap (ModelParam Double))
-buildModel lu recoH trueH matH bkgHs =
-  -- TODO
-  -- TODO
-  -- doing stat only here!
-  let vtrue = getH1DD <$> trueH
-      vreco = getH1DD <$> set variations mempty recoH
-      vvmat = getH2DD <$> matH
-      vbkgs = fmap getH1DD <$> bkgHs
-
-      emptysig = const 0 <$> nom vtrue
-
-      signalreco = foldl (V.zipWith (+)) (const 0 <$> nom vreco) <$> vvmat
-
-      -- TODO
-      -- TODO
-      -- how are we getting negative numbers in the bkgs?
-      -- aMC has negative weights...
-      bkgreco =
-        (fmap.fmap) (\x -> if x < 0 then 0 else x)
-        $ V.zipWith (-) <$> vreco <*> signalreco
-
-      mvbkgs = sequenceA $ vbkgs & at "ttbarlight" ?~ bkgreco
-
-      -- TODO
-      -- TODO
-      -- how are we getting negative numbers in the bkgs?
-      -- aMC has negative weights...
-      mats =
-        (fmap.fmap) (\x -> if x < 0 then 0 else x)
-        <$> normmat vtrue vvmat
-
-
-      nommod =
-        Model
-          (unSM $ nom mvbkgs)
-          emptysig
-          (nom mats)
-          -- TODO
-          -- lumi uncertainty
-          lu
-
-      -- TODO
-      -- HERE!
-      sysparams =
-        view variations
-        . fmap (ModelParam 0.0 (Normal 0.0 1.0))
-        $ ModelVar
-          <$> systify (fmap unSM mvbkgs)
-          <*> pure Nothing
-          <*> systify mats
-          <*> pure Nothing
-
-      trueparams =
-        strictMap
-        . M.fromList
-        . V.toList
-        . flip imap (nom vtrue)
-        $ \i x ->
-          ( T.pack $ "truthbin" ++ show i
-          , ModelParam x Flat
-            $ ModelVar Nothing (Just (emptysig & ix i .~ 1)) Nothing Nothing
-          )
-
-      params = mappend sysparams trueparams
-
-  in (nommod, params)
-
+buildModel lu trueH matH bkgHs = (nommod, params)
   where
+    emptysig :: V.Vector Double
+    emptysig = const 0 <$> view nominal trueH
+
+    mats =
+      (fmap.fmap) (\x -> if x < 0 then 0 else x)
+      <$> normmat trueH matH
+
+
+    nommod =
+      Model
+        (view nominal bkgHs)
+        emptysig
+        (view nominal matH)
+        (view nominal lu)
+
+    sysparams =
+      unSM
+      . view variations
+      . fmap (ModelParam 0.0 (Normal 0.0 1.0))
+      $ ModelVar
+        <$> systify bkgHs
+        <*> pure Nothing
+        <*> systify mats
+        <*> pure Nothing
+
+    trueparams =
+      HM.fromList
+      . V.toList
+      . flip imap (nom trueH)
+      $ \i x ->
+        ( T.pack $ "truthbin" ++ show i
+        , ModelParam x Flat
+          $ ModelVar Nothing (Just (emptysig & ix i .~ 1)) Nothing Nothing
+        )
+
+    params = sysparams `mappend` trueparams
+
     nom = view nominal
     systify v = fmap Just v & nominal .~ Nothing
 
@@ -201,39 +152,39 @@ rebin k f v =
     0 -> v'
     l -> V.snoc v' . foldl1 f $ V.slice (m*k) l v
 
---   let preds = sans 0 procs
---
---       systttbarDSIDs = (+410000) <$> [1, 2, 3, 4] :: [Int]
---       (systttbar', systpreds) =
---         IM.partitionWithKey (\k _ -> k `elem` systttbarDSIDs) preds
---
---       -- the "nominal" variations from the ttbar systematic samples
---       -- are actually variations
---       systttbar = over (traverse.traverse) (view nominal) systttbar'
---
---       -- TODO
---       -- partial!
---       ttbar' = systpreds ^?! ix 410000
---       dat = (fmap.fmap) (view nominal) $ procs ^?! at datadsid
---
---
---       bkgs =  fold $ sans 410000 systpreds
---
---       ttbar :: Folder (Vars YodaObj)
---       ttbar =
---         foldr (\(k, fs) fv ->
---           inF2 (M.intersectionWith (\s v -> v & at k ?~ s)) fs fv) ttbar'
---           $ fmap (first (procDict IM.!))
---             . IM.toList
---             $ systttbar
---
---   in (mappend ttbar bkgs, dat)
---
--- procDict :: IM.IntMap T.Text
--- procDict =
---   [ (410000, "PowPyNom")
---   , (410001, "PowPyRadUp")
---   , (410002, "PowPyRadDown")
---   , (410003, "aMCHer")
---   , (410004, "PowHer")
---   ]
+-- --   let preds = sans 0 procs
+-- --
+-- --       systttbarDSIDs = (+410000) <$> [1, 2, 3, 4] :: [Int]
+-- --       (systttbar', systpreds) =
+-- --         IM.partitionWithKey (\k _ -> k `elem` systttbarDSIDs) preds
+-- --
+-- --       -- the "nominal" variations from the ttbar systematic samples
+-- --       -- are actually variations
+-- --       systttbar = over (traverse.traverse) (view nominal) systttbar'
+-- --
+-- --       -- TODO
+-- --       -- partial!
+-- --       ttbar' = systpreds ^?! ix 410000
+-- --       dat = (fmap.fmap) (view nominal) $ procs ^?! at datadsid
+-- --
+-- --
+-- --       bkgs =  fold $ sans 410000 systpreds
+-- --
+-- --       ttbar :: Folder (Vars YodaObj)
+-- --       ttbar =
+-- --         foldr (\(k, fs) fv ->
+-- --           inF2 (M.intersectionWith (\s v -> v & at k ?~ s)) fs fv) ttbar'
+-- --           $ fmap (first (procDict IM.!))
+-- --             . IM.toList
+-- --             $ systttbar
+-- --
+-- --   in (mappend ttbar bkgs, dat)
+-- --
+-- -- procDict :: IM.IntMap T.Text
+-- -- procDict =
+-- --   [ (410000, "PowPyNom")
+-- --   , (410001, "PowPyRadUp")
+-- --   , (410002, "PowPyRadDown")
+-- --   , (410003, "aMCHer")
+-- --   , (410004, "PowHer")
+-- --   ]
