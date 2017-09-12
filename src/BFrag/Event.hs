@@ -83,7 +83,7 @@ eventHs =
 
 matchedEventHs :: Fills (TrueEvent, RecoEvent)
 matchedEventHs =
-  channelWithLabel "/elmujjmatch" filt
+  channelWithLabel "/matched" filt
   $ F.handles folded matchedJetHs <$= fmap join . sequenceL . fmap go
 
   where
@@ -153,12 +153,12 @@ zbtChargedMigration :: Fills (TrueJet, Jet)
 zbtChargedMigration =
   singleton "/recozbtcvstruezbtc"
   <$> physObjH h
-  =$<< zbts
+  =$<< zbtcs
 
   where
     h =
       hist2DDef
-        (binD 0 7 1.05)
+        (binD 0 21 1.05)
         (binD 0 21 1.05)
         "true charged $z_{p_{\\mathrm T}}$"
         "reco charged $z_{p_{\\mathrm T}}$"
@@ -187,7 +187,7 @@ zbtChargedDiff :: Fills (TrueJet, Jet)
 zbtChargedDiff =
   singleton "/truezbtcminusrecozbtc"
   <$> physObjH h
-  =$<< fmap (uncurry (-)) . zbts
+  =$<< fmap (uncurry (-)) . zbtcs
 
   where
     h =
@@ -235,8 +235,8 @@ ptSVChargedDiff =
         (dndx pt gev)
 
 
-zbts :: (TrueJet, Jet) -> PhysObj (Double, Double)
-zbts (tj, rj) = do
+zbtcs :: (TrueJet, Jet) -> PhysObj (Double, Double)
+zbtcs (tj, rj) = do
   tjz <- zBTCharged tj
   rjz <- zBTCharged rj
   return (tjz, rjz)
@@ -246,12 +246,17 @@ zbtMigration :: Fills (TrueJet, Jet)
 zbtMigration =
   singleton "/recozbtcvstruezbt"
   <$> physObjH h
-  =$<< zbts
+  =$<< f
 
   where
+    f (tj, rj) = do
+      let tjz = zBTTrue tj
+      rjz <- zBTCharged rj
+      return (tjz, rjz)
+
     h =
       hist2DDef
-        (binD 0 7 1.05)
+        (binD 0 21 1.05)
         (binD 0 21 1.05)
         "true $z_{p_{\\mathrm T}}$"
         "reco charged $z_{p_{\\mathrm T}}$"

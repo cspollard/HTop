@@ -115,14 +115,19 @@ fillFile systs fn = do
       entries t = entryFold . evalStateP t $ allIdxs >-> pipeTTree entryRead
       allIdxs = each ([0..] :: [Int])
 
-  trueTree <- ttree tfile "particleLevel"
   nomTree <- ttree tfile "nominal"
-
-  trueEntries <- entries trueTree
   nomEntries <- entries nomTree
 
+  trueTree <- ttree tfile "particleLevel"
+  trueEntries <-
+    if dsid == 0
+      then return mempty
+      else entries trueTree
+
   (systTrees :: M.Map String TTree) <-
-    M.fromList <$> mapM (\tn -> (tn,) <$> ttree tfile tn) systs
+    if dsid == 0
+      then return mempty
+      else M.fromList <$> mapM (\tn -> (tn,) <$> ttree tfile tn) systs
 
   systEntries <- mapM entries systTrees
 

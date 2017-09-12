@@ -61,11 +61,11 @@ zBTTrue (TrueJet tlv _ bs) =
 
 
 zbtTrueH :: Fills TrueJet
-zbtTrueH = singleton "/zbttrue" <$> physObjH h
+zbtTrueH = singleton "/zbt" <$> physObjH h
   where
     h =
       hist1DDef
-        (binD 0 7 1.05)
+        (binD 0 21 1.05)
         "$z_{p_{\\mathrm T}}$"
         (dndx "z_{p_{\\mathrm T}}" "1")
         <$= first zBTTrue

@@ -95,7 +95,7 @@ zBTChargedH =
   where
     h =
       hist1DDef
-        (binD 0 7 1.05)
+        (binD 0 21 1.05)
         "$z_{p_{\\mathrm T}}$"
         (dndx "z_{p_{\\mathrm T}}" "1")
 
@@ -133,7 +133,7 @@ bfragHs
   => Fills a
 bfragHs =
   mconcat
-  [ singleton "/zbt" <$> zBTChargedH
+  [ singleton "/zbtc" <$> zBTChargedH
   , singleton "/trksumpt" <$> trkSumPtH
   , singleton "/svtrksumpt" <$> svTrkSumPtH
   , singleton "/npvtrks" <$> nPVTrksH
