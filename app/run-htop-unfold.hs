@@ -11,12 +11,15 @@ module Main where
 -- there is a ton of partial stuff in here.
 
 import           Atlas
+import           Atlas.CrossSections
 import           Control.Applicative    (liftA2)
 import           Control.Lens
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
 import qualified Data.IntMap.Strict     as IM
+import           Data.List              (transpose)
+import qualified Data.Map.Strict        as M
 import           Data.Monoid            (Sum (..))
 import qualified Data.Text              as T
 import qualified Data.Vector            as V
@@ -30,9 +33,9 @@ import           System.Environment     (getArgs)
 type TextMap = HashMap T.Text
 
 matrixname, recohname, truehname :: IsString s => s
-matrixname = "/htop/elmujjmatch/matched/4precosvtrks/recoptgt30/recozbtcvstruezbtc"
-recohname = "/htop/elmujjmatch/matched/4precosvtrks/recoptgt30/probejets/zbt"
-truehname = "/htop/elmujjmatch/matched/4precosvtrks/recoptgt30/truejets/zbttrue"
+matrixname = "/elmujjmatch/matched/4precosvtrks/recoptgt30/recozbtcvstruezbtc"
+recohname = "/elmujjmatch/matched/4precosvtrks/recoptgt30/probejets/zbt"
+truehname = "/elmujjtrue/truejets/zbt"
 
 regex :: String
 regex = matrixname ++ "|" ++ recohname ++ "|" ++ truehname
@@ -41,26 +44,43 @@ regex = matrixname ++ "|" ++ recohname ++ "|" ++ truehname
 -- partial!
 main :: IO ()
 main = do
-  (outfile:infs) <- getArgs
+  (xsecfile:outfile:infs) <- getArgs
+  xsecs <- readXSecFile xsecfile
   procs <- decodeFiles (Just regex) infs
   let (Sum ttsumw, tt) =
         case procs of
           Left s  -> error s
           Right x -> x IM.! 410501
 
-      ttbarrecoh = trace "ttbarrecoh" $ tt ^?! ix recohname . traverse . to getH1DD
-      ttbartrueh = trace "ttbartrueh" $ getH1DD <$> tt ^?! ix truehname
-      ttbarmath = trace "ttbarmath" $ getH2DD <$> tt ^?! ix matrixname
+      w = (xsecs ^?! _Just . ix 410501 . _1) / ttsumw
 
-      (model, params) =
-        buildModel
-          (Variation 37000 [("LumiUp", 74000)])
-          (over (traverse.traverse) (/ttsumw) ttbartrueh)
-          ttbarmath
-          mempty
+      filt :: VarMap a -> VarMap a
+      filt =
+        liftSM . HM.filterWithKey
+        $ \i _ -> T.isSuffixOf "1up" i && T.isPrefixOf "JET" i
+
+      ttbarmath' =
+        fmap (rebin 3 (+)) . getH2DD
+        <$> tt ^?! ix matrixname & variations %~ filt
+
+      ttbartrueh' = getH1DD <$> tt ^?! ix truehname & variations .~ mempty
+
+      -- TODO
+      -- for now we remove one true bin
+      ttbarmath = ttbarmath' <&> (fmap.fmap) (*w) . V.drop 1
+      ttbartrueh = ttbartrueh' <&> fmap (*w) . V.drop 1
+
+      ttbarrecoh =
+        V.fromList . fmap sum . transpose . V.toList . fmap V.toList
+        <$> ttbarmath
+
+      lumiV = Variation 37000 [("LumiUp", 74000)]
+
+      (model, params) = buildModel lumiV ttbartrueh ttbarmath mempty
 
       datah :: V.Vector Int
-      datah = floor . (/ttsumw) . (*37000) <$> ttbarrecoh
+      datah = floor . (*37000) <$> view nominal ttbarrecoh
+
 
 
   putStrLn "\nmodel:"
@@ -69,7 +89,10 @@ main = do
   putStrLn "data:"
   print datah
 
-  runModel 10000 outfile datah model params
+  putStrLn "true:"
+  print ttbartrueh
+
+  runModel 100000 outfile datah model params
 
 
 buildModel
@@ -92,7 +115,7 @@ buildModel lu trueH matH bkgHs = (nommod, params)
       Model
         (view nominal bkgHs)
         emptysig
-        (view nominal matH)
+        (view nominal mats)
         (view nominal lu)
 
     sysparams =
