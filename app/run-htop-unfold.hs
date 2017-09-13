@@ -19,6 +19,7 @@ import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
 import qualified Data.IntMap.Strict     as IM
 import           Data.List              (transpose)
+import           Data.Maybe             (fromMaybe)
 import           Data.Monoid            (Sum (..))
 import qualified Data.Text              as T
 import qualified Data.Vector            as V
@@ -46,10 +47,17 @@ main = do
   (xsecfile:outfile:infs) <- getArgs
   xsecs <- readXSecFile xsecfile
   procs <- decodeFiles (Just regex) infs
-  let (Sum ttsumw, tt) =
+  mapM_ (print . IM.keys) procs
+  let hs =
         case procs of
           Left s  -> error s
-          Right x -> x IM.! 410501
+          Right x -> x
+
+      (Sum ttsumw, tths) = hs ^?! ix 410501
+
+      dh :: Maybe (V.Vector Int)
+      dh = fmap round . getH1DD . view nominal . (^?! ix recohname) . snd
+            <$> (hs ^? ix 0)
 
       w = (xsecs ^?! _Just . ix 410501 . _1) / ttsumw
 
@@ -66,13 +74,13 @@ main = do
       -- rebin the true spectrum by factor of 3.
       ttbarmath' =
         transposeV . fmap (rebin 3 (+)) . transposeV . getH2DD
-        <$> tt ^?! ix matrixname & variations %~ filt
+        <$> tths ^?! ix matrixname & variations %~ filt
 
       transposeV = V.fromList . fmap V.fromList . transpose . fmap V.toList . V.toList
 
-      ttbartrueh' = rebin 3 (+) . getH1DD <$> tt ^?! ix truehname & variations %~ filt
-      ttbarrecoh' = getH1DD <$> tt ^?! ix recohname & variations %~ filt
-      ttbarrecomatchh' = getH1DD <$> tt ^?! ix recomatchhname & variations %~ filt
+      ttbartrueh' = rebin 3 (+) . getH1DD <$> tths ^?! ix truehname & variations %~ filt
+      ttbarrecoh' = getH1DD <$> tths ^?! ix recohname & variations %~ filt
+      ttbarrecomatchh' = getH1DD <$> tths ^?! ix recomatchhname & variations %~ filt
 
       ttbarmath = ttbarmath' <&> (fmap.fmap) (*w)
       ttbartrueh = ttbartrueh' <&> fmap (*w)
@@ -86,7 +94,7 @@ main = do
       (model, params) = buildModel lumiV ttbartrueh ttbarmath (HM.singleton "ttbar" <$> ttbarbkgrecoh)
 
       datah :: V.Vector Int
-      datah = floor . (*37000) <$> view nominal ttbarrecoh
+      datah = flip fromMaybe dh $ floor . (*37000) <$> view nominal ttbarrecoh
 
 
 
