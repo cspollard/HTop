@@ -132,14 +132,19 @@ fillFile systs fn = do
   systEntries <- mapM entries systTrees
 
   let allEntries = entryMap trueEntries nomEntries systEntries
+      systflag =
+        case dsid of
+          0      -> Data'
+          410501 -> MC' AllVars
+          _      -> MC' NoVars
+
 
   hs <-
     F.purely P.fold eventHs
     $ each allEntries
       >-> doEvery 100
           ( \i _ -> liftIO . putStrLn $ show i ++ " entries processed." )
-      >-> readEvents trueTree nomTree systTrees
-      -- >-> doEvery 1 (\_ -> liftIO . print)
+      >-> readEvents systflag trueTree nomTree systTrees
       >-> P.map return
 
   liftIO . putStrLn $ "closing file " <> fn
@@ -180,11 +185,12 @@ instance Exception TreeReadError
 
 readEvents
   :: (MonadThrow m, MonadIO m)
-  => TTree
+  => DataMC'
+  -> TTree
   -> TTree
   -> M.Map String TTree
   -> Pipe ((CUInt, CULong), (Maybe Int, Maybe Int, M.Map String (Maybe Int))) Event m r
-readEvents tttrue ttnom ttsysts = do
+readEvents systflag tttrue ttnom ttsysts = do
   ((rn, en), (mitrue, minom, isysts)) <- await
 
   let f :: (Monoid c, MonadChronicle c m1, MonadIO m) => TreeRead m (m1 a) -> TTree -> Maybe Int -> m (m1 a, TTree)
@@ -204,7 +210,7 @@ readEvents tttrue ttnom ttsysts = do
           isysts
 
   (true, tttrue') <- f readTrueEvent tttrue mitrue
-  (nom, ttnom') <- f (readRecoEvent $ MC' AllVars) ttnom minom
+  (nom, ttnom') <- f (readRecoEvent systflag) ttnom minom
   msysts <- sequence systs'
 
   -- TODO
@@ -219,7 +225,7 @@ readEvents tttrue ttnom ttsysts = do
     . fmap (first T.pack)
     $ M.toList systs
 
-  readEvents tttrue' ttnom' ttsysts'
+  readEvents systflag tttrue' ttnom' ttsysts'
 
   where
     toEvent :: PhysObj a -> StrictMap T.Text (PhysObj a) -> PhysObj a

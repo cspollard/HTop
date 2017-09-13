@@ -19,11 +19,9 @@ import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
 import qualified Data.IntMap.Strict     as IM
 import           Data.List              (transpose)
-import qualified Data.Map.Strict        as M
 import           Data.Monoid            (Sum (..))
 import qualified Data.Text              as T
 import qualified Data.Vector            as V
-import           Debug.Trace
 import           GHC.Exts               (IsString)
 import           Model
 import           RunModel
@@ -32,13 +30,14 @@ import           System.Environment     (getArgs)
 
 type TextMap = HashMap T.Text
 
-matrixname, recohname, truehname :: IsString s => s
-matrixname = "/elmujjmatch/matched/4precosvtrks/recoptgt30/recozbtcvstruezbtc"
-recohname = "/elmujjmatch/matched/4precosvtrks/recoptgt30/probejets/zbt"
-truehname = "/elmujjtrue/truejets/zbt"
+matrixname, recohname, recomatchhname, truehname :: IsString s => s
+matrixname = "/matched/matched/4precosvtrks/recoptgt30/recozbtcvstruezbt"
+recohname = "/elmujj/probejets/zbtc"
+recomatchhname = "/matched/matched/4precosvtrks/recoptgt30/probejets/zbtc"
+truehname = "/elmujjtrue/truejets/zbtc"
 
 regex :: String
-regex = matrixname ++ "|" ++ recohname ++ "|" ++ truehname
+regex = matrixname ++ "|" ++ recohname ++ "|" ++ recomatchhname ++ "|" ++ truehname
 
 -- TODO
 -- partial!
@@ -54,29 +53,37 @@ main = do
 
       w = (xsecs ^?! _Just . ix 410501 . _1) / ttsumw
 
+      badtracksysts :: IsString s => [s]
+      badtracksysts = ["svtrkeff99", "svtrkeff98", "svtrkres05", "svtrkres10"]
+
       filt :: VarMap a -> VarMap a
       filt =
         liftSM . HM.filterWithKey
-        $ \i _ -> T.isSuffixOf "1up" i && T.isPrefixOf "JET" i
+        $ \i _ -> not $ T.isSuffixOf "down" i || T.isSuffixOf "Down" i || elem i badtracksysts
 
-      ttbarmath' =
-        fmap (rebin 3 (+)) . getH2DD
-        <$> tt ^?! ix matrixname & variations %~ filt
-
-      ttbartrueh' = getH1DD <$> tt ^?! ix truehname & variations .~ mempty
 
       -- TODO
-      -- for now we remove one true bin
-      ttbarmath = ttbarmath' <&> (fmap.fmap) (*w) . V.drop 1
-      ttbartrueh = ttbartrueh' <&> fmap (*w) . V.drop 1
+      -- rebin the true spectrum by factor of 3.
+      ttbarmath' =
+        transposeV . fmap (rebin 3 (+)) . transposeV . getH2DD
+        <$> tt ^?! ix matrixname & variations %~ filt
 
-      ttbarrecoh =
-        V.fromList . fmap sum . transpose . V.toList . fmap V.toList
-        <$> ttbarmath
+      transposeV = V.fromList . fmap V.fromList . transpose . fmap V.toList . V.toList
+
+      ttbartrueh' = rebin 3 (+) . getH1DD <$> tt ^?! ix truehname & variations %~ filt
+      ttbarrecoh' = getH1DD <$> tt ^?! ix recohname & variations %~ filt
+      ttbarrecomatchh' = getH1DD <$> tt ^?! ix recomatchhname & variations %~ filt
+
+      ttbarmath = ttbarmath' <&> (fmap.fmap) (*w)
+      ttbartrueh = ttbartrueh' <&> fmap (*w)
+      ttbarrecoh = ttbarrecoh' <&> fmap (*w)
+      ttbarrecomatchh = ttbarrecomatchh' <&> fmap (*w)
+
+      ttbarbkgrecoh = V.zipWith (-) <$> ttbarrecoh <*> ttbarrecomatchh
 
       lumiV = Variation 37000 [("LumiUp", 74000)]
 
-      (model, params) = buildModel lumiV ttbartrueh ttbarmath mempty
+      (model, params) = buildModel lumiV ttbartrueh ttbarmath (HM.singleton "ttbar" <$> ttbarbkgrecoh)
 
       datah :: V.Vector Int
       datah = floor . (*37000) <$> view nominal ttbarrecoh
