@@ -31,7 +31,7 @@ import           System.Environment     (getArgs)
 type TextMap = HashMap T.Text
 
 matrixname, recohname, recomatchhname, truehname :: IsString s => s
-matrixname = "/matched/matched/4precosvtrks/recoptgt30/recozbtcvstruezbt"
+matrixname = "/matched/matched/4precosvtrks/recoptgt30/recozbtcvstruezbtc"
 recohname = "/elmujj/probejets/zbtc"
 recomatchhname = "/matched/matched/4precosvtrks/recoptgt30/probejets/zbtc"
 truehname = "/elmujjtrue/truejets/zbtc"
@@ -51,7 +51,7 @@ main = do
           Left s  -> error s
           Right x -> x
 
-      ttkey = ProcessInfo 510501 FS
+      ttkey = ProcessInfo 410501 FS
       datakey = ProcessInfo 0 DS
 
       (Sum ttsumw, tths) = hs ^?! ix ttkey
@@ -71,12 +71,12 @@ main = do
       -- TODO
       -- rebin the true spectrum by factor of 3.
       ttbarmath' =
-        transposeV . fmap (rebin 3 (+)) . transposeV . getH2DD
+        transposeV . fmap (V.drop 1 . rebin 3 (+)) . transposeV . getH2DD
         <$> tths ^?! ix matrixname & variations %~ filt
 
       transposeV = V.fromList . fmap V.fromList . transpose . fmap V.toList . V.toList
 
-      ttbartrueh' = rebin 3 (+) . getH1DD <$> tths ^?! ix truehname & variations %~ filt
+      ttbartrueh' = V.drop 1 . rebin 3 (+) . getH1DD <$> tths ^?! ix truehname & variations %~ filt
       ttbarrecoh' = getH1DD <$> tths ^?! ix recohname & variations %~ filt
       ttbarrecomatchh' = getH1DD <$> tths ^?! ix recomatchhname & variations %~ filt
 
@@ -92,7 +92,7 @@ main = do
       (model, params) = buildModel lumiV ttbartrueh ttbarmath (HM.singleton "ttbar" <$> ttbarbkgrecoh)
 
       datah :: V.Vector Int
-      datah = flip fromMaybe dh $ floor . (*37000) <$> view nominal ttbarrecoh
+      datah = flip fromMaybe dh $ round . (*37000) <$> view nominal ttbarrecoh
 
 
 

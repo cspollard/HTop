@@ -58,11 +58,11 @@ main = do
   -- get the list of input trees
   fns <- filter (not . null) . lines <$> readFile (infiles args)
 
-  let combF (Just (dsid, sow, hs)) f = do
-        (dsid', sow', hs') <- fillFile treeSysts f
+  let combF (Just (procinfo, sow, hs)) f = do
+        (procinfo', sow', hs') <- fillFile treeSysts f
         let hs'' = mappend hs hs'
-        seq hs'' . return $ if dsid == dsid'
-          then Just (dsid, sow+sow', hs'')
+        seq hs'' . return $ if procinfo == procinfo'
+          then Just (procinfo, sow+sow', hs'')
           else Nothing
       combF Nothing f = Just <$> fillFile treeSysts f
 
