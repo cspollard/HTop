@@ -61,8 +61,9 @@ collapseProcs
   :: ProcMap (Folder (Vars YodaObj))
   -> (Maybe (Folder (Vars YodaObj)), Maybe YodaFolder)
 collapseProcs pm =
-  let preds = sans 0 pm
-      dat = (fmap.fmap) (view nominal) $ pm ^. at 0
+  let datakey = ProcessInfo 0 DS
+      preds = sans datakey pm
+      dat = (fmap.fmap) (view nominal) $ pm ^. at datakey
 
   -- TODO
   -- partial

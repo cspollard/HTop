@@ -14,17 +14,15 @@ import           Atlas
 import           BFrag.BFrag
 import           BFrag.PtEtaPhiE
 import           BFrag.Systematics
-import           Control.Applicative           (ZipList (..))
+import           Control.Applicative (ZipList (..))
 import           Control.Lens
-import           Control.Monad.Primitive
 import           Data.Bifunctor
-import           Data.Maybe                    (catMaybes)
-import           Data.Semigroup                (Any (..))
+import           Data.Semigroup      (Any (..))
 import           Data.TTree
-import qualified Data.Vector                   as V
+import qualified Data.Vector         as V
 import           GHC.Float
-import           GHC.Generics                  (Generic)
-import           System.Random.MWC.Probability
+import           GHC.Generics        (Generic)
+
 
 data JetFlavor = L | C | B | T
     deriving (Generic, Show, Eq, Ord)
@@ -100,14 +98,6 @@ readJets dmc = do
       "jet_sv1_track_e"
 
 
-  (svtrks' :: ZipList (PhysObj [PtEtaPhiE])) <-
-    case dmc of
-      MC' AllVars ->
-        liftIO . withSystemRandom . asGenIO . sample
-          $ traverse svTrkUncerts svtrks
-      _ -> return $ pure <$> svtrks
-
-
   flvs <-
     case dmc of
       Data' -> return $ pure Nothing
@@ -120,52 +110,10 @@ readJets dmc = do
           <*> tagged
           <*> jvts
           <*> fmap pure pvtrks
-          <*> svtrks'
+          <*> fmap pure svtrks
           <*> flvs
 
   return js
-
-
-  where
-    throwResolution :: PrimMonad m => Double -> PtEtaPhiE -> Prob m PtEtaPhiE
-    throwResolution res p = do
-      scale <- max 0 <$> normal 1 res
-      return $ over lvPt (*scale) $ over lvE (*scale) p
-
-
-    throwEfficiency :: PrimMonad m => Double -> a -> Prob m (Maybe a)
-    throwEfficiency eff x = do
-      pass <- bernoulli eff
-      return $ guard pass >> return x
-
-
-    svTrkUncerts :: PrimMonad m => [PtEtaPhiE] -> Prob m (PhysObj [PtEtaPhiE])
-    svTrkUncerts ps = do
-      eff95 <- catMaybes <$> traverse (throwEfficiency 0.95) ps
-      eff98 <- catMaybes <$> traverse (throwEfficiency 0.98) ps
-      eff99 <- catMaybes <$> traverse (throwEfficiency 0.99) ps
-
-      res05 <- traverse (throwResolution 0.05) ps
-      res10 <- traverse (throwResolution 0.10) ps
-      res20 <- traverse (throwResolution 0.20) ps
-
-      let svtrks =
-            varObj . fmap reassess . Variation ps
-            $ [ ("svtrkeff95", eff95)
-              , ("svtrkeff98", eff98)
-              , ("svtrkeff99", eff99)
-              , ("svtrkres05", res05)
-              , ("svtrkres10", res10)
-              , ("svtrkres20", res20)
-              ]
-
-          reassess = minLen . filter ((> 0.5) . view lvPt)
-
-          -- remove SVs that no longer have 2 tracks
-          minLen xs@(_:_:_) = xs
-          minLen _          = []
-
-      return svtrks
 
 
 jetTracksTLV

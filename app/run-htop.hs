@@ -18,7 +18,7 @@ import           Control.Lens               hiding (each)
 import           Control.Monad              (when)
 import           Control.Monad.State.Strict
 import           Data.Bifunctor             (first)
-import           Data.List                  (nub)
+import           Data.List                  (isInfixOf, nub)
 import qualified Data.Map.Strict            as M
 import           Data.Maybe                 (fromMaybe)
 import           Data.Semigroup
@@ -75,12 +75,12 @@ main = do
 
 
 -- TODO
--- bracket
+-- bracket around file
 fillFile
   :: (MonadIO m, MonadCatch m)
   => [String]
   -> String
-  -> m (Int, Sum Double, Folder (Vars YodaObj))
+  -> m (ProcessInfo, Sum Double, Folder (Vars YodaObj))
 fillFile systs fn = do
   liftIO . putStrLn $ "analyzing file " <> fn
 
@@ -95,9 +95,15 @@ fillFile systs fn = do
   (Just (dsidc :: CInt)) <-
     P.head . evalStateP tw $ yield 0 >-> pipeTTree (readBranch "dsid")
 
-  let dsid = fromEnum dsidc
+  let dsid' = fromEnum dsidc
+      procinfo =
+        ProcessInfo dsid'
+        $ if "_a" `isInfixOf` fn
+          then AFII
+          else if dsid' == 0 then DS else FS
 
-  liftIO . putStrLn $ "dsid: " ++ show dsid
+
+  liftIO . putStrLn $ "procinfo: " ++ show procinfo
 
   sow <-
     fmap float2Double
@@ -120,12 +126,12 @@ fillFile systs fn = do
 
   trueTree <- ttree tfile "particleLevel"
   trueEntries <-
-    if dsid == 0
+    if dsid' == 0
       then return mempty
       else entries trueTree
 
   (systTrees :: M.Map String TTree) <-
-    if dsid == 0
+    if dsid' == 0
       then return mempty
       else M.fromList <$> mapM (\tn -> (tn,) <$> ttree tfile tn) systs
 
@@ -133,7 +139,7 @@ fillFile systs fn = do
 
   let allEntries = entryMap trueEntries nomEntries systEntries
       systflag =
-        case dsid of
+        case dsid' of
           0      -> Data'
           410501 -> MC' AllVars
           _      -> MC' NoVars
@@ -149,7 +155,7 @@ fillFile systs fn = do
 
   liftIO . putStrLn $ "closing file " <> fn
   liftIO $ tfileClose tfile
-  return (dsid, Sum sow, hs)
+  return (procinfo, Sum sow, hs)
 
   where
     entryMap

@@ -17,7 +17,6 @@ import           Control.Lens
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
-import qualified Data.IntMap.Strict     as IM
 import           Data.List              (transpose)
 import           Data.Maybe             (fromMaybe)
 import           Data.Monoid            (Sum (..))
@@ -47,27 +46,26 @@ main = do
   (xsecfile:outfile:infs) <- getArgs
   xsecs <- readXSecFile xsecfile
   procs <- decodeFiles (Just regex) infs
-  mapM_ (print . IM.keys) procs
   let hs =
         case procs of
           Left s  -> error s
           Right x -> x
 
-      (Sum ttsumw, tths) = hs ^?! ix 410501
+      ttkey = ProcessInfo 510501 FS
+      datakey = ProcessInfo 0 DS
+
+      (Sum ttsumw, tths) = hs ^?! ix ttkey
 
       dh :: Maybe (V.Vector Int)
       dh = fmap round . getH1DD . view nominal . (^?! ix recohname) . snd
-            <$> (hs ^? ix 0)
+            <$> (hs ^? ix datakey)
 
       w = (xsecs ^?! _Just . ix 410501 . _1) / ttsumw
-
-      badtracksysts :: IsString s => [s]
-      badtracksysts = ["svtrkeff99", "svtrkeff98", "svtrkres05", "svtrkres10"]
 
       filt :: VarMap a -> VarMap a
       filt =
         liftSM . HM.filterWithKey
-        $ \i _ -> not $ T.isSuffixOf "down" i || T.isSuffixOf "Down" i || elem i badtracksysts
+        $ \i _ -> not $ T.isSuffixOf "down" i || T.isSuffixOf "Down" i
 
 
       -- TODO
