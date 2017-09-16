@@ -54,11 +54,13 @@ data Jet =
 instance HasLorentzVector Jet where
     toPtEtaPhiE = lens _jPtEtaPhiE $ \j x -> j { _jPtEtaPhiE = x }
 
-instance HasSVTracks Jet where
-  svTracks = view svTrks
+instance HasSVConstits Jet where
+  svConstits = view svTrks
+  svChargedConstits = svConstits
 
-instance HasPVTracks Jet where
-  pvTracks = view pvTrks
+instance HasPVConstits Jet where
+  pvConstits = view pvTrks
+  pvChargedConstits = pvConstits
 
 
 readJets :: (MonadIO m, MonadThrow m) => DataMC' -> TreeRead m [Jet]

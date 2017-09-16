@@ -3,7 +3,7 @@
 
 module BFrag.TrueJet
   ( TrueJet(..), tjChargedConsts, tjBHadrons
-  , readTrueJets, bhChildren, zBTTrue, zbtTrueH
+  , readTrueJets, bhChargedChildren, zBTTrue, zbtTrueH
   , trueBJet, svTrue
   ) where
 
@@ -13,7 +13,7 @@ import           BFrag.PtEtaPhiE
 import           Control.Applicative (ZipList (..))
 import           Control.Lens
 import           Data.Bifunctor
-import           Data.List           (deleteFirstsBy)
+import           Data.Foldable       (fold)
 import           Data.TTree
 import qualified Data.Vector         as V
 import           GHC.Float
@@ -31,24 +31,24 @@ instance HasLorentzVector TrueJet where
 
 data BHadron =
   BHadron
-    { _bhPtEtaPhiE :: PtEtaPhiE
-    , _bhChildren  :: [PtEtaPhiE]
+    { _bhPtEtaPhiE       :: PtEtaPhiE
+    , _bhChargedChildren :: [PtEtaPhiE]
     } deriving (Generic, Show)
 
 
 instance HasLorentzVector BHadron where
   toPtEtaPhiE = lens _bhPtEtaPhiE $ \b x -> b { _bhPtEtaPhiE = x }
 
-instance HasSVTracks TrueJet where
-  svTracks = pure . toListOf (tjBHadrons.traverse.bhChildren.traverse)
+instance HasSVConstits TrueJet where
+  svConstits tj = pure $ toListOf (tjBHadrons.traverse.toPtEtaPhiE) tj
+  svChargedConstits = pure . toListOf (tjBHadrons.traverse.bhChargedChildren.traverse)
 
-instance HasPVTracks TrueJet where
-  pvTracks tj = do
-    bchs <- svTracks tj
-    let chparts = view tjChargedConsts tj
-    pure $ deleteFirstsBy eq chparts bchs
+instance HasPVConstits TrueJet where
+  pvConstits tj = pure . lvDiff (_tjPtEtaPhiE tj) . fold <$> svConstits tj
     where
-      eq x y = lvDREta x y < 0.01
+      lvDiff x y = x `mappend` lvNegate y
+
+  pvChargedConstits = pure . _tjChargedConsts
 
 
 svTrue :: TrueJet -> PtEtaPhiE
@@ -150,5 +150,5 @@ tjChargedConsts = lens _tjChargedConsts $ \tj x -> tj { _tjChargedConsts = x }
 tjBHadrons :: Lens' TrueJet [BHadron]
 tjBHadrons = lens _tjBHadrons $ \tj x -> tj { _tjBHadrons = x }
 
-bhChildren :: Lens' BHadron [PtEtaPhiE]
-bhChildren = lens _bhChildren $ \b x -> b { _bhChildren = x }
+bhChargedChildren :: Lens' BHadron [PtEtaPhiE]
+bhChargedChildren = lens _bhChargedChildren $ \b x -> b { _bhChargedChildren = x }
