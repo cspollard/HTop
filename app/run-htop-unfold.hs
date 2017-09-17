@@ -12,13 +12,14 @@ module Main where
 
 import           Atlas
 import           Atlas.CrossSections
+import           BFrag.Systematics      (lumi)
 import           Control.Applicative    (liftA2)
 import           Control.Lens
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
 import           Data.List              (transpose)
-import           Data.Maybe             (fromMaybe)
+import           Data.Maybe             (fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
 import qualified Data.Text              as T
 import qualified Data.Vector            as V
@@ -39,6 +40,10 @@ truehname = "/elmujjtrue/truejets/zbtc"
 regex :: String
 regex = matrixname ++ "|" ++ recohname ++ "|" ++ recomatchhname ++ "|" ++ truehname
 
+-- need to get rid of some truth bins.
+trimTrue :: Num a => V.Vector a -> V.Vector a
+trimTrue = V.drop 1 . rebin 3 (+)
+
 -- TODO
 -- partial!
 main :: IO ()
@@ -46,53 +51,72 @@ main = do
   (xsecfile:outfile:infs) <- getArgs
   xsecs <- readXSecFile xsecfile
   procs <- decodeFiles (Just regex) infs
+
   let hs =
         case procs of
           Left s  -> error s
           Right x -> x
 
-      ttkey = ProcessInfo 410501 FS
-      datakey = ProcessInfo 0 DS
+      (Sum ttw, ttnom) = hs ^?! ix (ProcessInfo 410501 FS)
 
-      (Sum ttsumw, tths) = hs ^?! ix ttkey
+      (nombkg', nommat') = toModel . fromJust . flip view hs . at $ ProcessInfo 410501 FS
+      (afbkg, afmat) = toModel . fromJust . flip view hs . at $ ProcessInfo 410501 AFII
+      (radbkg, radmat) = toModel . fromJust . flip view hs . at $ ProcessInfo 410511 AFII
+      (mebkg, memat) = toModel . fromJust . flip view hs . at $ ProcessInfo 410225 AFII
+      (psbkg, psmat) = toModel . fromJust . flip view hs . at $ ProcessInfo 410525 AFII
+
+      bkgVar
+        :: Vars (V.Vector Double)
+        -> Vars (V.Vector Double)
+        -> Vars (V.Vector Double)
+        -> V.Vector Double
+      bkgVar nom nom' var =
+        V.zipWith (+) (nom ^. nominal)
+        $ V.zipWith (-) (nom' ^. nominal) (var ^. nominal)
+
+      bkg :: Vars (V.Vector Double)
+      bkg =
+        nombkg'
+        & variations . at "PSUp" ?~ bkgVar nombkg' afbkg psbkg
+        & variations . at "MEUp" ?~ bkgVar nombkg' afbkg mebkg
+        & variations . at "RadUp" ?~ bkgVar nombkg' afbkg radbkg
+        & (fmap.fmap) (*xsec)
+
+      migVar
+        :: Vars (V.Vector (V.Vector Double))
+        -> Vars (V.Vector (V.Vector Double))
+        -> Vars (V.Vector (V.Vector Double))
+        -> V.Vector (V.Vector Double)
+      migVar nom nom' var =
+        V.zipWith add (nom ^. nominal)
+        $ V.zipWith sub (nom' ^. nominal) (var ^. nominal)
+        where
+          add = V.zipWith (+)
+          sub = V.zipWith (-)
+
+      mat :: Vars (V.Vector (V.Vector Double))
+      mat =
+        nommat'
+        & variations . at "PSUp" ?~ migVar nommat' afmat psmat
+        & variations . at "MEUp" ?~ migVar nommat' afmat memat
+        & variations . at "RadUp" ?~ migVar nommat' afmat radmat
+
+
+      recoh = fmap (*(xsec/ttw)) . getH1DD . view nominal $ ttnom ^?! ix recohname
+      trueh = fmap (*(xsec/ttw)) . trimTrue . getH1DD . view nominal $ ttnom ^?! ix truehname
+
+      datakey = ProcessInfo 0 DS
 
       dh :: Maybe (V.Vector Int)
       dh = fmap round . getH1DD . view nominal . (^?! ix recohname) . snd
             <$> (hs ^? ix datakey)
 
-      w = (xsecs ^?! _Just . ix 410501 . _1) / ttsumw
-
-      filt :: VarMap a -> VarMap a
-      filt =
-        liftSM . HM.filterWithKey
-        $ \i _ -> not $ T.isSuffixOf "down" i || T.isSuffixOf "Down" i
-
-
-      -- TODO
-      -- rebin the true spectrum by factor of 3.
-      ttbarmath' =
-        transposeV . fmap (V.drop 1 . rebin 3 (+)) . transposeV . getH2DD
-        <$> tths ^?! ix matrixname & variations %~ filt
-
-      transposeV = V.fromList . fmap V.fromList . transpose . fmap V.toList . V.toList
-
-      ttbartrueh' = V.drop 1 . rebin 3 (+) . getH1DD <$> tths ^?! ix truehname & variations %~ filt
-      ttbarrecoh' = getH1DD <$> tths ^?! ix recohname & variations %~ filt
-      ttbarrecomatchh' = getH1DD <$> tths ^?! ix recomatchhname & variations %~ filt
-
-      ttbarmath = ttbarmath' <&> (fmap.fmap) (*w)
-      ttbartrueh = ttbartrueh' <&> fmap (*w)
-      ttbarrecoh = ttbarrecoh' <&> fmap (*w)
-      ttbarrecomatchh = ttbarrecomatchh' <&> fmap (*w)
-
-      ttbarbkgrecoh = V.zipWith (-) <$> ttbarrecoh <*> ttbarrecomatchh
-
-      lumiV = Variation 37000 [("LumiUp", 74000)]
-
-      (model, params) = buildModel lumiV ttbartrueh ttbarmath (HM.singleton "ttbar" <$> ttbarbkgrecoh)
+      xsec = xsecs ^?! _Just . ix 410501 . _1
 
       datah :: V.Vector Int
-      datah = flip fromMaybe dh $ round . (*37000) <$> view nominal ttbarrecoh
+      datah = flip fromMaybe dh $ round . (* view nominal lumi) <$> recoh
+
+      (model, params) = buildModel trueh mat (HM.singleton "ttbar" <$> bkg)
 
 
 
@@ -102,36 +126,66 @@ main = do
   putStrLn "data:"
   print datah
 
-  putStrLn "true:"
-  print ttbartrueh
-
   runModel 100000 outfile datah model params
 
 
+toModel
+  :: (Sum Double, Folder (Vars YodaObj))
+  -> (Vars (V.Vector Double), Vars (V.Vector (V.Vector Double)))
+toModel (Sum w, hs) =
+  let filt =
+        liftSM . HM.filterWithKey
+        $ \i _ -> not $ T.isSuffixOf "down" i || T.isSuffixOf "Down" i
+
+      recoh' = getH1DD <$> hs ^?! ix recohname & variations %~ filt
+      trueh' = trimTrue . getH1DD <$> hs ^?! ix truehname & variations %~ filt
+      recomatchh' = getH1DD <$> hs ^?! ix recomatchhname & variations %~ filt
+
+      transposeV =
+        V.fromList . fmap V.fromList . transpose . fmap V.toList . V.toList
+
+      math' =
+        transposeV . fmap trimTrue . transposeV . getH2DD
+        <$> hs ^?! ix matrixname & variations %~ filt
+
+      math = math' <&> (fmap.fmap) (/w)
+      trueh = trueh' <&> fmap (/w)
+      recoh = recoh' <&> fmap (/w)
+      recomatchh = recomatchh' <&> fmap (/w)
+      bkgrecoh = V.zipWith (-) <$> recoh <*> recomatchh
+
+  in (bkgrecoh, normmat trueh math)
+
+  where
+    normmat = liftA2 (V.zipWith (\x v -> (/x) <$> v))
+
+
+
+
 buildModel
-  :: Vars Double
-  -> Vars (V.Vector Double)
+  :: V.Vector Double
   -> Vars (V.Vector (V.Vector Double))
   -> Vars (TextMap (V.Vector Double))
   -> (Model Double, TextMap (ModelParam Double))
-buildModel lu trueH matH bkgHs = (nommod, params)
+buildModel trueH matH bkgHs = (nommod, params)
   where
     emptysig :: V.Vector Double
-    emptysig = const 0 <$> view nominal trueH
+    emptysig = 0 <$ trueH
 
-    mats =
-      (fmap.fmap) (\x -> if x < 0 then 0 else x)
-      <$> normmat trueH matH
-
+    mats = (fmap.fmap) (\x -> if x < 0 then 0 else x) <$> matH
 
     nommod =
       Model
         (view nominal bkgHs)
         emptysig
         (view nominal mats)
-        (view nominal lu)
+        (view nominal lumi)
 
-    sysparams =
+    lumiparam =
+      HM.singleton "LumiUp" . ModelParam 0.0 (Normal 0.0 1.0)
+      $ ModelVar Nothing Nothing Nothing (lumi ^. variations . at "LumiUp")
+
+    matparams =
       unSM
       . view variations
       . fmap (ModelParam 0.0 (Normal 0.0 1.0))
@@ -144,19 +198,16 @@ buildModel lu trueH matH bkgHs = (nommod, params)
     trueparams =
       HM.fromList
       . V.toList
-      . flip imap (nom trueH)
+      . flip imap trueH
       $ \i x ->
         ( T.pack $ "truthbin" ++ show i
         , ModelParam x Flat
           $ ModelVar Nothing (Just (emptysig & ix i .~ 1)) Nothing Nothing
         )
 
-    params = sysparams `mappend` trueparams
+    params = matparams `mappend` trueparams `mappend` lumiparam
 
-    nom = view nominal
     systify v = fmap Just v & nominal .~ Nothing
-
-    normmat = liftA2 (V.zipWith (\x v -> (/x) <$> v))
 
 
 getH1DD :: Annotated Obj -> V.Vector Double
@@ -187,40 +238,3 @@ rebin k f v =
   in case m' of
     0 -> v'
     l -> V.snoc v' . foldl1 f $ V.slice (m*k) l v
-
--- --   let preds = sans 0 procs
--- --
--- --       systttbarDSIDs = (+410000) <$> [1, 2, 3, 4] :: [Int]
--- --       (systttbar', systpreds) =
--- --         IM.partitionWithKey (\k _ -> k `elem` systttbarDSIDs) preds
--- --
--- --       -- the "nominal" variations from the ttbar systematic samples
--- --       -- are actually variations
--- --       systttbar = over (traverse.traverse) (view nominal) systttbar'
--- --
--- --       -- TODO
--- --       -- partial!
--- --       ttbar' = systpreds ^?! ix 410000
--- --       dat = (fmap.fmap) (view nominal) $ procs ^?! at datadsid
--- --
--- --
--- --       bkgs =  fold $ sans 410000 systpreds
--- --
--- --       ttbar :: Folder (Vars YodaObj)
--- --       ttbar =
--- --         foldr (\(k, fs) fv ->
--- --           inF2 (M.intersectionWith (\s v -> v & at k ?~ s)) fs fv) ttbar'
--- --           $ fmap (first (procDict IM.!))
--- --             . IM.toList
--- --             $ systttbar
--- --
--- --   in (mappend ttbar bkgs, dat)
--- --
--- -- procDict :: IM.IntMap T.Text
--- -- procDict =
--- --   [ (410000, "PowPyNom")
--- --   , (410001, "PowPyRadUp")
--- --   , (410002, "PowPyRadDown")
--- --   , (410003, "aMCHer")
--- --   , (410004, "PowHer")
--- --   ]

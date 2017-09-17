@@ -84,7 +84,7 @@ eventHs =
 
 matchedEventHs :: Fills (TrueEvent, RecoEvent)
 matchedEventHs =
-  channelWithLabel "/matched" filt
+  channelWithLabel "/elmujj/matched" filt
   $ F.handles folded matchedJetHs <$= fmap join . sequenceL . fmap go
 
   where

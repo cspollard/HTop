@@ -74,10 +74,8 @@ readJets dmc = do
       Data'       -> pure $ pure mempty
       MC' NoVars  -> pure $ pure mempty
       MC' AllVars -> pure $ pure mempty
-        -- TODO
-        -- TODO
-        -- imap (\i -> pure . sf ("btagSFjet" <> T.pack (show i))) . fmap float2Double
-        --   <$> readBranch "JetBtagSF"
+        -- imap (\i -> sf ("btagSFjet" <> T.pack (show i))) . fmap float2Double
+        -- <$> readBranch "JetBtagSF"
 
   let withsf x xsf = dictate xsf >> return x
       tagged = withsf <$> tagged' <*> mv2c10sfs

@@ -34,9 +34,11 @@ main = mainWith writeFiles
 -- we're not writing data.
 -- partial
 writeFiles :: String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
-writeFiles outf pm' = void . sequence $ do
-  pm'' <- fst $ collapseProcs pm'
-  let pm = liftA2 scaleH' lumi <$> pm''
+writeFiles outf pm' = do
+  let datakey = ProcessInfo 0 DS
+      datahs = (fmap.fmap) (view nominal) $ pm' ^? ix datakey
+      mchs' = sans datakey pm'
+      mchs = fmap (liftA2 scaleH' lumi) <$> mchs'
 
       write :: T.Text -> M.Map T.Text YodaObj -> IO ()
       write varname hs =
@@ -46,10 +48,16 @@ writeFiles outf pm' = void . sequence $ do
             >-> P.map (T.unpack . uncurry printYodaObj . first ("/htop" <>))
             >-> P.toHandle h
 
-      ps :: [(T.Text, M.Map T.Text YodaObj)]
-      ps = toList . variationToMap "nominal" . sequence $ _toMap pm
+      psmc :: [(T.Text, M.Map T.Text YodaObj)]
+      psmc = toList . variationToMap "nominal" . sequence . _toMap $ view traverse mchs
 
-  return . runEffect $ each ps >-> P.mapM_ (uncurry write)
+      psdata :: [(T.Text, M.Map T.Text YodaObj)]
+      psdata =
+        case datahs of
+          Just hs -> [("data", _toMap hs)]
+          Nothing -> []
+
+  runEffect $ each (psmc ++ psdata) >-> P.mapM_ (uncurry write)
 
 
 -- TODO
@@ -59,7 +67,7 @@ writeFiles outf pm' = void . sequence $ do
 -- partial
 collapseProcs
   :: ProcMap (Folder (Vars YodaObj))
-  -> (Maybe (Folder (Vars YodaObj)), Maybe YodaFolder)
+  -> (ProcMap (Folder (Vars YodaObj)), Maybe YodaFolder)
 collapseProcs pm =
   let datakey = ProcessInfo 0 DS
       preds = sans datakey pm
@@ -67,7 +75,7 @@ collapseProcs pm =
 
   -- TODO
   -- partial
-  in (firstOf traverse preds, dat)
+  in (preds, dat)
 
 
 scaleH' :: Double -> YodaObj -> YodaObj

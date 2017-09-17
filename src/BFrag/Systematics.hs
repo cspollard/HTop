@@ -13,9 +13,12 @@ module BFrag.Systematics
   ) where
 
 import           Atlas
+import           Control.Lens       (imap)
 import qualified Data.IntMap.Strict as IM
+import           Data.Semigroup     ((<>))
 import qualified Data.Text          as T
 import           Data.TTree
+import           GHC.Exts           (fromList)
 import           GHC.Float
 
 
@@ -26,7 +29,7 @@ data DataMC' = Data' | MC' VarCfg deriving Show
 data VarCfg = NoVars | AllVars deriving Show
 
 lumi :: Vars Double
-lumi = Variation 38000 [("LumiUp", 41800), ("LumiDown", 34200)]
+lumi = Variation 38000 [("LumiUp", 76000), ("LumiDown", 19000)]
 
 recoWgt :: (MonadIO m, MonadThrow m) => DataMC' -> TreeRead m (PhysObj ())
 recoWgt Data' = return $ pure ()
@@ -35,7 +38,8 @@ recoWgt (MC' vcfg) = do
     puw <- puWgt vcfg
     jvtw <- jvtWgt vcfg
     lsf <- lepSF vcfg
-    return $ tw >> puw >> jvtw >> lsf
+    bsf <- btagSF vcfg
+    return $ tw >> puw >> jvtw >> lsf >> bsf
 
 
 trueWgt :: (MonadThrow m, MonadIO m) => TreeRead m (PhysObj ())
@@ -83,6 +87,34 @@ jvtWgt vcfg = do
         $ sf "weight_jvt"
           <$> Variation jvtw [("jvtwgtup", jvtwup), ("jvtwgtdown", jvtwdown)]
 
+
+btagSF :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
+btagSF vcfg = do
+  btagw <- float2Double <$> readBranch "weight_bTagSF_70"
+  case vcfg of
+    NoVars -> return . dictate $ sf "weight_btag" btagw
+    AllVars -> do
+      btagwsup <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_B_up"
+      btagwsdown <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_B_down"
+      ctagwsup <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_C_up"
+      ctagwsdown <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_C_down"
+      ltagwsup <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_Light_up"
+      ltagwsdown <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_Light_down"
+
+      return . varSF . fmap (sf "weight_btag")
+        $ Variation btagw
+          ( fromList
+            ( enum "btagsfup" btagwsup
+            ++ enum "btagsfdown" btagwsdown
+            ++ enum "ctagsfup" ctagwsup
+            ++ enum "ctagsfdown" ctagwsdown
+            ++ enum "ltagsfup" ltagwsup
+            ++ enum "ltagsfdown" ltagwsdown
+            )
+          )
+
+  where
+    enum n = imap (\i x -> (n <> T.pack (show i), x))
 
 treeSysts :: [String]
 treeSysts =
