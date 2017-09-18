@@ -32,9 +32,9 @@ import           System.Environment     (getArgs)
 type TextMap = HashMap T.Text
 
 matrixname, recohname, recomatchhname, truehname :: IsString s => s
-matrixname = "/matched/matched/4precosvtrks/recoptgt30/recozbtcvstruezbtc"
+matrixname = "/elmujjmatched/zbtcmig"
 recohname = "/elmujj/probejets/zbtc"
-recomatchhname = "/matched/matched/4precosvtrks/recoptgt30/probejets/zbtc"
+recomatchhname = "/elmujjmatched/probejets/zbtc"
 truehname = "/elmujjtrue/truejets/zbtc"
 
 regex :: String
