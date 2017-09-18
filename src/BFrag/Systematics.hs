@@ -28,8 +28,9 @@ import           GHC.Float
 data DataMC' = Data' | MC' VarCfg deriving Show
 data VarCfg = NoVars | AllVars deriving Show
 
+-- 25% lumi uncert
 lumi :: Vars Double
-lumi = Variation 38000 [("LumiUp", 76000)]
+lumi = Variation 38000 [("LumiUp", 47500)]
 
 recoWgt :: (MonadIO m, MonadThrow m) => DataMC' -> TreeRead m (PhysObj ())
 recoWgt Data' = return $ pure ()
