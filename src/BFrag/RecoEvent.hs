@@ -154,5 +154,12 @@ probeJets revt = fmap join . sequenceL . return $
     probeJet j j' = do
       bt <- view isBTagged j
       sv <- hasSV j'
-      guard $ bt && sv && (view lvAbsEta j' < 2.1)
+      trks <- svChargedConstits j'
+      let pt' = view lvPt j'
+      guard
+        $ bt
+          && sv
+          && (view lvAbsEta j' < 2.1)
+          && length trks >= 4
+          && pt' >= 30
       return j'

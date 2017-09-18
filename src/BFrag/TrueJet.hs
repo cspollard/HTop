@@ -3,7 +3,7 @@
 
 module BFrag.TrueJet
   ( TrueJet(..), tjChargedConsts, tjBHadrons
-  , readTrueJets, bhChargedChildren, zBTTrue, zbtTrueH
+  , readTrueJets, bhChargedChildren
   , trueBJet, svTrue
   ) where
 
@@ -12,7 +12,6 @@ import           BFrag.BFrag
 import           BFrag.PtEtaPhiE
 import           Control.Applicative (ZipList (..))
 import           Control.Lens
-import           Data.Bifunctor
 import           Data.Foldable       (fold)
 import           Data.TTree
 import qualified Data.Vector         as V
@@ -53,23 +52,6 @@ instance HasPVConstits TrueJet where
 
 svTrue :: TrueJet -> PtEtaPhiE
 svTrue = foldOf $ tjBHadrons . traverse . toPtEtaPhiE
-
-
-zBTTrue :: TrueJet -> Double
-zBTTrue (TrueJet tlv _ bs) =
-  view lvPt (foldOf (traverse.toPtEtaPhiE) bs) / view lvPt tlv
-
-
-zbtTrueH :: Fills TrueJet
-zbtTrueH = singleton "/zbt" <$> physObjH h
-  where
-    h =
-      hist1DDef
-        (binD 0 21 1.05)
-        "$z_{p_{\\mathrm T}}$"
-        (dndx "z_{p_{\\mathrm T}}" "1")
-        <$= first zBTTrue
-
 
 readBHadrons :: (MonadIO m, MonadThrow m) => TreeRead m [BHadron]
 readBHadrons = do
