@@ -42,7 +42,7 @@ regex = matrixname ++ "|" ++ recohname ++ "|" ++ recomatchhname ++ "|" ++ truehn
 
 -- need to get rid of some truth bins.
 trimTrue :: Num a => V.Vector a -> V.Vector a
-trimTrue = V.drop 1 . rebin 3 (+)
+trimTrue = rebin 2 (+) . V.drop 1
 
 -- TODO
 -- partial!
@@ -119,14 +119,13 @@ main = do
       (model, params) = buildModel trueh mat (HM.singleton "ttbar" <$> bkg)
 
 
-
   putStrLn "\nmodel:"
   print model
 
   putStrLn "data:"
   print datah
 
-  runModel 100000 outfile datah model params
+  runModel 1000000 outfile datah model params
 
 
 toModel
@@ -135,7 +134,7 @@ toModel
 toModel (Sum w, hs) =
   let filt =
         liftSM . HM.filterWithKey
-        $ \i _ -> not $ T.isSuffixOf "down" i || T.isSuffixOf "Down" i
+        $ \i _ -> not $ T.isInfixOf "down" i || T.isInfixOf "Down" i
 
       recoh' = getH1DD <$> hs ^?! ix recohname & variations %~ filt
       trueh' = trimTrue . getH1DD <$> hs ^?! ix truehname & variations %~ filt
@@ -158,7 +157,6 @@ toModel (Sum w, hs) =
 
   where
     normmat = liftA2 (V.zipWith (\x v -> (/x) <$> v))
-
 
 
 
