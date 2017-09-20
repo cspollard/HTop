@@ -39,7 +39,7 @@ instance HasLorentzVector BHadron where
   toPtEtaPhiE = lens _bhPtEtaPhiE $ \b x -> b { _bhPtEtaPhiE = x }
 
 instance HasSVConstits TrueJet where
-  svConstits tj = pure $ toListOf (tjBHadrons.traverse.toPtEtaPhiE) tj
+  svConstits = pure . toListOf (tjBHadrons.traverse.toPtEtaPhiE)
   svChargedConstits = pure . toListOf (tjBHadrons.traverse.bhChargedChildren.traverse)
 
 instance HasPVConstits TrueJet where

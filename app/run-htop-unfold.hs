@@ -180,7 +180,7 @@ buildModel trueH matH bkgHs = (nommod, params)
         (view nominal lumi)
 
     lumiparam =
-      HM.singleton "LumiUp" . ModelParam 0.0 (Normal 0.0 1.0)
+      HM.singleton "LumiUp" . ModelParam 0.0 (LogNormal 1.0 1.0)
       $ ModelVar Nothing Nothing Nothing (lumi ^. variations . at "LumiUp")
 
     matparams =
