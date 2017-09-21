@@ -141,7 +141,7 @@ main = do
   putStrLn "data:"
   print datah
 
-  runModel 1000000 outfile datah model params
+  void $ runModel 100000 outfile datah model params
 
 
 toModel
