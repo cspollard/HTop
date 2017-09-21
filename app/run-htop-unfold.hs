@@ -22,6 +22,7 @@ import           Data.List              (transpose)
 import           Data.Maybe             (fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
 import qualified Data.Text              as T
+import           Data.Vector            (Vector, (!))
 import qualified Data.Vector            as V
 import           GHC.Exts               (IsString)
 import           Model
@@ -41,8 +42,23 @@ regex :: String
 regex = matrixname ++ "|" ++ recohname ++ "|" ++ recomatchhname ++ "|" ++ truehname
 
 -- need to get rid of some truth bins.
-trimTrue :: Num a => V.Vector a -> V.Vector a
-trimTrue = rebin 2 (+) . V.drop 1
+trimTrue :: Num a => Vector a -> Vector a
+trimTrue v =
+  V.fromList
+  [ v ! 00 + v ! 01 + v ! 02
+  , v ! 03 + v ! 04 + v ! 05
+  , v ! 06 + v ! 07 + v ! 08
+  , v ! 09 + v ! 10
+  , v ! 11 + v ! 12
+  , v ! 13 + v ! 14
+  , v ! 15 + v ! 16
+  , v ! 17
+  , v ! 18
+  , v ! 19
+  , v ! 20
+  , v ! 21
+  ]
+
 
 -- TODO
 -- partial!
@@ -66,15 +82,15 @@ main = do
       (psbkg, psmat) = toModel . fromJust . flip view hs . at $ ProcessInfo 410525 AFII
 
       bkgVar
-        :: Vars (V.Vector Double)
-        -> Vars (V.Vector Double)
-        -> Vars (V.Vector Double)
-        -> V.Vector Double
+        :: Vars (Vector Double)
+        -> Vars (Vector Double)
+        -> Vars (Vector Double)
+        -> Vector Double
       bkgVar nom nom' var =
         V.zipWith (+) (nom ^. nominal)
         $ V.zipWith (-) (nom' ^. nominal) (var ^. nominal)
 
-      bkg :: Vars (V.Vector Double)
+      bkg :: Vars (Vector Double)
       bkg =
         nombkg'
         & variations . at "PSUp" ?~ bkgVar nombkg' afbkg psbkg
@@ -83,10 +99,10 @@ main = do
         & (fmap.fmap) (*xsec)
 
       migVar
-        :: Vars (V.Vector (V.Vector Double))
-        -> Vars (V.Vector (V.Vector Double))
-        -> Vars (V.Vector (V.Vector Double))
-        -> V.Vector (V.Vector Double)
+        :: Vars (Vector (Vector Double))
+        -> Vars (Vector (Vector Double))
+        -> Vars (Vector (Vector Double))
+        -> Vector (Vector Double)
       migVar nom nom' var =
         V.zipWith add (nom ^. nominal)
         $ V.zipWith sub (nom' ^. nominal) (var ^. nominal)
@@ -94,7 +110,7 @@ main = do
           add = V.zipWith (+)
           sub = V.zipWith (-)
 
-      mat :: Vars (V.Vector (V.Vector Double))
+      mat :: Vars (Vector (Vector Double))
       mat =
         nommat'
         & variations . at "PSUp" ?~ migVar nommat' afmat psmat
@@ -107,13 +123,13 @@ main = do
 
       datakey = ProcessInfo 0 DS
 
-      dh :: Maybe (V.Vector Int)
+      dh :: Maybe (Vector Int)
       dh = fmap round . getH1DD . view nominal . (^?! ix recohname) . snd
             <$> (hs ^? ix datakey)
 
       xsec = xsecs ^?! _Just . ix 410501 . _1
 
-      datah :: V.Vector Int
+      datah :: Vector Int
       datah = flip fromMaybe dh $ round . (* view nominal lumi) <$> recoh
 
       (model, params) = buildModel trueh mat (HM.singleton "ttbar" <$> bkg)
@@ -130,7 +146,7 @@ main = do
 
 toModel
   :: (Sum Double, Folder (Vars YodaObj))
-  -> (Vars (V.Vector Double), Vars (V.Vector (V.Vector Double)))
+  -> (Vars (Vector Double), Vars (Vector (Vector Double)))
 toModel (Sum w, hs) =
   let filt =
         liftSM . HM.filterWithKey
@@ -161,13 +177,13 @@ toModel (Sum w, hs) =
 
 
 buildModel
-  :: V.Vector Double
-  -> Vars (V.Vector (V.Vector Double))
-  -> Vars (TextMap (V.Vector Double))
+  :: Vector Double
+  -> Vars (Vector (Vector Double))
+  -> Vars (TextMap (Vector Double))
   -> (Model Double, TextMap (ModelParam Double))
 buildModel trueH matH bkgHs = (nommod, params)
   where
-    emptysig :: V.Vector Double
+    emptysig :: Vector Double
     emptysig = 0 <$ trueH
 
     mats = (fmap.fmap) (\x -> if x < 0 then 0 else x) <$> matH
@@ -208,14 +224,14 @@ buildModel trueH matH bkgHs = (nommod, params)
     systify v = fmap Just v & nominal .~ Nothing
 
 
-getH1DD :: Annotated Obj -> V.Vector Double
+getH1DD :: Annotated Obj -> Vector Double
 getH1DD (Annotated _ (H1DD h)) =
   views histData (fmap (view sumW)) h
 getH1DD _ = error "attempting to get H1DD from a different YodaObj."
 
 -- TODO
 -- partial!
-getH2DD :: Annotated Obj -> V.Vector (V.Vector Double)
+getH2DD :: Annotated Obj -> Vector (Vector Double)
 getH2DD (Annotated _ (H2DD h)) =
   (fmap.fmap) (view sumW)
   -- TODO
@@ -225,7 +241,7 @@ getH2DD (Annotated _ (H2DD h)) =
   $ H.listSlicesAlongY h
 getH2DD _ = error "attempting to get H2DD from a different YodaObj."
 
-rebin :: Int -> (a -> a -> a) -> V.Vector a -> V.Vector a
+rebin :: Int -> (a -> a -> a) -> Vector a -> Vector a
 rebin 0 _ v = v
 rebin 1 _ v = v
 rebin k f v =
