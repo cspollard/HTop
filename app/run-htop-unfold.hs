@@ -22,6 +22,7 @@ import qualified Data.Histogram.Generic as H
 import           Data.List              (sort, transpose)
 import           Data.Maybe             (fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
+import           Data.TDigest           (quantile)
 import qualified Data.Text              as T
 import           Data.Vector            (Vector, (!))
 import qualified Data.Vector            as V
@@ -169,7 +170,7 @@ main = do
   unfolded' <- runModel 1000 outfile datah model params
 
   let unfolded'' =
-        sort . (fmap.fmap) (lmvskMean &&& lmvskVariance)
+        sort . (fmap.fmap) (quantile 0.32 &&& quantile 0.68)
         . filter (T.isInfixOf "normtruth" . fst)
         $ HM.toList unfolded'
 

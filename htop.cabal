@@ -116,6 +116,7 @@ executable run-htop-unfold
         text -any,
         vector -any,
         histogram-fill -any,
+        tdigest -any,
         mwc-probability -any,
         hunfold -any,
         atlas -any,
