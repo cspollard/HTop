@@ -14,11 +14,12 @@ import           Atlas
 import           Atlas.CrossSections
 import           BFrag.Systematics      (lumi)
 import           Control.Applicative    (liftA2)
+import           Control.Arrow          ((&&&))
 import           Control.Lens
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
-import           Data.List              (transpose)
+import           Data.List              (sort, transpose)
 import           Data.Maybe             (fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
 import qualified Data.Text              as T
@@ -41,20 +42,45 @@ truehname = "/elmujjtrue/truejets/zbtc"
 regex :: String
 regex = matrixname ++ "|" ++ recohname ++ "|" ++ recomatchhname ++ "|" ++ truehname
 
--- need to get rid of some truth bins.
-trimTrue :: Num a => Vector a -> Vector a
-trimTrue v =
-  -- rebin 2 . drop 1
-  V.fromList
-  [ v ! 00 + v ! 01 + v ! 02
-  , v ! 03 + v ! 04 + v ! 05
-  , v ! 06 + v ! 07 + v ! 08
-  , v ! 09 + v ! 10 + v ! 11
-  , v ! 12 + v ! 13 + v ! 14
-  , v ! 15 + v ! 16
-  , v ! 17 + v ! 18
-  , v ! 19 + v ! 20
+
+binMerges :: [[Int]]
+binMerges =
+  [ [00, 01, 02]
+  , [03, 04, 05]
+  , [06, 07, 08]
+  , [09, 10, 11]
+  , [12, 13, 14]
+  , [15, 16]
+  , [17, 18]
+  , [19, 20]
   ]
+
+trimTrueV :: Monoid a => Vector a -> Vector a
+trimTrueV = mergeV mappend mempty binMerges
+
+trimTrueD :: Vector Double -> Vector Double
+trimTrueD = fmap getSum . trimTrueV . fmap Sum
+
+trimTrueB :: ArbBin a -> ArbBin a
+trimTrueB bs = foldl (flip $ uncurry mergeBinRange) bs . reverse $ (head &&& last) <$> binMerges
+
+trimTrueH :: Obj -> Obj
+trimTrueH =
+  over _H1DD
+  $ over histData trimTrueV
+    . over bins trimTrueB
+
+  -- rebinV 2 . drop 1
+  -- V.fromList
+  -- [ v ! 00 + v ! 01 + v ! 02
+  -- , v ! 03 + v ! 04 + v ! 05
+  -- , v ! 06 + v ! 07 + v ! 08
+  -- , v ! 09 + v ! 10 + v ! 11
+  -- , v ! 12 + v ! 13 + v ! 14
+  -- , v ! 15 + v ! 16
+  -- , v ! 17 + v ! 18
+  -- , v ! 19 + v ! 20
+  -- ]
 
 
 -- TODO
@@ -116,7 +142,9 @@ main = do
 
 
       recoh = fmap (*(xsec/ttw)) . getH1DD . view nominal $ ttnom ^?! ix recohname
-      trueh = fmap (*(xsec/ttw)) . trimTrue . getH1DD . view nominal $ ttnom ^?! ix truehname
+      trueh =
+        fmap (*(xsec/ttw)) . trimTrueD . getH1DD . view nominal
+        $ ttnom ^?! ix truehname
 
       datakey = ProcessInfo 0 DS
 
@@ -138,7 +166,14 @@ main = do
   putStrLn "data:"
   print datah
 
-  void $ runModel 100000 outfile datah model params
+  unfolded' <- runModel 1000 outfile datah model params
+
+  let unfolded'' =
+        sort . (fmap.fmap) (lmvskMean &&& lmvskVariance)
+        . filter (T.isInfixOf "normtruth" . fst)
+        $ HM.toList unfolded'
+
+  print unfolded''
 
 
 toModel
@@ -150,14 +185,14 @@ toModel (Sum w, hs) =
         $ \i _ -> not $ T.isInfixOf "down" i || T.isInfixOf "Down" i
 
       recoh' = getH1DD <$> hs ^?! ix recohname & variations %~ filt
-      trueh' = trimTrue . getH1DD <$> hs ^?! ix truehname & variations %~ filt
+      trueh' = trimTrueD . getH1DD <$> hs ^?! ix truehname & variations %~ filt
       recomatchh' = getH1DD <$> hs ^?! ix recomatchhname & variations %~ filt
 
       transposeV =
         V.fromList . fmap V.fromList . transpose . fmap V.toList . V.toList
 
       math' =
-        transposeV . fmap trimTrue . transposeV . getH2DD
+        transposeV . fmap trimTrueD . transposeV . getH2DD
         <$> hs ^?! ix matrixname & variations %~ filt
 
       math = math' <&> (fmap.fmap) (/w)
@@ -238,10 +273,18 @@ getH2DD (Annotated _ (H2DD h)) =
   $ H.listSlicesAlongY h
 getH2DD _ = error "attempting to get H2DD from a different YodaObj."
 
-rebin :: Int -> (a -> a -> a) -> Vector a -> Vector a
-rebin 0 _ v = v
-rebin 1 _ v = v
-rebin k f v =
+
+mergeV :: (a -> a -> a) -> a -> [[Int]] -> Vector a -> Vector a
+mergeV f x ks v =
+  V.fromList
+  $ go <$> ks
+  where
+    go is = foldl f x $ (v !) <$> is
+
+rebinV :: Int -> (a -> a -> a) -> Vector a -> Vector a
+rebinV 0 _ v = v
+rebinV 1 _ v = v
+rebinV k f v =
   let n = length v
       m = n `div` k
       m' = n `mod` k
