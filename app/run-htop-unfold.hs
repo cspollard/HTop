@@ -178,7 +178,7 @@ main = do
 
   withFile youtfile WriteMode $ \h ->
     hPutStrLn h . T.unpack . printScatter2D truehname
-      $ zipWith (\(_, x) y -> (x, y)) unfolded'' ys
+      $ zipWith (\x (_, y) -> (x, y)) ys unfolded''
 
 
 
