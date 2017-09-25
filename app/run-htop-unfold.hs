@@ -16,6 +16,7 @@ import           Atlas.CrossSections
 import           BFrag.Systematics      (lumi)
 import           Control.Applicative    (liftA2)
 import           Control.Arrow          ((&&&))
+import Debug.Trace
 import           Control.Lens
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
@@ -75,8 +76,6 @@ trimTrueH =
     . over bins trimTrueB
 
 
--- TODO
--- partial!
 main :: IO ()
 main = do
   (xsecfile:outfile:youtfile:infs) <- getArgs
@@ -163,7 +162,7 @@ main = do
         sort
         . fromMaybe (error "missing best fit values")
         . (traverse.traverse) quant
-        . filter (T.isInfixOf "normtruth" . fst)
+        . filter (T.isPrefixOf "truth" . fst)
         $ HM.toList unfolded'
 
       quant (mx, y) = do
@@ -174,10 +173,10 @@ main = do
 
       ys =
         V.toList . fmap (\(mn, mx) -> ((mn+mx)/2, (mn, mx)))
-        $ views (nominal.noted._H1DD.bins) binsList trueobj
+        $ views (nominal.noted._H1DD.bins) (binsList.traceShowId.trimTrueB) trueobj
 
   withFile youtfile WriteMode $ \h ->
-    hPutStrLn h . T.unpack . printScatter2D truehname
+    hPutStrLn h . T.unpack . printScatter2D ("/htop" <> truehname)
       $ zipWith (\x (_, y) -> (x, y)) ys unfolded''
 
 
@@ -317,6 +316,6 @@ printScatter2D pa xys =
       ]
 
   where
-    printPoint ((x, (xup, xdown)), (y, (yup, ydown))) =
+    printPoint ((x, (xdown, xup)), (y, (ydown, yup))) =
       T.intercalate "\t" . fmap (T.pack . show)
-      $ [x, xup - x, x - xdown, y, yup - y, y - ydown]
+      $ [x, x - xdown, xup - x, y, y - ydown, yup - y]
