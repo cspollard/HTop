@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedLists           #-}
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE TupleSections             #-}
 {-# LANGUAGE TypeFamilies              #-}
 
 module Main where
@@ -22,6 +23,7 @@ import qualified Data.Histogram.Generic as H
 import           Data.List              (sort, transpose)
 import           Data.Maybe             (fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
+import           Data.Semigroup         ((<>))
 import           Data.TDigest           (quantile)
 import qualified Data.Text              as T
 import           Data.Vector            (Vector, (!))
@@ -71,24 +73,12 @@ trimTrueH =
   $ over histData trimTrueV
     . over bins trimTrueB
 
-  -- rebinV 2 . drop 1
-  -- V.fromList
-  -- [ v ! 00 + v ! 01 + v ! 02
-  -- , v ! 03 + v ! 04 + v ! 05
-  -- , v ! 06 + v ! 07 + v ! 08
-  -- , v ! 09 + v ! 10 + v ! 11
-  -- , v ! 12 + v ! 13 + v ! 14
-  -- , v ! 15 + v ! 16
-  -- , v ! 17 + v ! 18
-  -- , v ! 19 + v ! 20
-  -- ]
-
 
 -- TODO
 -- partial!
 main :: IO ()
 main = do
-  (xsecfile:outfile:infs) <- getArgs
+  (xsecfile:outfile:youtfol:infs) <- getArgs
   xsecs <- readXSecFile xsecfile
   procs <- decodeFiles (Just regex) infs
 
@@ -143,9 +133,8 @@ main = do
 
 
       recoh = fmap (*(xsec/ttw)) . getH1DD . view nominal $ ttnom ^?! ix recohname
-      trueh =
-        fmap (*(xsec/ttw)) . trimTrueD . getH1DD . view nominal
-        $ ttnom ^?! ix truehname
+      trueobj = ttnom ^?! ix truehname
+      trueh = fmap (*(xsec/ttw)) . trimTrueD . getH1DD $ view nominal trueobj
 
       datakey = ProcessInfo 0 DS
 
@@ -170,11 +159,24 @@ main = do
   unfolded' <- runModel 1000 outfile datah model params
 
   let unfolded'' =
-        sort . (fmap.fmap) (quantile 0.32 &&& quantile 0.68)
+        sort
+        . fromMaybe (error "missing best fit values")
+        . (traverse.traverse) quant
         . filter (T.isInfixOf "normtruth" . fst)
         $ HM.toList unfolded'
 
-  print unfolded''
+      quant (mx, y) = do
+        x <- mx
+        q32 <- quantile 0.32 y
+        q68 <- quantile 0.68 y
+        return (x, (q32, q68))
+
+      ys =
+        V.toList . fmap (\(mn, mx) -> ((mn+mx)/2, (mn, mx)))
+        $ views (nominal.noted._H1DD.bins) binsList trueobj
+
+  print . printScatter2D truehname $ zipWith (\(_, x) y -> (x, y)) unfolded'' ys
+
 
 
 toModel
@@ -293,3 +295,25 @@ rebinV k f v =
   in case m' of
     0 -> v'
     l -> V.snoc v' . foldl1 f $ V.slice (m*k) l v
+
+printScatter2D
+  :: T.Text
+  -> [((Double, (Double, Double)), (Double, (Double, Double)))]
+  -> T.Text
+printScatter2D pa xys =
+  T.unlines $
+    [ "# BEGIN YODA_SCATTER2D " <> pa
+    , "Type=Scatter2D"
+    , "Path=" <> pa
+    , "IsRef=1"
+    ]
+    ++
+      fmap printPoint xys
+      ++
+      [ "# END YODA_SCATTER2D", ""
+      ]
+
+  where
+    printPoint ((x, (xup, xdown)), (y, (yup, ydown))) =
+      T.intercalate "\t" . fmap (T.pack . show)
+      $ [x, xup - x, x - xdown, y, yup - y, y - ydown]
