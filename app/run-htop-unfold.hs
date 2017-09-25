@@ -32,6 +32,7 @@ import           GHC.Exts               (IsString)
 import           Model
 import           RunModel
 import           System.Environment     (getArgs)
+import System.IO (hPutStrLn, withFile)
 
 
 type TextMap = HashMap T.Text
@@ -78,7 +79,7 @@ trimTrueH =
 -- partial!
 main :: IO ()
 main = do
-  (xsecfile:outfile:youtfol:infs) <- getArgs
+  (xsecfile:outfile:youtfile:infs) <- getArgs
   xsecs <- readXSecFile xsecfile
   procs <- decodeFiles (Just regex) infs
 
@@ -175,7 +176,9 @@ main = do
         V.toList . fmap (\(mn, mx) -> ((mn+mx)/2, (mn, mx)))
         $ views (nominal.noted._H1DD.bins) binsList trueobj
 
-  print . printScatter2D truehname $ zipWith (\(_, x) y -> (x, y)) unfolded'' ys
+  withFile youtfile $ \h -> do
+    hPutStrLn . T.unpack . printScatter2D truehname
+      $ zipWith (\(_, x) y -> (x, y)) unfolded'' ys
 
 
 
