@@ -32,7 +32,7 @@ import           GHC.Exts               (IsString)
 import           Model
 import           RunModel
 import           System.Environment     (getArgs)
-import System.IO (hPutStrLn, withFile)
+import           System.IO              (IOMode (..), hPutStrLn, withFile)
 
 
 type TextMap = HashMap T.Text
@@ -176,8 +176,8 @@ main = do
         V.toList . fmap (\(mn, mx) -> ((mn+mx)/2, (mn, mx)))
         $ views (nominal.noted._H1DD.bins) binsList trueobj
 
-  withFile youtfile $ \h -> do
-    hPutStrLn . T.unpack . printScatter2D truehname
+  withFile youtfile WriteMode $ \h ->
+    hPutStrLn h . T.unpack . printScatter2D truehname
       $ zipWith (\(_, x) y -> (x, y)) unfolded'' ys
 
 
