@@ -39,7 +39,7 @@ writeFiles outf pm' = do
   let datakey = ProcessInfo 0 DS
       datahs = (fmap.fmap) (view nominal) $ pm' ^? ix datakey
       mchs' = sans datakey pm'
-      mchs = (imap appLumi) <$> mchs'
+      mchs = imap appLumi <$> mchs'
 
       appLumi t yo =
         if T.isInfixOf "elmujjtrue" t

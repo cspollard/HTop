@@ -139,10 +139,9 @@ main = do
         $ HM.toList unfolded'
 
       quant (mx, y) = do
-        let l = view nominal lumi
-        x <- (*l) <$> mx
-        q32 <- (*l) <$> quantile 0.32 y
-        q68 <- (*l) <$> quantile 0.68 y
+        x <- mx
+        q32 <- quantile 0.32 y
+        q68 <- quantile 0.68 y
         return (x, (q32, q68))
 
   withFile youtfile WriteMode $ \h ->
@@ -280,6 +279,6 @@ printScatter2D pa xys =
 
   where
     printPoint ((x, (xdown, xup)), (y, (ydown, yup))) =
-      let area = yup - ydown
+      let area = xup - xdown
       in T.intercalate "\t" . fmap (T.pack . show)
-          $ [x/area, (x-xdown)/area, (xup-x)/area, y, y-ydown, yup-y]
+        $ [x, x-xdown, xup-x, y/area, (y-ydown)/area, (yup-y)/area]
