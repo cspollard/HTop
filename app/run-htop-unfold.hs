@@ -16,7 +16,6 @@ import           Atlas.CrossSections
 import           BFrag.Systematics      (lumi)
 import           Control.Applicative    (liftA2)
 import           Control.Arrow          ((&&&))
-import Debug.Trace
 import           Control.Lens
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
@@ -33,7 +32,9 @@ import           GHC.Exts               (IsString)
 import           Model
 import           RunModel
 import           System.Environment     (getArgs)
-import           System.IO              (IOMode (..), hPutStrLn, withFile)
+import           System.IO              (BufferMode (..), IOMode (..),
+                                         hPutStrLn, hSetBuffering, stdout,
+                                         withFile)
 
 
 type TextMap = HashMap T.Text
@@ -78,6 +79,7 @@ trimTrueH =
 
 main :: IO ()
 main = do
+  hSetBuffering stdout LineBuffering
   (xsecfile:outfile:youtfile:infs) <- getArgs
   xsecs <- readXSecFile xsecfile
   procs <- decodeFiles (Just regex) infs
@@ -147,8 +149,14 @@ main = do
       datah :: Vector Int
       datah = flip fromMaybe dh $ round . (* view nominal lumi) <$> recoh
 
+      xs =
+        V.toList . fmap (\(mn, mx) -> ((mn+mx)/2, (mn, mx)))
+        $ views (nominal.noted._H1DD.bins) (binsList.trimTrueB) trueobj
+
       (model, params) = buildModel trueh mat (HM.singleton "ttbar" <$> bkg)
 
+  putStrLn "\nbinning:"
+  print xs
 
   putStrLn "\nmodel:"
   print model
@@ -171,13 +179,9 @@ main = do
         q68 <- quantile 0.68 y
         return (x, (q32, q68))
 
-      ys =
-        V.toList . fmap (\(mn, mx) -> ((mn+mx)/2, (mn, mx)))
-        $ views (nominal.noted._H1DD.bins) (binsList.traceShowId.trimTrueB) trueobj
-
   withFile youtfile WriteMode $ \h ->
     hPutStrLn h . T.unpack . printScatter2D ("/htop" <> truehname)
-      $ zipWith (\x (_, y) -> (x, y)) ys unfolded''
+      $ zipWith (\x (_, y) -> (x, y)) xs unfolded''
 
 
 
