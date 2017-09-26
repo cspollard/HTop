@@ -39,7 +39,12 @@ writeFiles outf pm' = do
   let datakey = ProcessInfo 0 DS
       datahs = (fmap.fmap) (view nominal) $ pm' ^? ix datakey
       mchs' = sans datakey pm'
-      mchs = fmap (liftA2 scaleH' lumi) <$> mchs'
+      mchs = (imap appLumi) <$> mchs'
+
+      appLumi t yo =
+        if T.isInfixOf "elmujjtrue" t
+          then yo
+          else liftA2 scaleH' lumi yo
 
       write :: T.Text -> M.Map T.Text YodaObj -> IO ()
       write varname hs =

@@ -280,5 +280,6 @@ printScatter2D pa xys =
 
   where
     printPoint ((x, (xdown, xup)), (y, (ydown, yup))) =
-      T.intercalate "\t" . fmap (T.pack . show)
-      $ [x, x - xdown, xup - x, y, y - ydown, yup - y]
+      let area = yup - ydown
+      in T.intercalate "\t" . fmap (T.pack . show)
+          $ [x/area, (x-xdown)/area, (xup-x)/area, y, y-ydown, yup-y]
