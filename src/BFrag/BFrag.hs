@@ -5,8 +5,13 @@ module BFrag.BFrag where
 
 import           Atlas
 import           Control.Applicative (Alternative (..))
+import           Control.Arrow       ((&&&))
 import           Control.Lens
 import           Data.Foldable       (fold)
+import           Data.Monoid
+import           Data.Vector         (Vector, (!))
+import qualified Data.Vector         as V
+import           GHC.Exts
 
 
 class HasSVConstits a where
@@ -194,6 +199,50 @@ bfragHs =
 --     -- , nSVChildProfPt
 --     -- , zbtChargedVsPt
   ]
+
+binMerges :: [[Int]]
+binMerges =
+  [ [00, 01, 02]
+  , [03, 04, 05]
+  , [06, 07, 08]
+  , [09, 10, 11]
+  , [12, 13, 14]
+  , [15, 16]
+  , [17, 18]
+  , [19, 20]
+  ]
+
+trimTrueV :: Monoid a => Vector a -> Vector a
+trimTrueV = mergeV mappend mempty binMerges
+
+trimTrueD :: Vector Double -> Vector Double
+trimTrueD = fmap getSum . trimTrueV . fmap Sum
+
+trimTrueB :: ArbBin a -> ArbBin a
+trimTrueB bs = foldl (flip $ uncurry mergeBinRange) bs . reverse $ (head &&& last) <$> binMerges
+
+trimTrueH :: Obj -> Obj
+trimTrueH =
+  over _H1DD
+  $ \h ->
+      let v = views histData trimTrueV h
+          b = views bins trimTrueB h
+      in histogramUO b Nothing v
+
+
+mergeV :: (a -> a -> a) -> a -> [[Int]] -> Vector a -> Vector a
+mergeV f x ks v =
+  V.fromList
+  $ go <$> ks
+  where
+    go is = foldl f x $ (v !) <$> is
+
+
+matrixname, recohname, recomatchhname, truehname :: IsString s => s
+matrixname = "/elmujjmatched/zbtcmig"
+recohname = "/elmujj/probejets/zbtc"
+recomatchhname = "/elmujjmatched/probejets/zbtc"
+truehname = "/elmujjtrue/truejets/zbtc"
 
 
 -- childSumPtProfPt

@@ -13,9 +13,9 @@ module Main where
 
 import           Atlas
 import           Atlas.CrossSections
+import           BFrag.BFrag
 import           BFrag.Systematics      (lumi)
 import           Control.Applicative    (liftA2)
-import           Control.Arrow          ((&&&))
 import           Control.Lens
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
@@ -26,9 +26,8 @@ import           Data.Monoid            (Sum (..))
 import           Data.Semigroup         ((<>))
 import           Data.TDigest           (quantile)
 import qualified Data.Text              as T
-import           Data.Vector            (Vector, (!))
+import           Data.Vector            (Vector)
 import qualified Data.Vector            as V
-import           GHC.Exts               (IsString)
 import           Model
 import           RunModel
 import           System.Environment     (getArgs)
@@ -39,42 +38,8 @@ import           System.IO              (BufferMode (..), IOMode (..),
 
 type TextMap = HashMap T.Text
 
-matrixname, recohname, recomatchhname, truehname :: IsString s => s
-matrixname = "/elmujjmatched/zbtcmig"
-recohname = "/elmujj/probejets/zbtc"
-recomatchhname = "/elmujjmatched/probejets/zbtc"
-truehname = "/elmujjtrue/truejets/zbtc"
-
 regex :: String
 regex = matrixname ++ "|" ++ recohname ++ "|" ++ recomatchhname ++ "|" ++ truehname
-
-
-binMerges :: [[Int]]
-binMerges =
-  [ [00, 01, 02]
-  , [03, 04, 05]
-  , [06, 07, 08]
-  , [09, 10, 11]
-  , [12, 13, 14]
-  , [15, 16]
-  , [17, 18]
-  , [19, 20]
-  ]
-
-trimTrueV :: Monoid a => Vector a -> Vector a
-trimTrueV = mergeV mappend mempty binMerges
-
-trimTrueD :: Vector Double -> Vector Double
-trimTrueD = fmap getSum . trimTrueV . fmap Sum
-
-trimTrueB :: ArbBin a -> ArbBin a
-trimTrueB bs = foldl (flip $ uncurry mergeBinRange) bs . reverse $ (head &&& last) <$> binMerges
-
-trimTrueH :: Obj -> Obj
-trimTrueH =
-  over _H1DD
-  $ over histData trimTrueV
-    . over bins trimTrueB
 
 
 main :: IO ()
@@ -174,9 +139,10 @@ main = do
         $ HM.toList unfolded'
 
       quant (mx, y) = do
-        x <- mx
-        q32 <- quantile 0.32 y
-        q68 <- quantile 0.68 y
+        let l = view nominal lumi
+        x <- (*l) <$> mx
+        q32 <- (*l) <$> quantile 0.32 y
+        q68 <- (*l) <$> quantile 0.68 y
         return (x, (q32, q68))
 
   withFile youtfile WriteMode $ \h ->
@@ -282,13 +248,6 @@ getH2DD (Annotated _ (H2DD h)) =
   $ H.listSlicesAlongY h
 getH2DD _ = error "attempting to get H2DD from a different YodaObj."
 
-
-mergeV :: (a -> a -> a) -> a -> [[Int]] -> Vector a -> Vector a
-mergeV f x ks v =
-  V.fromList
-  $ go <$> ks
-  where
-    go is = foldl f x $ (v !) <$> is
 
 rebinV :: Int -> (a -> a -> a) -> Vector a -> Vector a
 rebinV 0 _ v = v

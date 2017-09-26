@@ -9,6 +9,7 @@ module Main where
 
 import           Atlas
 import           Atlas.ToYoda
+import           BFrag.BFrag
 import           BFrag.Systematics
 import           Control.Applicative
 import           Control.Lens           hiding (each)
@@ -45,8 +46,15 @@ writeFiles outf pm' = do
         withFile (outf ++ '/' : T.unpack varname ++ ".yoda") WriteMode $ \h ->
           runEffect
           $ each (M.toList hs)
+            >-> P.map trim
             >-> P.map (T.unpack . uncurry printYodaObj . first ("/htop" <>))
             >-> P.toHandle h
+
+      trim :: (T.Text, YodaObj) -> (T.Text, YodaObj)
+      trim (t, yo) =
+        if t == truehname
+          then (t, over noted trimTrueH yo)
+          else (t, yo)
 
       psmc :: [(T.Text, M.Map T.Text YodaObj)]
       psmc = toList . variationToMap "nominal" . sequence . _toMap $ view traverse mchs
