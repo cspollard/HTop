@@ -120,16 +120,10 @@ main = do
 
       (model, params) = buildModel trueh mat (HM.singleton "ttbar" <$> bkg)
 
-  putStrLn "\nbinning:"
-  print xs
-
-  putStrLn "\nmodel:"
-  print model
-
   putStrLn "data:"
   print datah
 
-  unfolded' <- runModel 1000 outfile datah model params
+  unfolded' <- runModel 10000 outfile datah model params
 
   let unfolded'' =
         sort
@@ -145,7 +139,7 @@ main = do
         return (x, (q32, q68))
 
   withFile youtfile WriteMode $ \h ->
-    hPutStrLn h . T.unpack . printScatter2D ("/htop" <> truehname)
+    hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname)
       $ zipWith (\x (_, y) -> (x, y)) xs unfolded''
 
 
@@ -202,7 +196,7 @@ buildModel trueH matH bkgHs = (nommod, params)
         (view nominal lumi)
 
     lumiparam =
-      HM.singleton "LumiUp" . ModelParam 1.0 (LogNormal 1.0 1.0)
+      HM.singleton "LumiUp" . ModelParam 1.0 (LogNormal 1.0 0.1)
       $ ModelVar Nothing Nothing Nothing (lumi ^. variations . at "LumiUp")
 
     matparams =
