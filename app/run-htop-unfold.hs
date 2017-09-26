@@ -134,8 +134,8 @@ main = do
 
       quant (mx, y) = do
         x <- mx
-        q32 <- quantile 0.32 y
-        q68 <- quantile 0.68 y
+        q32 <- quantile 0.16 y
+        q68 <- quantile 0.34 y
         return (x, (q32, q68))
 
   withFile youtfile WriteMode $ \h ->
