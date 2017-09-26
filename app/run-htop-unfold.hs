@@ -134,9 +134,9 @@ main = do
 
       quant (mx, y) = do
         x <- mx
-        q32 <- quantile 0.16 y
-        q68 <- quantile 0.34 y
-        return (x, (q32, q68))
+        q16 <- quantile 0.16 y
+        q84 <- quantile 0.84 y
+        return (x, (q16, q84))
 
   withFile youtfile WriteMode $ \h ->
     hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname)
