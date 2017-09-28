@@ -45,7 +45,7 @@ regex = matrixname ++ "|" ++ recohname ++ "|" ++ recomatchhname ++ "|" ++ truehn
 main :: IO ()
 main = do
   hSetBuffering stdout LineBuffering
-  (xsecfile:outfile:youtfile:infs) <- getArgs
+  (xsecfile:outfile:youtfolder:infs) <- getArgs
   xsecs <- readXSecFile xsecfile
   procs <- decodeFiles (Just regex) infs
 
@@ -138,7 +138,7 @@ main = do
         q84 <- quantile 0.84 y
         return (x, (q16, q84))
 
-  withFile youtfile WriteMode $ \h ->
+  withFile (youtfolder <> "/htop.yoda") WriteMode $ \h ->
     hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname)
       $ zipWith (\x (_, y) -> (x, y)) xs unfolded''
 
