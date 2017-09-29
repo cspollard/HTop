@@ -58,7 +58,7 @@ writeFiles outf pm' = do
       trim :: (T.Text, YodaObj) -> (T.Text, YodaObj)
       trim (t, yo) =
         if t == truehname
-          then (t, over noted trimTrueH yo)
+          then (t, over (noted._H1DD) trimTrueH yo)
           else (t, yo)
 
       psmc :: [(T.Text, M.Map T.Text YodaObj)]

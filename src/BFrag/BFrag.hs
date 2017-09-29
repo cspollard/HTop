@@ -8,7 +8,6 @@ import           Control.Applicative (Alternative (..))
 import           Control.Arrow       ((&&&))
 import           Control.Lens
 import           Data.Foldable       (fold)
-import           Data.Monoid
 import           Data.Vector         (Vector, (!))
 import qualified Data.Vector         as V
 import           GHC.Exts
@@ -200,8 +199,22 @@ bfragHs =
 --     -- , zbtChargedVsPt
   ]
 
-binMerges :: [[Int]]
-binMerges =
+recoMerges :: [[Int]]
+recoMerges =
+  [ [00, 01, 02]
+  , [03, 04]
+  , [05, 06]
+  , [07, 08]
+  , [09, 10]
+  , [11, 12]
+  , [13, 14]
+  , [15, 16]
+  , [17, 18]
+  , [19, 20]
+  ]
+
+trueMerges :: [[Int]]
+trueMerges =
   [ [00, 01, 02]
   , [03, 04, 05]
   , [06, 07, 08]
@@ -212,22 +225,29 @@ binMerges =
   , [19, 20]
   ]
 
-trimTrueV :: Monoid a => Vector a -> Vector a
-trimTrueV = mergeV mappend mempty binMerges
+trimV :: Monoid a => [[Int]] -> Vector a -> Vector a
+trimV = mergeV mappend mempty
 
-trimTrueD :: Vector Double -> Vector Double
-trimTrueD = fmap getSum . trimTrueV . fmap Sum
+trimB :: [[Int]] -> ArbBin a -> ArbBin a
+trimB bm bs = foldl (flip $ uncurry mergeBinRange) bs . reverse $ (head &&& last) <$> bm
 
-trimTrueB :: ArbBin a -> ArbBin a
-trimTrueB bs = foldl (flip $ uncurry mergeBinRange) bs . reverse $ (head &&& last) <$> binMerges
+trimH
+  :: (Monoid b, Ord a, Fractional a)
+  => [[Int]]
+  -> Histogram Vector (ArbBin a) b
+  -> Histogram Vector (ArbBin a) b
+trimH bm h =
+  let v = views histData (trimV bm) h
+      b = views bins (trimB bm) h
+  in histogramUO b Nothing v
 
-trimTrueH :: Obj -> Obj
-trimTrueH =
-  over _H1DD
-  $ \h ->
-      let v = views histData trimTrueV h
-          b = views bins trimTrueB h
-      in histogramUO b Nothing v
+
+trimTrueH, trimRecoH
+  :: (Monoid b, Ord a, Fractional a)
+  => Histogram Vector (ArbBin a) b
+  -> Histogram Vector (ArbBin a) b
+trimTrueH = trimH trueMerges
+trimRecoH = trimH trueMerges
 
 
 mergeV :: (a -> a -> a) -> a -> [[Int]] -> Vector a -> Vector a

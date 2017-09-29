@@ -10,6 +10,15 @@ RatioPlotYMax=1.50
 LegendXPos=0.1
 # END PLOT
 
-# BEGIN PLOT .*ptc?$
+# BEGIN PLOT /.*ptc?$
 LogY=1
+# END PLOT
+
+
+# BEGIN PLOT /.*zbtcmigdiff$
+LogZ=0
+Legend=0
+ZMin=-0.25
+ZMax=0.25
+ZLabel="migration matrix difference"
 # END PLOT

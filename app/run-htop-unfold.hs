@@ -16,11 +16,12 @@ import           Atlas.CrossSections
 import           BFrag.BFrag
 import           BFrag.Systematics      (lumi)
 import           Control.Applicative    (liftA2)
+import           Control.Arrow          ((***))
 import           Control.Lens
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
-import           Data.List              (sort, transpose)
+import           Data.List              (sort)
 import           Data.Maybe             (fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
 import           Data.Semigroup         ((<>))
@@ -38,6 +39,16 @@ import           System.IO              (BufferMode (..), IOMode (..),
 
 type TextMap = HashMap T.Text
 
+type H1DI = Histogram V.Vector (ArbBin Double) Int
+type H1DD = Histogram V.Vector (ArbBin Double) Double
+type H2DD = Histogram V.Vector (Bin2D (ArbBin Double) (ArbBin Double)) Double
+
+type H1D = Hist1D (ArbBin Double)
+type H2D = Hist2D (ArbBin Double) (ArbBin Double)
+
+unsafeHAdd h h' = fromJust $ hzip' (+) h h'
+unsafeHSub h h' = fromJust $ hzip' (-) h h'
+
 regex :: String
 regex = matrixname ++ "|" ++ recohname ++ "|" ++ recomatchhname ++ "|" ++ truehname
 
@@ -52,78 +63,99 @@ main = do
   let hs =
         case procs of
           Left s  -> error s
-          Right x -> x
-
-      (Sum ttw, ttnom) = hs ^?! ix (ProcessInfo 410501 FS)
-
-      (nombkg', nommat') = toModel . fromJust . flip view hs . at $ ProcessInfo 410501 FS
-      (afbkg, afmat) = toModel . fromJust . flip view hs . at $ ProcessInfo 410501 AFII
-      (radbkg, radmat) = toModel . fromJust . flip view hs . at $ ProcessInfo 410511 AFII
-      (mebkg, memat) = toModel . fromJust . flip view hs . at $ ProcessInfo 410225 AFII
-      (psbkg, psmat) = toModel . fromJust . flip view hs . at $ ProcessInfo 410525 AFII
-
-      bkgVar
-        :: Vars (Vector Double)
-        -> Vars (Vector Double)
-        -> Vars (Vector Double)
-        -> Vector Double
-      bkgVar nom nom' var =
-        V.zipWith (+) (nom ^. nominal)
-        $ V.zipWith (-) (nom' ^. nominal) (var ^. nominal)
-
-      bkg :: Vars (Vector Double)
-      bkg =
-        nombkg'
-        & variations . at "PSUp" ?~ bkgVar nombkg' afbkg psbkg
-        & variations . at "MEUp" ?~ bkgVar nombkg' afbkg mebkg
-        & variations . at "RadUp" ?~ bkgVar nombkg' afbkg radbkg
-        & (fmap.fmap) (*xsec)
-
-      migVar
-        :: Vars (Vector (Vector Double))
-        -> Vars (Vector (Vector Double))
-        -> Vars (Vector (Vector Double))
-        -> Vector (Vector Double)
-      migVar nom nom' var =
-        V.zipWith add (nom ^. nominal)
-        $ V.zipWith sub (nom' ^. nominal) (var ^. nominal)
-        where
-          add = V.zipWith (+)
-          sub = V.zipWith (-)
-
-      mat :: Vars (Vector (Vector Double))
-      mat =
-        nommat'
-        & variations . at "PSUp" ?~ migVar nommat' afmat psmat
-        & variations . at "MEUp" ?~ migVar nommat' afmat memat
-        & variations . at "RadUp" ?~ migVar nommat' afmat radmat
+          Right x -> imap norm x
 
 
-      recoh = fmap (*(xsec/ttw)) . getH1DD . view nominal $ ttnom ^?! ix recohname
-      trueobj = ttnom ^?! ix truehname
-      trueh = fmap (*(xsec/ttw)) . trimTrueD . getH1DD $ view nominal trueobj
-
-      datakey = ProcessInfo 0 DS
-
-      dh :: Maybe (Vector Int)
-      dh = fmap round . getH1DD . view nominal . (^?! ix recohname) . snd
-            <$> (hs ^? ix datakey)
-
+      -- TODO
+      -- only handling ttbar right now.
       xsec = xsecs ^?! _Just . ix 410501 . _1
 
-      datah :: Vector Int
-      datah = flip fromMaybe dh $ round . (* view nominal lumi) <$> recoh
+      norm (ProcessInfo _ DS) (_, hs') = hs'
+      norm _ (Sum w, hs')              = (fmap.fmap) (scaleYO (xsec/w)) <$> hs'
 
+      nomkey = ProcessInfo 410501 FS
+      afkey = ProcessInfo 410501 AFII
+      radkey = ProcessInfo 410511 AFII
+      mekey = ProcessInfo 410225 AFII
+      pskey = ProcessInfo 410525 AFII
+      datakey = ProcessInfo 0 DS
+
+      getProc :: ProcessInfo -> (Vars (Annotated H1DD), Vars (Annotated H2DD))
+      getProc = toModel . fromJust . flip view hs . at
+
+      (nombkg', nommat') = getProc nomkey
+      (afbkg, afmat) = (view nominal *** view nominal) . getProc $ afkey
+      (radbkg, radmat) = (view nominal *** view nominal) . getProc $ radkey
+      (mebkg, memat) = (view nominal *** view nominal) . getProc $ mekey
+      (psbkg, psmat) = (view nominal *** view nominal) . getProc $ pskey
+
+      vardiff nom nom' var = unsafeHAdd nom $ unsafeHSub var nom'
+
+      bkg =
+        let nom = view nominal nombkg'
+            go x = vardiff <$> nom <*> afbkg <*> x
+        in
+          nombkg'
+          & variations . at "PSUp" ?~ go psbkg
+          & variations . at "MEUp" ?~ go mebkg
+          & variations . at "RadUp" ?~ go radbkg
+
+      mat =
+        let nom = view nominal nommat'
+            go x = vardiff <$> nom <*> afmat <*> x
+        in
+          nommat'
+          & variations . at "PSUp" ?~ go psmat
+          & variations . at "MEUp" ?~ go memat
+          & variations . at "RadUp" ?~ go radmat
+
+      matdiffs :: StrictMap T.Text (Annotated H2D)
+      matdiffs =
+        let n = view nominal mat
+            vs = view noted <$> view variations mat
+        in (fmap.fmap) doubToDist2D . (\h -> unsafeHSub h <$> n) <$> vs
+
+      doubToDist2D :: Double -> Dist2D Double
+      doubToDist2D w = filling (Pair 0 0) w mempty
+
+      putMatDiff t ao =
+        withFile (youtfolder <> "/" <> T.unpack t <> ".yoda") WriteMode $ \h ->
+          hPutStrLn h . T.unpack . printYodaObj ("/htop" <> matrixname <> "diff")
+          $ H2DD <$> ao
+
+
+
+      recoh, trueh :: H1DD
+      recoh =
+        fmap (view sumW) . trimRecoH
+        $ hs ^?! ix nomkey . ix recohname . nominal . noted . _H1DD
+      trueh =
+        fmap (view sumW) . trimTrueH
+        $ hs ^?! ix nomkey . ix truehname . nominal . noted . _H1DD
+
+      datah :: H1DI
+      datah =
+        fmap round
+        . maybe ((*view nominal lumi) <$> recoh) (fmap (view sumW) . trimRecoH)
+        $ hs ^? ix datakey . ix recohname . nominal . noted . _H1DD
+
+      xs :: [(Double, (Double, Double))]
       xs =
-        V.toList . fmap (\(mn, mx) -> ((mn+mx)/2, (mn, mx)))
-        $ views (nominal.noted._H1DD.bins) (binsList.trimTrueB) trueobj
+        V.toList . fmap (\(mn, mx) -> ((mn+mx)/2, (mn, mx))) . binsList
+        $ view bins trueh
 
-      (model, params) = buildModel trueh mat (HM.singleton "ttbar" <$> bkg)
+      (model, params) =
+        buildModel
+          (view histData trueh)
+          (getH2DD . view noted <$> mat)
+          (HM.singleton "ttbar" . view histData . view noted <$> bkg)
+
+  imapM_ putMatDiff matdiffs
 
   putStrLn "data:"
   print datah
 
-  unfolded' <- runModel 10000 outfile datah model params
+  unfolded' <- runModel 10000 outfile (view histData datah) model params
 
   let unfolded'' =
         sort
@@ -142,37 +174,45 @@ main = do
     hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname)
       $ zipWith (\x (_, y) -> (x, y)) xs unfolded''
 
+  where
+    scaleYO w (H1DD h) = H1DD $ scaling w h
+    scaleYO w (H2DD h) = H2DD $ scaling w h
+    scaleYO _ p        = p
+
 
 
 toModel
-  :: (Sum Double, Folder (Vars YodaObj))
-  -> (Vars (Vector Double), Vars (Vector (Vector Double)))
-toModel (Sum w, hs) =
+  :: Folder (Vars YodaObj)
+  -> (Vars (Annotated H1DD), Vars (Annotated H2DD))
+toModel hs =
   let filt =
         liftSM . HM.filterWithKey
         $ \i _ -> not $ T.isInfixOf "down" i || T.isInfixOf "Down" i
 
-      recoh' = getH1DD <$> hs ^?! ix recohname & variations %~ filt
-      trueh' = trimTrueD . getH1DD <$> hs ^?! ix truehname & variations %~ filt
-      recomatchh' = getH1DD <$> hs ^?! ix recomatchhname & variations %~ filt
+      recoh, trueh, recomatchh :: Vars (Annotated H1DD)
+      recoh =
+        fmap (fmap (view sumW) . trimRecoH . fromJust . preview _H1DD)
+        <$> hs ^?! ix recohname & variations %~ filt
+      trueh =
+        fmap (fmap (view sumW) . trimTrueH . fromJust . preview _H1DD)
+        <$> hs ^?! ix truehname & variations %~ filt
+      recomatchh =
+        fmap (fmap (view sumW) . trimRecoH . fromJust . preview _H1DD)
+        <$> hs ^?! ix recomatchhname & variations %~ filt
 
-      transposeV =
-        V.fromList . fmap V.fromList . transpose . fmap V.toList . V.toList
+      math :: Vars (Annotated H2DD)
+      math =
+        fmap (fmap (view sumW) . H.liftY trimRecoH . H.liftX trimTrueH . fromJust . preview _H2DD)
+        <$> hs ^?! ix matrixname
+        & variations %~ filt
 
-      math' =
-        transposeV . fmap trimTrueD . transposeV . getH2DD
-        <$> hs ^?! ix matrixname & variations %~ filt
+      bkgrecoh = liftA2 unsafeHSub <$> recoh <*> recomatchh
 
-      math = math' <&> (fmap.fmap) (/w)
-      trueh = trueh' <&> fmap (/w)
-      recoh = recoh' <&> fmap (/w)
-      recomatchh = recomatchh' <&> fmap (/w)
-      bkgrecoh = V.zipWith (-) <$> recoh <*> recomatchh
-
-  in (bkgrecoh, normmat trueh math)
+  in (bkgrecoh, liftA2 normmat <$> math <*> trueh)
 
   where
-    normmat = liftA2 (V.zipWith (\x v -> (/x) <$> v))
+    normmat :: H2DD -> H1DD -> H2DD
+    normmat m h = H.liftX (\hm -> fromJust $ hzip' (/) hm h) m
 
 
 
@@ -183,7 +223,6 @@ buildModel
   -> (Model Double, TextMap (ModelParam Double))
 buildModel trueH matH bkgHs = (nommod, params)
   where
-    emptysig :: Vector Double
     emptysig = 0 <$ trueH
 
     mats = (fmap.fmap) (\x -> if x < 0 then 0 else x) <$> matH
@@ -223,36 +262,12 @@ buildModel trueH matH bkgHs = (nommod, params)
 
     systify v = fmap Just v & nominal .~ Nothing
 
-
-getH1DD :: Annotated Obj -> Vector Double
-getH1DD (Annotated _ (H1DD h)) =
-  views histData (fmap (view sumW)) h
-getH1DD _ = error "attempting to get H1DD from a different YodaObj."
-
--- TODO
--- partial!
-getH2DD :: Annotated Obj -> Vector (Vector Double)
-getH2DD (Annotated _ (H2DD h)) =
-  (fmap.fmap) (view sumW)
-  -- TODO
-  -- not positive about the orientation here
-  . V.fromList
+getH2DD :: H2DD -> Vector (Vector Double)
+getH2DD h =
+  V.fromList
   . fmap (view histData . snd)
   $ H.listSlicesAlongY h
-getH2DD _ = error "attempting to get H2DD from a different YodaObj."
 
-
-rebinV :: Int -> (a -> a -> a) -> Vector a -> Vector a
-rebinV 0 _ v = v
-rebinV 1 _ v = v
-rebinV k f v =
-  let n = length v
-      m = n `div` k
-      m' = n `mod` k
-      v' = V.generate m (\i -> foldl1 f $ V.slice (i*k) k v)
-  in case m' of
-    0 -> v'
-    l -> V.snoc v' . foldl1 f $ V.slice (m*k) l v
 
 printScatter2D
   :: T.Text
@@ -275,4 +290,10 @@ printScatter2D pa xys =
     printPoint ((x, (xdown, xup)), (y, (ydown, yup))) =
       let area = xup - xdown
       in T.intercalate "\t" . fmap (T.pack . show)
-        $ [x, x-xdown, xup-x, y/area, (y-ydown)/area, (yup-y)/area]
+        $ [x, x - xdown, xup - x, y/area, (y - ydown)/area, (yup - y)/area]
+
+
+
+liftAnn2 :: (a -> b -> c) -> Annotated a -> Annotated b -> Annotated c
+liftAnn2 f (Annotated ma a) (Annotated mb b) =
+  Annotated (ma <> mb) (f a b)
