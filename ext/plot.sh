@@ -1,0 +1,1 @@
+rivet-mkhtml --mc-errs --pwd -c ext/htop.plot hist/410501/nominal.yoda:"Pow Py8" hist/410525/nominal.yoda:"Pow H7 AFII" hist/410225/nominal.yoda:"aMC Py8 AFII" hist/410252/nominal.yoda:"Sherpa AFII" -o yodas.mc
