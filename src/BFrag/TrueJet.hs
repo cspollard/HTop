@@ -62,10 +62,6 @@ readBHadrons = do
       "bhad_phi"
       "bhad_e"
 
-  -- TODO
-  -- these are broken in ntuples
-  -- let chtlvs = pure []
-
   chtlvs <-
     vecVecTLV
       "bhad_child_pt"
@@ -73,19 +69,27 @@ readBHadrons = do
       "bhad_child_phi"
       "bhad_child_e"
 
-  return . getZipList $ BHadron <$> tlvs <*> chtlvs
+  chs <-
+    ZipList . V.toList . fmap (V.toList . fmap (/= (0::CInt))) . fromVVector
+    <$> readBranch "bhad_child_3q"
+
+  let tmps = zip <$> chs <*> chtlvs
+      chtlvs' = fmap snd . filter fst <$> tmps
+
+  return . getZipList $ BHadron <$> tlvs <*> chtlvs'
+
 
 readTrueJets :: (MonadIO m, MonadThrow m) => TreeRead m [TrueJet]
 readTrueJets = do
   tlvs <- lvsFromTTreeF "jet_pt" "jet_eta" "jet_phi" "jet_e"
   chconsts <-
     vecVecTLV "jet_track_pt" "jet_track_eta" "jet_track_phi" "jet_track_e"
+
   let tmp = V.fromList . getZipList $ TrueJet <$> tlvs <*> chconsts <*> pure []
 
   bhads <- filter ((> 5) . view lvPt) <$> readBHadrons
 
-  return . V.toList
-    $ foldr matchBTJ tmp bhads
+  return . V.toList $ foldr matchBTJ tmp bhads
 
 
 trueBJet :: TrueJet -> Bool

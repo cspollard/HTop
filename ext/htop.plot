@@ -6,7 +6,7 @@ RatioPlotYMin=0.50
 RatioPlotYMax=1.50
 # END PLOT
 
-# BEGIN PLOT /.*zbtc?$
+# BEGIN PLOT /.*zbtc?(norm)?$
 LegendXPos=0.1
 # END PLOT
 
