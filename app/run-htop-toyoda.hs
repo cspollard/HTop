@@ -49,6 +49,7 @@ writeFiles outf pm' = do
           runEffect
           $ each (M.toList hs)
             >-> P.map trim
+            >-> addNorm
             >-> P.map (T.unpack . uncurry printYodaObj . first ("/htop" <>))
             >-> P.toHandle h
 
@@ -59,6 +60,14 @@ writeFiles outf pm' = do
         | t == recomatchhname = (t, over (noted._H1DD) trimRecoH yo)
         | t == matrixname = (t, over (noted._H2DD) (H.liftX trimTrueH . H.liftY trimRecoH) yo)
         | otherwise = (t, yo)
+
+      addNorm = do
+        (t, yo) <- await
+        yield (t, yo)
+        when (t == truehname)
+          $ yield (t <> "norm", set (noted._H1DD.integral) 1 yo)
+        addNorm
+
 
       psmc :: [(T.Text, M.Map T.Text YodaObj)]
       psmc = toList . variationToMap "nominal" . sequence . _toMap $ view traverse mchs

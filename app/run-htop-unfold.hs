@@ -101,6 +101,8 @@ main = do
           & variations . at "PSUp" ?~ go psbkg
           & variations . at "MEUp" ?~ go mebkg
           & variations . at "RadUp" ?~ go radbkg
+          -- TODO
+          -- filter bkgs
           -- & variations %~ filtVar (bkgFilt nom')
 
       -- only keep bkg variations with a > 2% deviation
@@ -120,6 +122,8 @@ main = do
           & variations . at "PSUp" ?~ go psmat
           & variations . at "MEUp" ?~ go memat
           & variations . at "RadUp" ?~ go radmat
+          -- TODO
+          -- filter matrices
           -- & variations %~ filtVar (matFilt nom')
 
       filtVar f = inSM (strictMap . HM.filter (f . view noted))
@@ -195,6 +199,13 @@ main = do
         . filter (T.isPrefixOf "truth" . fst)
         $ HM.toList unfolded'
 
+      unfoldednorm =
+        sort
+        . fromMaybe (error "missing best fit values")
+        . (traverse.traverse) quant
+        . filter (T.isPrefixOf "normtruth" . fst)
+        $ HM.toList unfolded'
+
       quant (mx, y) = do
         x <- mx
         q16 <- quantile 0.16 y
@@ -202,8 +213,11 @@ main = do
         return (x, (q16, q84))
 
   withFile (youtfolder <> "/htop.yoda") WriteMode $ \h ->
-    hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname)
-      $ zipWith (\x (_, y) -> (x, y)) xs unfolded''
+    do
+      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname)
+        $ zipWith (\x (_, y) -> (x, y)) xs unfolded''
+      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm")
+        $ zipWith (\x (_, y) -> (x, y)) xs unfoldednorm
 
   where
     scaleYO w (H1DD h) = H1DD $ scaling w h
