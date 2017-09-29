@@ -201,11 +201,9 @@ bfragHs =
 
 recoMerges :: [[Int]]
 recoMerges =
-  [ [00, 01, 02]
-  , [03, 04]
-  , [05, 06]
-  , [07, 08]
-  , [09, 10]
+  [ [00, 01, 02, 03, 04]
+  , [05, 06, 07]
+  , [08, 09, 10]
   , [11, 12]
   , [13, 14]
   , [15, 16]
@@ -215,9 +213,8 @@ recoMerges =
 
 trueMerges :: [[Int]]
 trueMerges =
-  [ [00, 01, 02]
-  , [03, 04, 05]
-  , [06, 07, 08]
+  [ [00, 01, 02, 03, 04]
+  , [05, 06, 07, 08]
   , [09, 10, 11]
   , [12, 13, 14]
   , [15, 16]
@@ -247,13 +244,11 @@ trimTrueH, trimRecoH
   => Histogram Vector (ArbBin a) b
   -> Histogram Vector (ArbBin a) b
 trimTrueH = trimH trueMerges
-trimRecoH = trimH trueMerges
+trimRecoH = trimH recoMerges
 
 
 mergeV :: (a -> a -> a) -> a -> [[Int]] -> Vector a -> Vector a
-mergeV f x ks v =
-  V.fromList
-  $ go <$> ks
+mergeV f x ks v = V.fromList $ go <$> ks
   where
     go is = foldl f x $ (v !) <$> is
 

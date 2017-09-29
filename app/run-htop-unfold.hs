@@ -29,6 +29,7 @@ import           Data.TDigest           (quantile)
 import qualified Data.Text              as T
 import           Data.Vector            (Vector)
 import qualified Data.Vector            as V
+import           Debug.Trace
 import           Model
 import           RunModel
 import           System.Environment     (getArgs)
@@ -94,36 +95,66 @@ main = do
       bkg =
         let nom = view nominal nombkg'
             go x = vardiff <$> nom <*> afbkg <*> x
+            nom' = view noted nom
         in
           nombkg'
           & variations . at "PSUp" ?~ go psbkg
           & variations . at "MEUp" ?~ go mebkg
           & variations . at "RadUp" ?~ go radbkg
+          -- & variations %~ filtVar (bkgFilt nom')
+
+      -- only keep bkg variations with a > 2% deviation
+      bkgFilt hnom hvar =
+        any go . view histData . fromJust
+        $ hzip' f hnom hvar
+        where
+          f n v = (n, v - n)
+          go (n, d) = abs (1 - d / n) > 0.02
 
       mat =
         let nom = view nominal nommat'
             go x = vardiff <$> nom <*> afmat <*> x
+            nom' = view noted nom
         in
           nommat'
           & variations . at "PSUp" ?~ go psmat
           & variations . at "MEUp" ?~ go memat
           & variations . at "RadUp" ?~ go radmat
+          -- & variations %~ filtVar (matFilt nom')
 
-      matdiffs :: StrictMap T.Text (Annotated H2D)
+      filtVar f = inSM (strictMap . HM.filter (f . view noted))
+
+      -- only keep matrix variations with a deviation > 0.1% in a bin with > 0.1% efficiency
+      matFilt hnom hvar =
+        any go . view histData . fromJust
+        $ hzip' f hnom hvar
+        where
+          f n v = (n, abs $ v - n)
+          go (n, d) = n > 0.001 && d > 0.001
+
+      mats = (fmap.fmap.fmap) doubToDist2D mat
+
+      matdiffs :: Vars (Maybe (Annotated H2D))
       matdiffs =
-        let n = view nominal mat
-            vs = view noted <$> view variations mat
-        in (fmap.fmap) doubToDist2D . (\h -> unsafeHSub h <$> n) <$> vs
+        let tmp = Just <$> mat
+            vs = tmp & nominal .~ Nothing
+            n = tmp & variations .~ mempty
+            diffs = (liftA2.liftA2.liftA2) unsafeHSub vs n
+        in (fmap.fmap.fmap.fmap) doubToDist2D diffs
 
       doubToDist2D :: Double -> Dist2D Double
       doubToDist2D w = filling (Pair 0 0) w mempty
 
-      putMatDiff t ao =
+      showMigMat n ao =
+        printYodaObj ("/htop" <> n)
+          $ H2DD . scaleByBinSize2D <$> ao
+
+      writeMigs t (m, mdiff) =
         withFile (youtfolder <> "/" <> T.unpack t <> ".yoda") WriteMode $ \h ->
-          hPutStrLn h . T.unpack . printYodaObj ("/htop" <> matrixname <> "diff")
-          $ H2DD <$> ao
-
-
+          hPutStrLn h . T.unpack . T.intercalate "\n\n"
+          $ [ showMigMat (matrixname <> "eff") m
+            , maybe "" (showMigMat $ matrixname <> "diff") mdiff
+            ]
 
       recoh, trueh :: H1DD
       recoh =
@@ -150,12 +181,12 @@ main = do
           (getH2DD . view noted <$> mat)
           (HM.singleton "ttbar" . view histData . view noted <$> bkg)
 
-  imapM_ putMatDiff matdiffs
+  imapM_ writeMigs . variationToMap "nominal" $ liftA2 (,) mats matdiffs
 
   putStrLn "data:"
-  print datah
+  views histData print datah
 
-  unfolded' <- runModel 10000 outfile (view histData datah) model params
+  unfolded' <- runModel 100000 outfile (view histData datah) model params
 
   let unfolded'' =
         sort
@@ -293,7 +324,11 @@ printScatter2D pa xys =
         $ [x, x - xdown, xup - x, y/area, (y - ydown)/area, (yup - y)/area]
 
 
-
-liftAnn2 :: (a -> b -> c) -> Annotated a -> Annotated b -> Annotated c
-liftAnn2 f (Annotated ma a) (Annotated mb b) =
-  Annotated (ma <> mb) (f a b)
+scaleByBinSize2D
+  :: (BinValue b ~ (Weight a, Weight a), IntervalBin b, Fractional (Weight a), Weighted a)
+  => Histogram Vector b a -> Histogram Vector b a
+scaleByBinSize2D h =
+  let intervals = views bins binsList h
+      go ((xmin, ymin), (xmax, ymax)) =
+        scaling ((xmax - xmin) * (ymax - ymin))
+  in over histData (V.zipWith go intervals) h

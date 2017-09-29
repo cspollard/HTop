@@ -31,9 +31,6 @@ main :: IO ()
 main = mainWith writeFiles
 
 
--- TODO
--- we're not writing data.
--- partial
 writeFiles :: String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
 writeFiles outf pm' = do
   let datakey = ProcessInfo 0 DS
@@ -56,10 +53,12 @@ writeFiles outf pm' = do
             >-> P.toHandle h
 
       trim :: (T.Text, YodaObj) -> (T.Text, YodaObj)
-      trim (t, yo) =
-        if t == truehname
-          then (t, over (noted._H1DD) trimTrueH yo)
-          else (t, yo)
+      trim (t, yo)
+        | t == truehname = (t, over (noted._H1DD) trimTrueH yo)
+        | t == recohname = (t, over (noted._H1DD) trimRecoH yo)
+        | t == recomatchhname = (t, over (noted._H1DD) trimRecoH yo)
+        | t == matrixname = (t, over (noted._H2DD) (H.liftX trimTrueH . H.liftY trimRecoH) yo)
+        | otherwise = (t, yo)
 
       psmc :: [(T.Text, M.Map T.Text YodaObj)]
       psmc = toList . variationToMap "nominal" . sequence . _toMap $ view traverse mchs

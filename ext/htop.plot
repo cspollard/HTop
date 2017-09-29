@@ -18,7 +18,15 @@ LogY=1
 # BEGIN PLOT /.*zbtcmigdiff$
 LogZ=0
 Legend=0
-ZMin=-0.25
-ZMax=0.25
-ZLabel="migration matrix difference"
+ZMin=-0.005
+ZMax=0.005
+ZLabel=efficiency difference
+# END PLOT
+
+# BEGIN PLOT /.*zbtcmigeff$
+LogZ=0
+Legend=0
+ZMin=0
+ZMax=0.05
+ZLabel=efficiency
 # END PLOT
