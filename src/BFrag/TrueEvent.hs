@@ -52,7 +52,8 @@ trueEventHs =
   channelWithLabel "/elmujjtrue" (return . elmujjTrue)
   $ prefixF "/truejets"
     . over (traverse.traverse.xlabel) ("true jet " <>)
-    <$> F.handles folded bfragHs <$= sequenceL . fmap (view trueJets)
+    <$> F.handles folded (bfragHs `mappend` lvHs)
+    <$= sequenceL . fmap (view trueJets)
 
 
 elmujjTrue :: TrueEvent -> Bool

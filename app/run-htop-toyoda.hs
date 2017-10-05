@@ -16,10 +16,8 @@ import           Control.Lens           hiding (each)
 import           Data.Bifunctor
 import qualified Data.Histogram.Generic as H
 import qualified Data.Map.Strict        as M
-import           Data.Maybe             (fromJust)
 import           Data.Semigroup
 import qualified Data.Text              as T
-import qualified Data.Vector.Generic    as VG
 import           GHC.Exts               (IsList (..))
 import           Pipes
 import qualified Pipes.Prelude          as P
@@ -49,7 +47,7 @@ writeFiles outf pm' = do
           runEffect
           $ each (M.toList hs)
             >-> P.map trim
-            >-> addNorm
+            >-> P.mapFoldable addNorm
             >-> P.map (T.unpack . uncurry printYodaObj . first ("/htop" <>))
             >-> P.toHandle h
 
@@ -61,12 +59,9 @@ writeFiles outf pm' = do
         | t == matrixname = (t, over (noted._H2DD) (H.liftX trimTrueH . H.liftY trimRecoH) yo)
         | otherwise = (t, yo)
 
-      addNorm = do
-        (t, yo) <- await
-        yield (t, yo)
-        when (t == truehname)
-          $ yield (t <> "norm", set (noted._H1DD.integral) 1 yo)
-        addNorm
+      addNorm :: (T.Text, YodaObj) -> [(T.Text, YodaObj)]
+      addNorm (t, yo) =
+        [(t, yo), (t <> "norm", set (noted._H1DD.integral) 1 yo)]
 
 
       psmc :: [(T.Text, M.Map T.Text YodaObj)]
@@ -81,11 +76,6 @@ writeFiles outf pm' = do
   runEffect $ each (psmc ++ psdata) >-> P.mapM_ (uncurry write)
 
 
--- TODO
--- we only grab the first dsid currently
--- we are ignoring modeling variations here
--- as well as backgrounds
--- partial
 collapseProcs
   :: ProcMap (Folder (Vars YodaObj))
   -> (ProcMap (Folder (Vars YodaObj)), Maybe YodaFolder)
@@ -94,29 +84,8 @@ collapseProcs pm =
       preds = sans datakey pm
       dat = (fmap.fmap) (view nominal) $ pm ^. at datakey
 
-  -- TODO
-  -- partial
   in (preds, dat)
 
 
 scaleH' :: Double -> YodaObj -> YodaObj
 scaleH' x = over noted (scaleH x)
-
-normAlongY :: (Bin bx, BinEq by) => Hist2D bx by -> Hist2D bx by
-normAlongY = H.liftY (set integral 1)
-
-normAlongX :: (Bin by, BinEq bx) => Hist2D bx by -> Hist2D bx by
-normAlongX = H.liftX (set integral 1)
-
--- TODO
--- partial!
--- this is really some kind of traversal...
--- don't want to deal with uncertainty propagation yet...
-normToX
-  :: ( Fractional a, Weighted b, Weight b ~ a, VG.Vector v a, VG.Vector v b
-     , BinEq bX, Bin bY )
-  => Histogram v bX a
-  -> Histogram v (Bin2D bX bY) b
-  -> Histogram v (Bin2D bX bY) b
-normToX h1 =
-  H.liftX (fromJust . hzip (scaling . recip) h1)

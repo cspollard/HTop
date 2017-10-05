@@ -134,7 +134,7 @@ recoEventHs =
 
     , prefixF "/probejets"
       . over (traverse.traverse.xlabel) ("probe jet " <>)
-      <$> F.handles folded bfragHs
+      <$> F.handles folded (bfragHs `mappend` lvHs)
       <$= fmap join . sequenceL . fmap probeJets
     ]
 

@@ -29,7 +29,6 @@ import           Data.TDigest           (quantile)
 import qualified Data.Text              as T
 import           Data.Vector            (Vector)
 import qualified Data.Vector            as V
-import           Debug.Trace
 import           Model
 import           RunModel
 import           System.Environment     (getArgs)
@@ -101,9 +100,7 @@ main = do
           & variations . at "PSUp" ?~ go psbkg
           & variations . at "MEUp" ?~ go mebkg
           & variations . at "RadUp" ?~ go radbkg
-          -- TODO
-          -- filter bkgs
-          -- & variations %~ filtVar (bkgFilt nom')
+          & variations %~ filtVar (bkgFilt nom')
 
       -- only keep bkg variations with a > 2% deviation
       bkgFilt hnom hvar =
@@ -122,9 +119,7 @@ main = do
           & variations . at "PSUp" ?~ go psmat
           & variations . at "MEUp" ?~ go memat
           & variations . at "RadUp" ?~ go radmat
-          -- TODO
-          -- filter matrices
-          -- & variations %~ filtVar (matFilt nom')
+          & variations %~ filtVar (matFilt nom')
 
       filtVar f = inSM (strictMap . HM.filter (f . view noted))
 
