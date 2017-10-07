@@ -15,13 +15,13 @@ import           Atlas
 import           Atlas.CrossSections
 import           BFrag.BFrag
 import           BFrag.Systematics      (lumi)
-import           Control.Applicative    (liftA2)
+import           Control.Applicative    (liftA2, liftA3)
 import           Control.Arrow          ((***))
 import           Control.Lens
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
-import           Data.List              (sort)
+import           Data.List              (partition, sort)
 import           Data.Maybe             (fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
 import           Data.Semigroup         ((<>))
@@ -29,6 +29,7 @@ import           Data.TDigest           (quantile)
 import qualified Data.Text              as T
 import           Data.Vector            (Vector)
 import qualified Data.Vector            as V
+import           GHC.Exts               (IsList (..))
 import           Model
 import           RunModel
 import           System.Environment     (getArgs)
@@ -57,50 +58,88 @@ main :: IO ()
 main = do
   hSetBuffering stdout LineBuffering
   (xsecfile:outfile:youtfolder:infs) <- getArgs
-  xsecs <- readXSecFile xsecfile
-  procs <- decodeFiles (Just regex) infs
+  xsecs <- fromMaybe (error "failed to read xsecs") <$> readXSecFile xsecfile
+  procs <- either error id <$> decodeFiles (Just regex) infs
 
-  let hs =
-        case procs of
-          Left s  -> error s
-          Right x -> imap norm x
+  let hs = either error id $ itraverse norm procs
 
-
-      -- TODO
-      -- only handling ttbar right now.
-      xsec = xsecs ^?! _Just . ix 410501 . _1
-
-      norm (ProcessInfo _ DS) (_, hs') = hs'
-      norm _ (Sum w, hs')              = (fmap.fmap) (scaleYO (xsec/w)) <$> hs'
+      norm (ProcessInfo _ DS) (_, hs') = return hs'
+      norm (ProcessInfo ds _) (Sum w, hs') = do
+        xsec <-
+          toEither ("missing cross section for " ++ show ds)
+          $ xsecs ^? ix ds . _1
+        return $ fmap (scaleYO (xsec/w)) <$> hs'
 
       nomkey = ProcessInfo 410501 FS
-      afkey = ProcessInfo 410501 AFII
-      radkey = ProcessInfo 410511 AFII
+      afiikey = ProcessInfo 410501 AFII
+      radupkey = ProcessInfo 410511 AFII
+      raddownkey = ProcessInfo 410512 AFII
       mekey = ProcessInfo 410225 AFII
       pskey = ProcessInfo 410525 AFII
       datakey = ProcessInfo 0 DS
 
-      getProc :: ProcessInfo -> (Vars (Annotated H1DD), Vars (Annotated H2DD))
-      getProc = toModel . fromJust . flip view hs . at
+      zjetskeys = flip ProcessInfo FS <$> [364128..364141]
+      stopkeys = flip ProcessInfo FS <$> [410015, 410016]
 
-      (nombkg', nommat') = getProc nomkey
-      (afbkg, afmat) = (view nominal *** view nominal) . getProc $ afkey
-      (radbkg, radmat) = (view nominal *** view nominal) . getProc $ radkey
-      (mebkg, memat) = (view nominal *** view nominal) . getProc $ mekey
-      (psbkg, psmat) = (view nominal *** view nominal) . getProc $ pskey
+      addVar name f vs = vs & variations . at name ?~ f (view nominal vs)
 
-      vardiff nom nom' var = unsafeHAdd nom $ unsafeHSub var nom'
+      zjets =
+        fmap (addVar "ZJetsNormUp" (scaleYO 1.3))
+        . fromMaybe (error "missing zjets") $ getProcs zjetskeys
+      stop =
+        fmap (addVar "STopNormUp" (scaleYO 1.3))
+        . fromMaybe (error "missing stop") $ getProcs stopkeys
+      nonttbar = zjets `mappend` stop
+
+      nom = mappend nonttbar . fromMaybe (error "missing nominal") $ getProcs [nomkey]
+      afii = mappend nonttbar . fromMaybe (error "missing afii") $ getProcs [afiikey]
+      radup = mappend nonttbar . fromMaybe (error "missing radup") $ getProcs [radupkey]
+      raddown = mappend nonttbar . fromMaybe (error "missing raddown") $ getProcs [raddownkey]
+      me = mappend nonttbar . fromMaybe (error "missing me") $ getProcs [mekey]
+      ps = mappend nonttbar . fromMaybe (error "missing ps") $ getProcs [pskey]
+
+
+      -- getProc :: ProcessInfo -> (Vars (Annotated H1DD), Vars (Annotated H2DD))
+      -- getProc = toModel . fromJust . flip view hs . at
+      getProcs pis = do
+        hs' <- traverse (\p -> view (at p) hs) pis
+        return $ mconcat hs'
+
+      (nombkg', nommat') = toModel nom
+      (afbkg, afmat) = (view nominal *** view nominal) $ toModel afii
+      (radupbkg, radupmat) = (view nominal *** view nominal) $ toModel radup
+      (raddownbkg, raddownmat) = (view nominal *** view nominal) $ toModel raddown
+      (mebkg, memat) = (view nominal *** view nominal) $ toModel me
+      (psbkg, psmat) = (view nominal *** view nominal) $ toModel ps
+
+      -- vardiff: when we have a different nominal to compare (e.g. AFII)
+      vardiff nom' nom'' var = unsafeHAdd nom' $ unsafeHSub var nom''
+
+      -- vardiff2: when we compare up and down variation and symmetrize
+      vardiff2 nom' varup vardown =
+        unsafeHAdd nom' . fmap (/2) $ unsafeHSub varup vardown
+
+      collapseVars (Variation n vs) =
+        let vs' = toList vs
+            filt s = T.isSuffixOf (T.toLower s) . T.toLower
+            (downs, ups) =
+              (HM.fromList *** HM.fromList) $ partition (filt "down" . fst) vs'
+        in Variation n . strictMap $ HM.unionWith (liftA3 vardiff2 n) ups downs
+
+
 
       bkg =
-        let nom = view nominal nombkg'
-            go x = vardiff <$> nom <*> afbkg <*> x
-            nom' = view noted nom
+        let nom' = view nominal nombkg'
+            go x = vardiff <$> nom' <*> afbkg <*> x
+            nom'' = view noted nom'
         in
           nombkg'
           & variations . at "PSUp" ?~ go psbkg
           & variations . at "MEUp" ?~ go mebkg
-          & variations . at "RadUp" ?~ go radbkg
-          & variations %~ filtVar (bkgFilt nom')
+          & variations . at "RadUp" ?~ go radupbkg
+          & variations . at "RadDown" ?~ go raddownbkg
+          & collapseVars
+          & variations %~ filtVar (bkgFilt nom'')
 
       -- only keep bkg variations with a > 2% deviation
       bkgFilt hnom hvar =
@@ -111,15 +150,16 @@ main = do
           go (n, d) = abs (1 - d / n) > 0.02
 
       mat =
-        let nom = view nominal nommat'
-            go x = vardiff <$> nom <*> afmat <*> x
-            nom' = view noted nom
+        let nom' = view nominal nommat'
+            go x = vardiff <$> nom' <*> afmat <*> x
+            nom'' = view noted nom'
         in
           nommat'
           & variations . at "PSUp" ?~ go psmat
           & variations . at "MEUp" ?~ go memat
-          & variations . at "RadUp" ?~ go radmat
-          & variations %~ filtVar (matFilt nom')
+          & variations . at "RadUp" ?~ go radupmat
+          & variations . at "RadDown" ?~ go raddownmat
+          & variations %~ filtVar (matFilt nom'')
 
       filtVar f = inSM (strictMap . HM.filter (f . view noted))
 
@@ -215,9 +255,13 @@ main = do
         $ zipWith (\x (_, y) -> (x, y)) xs unfoldednorm
 
   where
-    scaleYO w (H1DD h) = H1DD $ scaling w h
-    scaleYO w (H2DD h) = H2DD $ scaling w h
-    scaleYO _ p        = p
+    scaleYO :: Double -> YodaObj -> YodaObj
+    scaleYO w (Annotated as (H1DD h)) = Annotated as (H1DD $ scaling w h)
+    scaleYO w (Annotated as (H2DD h)) = Annotated as (H2DD $ scaling w h)
+    scaleYO _ h                       = h
+
+    toEither s Nothing  = Left s
+    toEither _ (Just x) = return x
 
 
 

@@ -140,9 +140,8 @@ fillFile systs fn = do
   let allEntries = entryMap trueEntries nomEntries systEntries
       systflag =
         case dsid' of
-          0      -> Data'
-          410501 -> MC' AllVars
-          _      -> MC' NoVars
+          0 -> Data'
+          _ -> MC' AllVars
 
 
   hs <-
