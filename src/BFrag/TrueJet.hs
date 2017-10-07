@@ -2,27 +2,54 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module BFrag.TrueJet
-  ( TrueJet(..), tjChargedConsts, tjBHadrons
-  , readTrueJets, bhChargedChildren
+  ( TrueParticle(..), BHadron(..), TrueJet(..)
+  , HasPID(..)
+  , neutral, charged, threeCharge
+  , tjPVConstits, tjBHadrons
+  , bhTP
+  , readTrueJets, bhChildren
   , trueBJet, svTrue
   ) where
 
 import           Atlas
 import           BFrag.BFrag
 import           BFrag.PtEtaPhiE
-import           Control.Applicative (ZipList (..))
+import           Control.Applicative (ZipList (..), liftA2, liftA3)
 import           Control.Lens
-import           Data.Foldable       (fold)
+import           Data.HEP.PID
 import           Data.TTree
 import qualified Data.Vector         as V
 import           GHC.Float
 import           GHC.Generics        (Generic)
 
+data TrueParticle =
+  TrueParticle
+    { _tpPID       :: PID
+    , _tp3Q        :: Int
+    , _tpPtEtaPhiE :: PtEtaPhiE
+    } deriving  (Generic, Show)
+
+neutral :: TrueParticle -> Bool
+neutral = (==0) . view threeCharge
+
+charged :: TrueParticle -> Bool
+charged = not . neutral
+
+threeCharge :: Lens' TrueParticle Int
+threeCharge = lens _tp3Q $ \tp x -> tp { _tp3Q = x }
+
+instance HasPID TrueParticle where
+  pid = lens _tpPID $ \tp x -> tp { _tpPID = x }
+
+instance HasLorentzVector TrueParticle where
+  toPtEtaPhiE = lens _tpPtEtaPhiE $ \tp x -> tp { _tpPtEtaPhiE = x }
+
+
 data TrueJet =
   TrueJet
-    { _tjPtEtaPhiE     :: PtEtaPhiE
-    , _tjChargedConsts :: [PtEtaPhiE]
-    , _tjBHadrons      :: [BHadron]
+    { _tjPtEtaPhiE  :: PtEtaPhiE
+    , _tjPVConstits :: [TrueParticle]
+    , _tjBHadrons   :: [BHadron]
     } deriving (Generic, Show)
 
 instance HasLorentzVector TrueJet where
@@ -30,24 +57,24 @@ instance HasLorentzVector TrueJet where
 
 data BHadron =
   BHadron
-    { _bhPtEtaPhiE       :: PtEtaPhiE
-    , _bhChargedChildren :: [PtEtaPhiE]
+    { _bhTP       :: TrueParticle
+    , _bhChildren :: [TrueParticle]
     } deriving (Generic, Show)
 
 
+instance HasPID BHadron where
+  pid = bhTP . pid
+
 instance HasLorentzVector BHadron where
-  toPtEtaPhiE = lens _bhPtEtaPhiE $ \b x -> b { _bhPtEtaPhiE = x }
+  toPtEtaPhiE = bhTP . toPtEtaPhiE
 
 instance HasSVConstits TrueJet where
   svConstits = pure . toListOf (tjBHadrons.traverse.toPtEtaPhiE)
-  svChargedConstits = pure . toListOf (tjBHadrons.traverse.bhChargedChildren.traverse)
+  svChargedConstits = pure . toListOf (tjBHadrons.traverse.bhChildren.traverse.filtered charged.toPtEtaPhiE)
 
 instance HasPVConstits TrueJet where
-  pvConstits tj = pure . lvDiff (_tjPtEtaPhiE tj) . fold <$> svConstits tj
-    where
-      lvDiff x y = x `mappend` lvNegate y
-
-  pvChargedConstits = pure . _tjChargedConsts
+  pvConstits = pure . toListOf (tjPVConstits.traverse.toPtEtaPhiE)
+  pvChargedConstits = pure . toListOf (tjPVConstits.traverse.filtered charged.toPtEtaPhiE)
 
 
 svTrue :: TrueJet -> PtEtaPhiE
@@ -62,30 +89,20 @@ readBHadrons = do
       "bhad_phi"
       "bhad_e"
 
-  chtlvs <-
-    vecVecTLV
-      "bhad_child_pt"
-      "bhad_child_eta"
-      "bhad_child_phi"
-      "bhad_child_e"
+  chs <- fmap cintToInt <$> readBranch "bhad_3q"
+  pids <- fmap (toEnum . cintToInt) <$> readBranch "bhad_pdgid"
 
-  chs <-
-    ZipList . V.toList . fmap (V.toList . fmap (/= (0::CInt))) . fromVVector
-    <$> readBranch "bhad_child_3q"
+  childs <- vecVecTP "bhad_child_"
+  let tps = liftA3 TrueParticle pids chs tlvs
 
-  let tmps = zip <$> chs <*> chtlvs
-      chtlvs' = fmap snd . filter fst <$> tmps
-
-  return . getZipList $ BHadron <$> tlvs <*> chtlvs'
+  return . getZipList $ liftA2 BHadron tps childs
 
 
 readTrueJets :: (MonadIO m, MonadThrow m) => TreeRead m [TrueJet]
 readTrueJets = do
   tlvs <- lvsFromTTreeF "jet_pt" "jet_eta" "jet_phi" "jet_e"
-  chconsts <-
-    vecVecTLV "jet_track_pt" "jet_track_eta" "jet_track_phi" "jet_track_e"
-
-  let tmp = V.fromList . getZipList $ TrueJet <$> tlvs <*> chconsts <*> pure []
+  pvconstits <- vecVecTP "jet_constit_"
+  let tmp = V.fromList . getZipList $ TrueJet <$> tlvs <*> pvconstits <*> pure []
 
   bhads <- filter ((> 5) . view lvPt) <$> readBHadrons
 
@@ -94,6 +111,31 @@ readTrueJets = do
 
 trueBJet :: TrueJet -> Bool
 trueBJet j = lengthOf (tjBHadrons.traverse) j == 1 && view lvPt j > 25
+
+
+vecVecTP
+  :: (MonadIO m, MonadThrow m)
+  => String -> TreeRead m (ZipList [TrueParticle])
+vecVecTP prefix = do
+  tlvs <- vecVecTLV
+    (prefix ++ "pt")
+    (prefix ++ "eta")
+    (prefix ++ "phi")
+    (prefix ++ "e")
+
+  chs <-
+    ZipList . V.toList . fmap (V.toList . fmap cintToInt) . fromVVector
+    <$> readBranch (prefix ++ "3q")
+
+  pids <-
+    ZipList . V.toList . fmap (V.toList . fmap (toEnum . cintToInt)) . fromVVector
+    <$> readBranch (prefix ++ "pdgid")
+
+  return $ zipWith3 TrueParticle <$> pids <*> chs <*> tlvs
+
+
+cintToInt :: CInt -> Int
+cintToInt = fromEnum
 
 
 vecVecTLV
@@ -130,11 +172,14 @@ matchBTJ bh tjs =
         else j
 
 
-tjChargedConsts :: Lens' TrueJet [PtEtaPhiE]
-tjChargedConsts = lens _tjChargedConsts $ \tj x -> tj { _tjChargedConsts = x }
+tjPVConstits :: Lens' TrueJet [TrueParticle]
+tjPVConstits = lens _tjPVConstits $ \tj x -> tj { _tjPVConstits = x }
 
 tjBHadrons :: Lens' TrueJet [BHadron]
 tjBHadrons = lens _tjBHadrons $ \tj x -> tj { _tjBHadrons = x }
 
-bhChargedChildren :: Lens' BHadron [PtEtaPhiE]
-bhChargedChildren = lens _bhChargedChildren $ \b x -> b { _bhChargedChildren = x }
+bhTP :: Lens' BHadron TrueParticle
+bhTP = lens _bhTP $ \bh x -> bh { _bhTP = x }
+
+bhChildren :: Lens' BHadron [TrueParticle]
+bhChildren = lens _bhChildren $ \b x -> b { _bhChildren = x }
