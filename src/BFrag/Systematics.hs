@@ -14,6 +14,7 @@ module BFrag.Systematics
 
 import           Atlas
 import           Control.Lens       (imap)
+import           Data.Bifunctor     (first)
 import qualified Data.IntMap.Strict as IM
 import           Data.Semigroup     ((<>))
 import qualified Data.Text          as T
@@ -104,13 +105,14 @@ btagSF vcfg = do
       return . varSF . fmap (sf "weight_btag")
         $ Variation btagw
           ( fromList
-            ( enum "btagsfup" btagwsup
-            ++ enum "btagsfdown" btagwsdown
-            ++ enum "ctagsfup" ctagwsup
-            ++ enum "ctagsfdown" ctagwsdown
-            ++ enum "ltagsfup" ltagwsup
-            ++ enum "ltagsfdown" ltagwsdown
-            )
+            $ mconcat
+              [ first (<> "up") <$> enum "btagsf" btagwsup
+              , first (<> "down") <$> enum "btagsf" btagwsdown
+              , first (<> "up") <$> enum "ctagsf" ctagwsup
+              , first (<> "down") <$> enum "ctagsf" ctagwsdown
+              , first (<> "up") <$> enum "ltagsf" ltagwsup
+              , first (<> "down") <$> enum "ltagsf" ltagwsdown
+              ]
           )
 
   where
