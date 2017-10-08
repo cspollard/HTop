@@ -119,12 +119,13 @@ main = do
 
       collapseVars (Variation n vs) =
         let vs' = toList vs
-            filt s = T.isSuffixOf (T.toLower s) . T.toLower
+            filt s = T.isInfixOf (T.toLower s) . T.toLower
             rm s =
               fmap $ \(x, y) ->
                 let x' = T.toLower x
                     s' = T.toLower s
-                in (fromMaybe x' (T.stripSuffix s' x'), y)
+                    x'' = curry (<>) $ T.breakOn s x'
+                in (x'', y)
 
             (downs, ups) =
               ((HM.fromList . rm "down") *** (HM.fromList . rm "up"))
