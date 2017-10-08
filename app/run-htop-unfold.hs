@@ -59,7 +59,7 @@ main = do
   hSetBuffering stdout LineBuffering
   (xsecfile:outfile:youtfolder:infs) <- getArgs
   xsecs <- fromMaybe (error "failed to read xsecs") <$> readXSecFile xsecfile
-  procs <- either error id <$> decodeFiles (Just regex) infs
+  (procs :: StrictMap ProcessInfo (Sum Double, Folder (Vars YodaObj))) <- either error id <$> decodeFiles (Just regex) infs
 
   let hs = either error id $ itraverse norm procs
 
@@ -99,18 +99,16 @@ main = do
       ps = mappend nonttbar . fromMaybe (error "missing ps") $ getProcs [pskey]
 
 
-      -- getProc :: ProcessInfo -> (Vars (Annotated H1DD), Vars (Annotated H2DD))
-      -- getProc = toModel . fromJust . flip view hs . at
       getProcs pis = do
         hs' <- traverse (\p -> view (at p) hs) pis
         return $ mconcat hs'
 
-      (nombkg', nommat') = toModel nom
-      (afbkg, afmat) = (view nominal *** view nominal) $ toModel afii
-      (radupbkg, radupmat) = (view nominal *** view nominal) $ toModel radup
-      (raddownbkg, raddownmat) = (view nominal *** view nominal) $ toModel raddown
-      (mebkg, memat) = (view nominal *** view nominal) $ toModel me
-      (psbkg, psmat) = (view nominal *** view nominal) $ toModel ps
+      (nombkg', nommat') = toModel nonttbar nom
+      (afbkg, afmat) = (view nominal *** view nominal) $ toModel nonttbar afii
+      (radupbkg, radupmat) = (view nominal *** view nominal) $ toModel nonttbar radup
+      (raddownbkg, raddownmat) = (view nominal *** view nominal) $ toModel nonttbar raddown
+      (mebkg, memat) = (view nominal *** view nominal) $ toModel nonttbar me
+      (psbkg, psmat) = (view nominal *** view nominal) $ toModel nonttbar ps
 
       -- vardiff: when we have a different nominal to compare (e.g. AFII)
       vardiff nom' nom'' var = unsafeHAdd nom' $ unsafeHSub var nom''
@@ -267,32 +265,33 @@ main = do
 
 toModel
   :: Folder (Vars YodaObj)
+  -> Folder (Vars YodaObj)
   -> (Vars (Annotated H1DD), Vars (Annotated H2DD))
-toModel hs =
-  let filt =
-        liftSM . HM.filterWithKey
-        $ \i _ -> not $ T.isInfixOf "down" i || T.isInfixOf "Down" i
-
-      recoh, trueh, recomatchh :: Vars (Annotated H1DD)
+toModel nonsig sig =
+  let recoh, trueh, recomatchh, bkgrecoh :: Vars (Annotated H1DD)
       recoh =
         fmap (fmap (view sumW) . trimRecoH . fromJust . preview _H1DD)
-        <$> hs ^?! ix recohname & variations %~ filt
+        <$> sig ^?! ix recohname
       trueh =
         fmap (fmap (view sumW) . trimTrueH . fromJust . preview _H1DD)
-        <$> hs ^?! ix truehname & variations %~ filt
+        <$> sig ^?! ix truehname
       recomatchh =
         fmap (fmap (view sumW) . trimRecoH . fromJust . preview _H1DD)
-        <$> hs ^?! ix recomatchhname & variations %~ filt
+        <$> sig ^?! ix recomatchhname
+
+      nonsigrecoh =
+        fmap (fmap (view sumW) . trimRecoH . fromJust . preview _H1DD)
+        <$> nonsig ^?! ix recohname
 
       math :: Vars (Annotated H2DD)
       math =
         fmap (fmap (view sumW) . H.liftY trimRecoH . H.liftX trimTrueH . fromJust . preview _H2DD)
-        <$> hs ^?! ix matrixname
-        & variations %~ filt
+        <$> sig ^?! ix matrixname
 
       bkgrecoh = liftA2 unsafeHSub <$> recoh <*> recomatchh
+      bkgrecoh' = liftA2 unsafeHAdd <$> bkgrecoh <*> nonsigrecoh
 
-  in (bkgrecoh, liftA2 normmat <$> math <*> trueh)
+  in (bkgrecoh', liftA2 normmat <$> math <*> trueh)
 
   where
     normmat :: H2DD -> H1DD -> H2DD
