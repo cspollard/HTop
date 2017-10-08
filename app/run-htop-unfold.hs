@@ -157,6 +157,7 @@ main = do
           & variations . at "MEUp" ?~ go memat
           & variations . at "RadUp" ?~ go radupmat
           & variations . at "RadDown" ?~ go raddownmat
+          & collapseVars
           & variations %~ filtVar (matFilt nom'')
 
       filtVar f = inSM (strictMap . HM.filter (f . view noted))
