@@ -196,7 +196,7 @@ main = do
       recoh, trueh :: H1DD
       recoh =
         fmap (view sumW) . trimRecoH
-        $ hs ^?! ix nomkey . ix recohname . nominal . noted . _H1DD
+        $ mappend nom nonttbar ^?! ix recohname . nominal . noted . _H1DD
       trueh =
         fmap (view sumW) . trimTrueH
         $ hs ^?! ix nomkey . ix truehname . nominal . noted . _H1DD
