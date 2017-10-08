@@ -120,8 +120,10 @@ main = do
       collapseVars (Variation n vs) =
         let vs' = toList vs
             filt s = T.isSuffixOf (T.toLower s) . T.toLower
+            rm s = fmap $ \(x, y) -> (fromMaybe x (T.stripSuffix s x), y)
             (downs, ups) =
-              (HM.fromList *** HM.fromList) $ partition (filt "down" . fst) vs'
+              ((HM.fromList . rm "down") *** (HM.fromList . rm "up"))
+              $ partition (filt "down" . fst) vs'
         in Variation n . strictMap $ HM.unionWith (liftA3 vardiff2 n) ups downs
 
 
