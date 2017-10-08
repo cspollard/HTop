@@ -91,12 +91,12 @@ main = do
         . fromMaybe (error "missing stop") $ getProcs stopkeys
       nonttbar = zjets `mappend` stop
 
-      nom = mappend nonttbar . fromMaybe (error "missing nominal") $ getProcs [nomkey]
-      afii = mappend nonttbar . fromMaybe (error "missing afii") $ getProcs [afiikey]
-      radup = mappend nonttbar . fromMaybe (error "missing radup") $ getProcs [radupkey]
-      raddown = mappend nonttbar . fromMaybe (error "missing raddown") $ getProcs [raddownkey]
-      me = mappend nonttbar . fromMaybe (error "missing me") $ getProcs [mekey]
-      ps = mappend nonttbar . fromMaybe (error "missing ps") $ getProcs [pskey]
+      nom = fromMaybe (error "missing nominal") $ getProcs [nomkey]
+      afii = fromMaybe (error "missing afii") $ getProcs [afiikey]
+      radup = fromMaybe (error "missing radup") $ getProcs [radupkey]
+      raddown = fromMaybe (error "missing raddown") $ getProcs [raddownkey]
+      me = fromMaybe (error "missing me") $ getProcs [mekey]
+      ps = fromMaybe (error "missing ps") $ getProcs [pskey]
 
 
       getProcs pis = do
