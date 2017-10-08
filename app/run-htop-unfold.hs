@@ -124,7 +124,7 @@ main = do
               fmap $ \(x, y) ->
                 let x' = T.toLower x
                     s' = T.toLower s
-                    x'' = curry (<>) $ T.breakOn s x'
+                    x'' = uncurry (<>) $ T.breakOn s' x'
                 in (x'', y)
 
             (downs, ups) =
