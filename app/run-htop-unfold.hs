@@ -193,18 +193,16 @@ main = do
             , maybe "" (showMigMat $ matrixname <> "diff") mdiff
             ]
 
-      recoh, trueh :: H1DD
       recoh =
-        fmap (view sumW) . trimRecoH
-        $ mappend nom nonttbar ^?! ix recohname . nominal . noted . _H1DD
+        mappend nom nonttbar ^?! ix recohname . nominal . noted . _H1DD
       trueh =
         fmap (view sumW) . trimTrueH
         $ hs ^?! ix nomkey . ix truehname . nominal . noted . _H1DD
 
       datah :: H1DI
       datah =
-        fmap round
-        . maybe ((*view nominal lumi) <$> recoh) (fmap (view sumW) . trimRecoH)
+        fmap (round . view sumW) . trimRecoH
+        . fromMaybe (scaling (view nominal lumi) recoh)
         $ hs ^? ix datakey . ix recohname . nominal . noted . _H1DD
 
       xs :: [(Double, (Double, Double))]
