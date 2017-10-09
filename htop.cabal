@@ -23,10 +23,12 @@ library
         BFrag.PtEtaPhiE
         BFrag.Systematics
         BFrag.BFrag
+        BFrag.Model
     build-depends:
         base -any,
         lens -any,
         containers -any,
+        unordered-containers -any,
         mmorph -any,
         attoparsec -any,
         vector -any,

@@ -14,14 +14,14 @@ module Main where
 import           Atlas
 import           Atlas.CrossSections
 import           BFrag.BFrag
+import           BFrag.Model
 import           BFrag.Systematics      (lumi)
-import           Control.Applicative    (liftA2, liftA3)
-import           Control.Arrow          ((***))
+import           Control.Applicative    (liftA2)
 import           Control.Lens
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
-import           Data.List              (partition, sort)
+import           Data.List              (sort)
 import           Data.Maybe             (fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
 import           Data.Semigroup         ((<>))
@@ -29,7 +29,6 @@ import           Data.TDigest           (quantile)
 import qualified Data.Text              as T
 import           Data.Vector            (Vector)
 import qualified Data.Vector            as V
-import           GHC.Exts               (IsList (..))
 import           Model
 import           RunModel
 import           System.Environment     (getArgs)
@@ -61,130 +60,34 @@ main = do
   xsecs <- fromMaybe (error "failed to read xsecs") <$> readXSecFile xsecfile
   (procs :: StrictMap ProcessInfo (Sum Double, Folder (Vars YodaObj))) <- either error id <$> decodeFiles (Just regex) infs
 
-  let hs = either error id $ itraverse norm procs
+  let (data', pred') = either error id $ bfragModel xsecs procs
+      (bkg, migration) = unfoldingInputs pred'
 
-      norm (ProcessInfo _ DS) (_, hs') = return hs'
-      norm (ProcessInfo ds _) (Sum w, hs') = do
-        xsec <-
-          toEither ("missing cross section for " ++ show ds)
-          $ xsecs ^? ix ds . _1
-        return $ fmap (scaleYO (xsec/w)) <$> hs'
+      -- filtVar f = inSM (strictMap . HM.filter (f . view noted))
+      --
+      -- -- only keep bkg variations with a > 2% deviation
+      -- bkgFilt hnom hvar =
+      --   any go . view histData . fromJust
+      --   $ hzip' f hnom hvar
+      --   where
+      --     f n v = (n, v - n)
+      --     go (n, d) = abs (1 - d / n) > 0.02
+      --
+      -- -- only keep matrix variations with a deviation > 0.1% in a bin with > 0.1% efficiency
+      -- matFilt hnom hvar =
+      --   any go . view histData . fromJust
+      --   $ hzip' f hnom hvar
+      --   where
+      --     f n v = (n, abs $ v - n)
+      --     go (n, d) = n > 0.001 && d > 0.001
 
-      nomkey = ProcessInfo 410501 FS
-      afiikey = ProcessInfo 410501 AFII
-      radupkey = ProcessInfo 410511 AFII
-      raddownkey = ProcessInfo 410512 AFII
-      mekey = ProcessInfo 410225 AFII
-      pskey = ProcessInfo 410525 AFII
-      datakey = ProcessInfo 0 DS
+      migration' = (fmap.fmap.fmap) doubToDist2D migration
 
-      zjetskeys = flip ProcessInfo FS <$> [364128..364141]
-      stopkeys = flip ProcessInfo FS <$> [410015, 410016]
-
-      addVar name f vs = vs & variations . at name ?~ f (view nominal vs)
-
-      zjets =
-        fmap (addVar "ZJetsNormUp" (scaleYO 1.3))
-        . fromMaybe (error "missing zjets") $ getProcs zjetskeys
-      stop =
-        fmap (addVar "STopNormUp" (scaleYO 1.3))
-        . fromMaybe (error "missing stop") $ getProcs stopkeys
-      nonttbar = zjets `mappend` stop
-
-      nom = fromMaybe (error "missing nominal") $ getProcs [nomkey]
-      afii = fromMaybe (error "missing afii") $ getProcs [afiikey]
-      radup = fromMaybe (error "missing radup") $ getProcs [radupkey]
-      raddown = fromMaybe (error "missing raddown") $ getProcs [raddownkey]
-      me = fromMaybe (error "missing me") $ getProcs [mekey]
-      ps = fromMaybe (error "missing ps") $ getProcs [pskey]
-
-
-      getProcs pis = do
-        hs' <- traverse (\p -> view (at p) hs) pis
-        return $ mconcat hs'
-
-      (nombkg', nommat') = toModel nonttbar nom
-      (afbkg, afmat) = (view nominal *** view nominal) $ toModel nonttbar afii
-      (radupbkg, radupmat) = (view nominal *** view nominal) $ toModel nonttbar radup
-      (raddownbkg, raddownmat) = (view nominal *** view nominal) $ toModel nonttbar raddown
-      (mebkg, memat) = (view nominal *** view nominal) $ toModel nonttbar me
-      (psbkg, psmat) = (view nominal *** view nominal) $ toModel nonttbar ps
-
-      -- vardiff: when we have a different nominal to compare (e.g. AFII)
-      vardiff nom' nom'' var = unsafeHAdd nom' $ unsafeHSub var nom''
-
-      -- vardiff2: when we compare up and down variation and symmetrize
-      vardiff2 nom' varup vardown =
-        unsafeHAdd nom' . fmap (/2) $ unsafeHSub varup vardown
-
-      collapseVars (Variation n vs) =
-        let vs' = toList vs
-            filt s = T.isInfixOf (T.toLower s) . T.toLower
-            rm s =
-              fmap $ \(x, y) ->
-                let x' = T.toLower x
-                    s' = T.toLower s
-                    x'' = mconcat $ T.splitOn s' x'
-                in (x'', y)
-
-            (downs, ups) =
-              ((HM.fromList . rm "down") *** (HM.fromList . rm "up"))
-              $ partition (filt "down" . fst) vs'
-        in Variation n . strictMap $ HM.unionWith (liftA3 vardiff2 n) ups downs
-
-
-
-      bkg =
-        let nom' = view nominal nombkg'
-            go x = vardiff <$> nom' <*> afbkg <*> x
-            nom'' = view noted nom'
-        in
-          nombkg'
-          & variations . at "PSUp" ?~ go psbkg
-          & variations . at "MEUp" ?~ go mebkg
-          & variations . at "RadUp" ?~ go radupbkg
-          & variations . at "RadDown" ?~ go raddownbkg
-          & collapseVars
-          & variations %~ filtVar (bkgFilt nom'')
-
-      -- only keep bkg variations with a > 2% deviation
-      bkgFilt hnom hvar =
-        any go . view histData . fromJust
-        $ hzip' f hnom hvar
-        where
-          f n v = (n, v - n)
-          go (n, d) = abs (1 - d / n) > 0.02
-
-      mat =
-        let nom' = view nominal nommat'
-            go x = vardiff <$> nom' <*> afmat <*> x
-            nom'' = view noted nom'
-        in
-          nommat'
-          & variations . at "PSUp" ?~ go psmat
-          & variations . at "MEUp" ?~ go memat
-          & variations . at "RadUp" ?~ go radupmat
-          & variations . at "RadDown" ?~ go raddownmat
-          & collapseVars
-          & variations %~ filtVar (matFilt nom'')
-
-      filtVar f = inSM (strictMap . HM.filter (f . view noted))
-
-      -- only keep matrix variations with a deviation > 0.1% in a bin with > 0.1% efficiency
-      matFilt hnom hvar =
-        any go . view histData . fromJust
-        $ hzip' f hnom hvar
-        where
-          f n v = (n, abs $ v - n)
-          go (n, d) = n > 0.001 && d > 0.001
-
-      mats = (fmap.fmap.fmap) doubToDist2D mat
-
-      matdiffs :: Vars (Maybe (Annotated H2D))
+      matdiffs :: Annotated (Vars (Maybe H2D))
       matdiffs =
-        let tmp = Just <$> mat
-            vs = tmp & nominal .~ Nothing
-            n = tmp & variations .~ mempty
+        let tmp = fmap Just <$> migration
+            vs = tmp & traverse.nominal .~ Nothing
+            n = tmp & traverse.variations .~ mempty
             diffs = (liftA2.liftA2.liftA2) unsafeHSub vs n
         in (fmap.fmap.fmap.fmap) doubToDist2D diffs
 
@@ -202,17 +105,13 @@ main = do
             , maybe "" (showMigMat $ matrixname <> "diff") mdiff
             ]
 
-      recoh =
-        mappend nom nonttbar ^?! ix recohname . nominal . noted . _H1DD
-      trueh =
-        fmap (view sumW) . trimTrueH
-        $ hs ^?! ix nomkey . ix truehname . nominal . noted . _H1DD
+      trueh = fmap (view sumW) . trimTrueH
+        $ pred' ^?! ix truehname . noted . nominal . _H1DD
 
       datah :: H1DI
       datah =
         fmap (round . view sumW) . trimRecoH
-        . fromMaybe (scaling (view nominal lumi) recoh)
-        $ hs ^? ix datakey . ix recohname . nominal . noted . _H1DD
+        $ data' ^?! ix recohname . noted . _H1DD
 
       xs :: [(Double, (Double, Double))]
       xs =
@@ -222,10 +121,11 @@ main = do
       (model, params) =
         buildModel
           (view histData trueh)
-          (getH2DD . view noted <$> mat)
-          (HM.singleton "ttbar" . view histData . view noted <$> bkg)
+          (getH2DD <$> view noted migration)
+          (HM.singleton "ttbar" . view histData <$> view noted bkg)
 
-  imapM_ writeMigs . variationToMap "nominal" $ liftA2 (,) mats matdiffs
+  imapM_ writeMigs . variationToMap "nominal"
+    $ liftA2 (,) (sequence migration') (sequence <$> sequence matdiffs)
 
   putStrLn "data:"
   views histData print datah
@@ -259,46 +159,31 @@ main = do
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm")
         $ zipWith (\x (_, y) -> (x, y)) xs unfoldednorm
 
-  where
-    scaleYO :: Double -> YodaObj -> YodaObj
-    scaleYO w (Annotated as (H1DD h)) = Annotated as (H1DD $ scaling w h)
-    scaleYO w (Annotated as (H2DD h)) = Annotated as (H2DD $ scaling w h)
-    scaleYO _ h                       = h
-
-    toEither s Nothing  = Left s
-    toEither _ (Just x) = return x
 
 
-
-toModel
-  :: Folder (Vars YodaObj)
-  -> Folder (Vars YodaObj)
-  -> (Vars (Annotated H1DD), Vars (Annotated H2DD))
-toModel nonsig sig =
-  let recoh, trueh, recomatchh, bkgrecoh :: Vars (Annotated H1DD)
+unfoldingInputs
+  :: Folder (Annotated (Vars Obj))
+  -> (Annotated (Vars  H1DD), Annotated (Vars H2DD))
+unfoldingInputs hs =
+  let recoh, trueh, recomatchh, bkgrecoh :: Annotated (Vars H1DD)
       recoh =
-        fmap (fmap (view sumW) . trimRecoH . fromJust . preview _H1DD)
-        <$> sig ^?! ix recohname
+        fmap (fmap (view sumW) . trimRecoH . (^?! _H1DD))
+        <$> hs ^?! ix recohname
       trueh =
-        fmap (fmap (view sumW) . trimTrueH . fromJust . preview _H1DD)
-        <$> sig ^?! ix truehname
+        fmap (fmap (view sumW) . trimTrueH . (^?! _H1DD))
+        <$> hs ^?! ix truehname
       recomatchh =
-        fmap (fmap (view sumW) . trimRecoH . fromJust . preview _H1DD)
-        <$> sig ^?! ix recomatchhname
+        fmap (fmap (view sumW) . trimRecoH . (^?! _H1DD))
+        <$> hs ^?! ix recomatchhname
 
-      nonsigrecoh =
-        fmap (fmap (view sumW) . trimRecoH . fromJust . preview _H1DD)
-        <$> nonsig ^?! ix recohname
-
-      math :: Vars (Annotated H2DD)
+      math :: Annotated (Vars H2DD)
       math =
         fmap (fmap (view sumW) . H.liftY trimRecoH . H.liftX trimTrueH . fromJust . preview _H2DD)
-        <$> sig ^?! ix matrixname
+        <$> hs ^?! ix matrixname
 
       bkgrecoh = liftA2 unsafeHSub <$> recoh <*> recomatchh
-      bkgrecoh' = liftA2 unsafeHAdd <$> bkgrecoh <*> nonsigrecoh
 
-  in (bkgrecoh', liftA2 normmat <$> math <*> trueh)
+  in (bkgrecoh, liftA2 normmat <$> math <*> trueh)
 
   where
     normmat :: H2DD -> H1DD -> H2DD
