@@ -122,13 +122,16 @@ main = do
         buildModel
           (view histData trueh)
           (getH2DD <$> view noted migration)
-          (HM.singleton "ttbar" . view histData <$> view noted bkg)
+          (HM.singleton "bkg" . view histData <$> view noted bkg)
 
   imapM_ writeMigs . variationToMap "nominal"
     $ liftA2 (,) (sequence migration') (sequence <$> sequence matdiffs)
 
   putStrLn "data:"
   views histData print datah
+
+  putStrLn "model:"
+  print model
 
   unfolded' <- runModel 100000 outfile (view histData datah) model params
 
