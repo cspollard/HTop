@@ -55,9 +55,10 @@ main = do
   hSetBuffering stdout LineBuffering
   (xsecfile:outfile:youtfolder:infs) <- getArgs
   xsecs <- fromMaybe (error "failed to read xsecs") <$> readXSecFile xsecfile
-  (procs :: StrictMap ProcessInfo (Sum Double, Folder (Vars YodaObj))) <- either error id <$> decodeFiles (Just regex) infs
+  procs <- either error id <$> decodeFiles (Just regex) infs
 
-  let (data', pred') = either error id $ bfragModel xsecs procs
+  let normedProcs = either error id $ itraverse (normToXsec xsecs) procs
+      (data', pred', _) = either error id $ bfragModel normedProcs
       (bkg, migration) = unfoldingInputs pred'
 
       -- filtVar f = inSM (strictMap . HM.filter (f . view noted))
@@ -158,6 +159,29 @@ main = do
         $ zipWith (\x (_, y) -> (x, y)) xs unfolded''
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm")
         $ zipWith (\x (_, y) -> (x, y)) xs unfoldednorm
+
+
+  where
+    normToXsec
+      :: CrossSectionInfo
+      -> ProcessInfo
+      -> (Sum Double, Folder (Vars YodaObj))
+      -> Either String (Folder (Annotated (Vars Obj)))
+    normToXsec _ (ProcessInfo _ DS) (_, hs) = return $ sequenceA <$> hs
+    normToXsec xsecs (ProcessInfo ds _) (Sum w, hs) = do
+      xsec <-
+        toEither ("missing cross section for dsid " ++ show ds)
+        $ xsecs ^? ix ds . _1
+      return $ sequenceA . (fmap.fmap) (scaleO (xsec/w)) <$> hs
+
+    toEither s Nothing  = Left s
+    toEither _ (Just x) = return x
+
+    scaleO :: Double -> Obj -> Obj
+    scaleO w (H1DD h) = H1DD $ scaling w h
+    scaleO w (H2DD h) = H2DD $ scaling w h
+    scaleO w (P1DD h) = P1DD $ scaling w h
+
 
 
 

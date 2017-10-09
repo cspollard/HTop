@@ -4,7 +4,6 @@
 module BFrag.Model where
 
 import           Atlas
-import           Atlas.CrossSections
 import           BFrag.Systematics
 import           Control.Applicative (liftA2)
 import           Control.Arrow       ((***))
@@ -13,28 +12,25 @@ import qualified Data.HashMap.Strict as HM
 import           Data.List           (partition)
 import qualified Data.Map            as M
 import           Data.Maybe          (fromMaybe)
-import           Data.Semigroup      (Sum (..), (<>))
+import           Data.Semigroup      ((<>))
 import qualified Data.Text           as T
 import           GHC.Exts            (toList)
 
 
 
 bfragModel
-  :: CrossSectionInfo
-  -> StrictMap ProcessInfo (Sum Double, Folder (Vars YodaObj))
-  -> Either String (Folder (Annotated Obj), Folder (Annotated (Vars Obj)))
-bfragModel xsecs procs = do
-  normedProcs <- itraverse normToXsec procs
-
+  :: StrictMap ProcessInfo (Folder (Annotated (Vars Obj)))
+  -> Either String (Folder (Annotated Obj), Folder (Annotated (Vars Obj)), Folder (Annotated (Vars Obj)))
+bfragModel procs = do
   (zjets :: Folder (Annotated (Vars Obj))) <-
-    getProcs normedProcs zjetskeys
+    getProcs procs zjetskeys
     & traverse.traverse.traverse %~ addVar "ZJetsNormUp" (scaleO 1.3)
   stop <-
     (fmap.fmap) (addVar "STopNormUp" (scaleO 1.3))
-    <$> getProcs normedProcs stopkeys
+    <$> getProcs procs stopkeys
 
 
-  let nonttbar =
+  let nonttpred =
         inF (M.filterWithKey (\k _ -> filtTrue k))
         $ zjets `mappend` stop
 
@@ -45,17 +41,17 @@ bfragModel xsecs procs = do
         ]
 
 
-  nom <- mappend nonttbar <$> getProcs normedProcs [nomkey]
+  nom <- mappend nonttpred <$> getProcs procs [nomkey]
   afii <-
-    getProcs normedProcs [afiikey] & (traverse.traverse.noted) %~ view nominal
+    getProcs procs [afiikey] & (traverse.traverse.noted) %~ view nominal
   radup <-
-    getProcs normedProcs [radupkey] & (traverse.traverse.noted) %~ view nominal
+    getProcs procs [radupkey] & (traverse.traverse.noted) %~ view nominal
   raddown <-
-    getProcs normedProcs [raddownkey] & (traverse.traverse.noted) %~ view nominal
+    getProcs procs [raddownkey] & (traverse.traverse.noted) %~ view nominal
   me <-
-    getProcs normedProcs [mekey] & (traverse.traverse.noted) %~ view nominal
+    getProcs procs [mekey] & (traverse.traverse.noted) %~ view nominal
   ps <-
-    getProcs normedProcs [pskey] & (traverse.traverse.noted) %~ view nominal
+    getProcs procs [pskey] & (traverse.traverse.noted) %~ view nominal
 
 
   let nomnom = nom & (traverse.noted) %~ view nominal
@@ -68,7 +64,7 @@ bfragModel xsecs procs = do
       me' = mappend me afiidiff
       ps' = mappend ps afiidiff
       radup' = mappend nomnom raddiff
-      prediction =
+      fullpred =
         nom
         & inFA2 (\v n -> n & variations . at "MEUp" ?~ v) me'
         & inFA2 (\v n -> n & variations . at "RadUp" ?~ v) radup'
@@ -80,25 +76,14 @@ bfragModel xsecs procs = do
         either
           ((fmap.fmap) (scaleO $ view nominal lumi) . const nomnom)
           ((fmap.fmap) (view nominal))
-          $ getProcs normedProcs [datakey]
+          $ getProcs procs [datakey]
 
 
-  return (data', prediction)
+  return (data', fullpred, nonttpred)
 
   where
     toEither s Nothing  = Left s
     toEither _ (Just x) = return x
-
-    normToXsec
-      :: ProcessInfo
-      -> (Sum Double, Folder (Vars YodaObj))
-      -> Either String (Folder (Annotated (Vars Obj)))
-    normToXsec (ProcessInfo _ DS) (_, hs) = return $ sequenceA <$> hs
-    normToXsec (ProcessInfo ds _) (Sum w, hs) = do
-      xsec <-
-        toEither ("missing cross section for dsid " ++ show ds)
-        $ xsecs ^? ix ds . _1
-      return $ sequenceA . (fmap.fmap) (scaleO (xsec/w)) <$> hs
 
     scaleO :: Double -> Obj -> Obj
     scaleO w (H1DD h) = H1DD $ scaling w h

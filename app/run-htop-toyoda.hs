@@ -10,12 +10,12 @@ module Main where
 import           Atlas
 import           Atlas.ToYoda
 import           BFrag.BFrag
+import           BFrag.Model
 import           BFrag.Systematics
 import           Control.Applicative
 import           Control.Lens           hiding (each)
 import           Data.Bifunctor
 import qualified Data.Histogram.Generic as H
-import qualified Data.Map.Strict        as M
 import           Data.Semigroup
 import qualified Data.Text              as T
 import           GHC.Exts               (IsList (..))
@@ -30,22 +30,22 @@ main = mainWith writeFiles
 
 
 writeFiles :: String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
-writeFiles outf pm' = do
-  let datakey = ProcessInfo 0 DS
-      datahs = (fmap.fmap) (view nominal) $ pm' ^? ix datakey
-      mchs' = sans datakey pm'
-      mchs = imap appLumi <$> mchs'
+writeFiles outf pm = do
+  let (data', pred', bkgs) = either error id . bfragModel $ fmap sequenceA <$> pm
+      mchs :: Folder (Annotated (Vars Obj))
+      mchs = imap appLumi pred'
 
+      -- don't scale truth histograms to lumi
       appLumi t yo =
-        if T.isInfixOf "elmujjtrue" t
+        if T.isInfixOf "/elmujjtrue/" t || T.isInfixOf "/elmujjmatched/" t
           then yo
-          else liftA2 scaleH' lumi yo
+          else liftA2 scaleH lumi <$> yo
 
-      write :: T.Text -> M.Map T.Text YodaObj -> IO ()
+      write :: T.Text -> Folder YodaObj -> IO ()
       write varname hs =
         withFile (outf ++ '/' : T.unpack varname ++ ".yoda") WriteMode $ \h ->
           runEffect
-          $ each (M.toList hs)
+          $ each (toList $ _toMap hs)
             >-> P.map trim
             >-> P.mapFoldable addNorm
             >-> P.map (T.unpack . uncurry printYodaObj . first ("/htop" <>))
@@ -64,16 +64,17 @@ writeFiles outf pm' = do
         [(t, yo), (t <> "norm", set (noted._H1DD.integral) 1 yo)]
 
 
-      psmc :: [(T.Text, M.Map T.Text YodaObj)]
-      psmc = toList . variationToMap "nominal" . sequence . _toMap $ view traverse mchs
+      psmc :: VarMap (Folder YodaObj)
+      psmc = variationToMap "nominal" . sequence $ sequence <$> mchs
 
-      psdata :: [(T.Text, M.Map T.Text YodaObj)]
-      psdata =
-        case datahs of
-          Just hs -> [("data", _toMap hs)]
-          Nothing -> []
+      psbkg :: VarMap (Folder YodaObj)
+      psbkg = [("background", view nominal . sequence $ sequence <$> bkgs)]
 
-  runEffect $ each (psmc ++ psdata) >-> P.mapM_ (uncurry write)
+      psdata :: VarMap (Folder YodaObj)
+      psdata = [("data", data')]
+
+
+  runEffect $ each (toList $ psmc <> psbkg <> psdata) >-> P.mapM_ (uncurry write)
 
 
 collapseProcs
@@ -85,7 +86,3 @@ collapseProcs pm =
       dat = (fmap.fmap) (view nominal) $ pm ^. at datakey
 
   in (preds, dat)
-
-
-scaleH' :: Double -> YodaObj -> YodaObj
-scaleH' x = over noted (scaleH x)
