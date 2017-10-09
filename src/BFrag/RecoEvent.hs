@@ -160,6 +160,6 @@ probeJets revt = fmap join . sequenceL . return $
         $ bt
           && sv
           && (view lvAbsEta j' < 2.1)
-          && length trks >= 4
+          && length trks >= 3
           && pt' >= 30
       return j'
