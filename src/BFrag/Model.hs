@@ -4,6 +4,7 @@
 module BFrag.Model where
 
 import           Atlas
+import           BFrag.BFrag
 import           BFrag.Systematics
 import           Control.Applicative (liftA2)
 import           Control.Arrow       ((***))
@@ -31,14 +32,15 @@ bfragModel procs = do
 
 
   let nonttpred =
-        inF (M.filterWithKey (\k _ -> filtTrue k))
+        inF (M.filterWithKey (\k _ -> filtReco k))
         $ zjets `mappend` stop
 
-      filtTrue k =
-        not . or $ ($ k) <$>
-        [ T.isInfixOf "/elmujjmatched/"
-        , T.isInfixOf "/elmujjtrue/"
-        ]
+
+      filtReco k =
+        not . any ($ k)
+        $ [ T.isInfixOf "/elmujjmatched/"
+          , T.isInfixOf "/elmujjtrue/"
+          ]
 
 
   nom <- mappend nonttpred <$> getProcs procs [nomkey]
@@ -54,7 +56,8 @@ bfragModel procs = do
     getProcs procs [pskey] & (traverse.traverse.noted) %~ view nominal
 
 
-  let nomnom = nom & (traverse.noted) %~ view nominal
+  let nomnom =
+        nom & (traverse.noted) %~ view nominal
 
       -- do an (a -> b -> c) inside a Folder (Annotated a/b)
       inFA2 f = inF2 (M.intersectionWith $ liftA2 f)

@@ -32,8 +32,8 @@ main = mainWith writeFiles
 writeFiles :: String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
 writeFiles outf pm = do
   let (data', pred', bkgs) = either error id . bfragModel $ fmap sequenceA <$> pm
-      mchs :: Folder (Annotated (Vars Obj))
-      mchs = imap appLumi pred'
+      predhs = imap appLumi pred'
+      bkghs = imap appLumi bkgs
 
       -- don't scale truth histograms to lumi
       appLumi t yo =
@@ -41,13 +41,13 @@ writeFiles outf pm = do
           then yo
           else liftA2 scaleH lumi <$> yo
 
-      write :: T.Text -> Folder YodaObj -> IO ()
-      write varname hs =
+      write :: Bool -> T.Text -> Folder YodaObj -> IO ()
+      write normed varname hs =
         withFile (outf ++ '/' : T.unpack varname ++ ".yoda") WriteMode $ \h ->
           runEffect
           $ each (toList $ _toMap hs)
             >-> P.map trim
-            >-> P.mapFoldable addNorm
+            >-> P.mapFoldable (if normed then addNorm else pure)
             >-> P.map (T.unpack . uncurry printYodaObj . first ("/htop" <>))
             >-> P.toHandle h
 
@@ -65,16 +65,17 @@ writeFiles outf pm = do
 
 
       psmc :: VarMap (Folder YodaObj)
-      psmc = variationToMap "nominal" . sequence $ sequence <$> mchs
+      psmc = variationToMap "nominal" . sequence $ sequence <$> predhs
 
       psbkg :: VarMap (Folder YodaObj)
-      psbkg = [("background", view nominal . sequence $ sequence <$> bkgs)]
+      psbkg = [("background", view nominal . sequence $ sequence <$> bkghs)]
 
       psdata :: VarMap (Folder YodaObj)
       psdata = [("data", data')]
 
 
-  runEffect $ each (toList $ psmc <> psbkg <> psdata) >-> P.mapM_ (uncurry write)
+  runEffect $ each (toList $ psmc <> psdata) >-> P.mapM_ (uncurry $ write True)
+  runEffect $ each (toList psbkg) >-> P.mapM_ (uncurry $ write False)
 
 
 collapseProcs
