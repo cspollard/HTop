@@ -8,9 +8,6 @@
 
 module Main where
 
--- TODO
--- there is a ton of partial stuff in here.
-
 import           Atlas
 import           Atlas.CrossSections
 import           BFrag.BFrag
@@ -186,11 +183,10 @@ unfoldingInputs hs =
 
       bkgrecoh = liftA2 unsafeHSub <$> recoh <*> recomatchh
 
-  in (bkgrecoh, liftA2 normmat <$> math <*> trueh)
+      normmat :: H2DD -> H1DD -> H2DD
+      normmat m h = H.liftX (\hm -> fromJust $ hzip' (/) hm h) m
 
-  where
-    normmat :: H2DD -> H1DD -> H2DD
-    normmat m h = H.liftX (\hm -> fromJust $ hzip' (/) hm h) m
+  in (bkgrecoh, liftA2 normmat <$> math <*> trueh)
 
 
 

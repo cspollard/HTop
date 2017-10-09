@@ -40,9 +40,8 @@ bfragModel xsecs procs = do
 
       filtTrue k =
         not . or $ ($ k) <$>
-        [ T.isInfixOf "true"
-        , T.isInfixOf "mig"
-        , T.isInfixOf "diff"
+        [ T.isInfixOf "/elmujjmatched/"
+        , T.isInfixOf "/elmujjtrue/"
         ]
 
 
