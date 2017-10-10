@@ -11,4 +11,4 @@ for f in `cat $F.infiles`; do ls $f; done
 source /cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/user/atlasLocalSetup.sh
 lsetup "root 6.04.14-x86_64-slc6-gcc49-opt"
 
-time run-htop --outfile $F.hist.gz --infiles $F.infiles > $F.log 2>&1
+time stack exec run-htop -- --outfile $F.hist.gz --infiles $F.infiles > $F.log 2>&1
