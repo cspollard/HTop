@@ -94,7 +94,7 @@ main = do
       matreldiffs :: Annotated (Vars (Maybe H2D))
       matreldiffs =
         let n = migration & traverse.variations .~ mempty & (fmap.fmap) Just
-            divs = (liftA2.liftA2.liftA2) unsafeHDiv n matdiffs'
+            divs = (liftA2.liftA2.liftA2) unsafeHDiv matdiffs' n
         in (fmap.fmap.fmap.fmap) doubToDist2D divs
 
       doubToDist2D :: Double -> Dist2D Double

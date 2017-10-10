@@ -15,6 +15,14 @@ LogY=1
 # END PLOT
 
 
+# BEGIN PLOT /.*zbtcmigreldiff$
+LogZ=0
+Legend=0
+ZMin=-0.25
+ZMax=0.25
+ZLabel=relative efficiency difference
+# END PLOT
+
 # BEGIN PLOT /.*zbtcmigdiff$
 LogZ=0
 Legend=0
@@ -30,3 +38,4 @@ ZMin=0
 ZMax=0.05
 ZLabel=efficiency
 # END PLOT
+
