@@ -4,7 +4,6 @@
 module BFrag.Model where
 
 import           Atlas
-import           BFrag.BFrag
 import           BFrag.Systematics
 import           Control.Applicative (liftA2)
 import           Control.Arrow       ((***))
@@ -21,7 +20,7 @@ import           GHC.Exts            (toList)
 
 bfragModel
   :: StrictMap ProcessInfo (Folder (Annotated (Vars Obj)))
-  -> Either String (Folder (Annotated Obj), Folder (Annotated (Vars Obj)), Folder (Annotated (Vars Obj)))
+  -> Either String (Folder (Annotated Obj), Folder (Annotated (Vars Obj)), Folder (Annotated (Vars Obj)), StrictMap ProcessInfo (Folder YodaObj))
 bfragModel procs = do
   (zjets :: Folder (Annotated (Vars Obj))) <-
     getProcs procs zjetskeys
@@ -51,9 +50,9 @@ bfragModel procs = do
   raddown <-
     getProcs procs [raddownkey] & (traverse.traverse.noted) %~ view nominal
   me <-
-    getProcs procs [mekey] & (traverse.traverse.noted) %~ view nominal
+    getProcs procs [amcpy8key] & (traverse.traverse.noted) %~ view nominal
   ps <-
-    getProcs procs [pskey] & (traverse.traverse.noted) %~ view nominal
+    getProcs procs [powh7key] & (traverse.traverse.noted) %~ view nominal
 
 
   let nomnom =
@@ -82,7 +81,9 @@ bfragModel procs = do
           $ getProcs procs [datakey]
 
 
-  return (data', fullpred, nonttpred)
+  return (data', fullpred, nonttpred
+    , fmap ((fmap.fmap) (view nominal) . mappend nonttpred) . strictMap
+      $ inSM (HM.filterWithKey $ \k _ -> k `elem` ttkeys) procs)
 
   where
     toEither s Nothing  = Left s
@@ -101,17 +102,6 @@ bfragModel procs = do
     corrDiffO (P1DD h) (P1DD h') =
       fromMaybe (error "error diffing P1DDs") $ P1DD <$> removeSubHist h h'
     corrDiffO _ _ = error "diffing two u objects"
-
-    nomkey = ProcessInfo 410501 FS
-    afiikey = ProcessInfo 410501 AFII
-    radupkey = ProcessInfo 410511 AFII
-    raddownkey = ProcessInfo 410512 AFII
-    mekey = ProcessInfo 410225 AFII
-    pskey = ProcessInfo 410525 AFII
-    datakey = ProcessInfo 0 DS
-
-    zjetskeys = flip ProcessInfo FS <$> [364128..364141]
-    stopkeys = flip ProcessInfo FS <$> [410015, 410016]
 
     addVar name f vs = vs & variations . at name ?~ f (view nominal vs)
 
@@ -143,3 +133,38 @@ bfragModel procs = do
             ((HM.fromList . rm "down") *** (HM.fromList . rm "up"))
             $ partition (filt "down" . fst) vs'
       in Variation n . strictMap $ HM.unionWith (vardiff n) ups downs
+
+    ttkeys =
+      [ nomkey, afiikey, radupkey, raddownkey, amcpy8key
+      , powh7key, sherpakey, powp6key
+      ]
+
+nomkey, afiikey, radupkey, raddownkey, amcpy8key
+  , powh7key, sherpakey, powp6key, datakey
+  :: ProcessInfo
+nomkey = ProcessInfo 410501 FS
+afiikey = ProcessInfo 410501 AFII
+radupkey = ProcessInfo 410511 AFII
+raddownkey = ProcessInfo 410512 AFII
+amcpy8key = ProcessInfo 410225 AFII
+powh7key = ProcessInfo 410525 AFII
+sherpakey = ProcessInfo 410252 AFII
+powp6key = ProcessInfo 410000 FS
+datakey = ProcessInfo 0 DS
+
+zjetskeys, stopkeys :: [ProcessInfo]
+zjetskeys = flip ProcessInfo FS <$> [364128..364141]
+stopkeys = flip ProcessInfo FS <$> [410015, 410016]
+
+
+procToText :: ProcessInfo -> T.Text
+procToText (ProcessInfo 410501 FS)   = "PowPy8FS"
+procToText (ProcessInfo 410501 AFII) = "PowPy8AFII"
+procToText (ProcessInfo 410511 AFII) = "PowPy8RadUpAFII"
+procToText (ProcessInfo 410512 AFII) = "PowPy8RadDownAFII"
+procToText (ProcessInfo 410225 AFII) = "aMCPy8AFII"
+procToText (ProcessInfo 410525 AFII) = "PowH7AFII"
+procToText (ProcessInfo 410252 AFII) = "Sherpa221AFII"
+procToText (ProcessInfo 410000 FS)   = "PowPy6FS"
+procToText (ProcessInfo 0 DS)        = "data"
+procToText _                         = "OTHER"

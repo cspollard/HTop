@@ -58,7 +58,7 @@ main = do
   procs <- either error id <$> decodeFiles (Just regex) infs
 
   let normedProcs = either error id $ itraverse (normToXsec xsecs) procs
-      (data', pred', _) = either error id $ bfragModel normedProcs
+      (data', pred', _, _) = either error id $ bfragModel normedProcs
       (bkg, migration) = unfoldingInputs pred'
 
       -- filtVar f = inSM (strictMap . HM.filter (f . view noted))

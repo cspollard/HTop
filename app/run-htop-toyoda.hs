@@ -31,9 +31,12 @@ main = mainWith writeFiles
 
 writeFiles :: String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
 writeFiles outf pm = do
-  let (data', pred', bkgs) = either error id . bfragModel $ fmap sequenceA <$> pm
+  let (data', pred', bkgs, ttpreds) = either error id . bfragModel $ fmap sequenceA <$> pm
       predhs = imap appLumi pred'
       bkghs = imap appLumi bkgs
+      ttpredhs =
+        ((fmap.fmap) (view nominal) . imap appLumi . (fmap.fmap) pure)
+        <$> ttpreds
 
       -- don't scale truth histograms to lumi
       appLumi t yo =
@@ -67,6 +70,9 @@ writeFiles outf pm = do
       psmc :: VarMap (Folder YodaObj)
       psmc = variationToMap "nominal" . sequence $ sequence <$> predhs
 
+      pstt :: VarMap (Folder YodaObj)
+      pstt = fromList . fmap (first procToText) . toList $ ttpredhs
+
       psbkg :: VarMap (Folder YodaObj)
       psbkg = [("background", view nominal . sequence $ sequence <$> bkghs)]
 
@@ -74,7 +80,7 @@ writeFiles outf pm = do
       psdata = [("data", data')]
 
 
-  runEffect $ each (toList $ psmc <> psdata) >-> P.mapM_ (uncurry $ write True)
+  runEffect $ each (toList $ psmc <> psdata <> pstt) >-> P.mapM_ (uncurry $ write True)
   runEffect $ each (toList psbkg) >-> P.mapM_ (uncurry $ write False)
 
 
@@ -82,8 +88,7 @@ collapseProcs
   :: ProcMap (Folder (Vars YodaObj))
   -> (ProcMap (Folder (Vars YodaObj)), Maybe YodaFolder)
 collapseProcs pm =
-  let datakey = ProcessInfo 0 DS
-      preds = sans datakey pm
+  let preds = sans datakey pm
       dat = (fmap.fmap) (view nominal) $ pm ^. at datakey
 
   in (preds, dat)
