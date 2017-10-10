@@ -13,7 +13,7 @@ import           Atlas.CrossSections
 import           BFrag.BFrag
 import           BFrag.Model
 import           BFrag.Systematics      (lumi)
-import           Control.Applicative    (liftA2)
+import           Control.Applicative    (liftA2, liftA3)
 import           Control.Lens
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
@@ -45,6 +45,7 @@ type H2D = Hist2D (ArbBin Double) (ArbBin Double)
 
 unsafeHAdd h h' = fromJust $ hzip' (+) h h'
 unsafeHSub h h' = fromJust $ hzip' (-) h h'
+unsafeHDiv h h' = fromJust $ hzip' (/) h h'
 
 regex :: String
 regex = matrixname ++ "|" ++ recohname ++ "|" ++ recomatchhname ++ "|" ++ truehname
@@ -81,13 +82,20 @@ main = do
 
       migration' = (fmap.fmap.fmap) doubToDist2D migration
 
-      matdiffs :: Annotated (Vars (Maybe H2D))
-      matdiffs =
+      matdiffs' :: Annotated (Vars (Maybe H2DD))
+      matdiffs' =
         let tmp = fmap Just <$> migration
             vs = tmp & traverse.nominal .~ Nothing
             n = tmp & traverse.variations .~ mempty
-            diffs = (liftA2.liftA2.liftA2) unsafeHSub vs n
-        in (fmap.fmap.fmap.fmap) doubToDist2D diffs
+        in (liftA2.liftA2.liftA2) unsafeHSub vs n
+
+      matdiffs = (fmap.fmap.fmap.fmap) doubToDist2D matdiffs'
+
+      matreldiffs :: Annotated (Vars (Maybe H2D))
+      matreldiffs =
+        let n = migration & traverse.variations .~ mempty & (fmap.fmap) Just
+            divs = (liftA2.liftA2.liftA2) unsafeHDiv n matdiffs'
+        in (fmap.fmap.fmap.fmap) doubToDist2D divs
 
       doubToDist2D :: Double -> Dist2D Double
       doubToDist2D w = filling (Pair 0 0) w mempty
@@ -96,11 +104,12 @@ main = do
         printYodaObj ("/htop" <> n)
           $ H2DD . scaleByBinSize2D <$> ao
 
-      writeMigs t (m, mdiff) =
+      writeMigs t (m, mdiff, mreldiff) =
         withFile (youtfolder <> "/" <> T.unpack t <> ".yoda") WriteMode $ \h ->
           hPutStrLn h . T.unpack . T.intercalate "\n\n"
           $ [ showMigMat (matrixname <> "eff") m
             , maybe "" (showMigMat $ matrixname <> "diff") mdiff
+            , maybe "" (showMigMat $ matrixname <> "reldiff") mreldiff
             ]
 
       trueh = fmap (view sumW) . trimTrueH
@@ -123,7 +132,10 @@ main = do
           (HM.singleton "bkg" . view histData <$> view noted bkg)
 
   imapM_ writeMigs . variationToMap "nominal"
-    $ liftA2 (,) (sequence migration') (sequence <$> sequence matdiffs)
+    $ liftA3 (,,)
+      (sequence migration')
+      (sequence <$> sequence matdiffs)
+      (sequence <$> sequence matreldiffs)
 
   putStrLn "data:"
   views histData print datah
