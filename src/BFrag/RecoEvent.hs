@@ -91,10 +91,6 @@ muH = physObjH h =$<< (varObj . view mu)
     h = hist1DDef (binD 0 25 100) "$< \\mu >$" (dndx "<\\mu>" "1")
 
 
--- TODO
--- npvH :: FoldM Vars (RecoEvent, Double) (YodaFolder)
-
-
 elmujj :: RecoEvent -> PhysObj Bool
 elmujj e =
   let els = _electrons e
