@@ -174,24 +174,24 @@ matchBTJ bh tjs =
 
 
 bMesonH :: Fills BHadron
-bMesonH = singleton "bmesonpid" <$> physObjH h =$<< pure . fromIntegral . view pid
+bMesonH = singleton "/bmesonpid" <$> physObjH h =$<< pure . fromIntegral . view abspid
 
   where
     h =
       hist1DDef
         (binD 500 100 600)
         "B meson PDGID"
-        (dsigdXpbY "PDGID" "1")
+        (dsigdXpbY "\\mathrm{PDGID}" "1")
 
 bBaryonH :: Fills BHadron
-bBaryonH = singleton "bbaryon pid" <$> physObjH h =$<< pure . fromIntegral . view pid
+bBaryonH = singleton "/bbaryonpid" <$> physObjH h =$<< pure . fromIntegral . view abspid
 
   where
     h =
       hist1DDef
-        (binD 500 100 600)
+        (binD 5000 1000 6000)
         "B baryon PDGID"
-        (dsigdXpbY "PDGID" "1")
+        (dsigdXpbY "\\mathrm{PDGID}" "1")
 
 
 

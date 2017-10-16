@@ -9,20 +9,23 @@ import           Control.Arrow          ((&&&))
 import           Control.Lens
 import           Data.Foldable          (fold)
 import           Data.HEP.ThreeMomentum
+import           Data.Semigroup         ((<>))
 import           Data.Text              (Text)
 import           Data.Vector            (Vector, (!))
 import qualified Data.Vector            as V
 import           GHC.Exts
 
+mathed :: Text -> Text
+mathed t = "$" <> t <> "$"
 zbtname, zblname, zbtrelname :: Text
-zbtname = "$z_{\\mathrm{T,B}}$"
-zblname = "$z_{\\mathrm{T,B}}$"
-zbtrelname = "$z_{\\mathrm{T,B}}^\\mathrm{rel}$"
+zbtname = "z_{\\mathrm{T,B}}"
+zblname = "z_{\\mathrm{L,B}}"
+zbtrelname = "z_{\\mathrm{T,B}}^\\mathrm{rel}"
 
 zbtcname, zblcname, zbtrelcname :: Text
-zbtcname = "$z_{\\mathrm{T,B}}^\\mathrm{ch}$"
-zblcname = "$z_{\\mathrm{T,B}}^\\mathrm{ch}$"
-zbtrelcname = "$z_{\\mathrm{T,B}}^\\mathrm{ch, rel}$"
+zbtcname = "z_{\\mathrm{T,B}}^\\mathrm{ch}"
+zblcname = "z_{\\mathrm{L,B}}^\\mathrm{ch}"
+zbtrelcname = "z_{\\mathrm{T,B}}^\\mathrm{ch, rel}"
 
 class HasSVConstits a where
   svConstits :: a -> PhysObj [PtEtaPhiE]
@@ -159,25 +162,25 @@ zbtcH :: (HasSVConstits a, HasPVConstits a) => Foldl (PhysObj a) (Vars YodaObj)
 zbtcH = physObjH h =$<< zbtc
 
   where
-    h = hist1DDef (binD 0 21 1.05) zbtcname (dsigdXpbY zbtcname "1")
+    h = hist1DDef (binD 0 21 1.05) (mathed zbtcname) (dsigdXpbY zbtcname "1")
 
 zbtH :: (HasSVConstits a, HasPVConstits a) => Foldl (PhysObj a) (Vars YodaObj)
 zbtH = physObjH h =$<< zbt
 
   where
-    h = hist1DDef (binD 0 21 1.05) zbtname (dsigdXpbY zbtname "1")
+    h = hist1DDef (binD 0 21 1.05) (mathed zbtname) (dsigdXpbY zbtname "1")
 
 zblcH :: (HasSVConstits a, HasPVConstits a) => Foldl (PhysObj a) (Vars YodaObj)
 zblcH = physObjH h =$<< zblc
 
   where
-    h = hist1DDef (binD 0 21 1.05) zblcname (dsigdXpbY zblcname "1")
+    h = hist1DDef (binD 0 21 1.05) (mathed zblcname) (dsigdXpbY zblcname "1")
 
 zblH :: (HasSVConstits a, HasPVConstits a) => Foldl (PhysObj a) (Vars YodaObj)
 zblH = physObjH h =$<< zbl
 
   where
-    h = hist1DDef (binD 0 21 1.05) zblname (dsigdXpbY zblname "1")
+    h = hist1DDef (binD 0 21 1.05) (mathed zblname) (dsigdXpbY zblname "1")
 
 zbtrelcH
   :: (HasSVConstits a, HasPVConstits a)
@@ -185,7 +188,7 @@ zbtrelcH
 zbtrelcH = physObjH h =$<< zbtrelc
 
   where
-    h = hist1DDef (binD 0 20 0.2) zbtrelcname (dsigdXpbY zbtrelcname "1")
+    h = hist1DDef (binD 0 20 0.2) (mathed zbtrelcname) (dsigdXpbY zbtrelcname "1")
 
 zbtrelH
   :: (HasSVConstits a, HasPVConstits a)
@@ -193,7 +196,7 @@ zbtrelH
 zbtrelH = physObjH h =$<< zbtrel
 
   where
-    h = hist1DDef (binD 0 20 0.2) zbtrelname (dsigdXpbY zbtrelname "1")
+    h = hist1DDef (binD 0 20 0.2) (mathed zbtrelname) (dsigdXpbY zbtrelname "1")
 
 
 
