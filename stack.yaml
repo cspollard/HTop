@@ -15,7 +15,7 @@ packages:
 
 - location:
     git: https://github.com/cspollard/hhep.git
-    commit: 25a291b1c64c73362ea4aee323848138bb4eabee
+    commit: 4ebdbd2e7ddc7a7c90303844cd760cf4ee69f966
   extra-dep: true
 
 - location:

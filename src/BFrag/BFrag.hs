@@ -12,7 +12,6 @@ import           Data.HEP.ThreeMomentum
 import           Data.Text              (Text)
 import           Data.Vector            (Vector, (!))
 import qualified Data.Vector            as V
-import           Debug.Trace
 import           GHC.Exts
 
 zbtname, zblname, zbtrelname :: Text
@@ -57,18 +56,18 @@ zbtc j = do
     x   -> pure $ view lvPt svp4 / x
 
 zblc j = do
-  svp3 <- trace "svp3" . traceShowId . toXYZ . fold <$> svChargedConstits j
-  p3 <- trace "p3" . traceShowId . toXYZ <$> chargedSum j
-  let denom = modulus p3
+  svp3 <- toXYZ . fold <$> svChargedConstits j
+  p3 <- toXYZ <$> chargedSum j
+  let denom = modulus2 p3
       num = svp3 `inner` p3
-  return $ num / (denom*denom)
+  return $ num / denom
 
 zbtrelc j = do
   svp3 <- toXYZ . fold <$> svChargedConstits j
   p3 <- toXYZ <$> chargedSum j
-  let denom = modulus p3
+  let denom = modulus2 p3
       num = modulus $ svp3 `cross` p3
-  return $ num / (denom*denom)
+  return $ num / denom
 
 zbt, zbl, zbtrel
   :: (HasSVConstits a, HasPVConstits a)
@@ -83,16 +82,16 @@ zbt j = do
 zbl j = do
   svp3 <- toXYZ . fold <$> svConstits j
   p3 <- toXYZ <$> constitsSum j
-  let denom = modulus p3
+  let denom = modulus2 p3
       num = svp3 `inner` p3
-  return $ num / (denom*denom)
+  return $ num / denom
 
 zbtrel j = do
   svp3 <- toXYZ . fold <$> svConstits j
   p3 <- toXYZ <$> constitsSum j
-  let denom = modulus p3
+  let denom = modulus2 p3
       num = modulus $ svp3 `cross` p3
-  return $ num / (denom*denom)
+  return $ num / denom
 
 chargedPtH
   :: (HasSVConstits a, HasPVConstits a)
