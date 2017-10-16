@@ -9,6 +9,7 @@ module BFrag.TrueJet
   , bhTP
   , readTrueJets, bhChildren
   , trueBJet, svTrue
+  , bMesonH, bBaryonH
   ) where
 
 import           Atlas
@@ -170,6 +171,28 @@ matchBTJ bh tjs =
       if lvDREta b j < 0.3
         then over tjBHadrons ((:) b) j
         else j
+
+
+bMesonH :: Fills BHadron
+bMesonH = singleton "bmesonpid" <$> physObjH h =$<< pure . fromIntegral . view pid
+
+  where
+    h =
+      hist1DDef
+        (binD 500 100 600)
+        "B meson PDGID"
+        (dsigdXpbY "PDGID" "1")
+
+bBaryonH :: Fills BHadron
+bBaryonH = singleton "bbaryon pid" <$> physObjH h =$<< pure . fromIntegral . view pid
+
+  where
+    h =
+      hist1DDef
+        (binD 500 100 600)
+        "B baryon PDGID"
+        (dsigdXpbY "PDGID" "1")
+
 
 
 tjPVConstits :: Lens' TrueJet [TrueParticle]
