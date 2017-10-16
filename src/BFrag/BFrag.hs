@@ -185,7 +185,7 @@ zbtrelcH
 zbtrelcH = physObjH h =$<< zbtrelc
 
   where
-    h = hist1DDef (binD 0 21 1.05) zbtrelcname (dsigdXpbY zbtrelcname "1")
+    h = hist1DDef (binD 0 20 0.2) zbtrelcname (dsigdXpbY zbtrelcname "1")
 
 zbtrelH
   :: (HasSVConstits a, HasPVConstits a)
@@ -193,7 +193,7 @@ zbtrelH
 zbtrelH = physObjH h =$<< zbtrel
 
   where
-    h = hist1DDef (binD 0 21 1.05) zbtrelname (dsigdXpbY zbtrelname "1")
+    h = hist1DDef (binD 0 20 0.2) zbtrelname (dsigdXpbY zbtrelname "1")
 
 
 
