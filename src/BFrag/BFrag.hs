@@ -17,6 +17,7 @@ import           GHC.Exts
 
 mathed :: Text -> Text
 mathed t = "$" <> t <> "$"
+
 zbtname, zblname, zbtrelname :: Text
 zbtname = "z_{\\mathrm{T,B}}"
 zblname = "z_{\\mathrm{L,B}}"
@@ -26,6 +27,22 @@ zbtcname, zblcname, zbtrelcname :: Text
 zbtcname = "z_{\\mathrm{T,B}}^\\mathrm{ch}"
 zblcname = "z_{\\mathrm{L,B}}^\\mathrm{ch}"
 zbtrelcname = "z_{\\mathrm{T,B}}^\\mathrm{ch, rel}"
+
+zbtbin, zbtcbin, zblbin, zblcbin, zbtrelbin, zbtrelcbin :: BinD
+zbtbin = binD 0 21 1.05
+zbtcbin = zbtbin
+zblbin = zbtbin
+zblcbin = zblbin
+zbtrelbin = binD 0 20 0.1
+zbtrelcbin = zbtrelbin
+
+npvtrkname, nsvtrkname :: Text
+npvtrkname = "n_{\\mathrm{PV}}^\\mathrm{ch}"
+nsvtrkname = "n_{\\mathrm{B}}^\\mathrm{ch}"
+
+npvtrkbin, nsvtrkbin :: BinD
+npvtrkbin = binD 0 20 20
+nsvtrkbin = binD 0 20 20
 
 class HasSVConstits a where
   svConstits :: a -> PhysObj [PtEtaPhiE]
@@ -158,45 +175,42 @@ svPtcH = physObjH h =$<< fmap (view lvPt . fold) . svChargedConstits
         (dsigdXpbY pt gev)
 
 
-zbtcH :: (HasSVConstits a, HasPVConstits a) => Foldl (PhysObj a) (Vars YodaObj)
-zbtcH = physObjH h =$<< zbtc
-
-  where
-    h = hist1DDef (binD 0 21 1.05) (mathed zbtcname) (dsigdXpbY zbtcname "1")
-
 zbtH :: (HasSVConstits a, HasPVConstits a) => Foldl (PhysObj a) (Vars YodaObj)
 zbtH = physObjH h =$<< zbt
 
   where
-    h = hist1DDef (binD 0 21 1.05) (mathed zbtname) (dsigdXpbY zbtname "1")
+    h = hist1DDef zbtbin (mathed zbtname) (dsigdXpbY zbtname "1")
 
-zblcH :: (HasSVConstits a, HasPVConstits a) => Foldl (PhysObj a) (Vars YodaObj)
-zblcH = physObjH h =$<< zblc
-
+zbtcH :: (HasSVConstits a, HasPVConstits a) => Foldl (PhysObj a) (Vars YodaObj)
+zbtcH = physObjH h =$<< zbtc
   where
-    h = hist1DDef (binD 0 21 1.05) (mathed zblcname) (dsigdXpbY zblcname "1")
+    h = hist1DDef zbtcbin (mathed zbtcname) (dsigdXpbY zbtcname "1")
+
 
 zblH :: (HasSVConstits a, HasPVConstits a) => Foldl (PhysObj a) (Vars YodaObj)
 zblH = physObjH h =$<< zbl
-
   where
-    h = hist1DDef (binD 0 21 1.05) (mathed zblname) (dsigdXpbY zblname "1")
+    h = hist1DDef zblbin (mathed zblname) (dsigdXpbY zblname "1")
 
-zbtrelcH
-  :: (HasSVConstits a, HasPVConstits a)
-  => Foldl (PhysObj a) (Vars YodaObj)
-zbtrelcH = physObjH h =$<< zbtrelc
-
+zblcH :: (HasSVConstits a, HasPVConstits a) => Foldl (PhysObj a) (Vars YodaObj)
+zblcH = physObjH h =$<< zblc
   where
-    h = hist1DDef (binD 0 20 0.2) (mathed zbtrelcname) (dsigdXpbY zbtrelcname "1")
+    h = hist1DDef zblcbin (mathed zblcname) (dsigdXpbY zblcname "1")
+
 
 zbtrelH
   :: (HasSVConstits a, HasPVConstits a)
   => Foldl (PhysObj a) (Vars YodaObj)
 zbtrelH = physObjH h =$<< zbtrel
-
   where
-    h = hist1DDef (binD 0 20 0.2) (mathed zbtrelname) (dsigdXpbY zbtrelname "1")
+    h = hist1DDef zbtrelbin (mathed zbtrelname) (dsigdXpbY zbtrelname "1")
+
+zbtrelcH
+  :: (HasSVConstits a, HasPVConstits a)
+  => Foldl (PhysObj a) (Vars YodaObj)
+zbtrelcH = physObjH h =$<< zbtrelc
+  where
+    h = hist1DDef zbtrelcbin (mathed zbtrelcname) (dsigdXpbY zbtrelcname "1")
 
 
 
@@ -204,13 +218,8 @@ nPVTracksH
   :: (HasPVConstits a)
   => Foldl (PhysObj a) (Vars YodaObj)
 nPVTracksH = physObjH h =$<< fmap (fromIntegral . length) . pvChargedConstits
-
   where
-    h =
-      hist1DDef
-        (binD 0 20 20)
-        "$n$ PV tracks"
-        (dsigdXpbY "n" "1")
+    h = hist1DDef npvtrkbin npvtrkname (dsigdXpbY npvtrkname "1")
 
 
 nSVTracksH
@@ -218,13 +227,8 @@ nSVTracksH
   => Foldl (PhysObj a) (Vars YodaObj)
 nSVTracksH =
   physObjH h =$<< fmap (fromIntegral . length) . svChargedConstits
-
   where
-    h =
-      hist1DDef
-        (binD 0 20 20)
-        "$n$ SV tracks"
-        (dsigdXpbY "n" "1")
+    h = hist1DDef nsvtrkbin nsvtrkname (dsigdXpbY nsvtrkname "1")
 
 
 bfragHs
@@ -243,8 +247,8 @@ bfragHs =
   , singleton "/pvptc" <$> pvPtcH
   , singleton "/svpt" <$> svPtH
   , singleton "/svptc" <$> svPtcH
-  , singleton "/npvtracks" <$> nPVTracksH
-  , singleton "/nsvtracks" <$> nSVTracksH
+  , singleton "/npvtk" <$> nPVTracksH
+  , singleton "/nsvtk" <$> nSVTracksH
 
 --     -- , childSumPtProfPt
 --     -- , svChildSumPtProfPt
@@ -319,6 +323,17 @@ recohname = "/elmujj/probejets/zbtc"
 recomatchhname = "/elmujjmatched/probejets/zbtc"
 truehname = "/elmujjtrue/truejets/zbtc"
 
+zblcmatrixname, zblcrecohname, zblcrecomatchhname, zblctruehname :: IsString s => s
+zblcmatrixname = "/elmujjmatched/zblcmig"
+zblcrecohname = "/elmujj/probejets/zblc"
+zblcrecomatchhname = "/elmujjmatched/probejets/zblc"
+zblctruehname = "/elmujjtrue/truejets/zbllc"
+
+zbtrelcmatrixname, zbtrelcrecohname, zbtrelcrecomatchhname, zbtrelctruehname :: IsString s => s
+zbtrelcmatrixname = "/elmujjmatched/zbtrelcmig"
+zbtrelcrecohname = "/elmujj/probejets/zbtrelc"
+zbtrelcrecomatchhname = "/elmujjmatched/probejets/zbtrelc"
+zbtrelctruehname = "/elmujjtrue/truejets/zbtrelc"
 
 -- childSumPtProfPt
 --   :: (HasLorentzVector a, HasSVConstits a, HasPVConstits a)

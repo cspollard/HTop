@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds                 #-}
+{-# LANGUAGE Rank2Types                 #-}
 {-# LANGUAGE DeriveGeneric             #-}
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE FlexibleInstances         #-}
@@ -28,9 +29,8 @@ import           BFrag.RecoEvent        as X
 import           BFrag.TrueEvent        as X
 import qualified Control.Foldl          as F
 import           Control.Lens
-import           Data.Foldable          (fold)
 import           Data.HEP.LorentzVector as X
-import           Data.Semigroup         (Arg (..), Min (..), Option (..))
+import           Data.Semigroup         (Arg (..), Min (..), Option (..), (<>))
 import           Data.TTree
 import           Data.Tuple             (swap)
 import           GHC.Generics           (Generic)
@@ -135,16 +135,14 @@ matchedJetHs =
     mconcat
     $ (prefixF "/probejets" <$> bfragHs <$= fmap snd)
       : (prefixF "/truejets" <$> bfragHs <$= fmap fst)
-      : [ zbtMig
-        , zbtcMig
-        , zbtDiff
-        , zbtcDiff
-        , svPtDiff
-        , svPtcDiff
-        , pvPtDiff
-        , pvPtcDiff
-        , nsvMig
-        , npvMig
+      : [ zbtMig, zbtcMig, zblMig, zblcMig, zbtrelMig, zbtrelcMig
+        , nsvtrkMig, npvtrkMig
+        , zbtDiff, zbtcDiff, zblDiff, zblcDiff, zbtrelDiff, zbtrelcDiff
+        , nsvtrkDiff, npvtrkDiff
+        -- , svPtDiff
+        -- , svPtcDiff
+        -- , pvPtDiff
+        -- , pvPtcDiff
         ]
 
   -- where
@@ -153,28 +151,44 @@ matchedJetHs =
 
 
 zbtMig :: Fills (TrueJet, Jet)
-zbtMig =
-  singleton "/zbtmig"
-  <$> physObjH h
-  =$<< zbts
-
+zbtMig = singleton "/zbtmig" <$> physObjH h =$<< zbts
   where
-    h =
-      hist2DDef
-        (binD 0 21 1.05)
-        (binD 0 21 1.05)
-        "true charged $z_{p_{\\mathrm T}}$"
-        "reco charged $z_{p_{\\mathrm T}}$"
+    h = hist2DDef zbtbin zbtbin ("true " <> zbtname) ("reco " <> zbtname)
 
 zbtcMig :: Fills (TrueJet, Jet)
 zbtcMig = singleton "/zbtcmig" <$> physObjH h =$<< zbtcs
   where
+    h = hist2DDef zbtcbin zbtcbin ("true " <> zbtcname) ("reco " <> zbtcname)
+
+zblMig :: Fills (TrueJet, Jet)
+zblMig = singleton "/zbtmig" <$> physObjH h =$<< zbls
+  where
+    h = hist2DDef zblbin zblbin ("true " <> zblname) ("reco " <> zblname)
+
+zblcMig :: Fills (TrueJet, Jet)
+zblcMig = singleton "/zblcmig" <$> physObjH h =$<< zblcs
+  where
+    h = hist2DDef zblcbin zblcbin ("true " <> zblcname) ("reco " <> zblcname)
+
+zbtrelMig :: Fills (TrueJet, Jet)
+zbtrelMig = singleton "/zbtmig" <$> physObjH h =$<< zbtrels
+  where
     h =
       hist2DDef
-        (binD 0 21 1.05)
-        (binD 0 21 1.05)
-        "true charged $z_{p_{\\mathrm T}}$"
-        "reco charged $z_{p_{\\mathrm T}}$"
+        zbtrelbin
+        zbtrelbin
+        ("true " <> zbtrelname)
+        ("reco " <> zbtrelname)
+
+zbtrelcMig :: Fills (TrueJet, Jet)
+zbtrelcMig = singleton "/zbtrelcmig" <$> physObjH h =$<< zbtrelcs
+  where
+    h =
+      hist2DDef
+        zbtrelcbin
+        zbtrelcbin
+        ("true " <> zbtrelcname)
+        ("reco " <> zbtrelcname)
 
 
 zbtDiff :: Fills (TrueJet, Jet)
@@ -188,8 +202,8 @@ zbtDiff = singleton "/zbtdiff" <$> physObjH h =$<< f
     h =
       hist1DDef
         (binD (-1) 50 1)
-        "$z_{p_{\\mathrm T}}$ (true - charged reco)"
-        (dndx "z_{p_{\\mathrm T}}" "1")
+        ("(true - reco) " <> zbtname)
+        (dsigdXpbY zbtname "1")
 
 
 zbtcDiff :: Fills (TrueJet, Jet)
@@ -198,110 +212,110 @@ zbtcDiff = singleton "/zbtcdiff" <$> physObjH h =$<< fmap (uncurry (-)) . zbtcs
     h =
       hist1DDef
         (binD (-1) 50 1)
-        "charged $z_{p_{\\mathrm T}}$ (true - reco)"
-        (dndx "z_{p_{\\mathrm T}}" "1")
+        ("(true - reco) " <> zbtcname)
+        (dsigdXpbY zbtcname "1")
 
 
-pvPtDiff :: Fills (TrueJet, Jet)
-pvPtDiff = singleton "/pvptdiff" <$> physObjH h =$<< f
+zblDiff :: Fills (TrueJet, Jet)
+zblDiff = singleton "/zbldiff" <$> physObjH h =$<< f
   where
     f (tj, rj) = do
-      tpt <- view lvPt . fold <$> pvConstits tj
-      rpt <- view lvPt . fold <$> pvConstits rj
-      return $ tpt - rpt
+      tz <- zbl tj
+      rz <- zbl rj
+      return $ tz - rz
 
     h =
       hist1DDef
-        (binD (-10) 55 100)
-        "PV $p_{\\mathrm T}$ (true - charged reco)"
-        (dndx pt gev)
+        (binD (-1) 50 1)
+        ("(true - reco) " <> zblname)
+        (dsigdXpbY zblname "1")
 
 
-pvPtcDiff :: Fills (TrueJet, Jet)
-pvPtcDiff = singleton "/pvptcdiff" <$> physObjH h =$<< f
+zblcDiff :: Fills (TrueJet, Jet)
+zblcDiff = singleton "/zblcdiff" <$> physObjH h =$<< fmap (uncurry (-)) . zblcs
+  where
+    h =
+      hist1DDef
+        (binD (-1) 50 1)
+        ("(true - reco) " <> zblcname)
+        (dsigdXpbY zblcname "1")
+
+zbtrelDiff :: Fills (TrueJet, Jet)
+zbtrelDiff = singleton "/zbtreldiff" <$> physObjH h =$<< f
   where
     f (tj, rj) = do
-      tpt <- view lvPt . fold <$> pvChargedConstits tj
-      rpt <- view lvPt . fold <$> pvChargedConstits rj
-      return $ tpt - rpt
+      tz <- zbtrel tj
+      rz <- zbtrel rj
+      return $ tz - rz
 
     h =
       hist1DDef
-        (binD (-10) 55 100)
-        "charged PV $p_{\\mathrm T}$ (true - reco)"
-        (dndx pt gev)
+        (binD (-1) 50 1)
+        ("(true - reco) " <> zbtrelname)
+        (dsigdXpbY zbtrelname "1")
 
-svPtDiff :: Fills (TrueJet, Jet)
-svPtDiff = singleton "/svptdiff" <$> physObjH h =$<< f
+zbtrelcDiff :: Fills (TrueJet, Jet)
+zbtrelcDiff = singleton "/zbtrelcdiff" <$> physObjH h =$<< fmap (uncurry (-)) . zbtrelcs
   where
-    f (tj, rj) = do
-      tpt <- view lvPt . fold <$> svConstits tj
-      rpt <- view lvPt . fold <$> svConstits rj
-      return $ tpt - rpt
-
     h =
       hist1DDef
-        (binD (-10) 55 100)
-        "SV $p_{\\mathrm T}$ (true - charged reco)"
-        (dndx pt gev)
+        (binD (-1) 50 1)
+        ("(true - reco) " <> zbtrelcname)
+        (dsigdXpbY zbtrelcname "1")
 
 
-svPtcDiff :: Fills (TrueJet, Jet)
-svPtcDiff = singleton "/svptcdiff" <$> physObjH h =$<< f
+nsvtrkDiff :: Fills (TrueJet, Jet)
+nsvtrkDiff = singleton "/nsvtrkdiff" <$> physObjH h =$<< fmap (uncurry (-)) . nsvtrks
   where
-    f (tj, rj) = do
-      tpt <- view lvPt . fold <$> svChargedConstits tj
-      rpt <- view lvPt . fold <$> svChargedConstits rj
-      return $ tpt - rpt
-
     h =
       hist1DDef
-        (binD (-10) 55 100)
-        "charged SV $p_{\\mathrm T}$ (true - reco)"
-        (dndx pt gev)
+        (binD (-1) 50 1)
+        ("(true - reco) " <> nsvtrkname)
+        (dsigdXpbY nsvtrkname "1")
+
+npvtrkDiff :: Fills (TrueJet, Jet)
+npvtrkDiff = singleton "/npvtrkdiff" <$> physObjH h =$<< fmap (uncurry (-)) . npvtrks
+  where
+    h =
+      hist1DDef
+        (binD (-1) 50 1)
+        ("(true - reco) " <> npvtrkname)
+        (dsigdXpbY npvtrkname "1")
 
 
-zbts :: (TrueJet, Jet) -> PhysObj (Double, Double)
-zbts (tj, rj) = do
-  tjz <- zbt tj
-  rjz <- zbt rj
+
+zbs
+  :: (forall a. (HasSVConstits a, HasPVConstits a) => a -> PhysObj Double)
+  -> (TrueJet, Jet) -> PhysObj (Double, Double)
+zbs f (tj, rj) = do
+  tjz <- f tj
+  rjz <- f rj
   return (tjz, rjz)
 
 
-zbtcs :: (TrueJet, Jet) -> PhysObj (Double, Double)
-zbtcs (tj, rj) = do
-  tjz <- zbtc tj
-  rjz <- zbtc rj
-  return (tjz, rjz)
+zbts, zbtcs, zbls, zblcs, zbtrels, zbtrelcs, nsvtrks, npvtrks
+  :: (TrueJet, Jet) -> PhysObj (Double, Double)
+zbts = zbs zbt
+zbtcs = zbs zbtc
+zbls = zbs zbl
+zblcs = zbs zblc
+zbtrels = zbs zbtrel
+zbtrelcs = zbs zbtrelc
+nsvtrks = zbs $ fmap (fromIntegral . length) . svChargedConstits
+npvtrks = zbs $ fmap (fromIntegral . length) . pvChargedConstits
 
 
-nsvMig :: Fills (TrueJet, Jet)
-nsvMig = singleton "/nsvmig" <$> physObjH h =$<< f
+nsvtrkMig :: Fills (TrueJet, Jet)
+nsvtrkMig = singleton "/nsvtrkmig" <$> physObjH h =$<< nsvtrks
   where
-    f (tj, rj) = do
-       tnt <- fromIntegral . length <$> svChargedConstits tj
-       rnt <- fromIntegral . length <$> svChargedConstits rj
-       return (tnt, rnt)
-
-    h =
-      hist2DDef
-        (binD 0 10 10)
-        (binD 0 10 10)
-        "true $n$ SV tracks"
-        "reco $n$ SV tracks"
+    h = hist2DDef nsvtrkbin nsvtrkbin ("true " <> nsvtrkname) ("reco " <> nsvtrkname)
 
 
-npvMig :: Fills (TrueJet, Jet)
-npvMig = singleton "/npvmig" <$> physObjH h =$<< f
+npvtrkMig :: Fills (TrueJet, Jet)
+npvtrkMig = singleton "/npvtrkmig" <$> physObjH h =$<< npvtrks
   where
-    f (tj, rj) = do
-       tnt <- fromIntegral . length <$> pvChargedConstits tj
-       rnt <- fromIntegral . length <$> pvChargedConstits rj
-       return (tnt, rnt)
-
-    h =
-      hist2DDef
-        (binD 0 20 20)
-        (binD 0 20 20)
-        "true $n$ PV tracks"
-        "reco $n$ PV tracks"
+    h = hist2DDef
+        npvtrkbin
+        npvtrkbin
+        ("true " <> npvtrkname)
+        ("reco " <> npvtrkname)

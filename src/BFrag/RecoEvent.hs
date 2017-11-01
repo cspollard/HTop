@@ -88,7 +88,7 @@ readRecoEvent dmc = do
 muH :: Foldl (PhysObj RecoEvent) (Vars YodaObj)
 muH = physObjH h =$<< (varObj . view mu)
   where
-    h = hist1DDef (binD 0 25 100) "$< \\mu >$" (dndx "<\\mu>" "1")
+    h = hist1DDef (binD 0 25 100) "$< \\mu >$" (dsigdXpbY "<\\mu>" "1")
 
 
 elmujj :: RecoEvent -> PhysObj Bool
