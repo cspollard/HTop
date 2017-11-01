@@ -42,7 +42,9 @@ writeFiles outf pm = do
       appLumi t yo =
         if T.isInfixOf "/elmujjtrue/" t || T.isInfixOf "/elmujjmatched/" t
           then yo
-          else liftA2 scaleH lumi <$> yo
+          else
+            over ylabel (T.replace "\\sigma" "n" . T.replace "pb" "1")
+            $ yo <&> liftA2 scaleH lumi
 
       write :: Bool -> T.Text -> Folder YodaObj -> IO ()
       write normed varname hs =
@@ -64,7 +66,13 @@ writeFiles outf pm = do
 
       addNorm :: (T.Text, YodaObj) -> [(T.Text, YodaObj)]
       addNorm (t, yo) =
-        [(t, yo), (t <> "norm", set (noted._H1DD.integral) 1 yo)]
+        [ (t, yo)
+        , ( t <> "norm"
+          , yo
+            & set (noted._H1DD.integral) 1
+              . over ylabel ("$\\frac{1}{\\sigma}$" <>)
+          )
+        ]
 
 
       psmc :: VarMap (Folder YodaObj)
