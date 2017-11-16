@@ -29,7 +29,7 @@ zbtbin = binD 0 21 1.05
 zbtcbin = zbtbin
 zblbin = zbtbin
 zblcbin = zblbin
-zbtrelbin = binD 0 20 0.1
+zbtrelbin = binD 0 20 0.05
 zbtrelcbin = zbtrelbin
 
 npvtrkname, nsvtrkname :: Text

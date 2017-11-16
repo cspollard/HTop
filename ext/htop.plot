@@ -9,6 +9,10 @@ RatioPlotYMax=1.50
 # BEGIN PLOT /.*zbtc?(norm)?$
 LegendXPos=0.1
 # END PLOT
+#
+# BEGIN PLOT /.*zblc?(norm)?$
+LegendXPos=0.1
+# END PLOT
 
 # BEGIN PLOT /.*ptc?$
 LogY=1
