@@ -70,9 +70,15 @@ writeFiles outf pm = do
         , ( t <> "norm"
           , yo
             & set (noted._H1DD.integral) 1
-              . over ylabel ("$\\frac{1}{\\sigma}$" <>)
+              . over ylabel g
           )
         ]
+
+        where
+          g yl =
+            if T.isInfixOf "\\sigma" yl
+              then "\\ensuremath{\\frac{1}{\\sigma}}" <> yl
+              else "\\ensuremath{\\frac{1}{n}}" <> yl
 
 
       psmc :: VarMap (Folder YodaObj)
