@@ -323,7 +323,7 @@ zblcmatrixname, zblcrecohname, zblcrecomatchhname, zblctruehname :: IsString s =
 zblcmatrixname = "/elmujjmatched/zblcmig"
 zblcrecohname = "/elmujj/probejets/zblc"
 zblcrecomatchhname = "/elmujjmatched/probejets/zblc"
-zblctruehname = "/elmujjtrue/truejets/zbllc"
+zblctruehname = "/elmujjtrue/truejets/zblc"
 
 zbtrelcmatrixname, zbtrelcrecohname, zbtrelcrecomatchhname, zbtrelctruehname :: IsString s => s
 zbtrelcmatrixname = "/elmujjmatched/zbtrelcmig"
