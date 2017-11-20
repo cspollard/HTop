@@ -53,6 +53,9 @@ bfragModel procs = do
     getProcs procs [amcpy8key] & (traverse.traverse.noted) %~ view nominal
   ps <-
     getProcs procs [powh7key] & (traverse.traverse.noted) %~ view nominal
+  sherpa <-
+    mappend nonttpred
+    <$> getProcs procs [sherpakey] & (traverse.traverse.noted) %~ view nominal
 
 
   let nomnom =
