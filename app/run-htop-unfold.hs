@@ -3,7 +3,6 @@
 {-# LANGUAGE OverloadedLists           #-}
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
-{-# LANGUAGE TupleSections             #-}
 {-# LANGUAGE TypeFamilies              #-}
 
 module Main where
@@ -105,8 +104,8 @@ main = do
           $ H2DD . scaleByBinSize2D <$> ao
 
       writeMigs t (m, mdiff, mreldiff) =
-        withFile (youtfolder <> "/" <> T.unpack t <> ".yoda") WriteMode $ \h ->
-          hPutStrLn h . T.unpack . T.intercalate "\n\n"
+        writeFile (youtfolder <> "/" <> T.unpack t <> ".yoda")
+          . T.unpack . T.intercalate "\n\n"
           $ [ showMigMat (zblcmatrixname <> "eff") m
             , maybe "" (showMigMat $ zblcmatrixname <> "diff") mdiff
             , maybe "" (showMigMat $ zblcmatrixname <> "reldiff") mreldiff
@@ -184,7 +183,7 @@ main = do
       xsec <-
         toEither ("missing cross section for dsid " ++ show ds)
         $ xsecs ^? ix ds . _1
-      return $ sequenceA . (fmap.fmap) (scaleO (xsec/w)) <$> hs
+      return $ traverse (fmap (scaleO $ xsec/w)) <$> hs
 
     toEither s Nothing  = Left s
     toEither _ (Just x) = return x
