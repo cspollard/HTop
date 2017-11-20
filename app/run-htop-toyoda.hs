@@ -58,10 +58,10 @@ writeFiles outf pm = do
 
       trim :: (T.Text, YodaObj) -> (T.Text, YodaObj)
       trim (t, yo)
-        | t == truehname = (t, over (noted._H1DD) trimTrueH yo)
-        | t == recohname = (t, over (noted._H1DD) trimRecoH yo)
-        | t == recomatchhname = (t, over (noted._H1DD) trimRecoH yo)
-        | t == matrixname = (t, over (noted._H2DD) (H.liftX trimTrueH . H.liftY trimRecoH) yo)
+        | t == zblctruehname = (t, over (noted._H1DD) trimTrueH yo)
+        | t == zblcrecohname = (t, over (noted._H1DD) trimRecoH yo)
+        | t == zblcrecomatchhname = (t, over (noted._H1DD) trimRecoH yo)
+        | t == zblcmatrixname = (t, over (noted._H2DD) (H.liftX trimTrueH . H.liftY trimRecoH) yo)
         | otherwise = (t, yo)
 
       addNorm :: (T.Text, YodaObj) -> [(T.Text, YodaObj)]
