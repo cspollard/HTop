@@ -48,7 +48,7 @@ unsafeHSub h h' = fromJust $ hzip' (-) h h'
 unsafeHDiv h h' = fromJust $ hzip' (/) h h'
 
 regex :: String
-regex = matrixname ++ "|" ++ recohname ++ "|" ++ recomatchhname ++ "|" ++ truehname
+regex = zblcmatrixname ++ "|" ++ zblcrecohname ++ "|" ++ zblcrecomatchhname ++ "|" ++ zblctruehname
 
 
 main :: IO ()
@@ -107,18 +107,18 @@ main = do
       writeMigs t (m, mdiff, mreldiff) =
         withFile (youtfolder <> "/" <> T.unpack t <> ".yoda") WriteMode $ \h ->
           hPutStrLn h . T.unpack . T.intercalate "\n\n"
-          $ [ showMigMat (matrixname <> "eff") m
-            , maybe "" (showMigMat $ matrixname <> "diff") mdiff
-            , maybe "" (showMigMat $ matrixname <> "reldiff") mreldiff
+          $ [ showMigMat (zblcmatrixname <> "eff") m
+            , maybe "" (showMigMat $ zblcmatrixname <> "diff") mdiff
+            , maybe "" (showMigMat $ zblcmatrixname <> "reldiff") mreldiff
             ]
 
       trueh = fmap (view sumW) . trimTrueH
-        $ pred' ^?! ix truehname . noted . nominal . _H1DD
+        $ pred' ^?! ix zblctruehname . noted . nominal . _H1DD
 
       datah :: H1DI
       datah =
         fmap (round . view sumW) . trimRecoH
-        $ data' ^?! ix recohname . noted . _H1DD
+        $ data' ^?! ix zblcrecohname . noted . _H1DD
 
       xs :: [(Double, (Double, Double))]
       xs =
@@ -167,9 +167,9 @@ main = do
 
   withFile (youtfolder <> "/htop.yoda") WriteMode $ \h ->
     do
-      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname)
+      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> zblctruehname)
         $ zipWith (\x (_, y) -> (x, y)) xs unfolded''
-      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm")
+      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> zblctruehname <> "norm")
         $ zipWith (\x (_, y) -> (x, y)) xs unfoldednorm
 
 
@@ -204,18 +204,18 @@ unfoldingInputs hs =
   let recoh, trueh, recomatchh, bkgrecoh :: Annotated (Vars H1DD)
       recoh =
         fmap (fmap (view sumW) . trimRecoH . (^?! _H1DD))
-        <$> hs ^?! ix recohname
+        <$> hs ^?! ix zblcrecohname
       trueh =
         fmap (fmap (view sumW) . trimTrueH . (^?! _H1DD))
-        <$> hs ^?! ix truehname
+        <$> hs ^?! ix zblctruehname
       recomatchh =
         fmap (fmap (view sumW) . trimRecoH . (^?! _H1DD))
-        <$> hs ^?! ix recomatchhname
+        <$> hs ^?! ix zblcrecomatchhname
 
       math :: Annotated (Vars H2DD)
       math =
         fmap (fmap (view sumW) . H.liftY trimRecoH . H.liftX trimTrueH . fromJust . preview _H2DD)
-        <$> hs ^?! ix matrixname
+        <$> hs ^?! ix zblcmatrixname
 
       bkgrecoh = liftA2 unsafeHSub <$> recoh <*> recomatchh
 

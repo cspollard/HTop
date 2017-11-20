@@ -313,11 +313,11 @@ mergeV f x ks v = V.fromList $ go <$> ks
     go is = foldl f x $ (v !) <$> is
 
 
-matrixname, recohname, recomatchhname, truehname :: IsString s => s
-matrixname = "/elmujjmatched/zbtcmig"
-recohname = "/elmujj/probejets/zbtc"
-recomatchhname = "/elmujjmatched/probejets/zbtc"
-truehname = "/elmujjtrue/truejets/zbtc"
+zbtcmatrixname, zbtcrecohname, zbtcrecomatchhname, zbtctruehname :: IsString s => s
+zbtcmatrixname = "/elmujjmatched/zbtcmig"
+zbtcrecohname = "/elmujj/probejets/zbtc"
+zbtcrecomatchhname = "/elmujjmatched/probejets/zbtc"
+zbtctruehname = "/elmujjtrue/truejets/zbtc"
 
 zblcmatrixname, zblcrecohname, zblcrecomatchhname, zblctruehname :: IsString s => s
 zblcmatrixname = "/elmujjmatched/zblcmig"
