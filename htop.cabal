@@ -120,6 +120,7 @@ executable run-htop-unfold
         histogram-fill -any,
         tdigest -any,
         mwc-probability -any,
+        optparse-applicative -any,
         hunfold -any,
         atlas -any,
         histogram-extras -any,

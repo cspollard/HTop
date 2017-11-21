@@ -17,7 +17,7 @@ import           Control.Lens
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
-import           Data.List              (sort)
+import           Data.List              (intercalate, sort)
 import           Data.Maybe             (fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
 import           Data.Semigroup         ((<>))
@@ -26,8 +26,8 @@ import qualified Data.Text              as T
 import           Data.Vector            (Vector)
 import qualified Data.Vector            as V
 import           Model
+import           Options.Applicative
 import           RunModel
-import           System.Environment     (getArgs)
 import           System.IO              (BufferMode (..), IOMode (..),
                                          hPutStrLn, hSetBuffering, stdout,
                                          withFile)
@@ -47,19 +47,47 @@ unsafeHSub h h' = fromJust $ hzip' (-) h h'
 unsafeHDiv h h' = fromJust $ hzip' (/) h h'
 
 regex :: String
-regex = zblcmatrixname ++ "|" ++ zblcrecohname ++ "|" ++ zblcrecomatchhname ++ "|" ++ zblctruehname
+regex =
+  intercalate "|"
+  [ zblcmatrixname, zblcrecohname, zblcrecomatchhname, zblctruehname
+  , zbtcmatrixname, zbtcrecohname, zbtcrecomatchhname, zbtctruehname
+  , zbtrelcmatrixname, zbtrelcrecohname, zbtrelcrecomatchhname, zbtrelctruehname
+  ]
+
+data Args =
+  Args
+    { mcmcfile   :: String
+    , yodafolder :: String
+    , xsecfile   :: String
+    , observable :: String
+    , infiles    :: [String]
+    } deriving (Show)
+
+inArgs :: Parser Args
+inArgs =
+  Args
+  <$> strOption
+    ( long "mcmcfile" <> metavar "MCMCFILE" )
+  <*> strOption
+    ( long "yodafolder" <> metavar "YODAFOLDER" )
+  <*> strOption
+    ( long "xsecfile" <> metavar "XSECFILE" )
+  <*> strOption
+    ( long "observable" <> metavar "OBSERVABLE" )
+  <*> some (strArgument (metavar "INFILES"))
 
 
 main :: IO ()
 main = do
   hSetBuffering stdout LineBuffering
-  (xsecfile:outfile:youtfolder:infs) <- getArgs
-  xsecs <- fromMaybe (error "failed to read xsecs") <$> readXSecFile xsecfile
-  procs <- either error id <$> decodeFiles (Just regex) infs
+  args <- execParser $ info (helper <*> inArgs) fullDesc
+
+  xsecs <- fromMaybe (error "failed to read xsecs") <$> readXSecFile (xsecfile args)
+  procs <- either error id <$> decodeFiles (Just regex) (infiles args)
 
   let normedProcs = either error id $ itraverse (normToXsec xsecs) procs
       (data', pred', _, _) = either error id $ bfragModel normedProcs
-      (bkg, migration) = unfoldingInputs pred'
+      (bkg, migration) = unfoldingInputs (observable args) pred'
 
       -- filtVar f = inSM (strictMap . HM.filter (f . view noted))
       --
@@ -103,20 +131,21 @@ main = do
         printYodaObj ("/htop" <> n)
           $ H2DD . scaleByBinSize2D <$> ao
 
+      matrixname = obsNames (observable args) ^. _4
       writeMigs t (m, mdiff, mreldiff) =
-        writeFile (youtfolder <> "/" <> T.unpack t <> ".yoda")
+        writeFile (yodafolder args <> "/" <> T.unpack t <> ".yoda")
           . T.unpack . T.intercalate "\n\n"
-          $ [ showMigMat (zblcmatrixname <> "eff") m
-            , maybe "" (showMigMat $ zblcmatrixname <> "diff") mdiff
-            , maybe "" (showMigMat $ zblcmatrixname <> "reldiff") mreldiff
+          $ [ showMigMat (matrixname <> "eff") m
+            , maybe "" (showMigMat $ matrixname <> "diff") mdiff
+            , maybe "" (showMigMat $ matrixname <> "reldiff") mreldiff
             ]
 
-      trueh = fmap (view sumW) . trimTrueH
+      trueh = fmap (view sumW) . obsTrimmers (observable args)
         $ pred' ^?! ix zblctruehname . noted . nominal . _H1DD
 
       datah :: H1DI
       datah =
-        fmap (round . view sumW) . trimRecoH
+        fmap (round . view sumW) . obsTrimmers (observable args)
         $ data' ^?! ix zblcrecohname . noted . _H1DD
 
       xs :: [(Double, (Double, Double))]
@@ -142,7 +171,7 @@ main = do
   putStrLn "model:"
   print model
 
-  unfolded' <- runModel 100000 outfile (view histData datah) model params
+  unfolded' <- runModel 100000 (mcmcfile args) (view histData datah) model params
 
   let unfolded'' =
         sort
@@ -164,7 +193,7 @@ main = do
         q84 <- quantile 0.84 y
         return (x, (q16, q84))
 
-  withFile (youtfolder <> "/htop.yoda") WriteMode $ \h ->
+  withFile (yodafolder args <> "/htop.yoda") WriteMode $ \h ->
     do
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> zblctruehname)
         $ zipWith (\x (_, y) -> (x, y)) xs unfolded''
@@ -194,27 +223,34 @@ main = do
     scaleO w (P1DD h) = P1DD $ scaling w h
 
 
-
-
 unfoldingInputs
-  :: Folder (Annotated (Vars Obj))
+  :: String
+  -> Folder (Annotated (Vars Obj))
   -> (Annotated (Vars  H1DD), Annotated (Vars H2DD))
-unfoldingInputs hs =
-  let recoh, trueh, recomatchh, bkgrecoh :: Annotated (Vars H1DD)
+unfoldingInputs obs hs =
+  let (recohname, truehname, recomatchhname, matrixname)
+        = obsNames obs
+
+      trim
+        :: (Fractional a, Ord a, Monoid b)
+        => Histogram Vector (ArbBin a) b -> Histogram Vector (ArbBin a) b
+      trim = obsTrimmers obs
+
+      recoh, trueh, recomatchh, bkgrecoh :: Annotated (Vars H1DD)
       recoh =
-        fmap (fmap (view sumW) . trimRecoH . (^?! _H1DD))
-        <$> hs ^?! ix zblcrecohname
+        fmap (fmap (view sumW) . trim . (^?! _H1DD))
+        <$> hs ^?! ix recohname
       trueh =
-        fmap (fmap (view sumW) . trimTrueH . (^?! _H1DD))
-        <$> hs ^?! ix zblctruehname
+        fmap (fmap (view sumW) . trim . (^?! _H1DD))
+        <$> hs ^?! ix truehname
       recomatchh =
-        fmap (fmap (view sumW) . trimRecoH . (^?! _H1DD))
-        <$> hs ^?! ix zblcrecomatchhname
+        fmap (fmap (view sumW) . trim . (^?! _H1DD))
+        <$> hs ^?! ix recomatchhname
 
       math :: Annotated (Vars H2DD)
       math =
-        fmap (fmap (view sumW) . H.liftY trimRecoH . H.liftX trimTrueH . fromJust . preview _H2DD)
-        <$> hs ^?! ix zblcmatrixname
+        fmap (fmap (view sumW) . H.liftY trim . H.liftX trim . fromJust . preview _H2DD)
+        <$> hs ^?! ix matrixname
 
       bkgrecoh = liftA2 unsafeHSub <$> recoh <*> recomatchh
 

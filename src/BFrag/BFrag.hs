@@ -257,20 +257,9 @@ bfragHs =
 --     -- , zbtChargedVsPt
   ]
 
-recoMerges :: [[Int]]
-recoMerges =
-  [ [00, 01, 02, 03, 04, 05]
-  , [06, 07, 08]
-  , [09, 10, 11]
-  , [12, 13]
-  , [14, 15]
-  , [16, 17]
-  , [18, 19, 20]
-  ]
 
-
-trueMerges :: [[Int]]
-trueMerges =
+zbtcMerges, zblcMerges, zbtrelcMerges :: [[Int]]
+zbtcMerges =
   [ [00, 01, 02, 03, 04, 05]
   , [06, 07, 08, 09]
   , [10, 11, 12]
@@ -280,6 +269,39 @@ trueMerges =
   , [19, 20]
   ]
 
+zblcMerges = zbtcMerges
+
+zbtrelcMerges =
+  [ [00, 01]
+  , [02, 03]
+  , [04, 05]
+  , [06, 07]
+  , [08, 09]
+  , [10, 11, 12]
+  , [11, 12, 13, 14]
+  , [15, 16, 17, 18, 19, 20]
+  ]
+
+obsTrimmers
+  :: (Eq a1, Fractional a, Ord a, Monoid b, IsString a1)
+  => a1 -> Histogram Vector (ArbBin a) b -> Histogram Vector (ArbBin a) b
+obsTrimmers s =
+  case s of
+    "zbtc"    -> trimH zbtcMerges
+    "zblc"    -> trimH zblcMerges
+    "zbtrelc" -> trimH zbtrelcMerges
+    _         -> id
+
+
+obsNames
+  :: (IsString t, IsString a, Eq a)
+  => a -> (t, t, t, t)
+obsNames s =
+  case s of
+    "zbtc"    -> (zbtcrecohname, zbtctruehname, zbtcrecomatchhname, zbtcmatrixname)
+    "zblc"    -> (zblcrecohname, zblctruehname, zblcrecomatchhname, zblcmatrixname)
+    "zbtrelc" -> (zbtrelcrecohname, zbtrelctruehname, zbtrelcrecomatchhname, zbtrelcmatrixname)
+    _         -> error "unrecognized observable"
 
 
 trimV :: Monoid a => [[Int]] -> Vector a -> Vector a
@@ -297,15 +319,6 @@ trimH bm h =
   let v = views histData (trimV bm) h
       b = views bins (trimB bm) h
   in histogramUO b Nothing v
-
-
-trimTrueH, trimRecoH
-  :: (Monoid b, Ord a, Fractional a)
-  => Histogram Vector (ArbBin a) b
-  -> Histogram Vector (ArbBin a) b
-trimTrueH = trimH trueMerges
-trimRecoH = trimH recoMerges
-
 
 mergeV :: (a -> a -> a) -> a -> [[Int]] -> Vector a -> Vector a
 mergeV f x ks v = V.fromList $ go <$> ks
