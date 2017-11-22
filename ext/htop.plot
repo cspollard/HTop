@@ -9,7 +9,7 @@ RatioPlotYMax=1.50
 # BEGIN PLOT /.*zbtc?(norm)?$
 LegendXPos=0.1
 # END PLOT
-#
+
 # BEGIN PLOT /.*zblc?(norm)?$
 LegendXPos=0.1
 # END PLOT
@@ -19,7 +19,7 @@ LogY=1
 # END PLOT
 
 
-# BEGIN PLOT /.*zbtcmigreldiff$
+# BEGIN PLOT /.*migreldiff$
 LogZ=0
 Legend=0
 ZMin=-0.25
@@ -27,7 +27,7 @@ ZMax=0.25
 ZLabel=relative efficiency difference
 # END PLOT
 
-# BEGIN PLOT /.*zbtcmigdiff$
+# BEGIN PLOT /.*migdiff$
 LogZ=0
 Legend=0
 ZMin=-0.005
@@ -35,11 +35,10 @@ ZMax=0.005
 ZLabel=efficiency difference
 # END PLOT
 
-# BEGIN PLOT /.*zbtcmigeff$
+# BEGIN PLOT /.*migeff$
 LogZ=0
 Legend=0
 ZMin=0
 ZMax=0.05
 ZLabel=efficiency
 # END PLOT
-
