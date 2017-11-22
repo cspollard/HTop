@@ -1,43 +1,36 @@
-mkdir -p closuredata/zblcposteriors
-cd closuredata/zblcposteriors
+mkdir -p particlelevel/zblcposteriors
+cd particlelevel/zblcposteriors
 python ../../../hunfold.git/ext/plot.py < ../zblcmcmc.dat
 cd ../../
-rivet-mkhtml -c ext/htop.plot closuredata/unfoldzblc/*yoda -o closuredata/zblcplots
-make-plots --pdfpng closuredata/zblcplots/Users/*dat
+rivet-mkhtml -c ext/htop.plot particlelevel/unfoldzblc/*yoda -o particlelevel/zblcplots
+make-plots --pdf particlelevel/zblcplots/Users/*dat
 
-mkdir -p closuredata/zbtcposteriors
-cd closuredata/zbtcposteriors
+mkdir -p particlelevel/zbtcposteriors
+cd particlelevel/zbtcposteriors
 python ../../../hunfold.git/ext/plot.py < ../zbtcmcmc.dat
 cd ../../
-rivet-mkhtml -c ext/htop.plot closuredata/unfoldzbtc/*yoda -o closuredata/zbtcplots
-make-plots --pdfpng closuredata/zbtcplots/Users/*dat
+rivet-mkhtml -c ext/htop.plot particlelevel/unfoldzbtc/*yoda -o particlelevel/zbtcplots
+make-plots --pdf particlelevel/zbtcplots/Users/*dat
 
-mkdir -p closuredata/zbtrelcposteriors
-cd closuredata/zbtrelcposteriors
+mkdir -p particlelevel/zbtrelcposteriors
+cd particlelevel/zbtrelcposteriors
 python ../../../hunfold.git/ext/plot.py < ../zbtrelcmcmc.dat
 cd ../../
-rivet-mkhtml -c ext/htop.plot closuredata/unfoldzbtrelc/*yoda -o closuredata/zbtrelcplots
-make-plots --pdfpng closuredata/zbtrelcplots/Users/*dat
+rivet-mkhtml -c ext/htop.plot particlelevel/unfoldzbtrelc/*yoda -o particlelevel/zbtrelcplots
+make-plots --pdf particlelevel/zbtrelcplots/Users/*dat
 
 
-mkdir -p realdata/zblcposteriors
-cd realdata/zblcposteriors
+mkdir -p detectorlevel/zblcposteriors
+cd detectorlevel/zblcposteriors
 python ../../../hunfold.git/ext/plot.py < ../zblcmcmc.dat
 cd ../../
-rivet-mkhtml -c ext/htop.plot realdata/unfoldzblc/*yoda -o realdata/zblcplots
-make-plots --pdfpng realdata/zblcplots/Users/*dat
 
-mkdir -p realdata/zbtcposteriors
-cd realdata/zbtcposteriors
+mkdir -p detectorlevel/zbtcposteriors
+cd detectorlevel/zbtcposteriors
 python ../../../hunfold.git/ext/plot.py < ../zbtcmcmc.dat
 cd ../../
-rivet-mkhtml -c ext/htop.plot realdata/unfoldzbtc/*yoda -o realdata/zbtcplots
-make-plots --pdfpng realdata/zbtcplots/Users/*dat
 
-mkdir -p realdata/zbtrelcposteriors
-cd realdata/zbtrelcposteriors
+mkdir -p detectorlevel/zbtrelcposteriors
+cd detectorlevel/zbtrelcposteriors
 python ../../../hunfold.git/ext/plot.py < ../zbtrelcmcmc.dat
 cd ../../
-rivet-mkhtml -c ext/htop.plot realdata/unfoldzbtrelc/*yoda -o realdata/zbtrelcplots
-make-plots --pdfpng realdata/zbtrelcplots/Users/*dat
-
