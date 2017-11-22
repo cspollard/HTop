@@ -57,12 +57,13 @@ writeFiles outf pm = do
             >-> P.toHandle h
 
       trim :: (T.Text, YodaObj) -> (T.Text, YodaObj)
-      trim (t, yo) = (t, over noted trim' yo)
+      trim (t, yo) = (t, trim' <$> yo)
         where
-          trim' (H1DD h) = H1DD $ obsTrimmers t h
-          trim' (P1DD h) = P1DD $ obsTrimmers t h
+          t' = T.takeWhileEnd (/= '/') t
+          trim' (H1DD h) = H1DD $ obsTrimmers t' h
+          trim' (P1DD h) = P1DD $ obsTrimmers t' h
           trim' (H2DD h) =
-            let f = obsTrimmers t
+            let f = obsTrimmers t'
             in H2DD . H.liftX f $ H.liftY f h
 
       addNorm :: (T.Text, YodaObj) -> [(T.Text, YodaObj)]
