@@ -84,23 +84,25 @@ main = do
       (data', pred', _, _) = either error id $ bfragModel normedProcs
       (bkg, migration) = unfoldingInputs (observable args) pred'
 
-      -- filtVar f = inSM (strictMap . HM.filter (f . view noted))
-      --
-      -- -- only keep bkg variations with a > 2% deviation
-      -- bkgFilt hnom hvar =
-      --   any go . view histData . fromJust
-      --   $ hzip' f hnom hvar
-      --   where
-      --     f n v = (n, v - n)
-      --     go (n, d) = abs (1 - d / n) > 0.02
-      --
-      -- -- only keep matrix variations with a deviation > 0.1% in a bin with > 0.1% efficiency
-      -- matFilt hnom hvar =
-      --   any go . view histData . fromJust
-      --   $ hzip' f hnom hvar
-      --   where
-      --     f n v = (n, abs $ v - n)
-      --     go (n, d) = n > 0.001 && d > 0.001
+      filtVar f v =
+        let nom = view nominal v
+        in over variations (inSM (strictMap . HM.filter (f nom))) v
+
+      -- only keep bkg variations with a > 2% deviation
+      bkgFilt hnom hvar =
+        any go . view histData . fromJust
+        $ hzip' f hnom hvar
+        where
+          f n v = (n, v - n)
+          go (n, d) = abs (1 - d / n) > 0.02
+
+      -- only keep matrix variations with a deviation > 0.1% in a bin with > 0.1% efficiency
+      matFilt hnom hvar =
+        any go . view histData . fromJust
+        $ hzip' f hnom hvar
+        where
+          f n v = (n, abs $ v - n)
+          go (n, d) = n > 0.001 && d > 0.001
 
       migration' = (fmap.fmap.fmap) doubToDist2D migration
 
@@ -150,8 +152,8 @@ main = do
       (model, params) =
         buildModel
           (view histData trueh)
-          (getH2DD <$> view noted migration)
-          (HM.singleton "bkg" . view histData <$> view noted bkg)
+          (getH2DD <$> filtVar matFilt (view noted migration))
+          (HM.singleton "bkg" . view histData <$> filtVar bkgFilt (view noted bkg))
 
   imapM_ writeMigs . variationToMap "nominal"
     $ liftA3 (,,)
