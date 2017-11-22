@@ -1,5 +1,7 @@
 mkdir -p closuredata
-cp realdata/unfoldyoda/htop.yoda ./
+
+yodamerge -o htop.yoda realdata/unfold*/htop.yoda
+
 rivet-mkhtml --mc-errs --pwd -m ".*/truejets/.*" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowH7AFII.yoda:"PowH7" yoda/aMCPy8AFII.yoda:"aMCPy8" yoda/Sherpa221AFII.yoda:"Sherpa221" -o closuredata/genplots
 
 rivet-mkhtml --mc-errs --pwd -m ".*/truejets/.*" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowPy8RadUpAFII.yoda:"PowPy8RadUp" yoda/PowPy8RadDownAFII.yoda:"PowPy8RadDown" yoda/PowPy6FS.yoda:"PowPy6" -o closuredata/powpygenplots

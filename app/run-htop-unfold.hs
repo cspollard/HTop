@@ -46,14 +46,6 @@ unsafeHAdd h h' = fromJust $ hzip' (+) h h'
 unsafeHSub h h' = fromJust $ hzip' (-) h h'
 unsafeHDiv h h' = fromJust $ hzip' (/) h h'
 
-regex :: String
-regex =
-  intercalate "|"
-  [ zblcmatrixname, zblcrecohname, zblcrecomatchhname, zblctruehname
-  , zbtcmatrixname, zbtcrecohname, zbtcrecomatchhname, zbtctruehname
-  , zbtrelcmatrixname, zbtrelcrecohname, zbtrelcrecomatchhname, zbtrelctruehname
-  ]
-
 data Args =
   Args
     { mcmcfile   :: String
@@ -81,6 +73,9 @@ main :: IO ()
 main = do
   hSetBuffering stdout LineBuffering
   args <- execParser $ info (helper <*> inArgs) fullDesc
+
+  let (recohname, truehname, _, matrixname) = obsNames (observable args)
+      regex = intercalate "|" $ obsNames (observable args) ^.. each
 
   xsecs <- fromMaybe (error "failed to read xsecs") <$> readXSecFile (xsecfile args)
   procs <- either error id <$> decodeFiles (Just regex) (infiles args)
@@ -131,7 +126,6 @@ main = do
         printYodaObj ("/htop" <> n)
           $ H2DD . scaleByBinSize2D <$> ao
 
-      matrixname = obsNames (observable args) ^. _4
       writeMigs t (m, mdiff, mreldiff) =
         writeFile (yodafolder args <> "/" <> T.unpack t <> ".yoda")
           . T.unpack . T.intercalate "\n\n"
@@ -141,12 +135,12 @@ main = do
             ]
 
       trueh = fmap (view sumW) . obsTrimmers (observable args)
-        $ pred' ^?! ix zblctruehname . noted . nominal . _H1DD
+        $ pred' ^?! ix truehname . noted . nominal . _H1DD
 
       datah :: H1DI
       datah =
         fmap (round . view sumW) . obsTrimmers (observable args)
-        $ data' ^?! ix zblcrecohname . noted . _H1DD
+        $ data' ^?! ix recohname . noted . _H1DD
 
       xs :: [(Double, (Double, Double))]
       xs =
@@ -195,9 +189,9 @@ main = do
 
   withFile (yodafolder args <> "/htop.yoda") WriteMode $ \h ->
     do
-      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> zblctruehname)
+      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname)
         $ zipWith (\x (_, y) -> (x, y)) xs unfolded''
-      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> zblctruehname <> "norm")
+      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm")
         $ zipWith (\x (_, y) -> (x, y)) xs unfoldednorm
 
 
