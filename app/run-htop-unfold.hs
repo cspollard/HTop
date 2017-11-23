@@ -10,6 +10,7 @@ module Main where
 import           Atlas
 import           Atlas.CrossSections
 import           BFrag.BFrag
+import Debug.Trace
 import           BFrag.Model
 import           BFrag.Systematics      (lumi)
 import           Control.Applicative    (liftA2, liftA3)
@@ -90,19 +91,21 @@ main = do
 
       -- only keep bkg variations with a > 5% deviation
       bkgFilt hnom hvar =
-        any go . view histData . fromJust
+        or . view histData . fromJust
         $ hzip' f hnom hvar
         where
-          f n v = (n, v - n)
-          go (n, d) = abs (1 - d / n) > 0.05
+          f n v =
+            let d = trace "bkgdiff" . traceShow $ abs (v - n) / n
+            in d > 0.05
 
-      -- only keep matrix variations with a deviation > 1% in a bin with > 5% efficiency
+      -- only keep matrix variations with a deviation > 0.1%
       matFilt hnom hvar =
-        any go . view histData . fromJust
+        or . view histData . fromJust
         $ hzip' f hnom hvar
         where
-          f n v = (n, abs $ v - n)
-          go (n, d) = n > 0.01 && d > 0.05
+          f n v =
+            let d = trace "migdiff" . traceShow $ abs (v - n)
+            in d > 0.001
 
       migration' = (fmap.fmap.fmap) doubToDist2D migration
 
