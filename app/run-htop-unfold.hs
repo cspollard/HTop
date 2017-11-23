@@ -10,7 +10,6 @@ module Main where
 import           Atlas
 import           Atlas.CrossSections
 import           BFrag.BFrag
-import Debug.Trace
 import           BFrag.Model
 import           BFrag.Systematics      (lumi)
 import           Control.Applicative    (liftA2, liftA3)
@@ -95,7 +94,7 @@ main = do
         $ hzip' f hnom hvar
         where
           f n v =
-            let d = trace "bkgdiff" . traceShow $ abs (v - n) / n
+            let d = abs (v - n) / n
             in d > 0.05
 
       -- only keep matrix variations with a deviation > 0.1%
@@ -104,7 +103,7 @@ main = do
         $ hzip' f hnom hvar
         where
           f n v =
-            let d = trace "migdiff" . traceShow $ abs (v - n)
+            let d = abs (v - n)
             in d > 0.001
 
       migration' = (fmap.fmap.fmap) doubToDist2D migration
