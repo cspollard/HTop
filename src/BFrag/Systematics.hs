@@ -13,13 +13,15 @@ module BFrag.Systematics
   ) where
 
 import           Atlas
-import           Control.Lens       (imap)
-import           Data.Bifunctor     (first)
-import qualified Data.IntMap.Strict as IM
-import           Data.Semigroup     ((<>))
-import qualified Data.Text          as T
+import           Control.Lens              (imap)
+import           Control.Monad.Trans.Maybe
+import           Control.Monad.Writer      hiding ((<>))
+import           Data.Bifunctor            (first)
+import qualified Data.IntMap.Strict        as IM
+import           Data.Semigroup            ((<>))
+import qualified Data.Text                 as T
 import           Data.TTree
-import           GHC.Exts           (fromList)
+import           GHC.Exts                  (fromList)
 import           GHC.Float
 
 
@@ -44,13 +46,13 @@ recoWgt (MC' vcfg) = do
 
 
 trueWgt :: (MonadThrow m, MonadIO m) => TreeRead m (PhysObj ())
-trueWgt = dictate . sf "evtw" . float2Double <$> readBranch "weight_mc"
+trueWgt = tell . sf "evtw" . float2Double <$> readBranch "weight_mc"
 
 
 -- TODO
 -- partial!
 lepSF :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
-lepSF _ = dictate . sf "lepton_sf" . float2Double <$> readBranch "weight_leptonSF"
+lepSF _ = tell . sf "lepton_sf" . float2Double <$> readBranch "weight_leptonSF"
 -- TODO
 -- in XRedTop there are 38 (!!) lepSF variations. This can't be right.
 -- lepSF NoVarsT m = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
@@ -63,11 +65,16 @@ lepSF _ = dictate . sf "lepton_sf" . float2Double <$> readBranch "weight_leptonS
 --
 --   return $ Variations (sf "lepsf" nom) vars'
 
+varSF :: Vars SF -> PhysObj ()
+varSF sfs = PhysObj . MaybeT . WriterT $ do
+  s <- sfs
+  return (Just (), s)
+
 puWgt :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
 puWgt vcfg = do
   puw <- float2Double <$> readBranch "weight_pileup"
   case vcfg of
-    NoVars -> return . dictate $ sf "weight_pileup" puw
+    NoVars -> return . tell $ sf "weight_pileup" puw
     AllVars -> do
       puwup <- float2Double <$> readBranch "weight_pileup_UP"
       puwdown <- float2Double <$> readBranch "weight_pileup_DOWN"
@@ -80,7 +87,7 @@ jvtWgt :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
 jvtWgt vcfg = do
   jvtw <- float2Double <$> readBranch "weight_jvt"
   case vcfg of
-    NoVars -> return . dictate $ sf "weight_jvt" jvtw
+    NoVars -> return . tell $ sf "weight_jvt" jvtw
     AllVars -> do
       jvtwup <- float2Double <$> readBranch "weight_jvt_UP"
       jvtwdown <- float2Double <$> readBranch "weight_jvt_DOWN"
@@ -93,7 +100,7 @@ btagSF :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
 btagSF vcfg = do
   btagw <- float2Double <$> readBranch "weight_bTagSF_70"
   case vcfg of
-    NoVars -> return . dictate $ sf "weight_btag" btagw
+    NoVars -> return . tell $ sf "weight_btag" btagw
     AllVars -> do
       btagwsup <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_B_up"
       btagwsdown <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_B_down"

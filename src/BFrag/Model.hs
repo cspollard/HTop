@@ -22,7 +22,7 @@ bfragModel
   :: StrictMap ProcessInfo (Folder (Annotated (Vars Obj)))
   -> Either String (Folder (Annotated Obj), Folder (Annotated (Vars Obj)), Folder (Annotated (Vars Obj)), StrictMap ProcessInfo (Folder YodaObj))
 bfragModel procs = do
-  (zjets :: Folder (Annotated (Vars Obj))) <-
+  zjets <-
     getProcs procs zjetskeys
     & traverse.traverse.traverse %~ addVar "ZJetsNormUp" (scaleO 1.3)
   stop <-
@@ -61,7 +61,6 @@ bfragModel procs = do
   let nomnom =
         nom & (traverse.noted) %~ view nominal
 
-      -- do an (a -> b -> c) inside a Folder (Annotated a/b)
       inFA2 f = inF2 (M.intersectionWith $ liftA2 f)
 
       afiidiff = inFA2 corrDiffO nomnom afii

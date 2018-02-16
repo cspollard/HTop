@@ -5,12 +5,12 @@ packages:
 
 - location:
     git: https://github.com/cspollard/histogram-extras.git
-    commit: 839f490b8969b6d88f72f4ebec0f20fbe1fd9398
+    commit: 31f7ac0862c5dfc73ed533f551f18380e06460c6
   extra-dep: true
 
 - location:
     git: https://github.com/cspollard/variation.git
-    commit: 1659fc5412c66b31c0b8f0a36cc75734a9c96454
+    commit: 5ec69558ad1e8bc4f94510f851f24671967fc922
   extra-dep: true
 
 - location:
@@ -20,7 +20,7 @@ packages:
 
 - location:
     git: https://github.com/cspollard/atlas.git
-    commit: f6b0c4f63e1916a193684d4ecc26cb7dcaf51246
+    commit: 143160167e6ba2399bbb7b485de8c42317802145
   extra-dep: true
 
 - location:

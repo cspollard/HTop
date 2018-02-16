@@ -13,14 +13,16 @@ import           Atlas
 import           BFrag.BFrag
 import           BFrag.PtEtaPhiE
 import           BFrag.Systematics
-import           Control.Applicative (ZipList (..))
+import           Control.Applicative  (ZipList (..))
 import           Control.Lens
+import           Control.Monad.Writer
 import           Data.Bifunctor
-import           Data.Semigroup      (Any (..))
+import           Data.Semigroup       (Any (..))
+import qualified Data.Text            as T
 import           Data.TTree
-import qualified Data.Vector         as V
+import qualified Data.Vector          as V
 import           GHC.Float
-import           GHC.Generics        (Generic)
+import           GHC.Generics         (Generic)
 
 
 data JetFlavor = L | C | B | T
@@ -72,11 +74,11 @@ readJets dmc = do
     case dmc of
       Data'       -> pure $ pure mempty
       MC' NoVars  -> pure $ pure mempty
-      MC' AllVars -> pure $ pure mempty
-        -- imap (\i -> sf ("btagSFjet" <> T.pack (show i))) . fmap float2Double
-        -- <$> readBranch "JetBtagSF"
+      MC' AllVars ->
+        imap (\i -> sf ("btagSFjet" <> T.pack (show i))) . fmap float2Double
+        <$> readBranch "JetBtagSF"
 
-  let withsf x xsf = dictate xsf >> return x
+  let withsf x xsf = writer (x, xsf)
       tagged = withsf <$> tagged' <*> mv2c10sfs
 
 
