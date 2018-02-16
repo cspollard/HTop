@@ -62,8 +62,8 @@ inArgs =
   <$> strOption
     ( long "mcmcfile" <> metavar "MCMCFILE" )
   <*> (
-    pure 1000000
-    <|> option auto ( long "nsamples" <> metavar "YODAFOLDER" )
+    option auto ( long "nsamples" <> metavar "NSAMPLES=1000000" )
+    <|> pure 1000000
     )
   <*> strOption
     ( long "yodafolder" <> metavar "YODAFOLDER" )
@@ -174,7 +174,8 @@ main = do
   putStrLn "model:"
   print model
 
-  unfolded' <- runModel 1000000 (mcmcfile args) (view histData datah) model params
+  unfolded' <-
+    runModel (nsamples args) (mcmcfile args) (view histData datah) model params
 
   let unfolded'' =
         sort
