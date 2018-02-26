@@ -49,6 +49,7 @@ unsafeHDiv h h' = fromJust $ hzip' (/) h h'
 data Args =
   Args
     { mcmcfile   :: String
+    , nsamples   :: Int
     , yodafolder :: String
     , xsecfile   :: String
     , observable :: String
@@ -60,6 +61,10 @@ inArgs =
   Args
   <$> strOption
     ( long "mcmcfile" <> metavar "MCMCFILE" )
+  <*> (
+    option auto ( long "nsamples" <> metavar "NSAMPLES=1000000" )
+    <|> pure 1000000
+    )
   <*> strOption
     ( long "yodafolder" <> metavar "YODAFOLDER" )
   <*> strOption
@@ -169,7 +174,8 @@ main = do
   putStrLn "model:"
   print model
 
-  unfolded' <- runModel 100000 (mcmcfile args) (view histData datah) model params
+  unfolded' <-
+    runModel (nsamples args) (mcmcfile args) (view histData datah) model params
 
   let unfolded'' =
         sort
@@ -297,7 +303,7 @@ buildModel trueH matH bkgHs = (nommod, params)
       . flip imap trueH
       $ \i x ->
         ( T.pack $ "truthbin" ++ show i
-        , ModelParam x Flat
+        , ModelParam x NonNegative
           $ ModelVar Nothing (Just (emptysig & ix i .~ 1)) Nothing Nothing
         )
 
