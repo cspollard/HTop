@@ -9,6 +9,7 @@ import           Control.Arrow          ((&&&))
 import           Control.Lens
 import           Data.Foldable          (fold)
 import           Data.HEP.ThreeMomentum
+import           Data.Histogram.Generic (histogramUO)
 import           Data.Text              (Text)
 import           Data.Vector            (Vector, (!))
 import qualified Data.Vector            as V
@@ -109,11 +110,9 @@ zbtrel j = do
       num = modulus $ svp3 `cross` p3
   return $ num / denom
 
-chargedPtH
-  :: (HasSVConstits a, HasPVConstits a)
-  => Foldl (PhysObj a) (Vars YodaObj)
-chargedPtH = physObjH h =$<< fmap (view lvPt) . chargedSum
 
+chargedPtH :: (HasSVConstits a, HasPVConstits a) => VarFill a
+chargedPtH = h =$<< fmap (view lvPt) . chargedSum
   where
     h =
       hist1DDef
@@ -122,11 +121,8 @@ chargedPtH = physObjH h =$<< fmap (view lvPt) . chargedSum
         (dsigdXpbY pt gev)
 
 
-pvPtH
-  :: (HasPVConstits a)
-  => Foldl (PhysObj a) (Vars YodaObj)
-pvPtH = physObjH h =$<< fmap (view lvPt . fold) . pvConstits
-
+pvPtH :: HasPVConstits a => VarFill a
+pvPtH = h =$<< fmap (view lvPt . fold) . pvConstits
   where
     h =
       hist1DDef
@@ -134,11 +130,8 @@ pvPtH = physObjH h =$<< fmap (view lvPt . fold) . pvConstits
         "PV $p_{\\mathrm T}$"
         (dsigdXpbY pt gev)
 
-pvPtcH
-  :: (HasPVConstits a)
-  => Foldl (PhysObj a) (Vars YodaObj)
-pvPtcH = physObjH h =$<< fmap (view lvPt . fold) . pvChargedConstits
-
+pvPtcH :: (HasPVConstits a) => VarFill a
+pvPtcH = h =$<< fmap (view lvPt . fold) . pvChargedConstits
   where
     h =
       hist1DDef
@@ -146,11 +139,8 @@ pvPtcH = physObjH h =$<< fmap (view lvPt . fold) . pvChargedConstits
         "PV charged $p_{\\mathrm T}$"
         (dsigdXpbY pt gev)
 
-svPtH
-  :: (HasSVConstits a)
-  => Foldl (PhysObj a) (Vars YodaObj)
-svPtH = physObjH h =$<< fmap (view lvPt . fold) . svConstits
-
+svPtH :: (HasSVConstits a) => VarFill a
+svPtH = h =$<< fmap (view lvPt . fold) . svConstits
   where
     h =
       hist1DDef
@@ -158,11 +148,8 @@ svPtH = physObjH h =$<< fmap (view lvPt . fold) . svConstits
         "SV $p_{\\mathrm T}$"
         (dsigdXpbY pt gev)
 
-svPtcH
-  :: (HasSVConstits a)
-  => Foldl (PhysObj a) (Vars YodaObj)
-svPtcH = physObjH h =$<< fmap (view lvPt . fold) . svChargedConstits
-
+svPtcH :: (HasSVConstits a) => VarFill a
+svPtcH = h =$<< fmap (view lvPt . fold) . svChargedConstits
   where
     h =
       hist1DDef
@@ -171,65 +158,55 @@ svPtcH = physObjH h =$<< fmap (view lvPt . fold) . svChargedConstits
         (dsigdXpbY pt gev)
 
 
-zbtH :: (HasSVConstits a, HasPVConstits a) => Foldl (PhysObj a) (Vars YodaObj)
-zbtH = physObjH h =$<< zbt
-
+zbtH :: (HasSVConstits a, HasPVConstits a) => VarFill a
+zbtH = h =$<< zbt
   where
     h = hist1DDef zbtbin zbtname (dsigdXpbY zbtname "1")
 
-zbtcH :: (HasSVConstits a, HasPVConstits a) => Foldl (PhysObj a) (Vars YodaObj)
-zbtcH = physObjH h =$<< zbtc
+
+zbtcH :: (HasSVConstits a, HasPVConstits a) => VarFill a
+zbtcH = h =$<< zbtc
   where
     h = hist1DDef zbtcbin zbtcname (dsigdXpbY zbtcname "1")
 
 
-zblH :: (HasSVConstits a, HasPVConstits a) => Foldl (PhysObj a) (Vars YodaObj)
-zblH = physObjH h =$<< zbl
+zblH :: (HasSVConstits a, HasPVConstits a) => VarFill a
+zblH = h =$<< zbl
   where
     h = hist1DDef zblbin zblname (dsigdXpbY zblname "1")
 
-zblcH :: (HasSVConstits a, HasPVConstits a) => Foldl (PhysObj a) (Vars YodaObj)
-zblcH = physObjH h =$<< zblc
+
+zblcH :: (HasSVConstits a, HasPVConstits a) => VarFill a
+zblcH = h =$<< zblc
   where
     h = hist1DDef zblcbin zblcname (dsigdXpbY zblcname "1")
 
 
-zbtrelH
-  :: (HasSVConstits a, HasPVConstits a)
-  => Foldl (PhysObj a) (Vars YodaObj)
-zbtrelH = physObjH h =$<< zbtrel
+zbtrelH :: (HasSVConstits a, HasPVConstits a) => VarFill a
+zbtrelH = h =$<< zbtrel
   where
     h = hist1DDef zbtrelbin zbtrelname (dsigdXpbY zbtrelname "1")
 
-zbtrelcH
-  :: (HasSVConstits a, HasPVConstits a)
-  => Foldl (PhysObj a) (Vars YodaObj)
-zbtrelcH = physObjH h =$<< zbtrelc
+
+zbtrelcH :: (HasSVConstits a, HasPVConstits a) => VarFill a
+zbtrelcH = h =$<< zbtrelc
   where
     h = hist1DDef zbtrelcbin zbtrelcname (dsigdXpbY zbtrelcname "1")
 
 
-
-nPVTracksH
-  :: (HasPVConstits a)
-  => Foldl (PhysObj a) (Vars YodaObj)
-nPVTracksH = physObjH h =$<< fmap (fromIntegral . length) . pvChargedConstits
+nPVTracksH :: (HasPVConstits a) => VarFill a
+nPVTracksH = h =$<< fmap (fromIntegral . length) . pvChargedConstits
   where
     h = hist1DDef npvtrkbin npvtrkname (dsigdXpbY npvtrkname "1")
 
 
-nSVTracksH
-  :: (HasLorentzVector a, HasSVConstits a)
-  => Foldl (PhysObj a) (Vars YodaObj)
-nSVTracksH =
-  physObjH h =$<< fmap (fromIntegral . length) . svChargedConstits
+nSVTracksH :: (HasLorentzVector a, HasSVConstits a) => VarFill a
+nSVTracksH = h =$<< fmap (fromIntegral . length) . svChargedConstits
   where
     h = hist1DDef nsvtrkbin nsvtrkname (dsigdXpbY nsvtrkname "1")
 
 
-bfragHs
-  :: (HasPVConstits a, HasSVConstits a, HasLorentzVector a)
-  => Fills a
+bfragHs :: (HasPVConstits a, HasSVConstits a, HasLorentzVector a) => VarFills a
 bfragHs =
   mconcat
   [ singleton "/zbt" <$> zbtH

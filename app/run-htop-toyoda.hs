@@ -29,9 +29,11 @@ main :: IO ()
 main = mainWith writeFiles
 
 
-writeFiles :: String -> ProcMap (Folder (Vars YodaObj)) -> IO ()
+writeFiles :: String -> ProcMap (Folder (Annotated (Vars Obj))) -> IO ()
 writeFiles outf pm = do
-  let (data', pred', bkgs, ttpreds) = either error id . bfragModel $ fmap sequenceA <$> pm
+  let (data', pred', bkgs, ttpreds) =
+        either error id $ bfragModel pm
+
       predhs = imap appLumi pred'
       bkghs = imap appLumi bkgs
       ttpredhs =

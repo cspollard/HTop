@@ -13,15 +13,14 @@ module BFrag.Systematics
   ) where
 
 import           Atlas
-import           Control.Lens              (imap)
-import           Control.Monad.Trans.Maybe
-import           Control.Monad.Writer      hiding ((<>))
-import           Data.Bifunctor            (first)
-import qualified Data.IntMap.Strict        as IM
-import           Data.Semigroup            ((<>))
-import qualified Data.Text                 as T
+import           Control.Lens         (imap)
+import           Control.Monad.Writer hiding ((<>))
+import           Data.Bifunctor       (first)
+import qualified Data.IntMap.Strict   as IM
+import           Data.Semigroup       ((<>))
+import qualified Data.Text            as T
 import           Data.TTree
-import           GHC.Exts                  (fromList)
+import           GHC.Exts             (fromList)
 import           GHC.Float
 
 
@@ -64,11 +63,6 @@ lepSF _ = tell . sf "lepton_sf" . float2Double <$> readBranch "weight_leptonSF"
 --         $ vars
 --
 --   return $ Variations (sf "lepsf" nom) vars'
-
-varSF :: Vars SF -> PhysObj ()
-varSF sfs = PhysObj . MaybeT . WriterT $ do
-  s <- sfs
-  return (Just (), s)
 
 puWgt :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
 puWgt vcfg = do

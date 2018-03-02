@@ -209,14 +209,14 @@ main = do
     normToXsec
       :: CrossSectionInfo
       -> ProcessInfo
-      -> (Sum Double, Folder (Vars YodaObj))
+      -> (Sum Double, Folder (Annotated (Vars Obj)))
       -> Either String (Folder (Annotated (Vars Obj)))
-    normToXsec _ (ProcessInfo _ DS) (_, hs) = return $ sequenceA <$> hs
+    normToXsec _ (ProcessInfo _ DS) (_, hs) = return hs
     normToXsec xsecs (ProcessInfo ds _) (Sum w, hs) = do
       xsec <-
         toEither ("missing cross section for dsid " ++ show ds)
         $ xsecs ^? ix ds . _1
-      return $ traverse (fmap (scaleO $ xsec/w)) <$> hs
+      return $ (fmap.fmap) (scaleO $ xsec/w) <$> hs
 
     toEither s Nothing  = Left s
     toEither _ (Just x) = return x

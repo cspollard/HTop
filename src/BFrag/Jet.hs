@@ -16,7 +16,6 @@ import           BFrag.Systematics
 import           Control.Applicative  (ZipList (..))
 import           Control.Lens
 import           Control.Monad.Writer
-import           Data.Bifunctor
 import           Data.Semigroup       (Any (..))
 import qualified Data.Text            as T
 import           Data.TTree
@@ -138,11 +137,11 @@ jetTracksTLV spt seta sphi se = do
     return . ZipList $ V.toList trks
 
 
-mv2c10H :: Fills Jet
+mv2c10H :: VarFills Jet
 mv2c10H =
-  fmap (singleton "/mv2c10") . physObjH
-  $ hist1DDef (binD (-1) 25 1) "MV2c10" (dsigdXpbY "\\mathrm{MV2c10}" "1")
-    <$= first (view mv2c10)
+  singleton "/mv2c10"
+  <$> hist1DDef (binD (-1) 25 1) "MV2c10" (dsigdXpbY "\\mathrm{MV2c10}" "1")
+  <$= fmap (view mv2c10)
 
 
 bLabeled :: Jet -> Bool

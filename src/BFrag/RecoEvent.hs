@@ -22,6 +22,7 @@ import           BFrag.PtEtaPhiE   as X
 import           BFrag.Systematics as X
 import qualified Control.Foldl     as F
 import           Control.Lens
+import           Control.Monad     (guard, join)
 import           Data.Semigroup
 import           Data.TTree
 import           GHC.Float
@@ -85,8 +86,8 @@ readRecoEvent dmc = do
   return $ w >> return (RecoEvent mu' els mus js met')
 
 
-muH :: Foldl (PhysObj RecoEvent) (Vars YodaObj)
-muH = physObjH h =$<< (varObj . view mu)
+muH :: VarFill RecoEvent
+muH = h =$<< poFromVars . view mu
   where
     h = hist1DDef (binD 0 25 100) "$< \\mu >$" (dsigdXpbY "<\\mu>" "1")
 
@@ -103,9 +104,8 @@ elmujj e =
         [j1, j2] -> lvDREta j1 j2 > 1.0
         _        -> False
 
-
 -- so much boilerplate
-recoEventHs :: Fills RecoEvent
+recoEventHs :: VarFills RecoEvent
 recoEventHs =
   channelWithLabel "/elmujj" elmujj
   $ mconcat
@@ -113,31 +113,32 @@ recoEventHs =
     -- , singleton "/npv" <$> npvH
 
     , singleton "/met/pt"
-      . over (traverse.xlabel) ("$E_{\\rm T}^{\\rm miss}$ " <>)
-      <$> physObjH ptH <$= fmap (view met)
+      . over xlabel ("$E_{\\rm T}^{\\rm miss}$ " <>)
+      <$> ptH
+      <$= fmap (view met)
 
     , prefixF "/jets"
-      . over (traverse.traverse.xlabel) ("jet " <>)
-      <$> F.handles folded lvHs <$= sequenceL . fmap (view jets)
+      . over (traverse.xlabel) ("jet " <>)
+      <$> F.handles folded lvHs <$= collapsePO . fmap (view jets)
 
     , prefixF "/electrons"
-      . over (traverse.traverse.xlabel) ("electron " <>)
-      <$> F.handles folded lvHs <$= sequenceL . fmap (view electrons)
+      . over (traverse.xlabel) ("electron " <>)
+      <$> F.handles folded lvHs <$= collapsePO . fmap (view electrons)
 
     , prefixF "/muons"
-      . over (traverse.traverse.xlabel) ("muon " <>)
-      <$> F.handles folded lvHs <$= sequenceL . fmap (view muons)
+      . over (traverse.xlabel) ("muon " <>)
+      <$> F.handles folded lvHs <$= collapsePO . fmap (view muons)
 
     , prefixF "/probejets"
-      . over (traverse.traverse.xlabel) ("probe jet " <>)
+      . over (traverse.xlabel) ("probe jet " <>)
       <$> F.handles folded (bfragHs `mappend` lvHs)
-      <$= fmap join . sequenceL . fmap probeJets
+      <$= fmap join . collapsePO . fmap probeJets
     ]
 
 
 
 probeJets :: RecoEvent -> [PhysObj Jet]
-probeJets revt = fmap join . sequenceL . return $
+probeJets revt = fmap join . collapsePO . return $
   case view jets revt of
     [j1, j2] ->
       if lvDREta j1 j2 > 1.0

@@ -80,7 +80,7 @@ fillFile
   :: (MonadIO m, MonadCatch m)
   => [String]
   -> String
-  -> m (ProcessInfo, Sum Double, Folder (Vars YodaObj))
+  -> m (ProcessInfo, Sum Double, Folder (Annotated (Vars Obj)))
 fillFile systs fn = do
   liftIO . putStrLn $ "analyzing file " <> fn
 
@@ -198,12 +198,12 @@ readEvents
 readEvents systflag tttrue ttnom ttsysts = do
   ((rn, en), (mitrue, minom, isysts)) <- await
 
-  let f :: (Monoid c, MonadChronicle c m1, MonadIO m) => TreeRead m (m1 a) -> TTree -> Maybe Int -> m (m1 a, TTree)
-      f tr t (Just i) = flip runStateT t $ mf <$> readTTreeEntry tr i
-      f _ t Nothing   = return (confess mempty, t)
-
-      mf :: (Monoid c, MonadChronicle c m) => Maybe (m a) -> m a
-      mf = fromMaybe (confess mempty)
+  -- TODO
+  -- I am so confused.
+  let f tr t (Just i) =
+        flip runStateT t
+        $ fromMaybe (error "unable to read event from ttree!") <$> readTTreeEntry tr i
+      f _ t Nothing   = return (poFail, t)
 
 
       systs' =
@@ -235,7 +235,7 @@ readEvents systflag tttrue ttnom ttsysts = do
   where
     toEvent :: PhysObj a -> StrictMap T.Text (PhysObj a) -> PhysObj a
     toEvent n s =
-      let systs = view nominal . runPhysObj' <$> s
-          n' = runPhysObj' n
+      let systs = view nominal . runPhysObj <$> s
+          n' = runPhysObj n
           n'' = n' & variations %~ mappend systs
-      in varsToPO n''
+      in physObj n''

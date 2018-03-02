@@ -22,10 +22,10 @@ import           GHC.Generics       (Generic)
 
 data TrueEvent =
   TrueEvent
-    { _trueJets      :: [TrueJet]
-    , _trueElectrons :: [TrueElectron]
-    , _trueMuons     :: [TrueMuon]
-    } deriving (Generic, Show)
+  { _trueJets      :: [TrueJet]
+  , _trueElectrons :: [TrueElectron]
+  , _trueMuons     :: [TrueMuon]
+  } deriving (Generic, Show)
 
 
 readTrueEvent :: (MonadIO m, MonadThrow m) => TreeRead m (PhysObj TrueEvent)
@@ -47,19 +47,19 @@ trueElectrons :: Lens' TrueEvent [TrueElectron]
 trueElectrons = lens _trueElectrons $ \te x -> te { _trueElectrons = x }
 
 
-trueEventHs :: Fills TrueEvent
+trueEventHs :: VarFills TrueEvent
 trueEventHs =
   channelWithLabel "/elmujjtrue" (return . elmujjTrue)
   $ prefixF "/truejets"
-    . over (traverse.traverse.xlabel) ("true jet " <>)
+    . over (traverse.xlabel) ("true jet " <>)
     <$> F.handles folded (bfragHs `mappend` lvHs `mappend` bHs)
-    <$= sequenceL . fmap (view trueJets)
+    <$= collapsePO . fmap (view trueJets)
 
   where
-    bHs :: Fills TrueJet
+    bHs :: VarFills TrueJet
     bHs =
       F.handles folded (mconcat [bMesonH, bBaryonH])
-      <$= sequenceL . fmap (view tjBHadrons)
+      <$= collapsePO . fmap (view tjBHadrons)
 
 
 elmujjTrue :: TrueEvent -> Bool

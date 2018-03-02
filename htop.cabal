@@ -19,7 +19,6 @@ library
         BFrag.TrueElectron
         BFrag.TrueMuon
         BFrag.Muon
-        BFrag.Selection
         BFrag.PtEtaPhiE
         BFrag.Systematics
         BFrag.BFrag
