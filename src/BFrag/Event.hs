@@ -1,10 +1,10 @@
 {-# LANGUAGE DataKinds                 #-}
-{-# LANGUAGE Rank2Types                 #-}
 {-# LANGUAGE DeriveGeneric             #-}
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE FlexibleInstances         #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE Rank2Types                #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE TupleSections             #-}
 {-# LANGUAGE TypeFamilies              #-}
@@ -135,9 +135,9 @@ matchedJetHs =
     mconcat
     $ (prefixF "/probejets" <$> bfragHs <$= fmap snd)
       : (prefixF "/truejets" <$> bfragHs <$= fmap fst)
-      : [ zbtMig, zbtcMig, zblMig, zblcMig, zbtrelMig, zbtrelcMig
+      : [ zbtMig, zbtcMig, zblMig, zblcMig, zbrelMig, zbrelcMig
         , nsvtrkMig, npvtrkMig
-        , zbtDiff, zbtcDiff, zblDiff, zblcDiff, zbtrelDiff, zbtrelcDiff
+        , zbtDiff, zbtcDiff, zblDiff, zblcDiff, zbrelDiff, zbrelcDiff
         , nsvtrkDiff, npvtrkDiff
         -- , svPtDiff
         -- , svPtcDiff
@@ -170,25 +170,25 @@ zblcMig = singleton "/zblcmig" <$> physObjH h =$<< zblcs
   where
     h = hist2DDef zblcbin zblcbin ("true " <> zblcname) ("reco " <> zblcname)
 
-zbtrelMig :: Fills (TrueJet, Jet)
-zbtrelMig = singleton "/zbtmig" <$> physObjH h =$<< zbtrels
+zbrelMig :: Fills (TrueJet, Jet)
+zbrelMig = singleton "/zbtmig" <$> physObjH h =$<< zbrels
   where
     h =
       hist2DDef
-        zbtrelbin
-        zbtrelbin
-        ("true " <> zbtrelname)
-        ("reco " <> zbtrelname)
+        zbrelbin
+        zbrelbin
+        ("true " <> zbrelname)
+        ("reco " <> zbrelname)
 
-zbtrelcMig :: Fills (TrueJet, Jet)
-zbtrelcMig = singleton "/zbtrelcmig" <$> physObjH h =$<< zbtrelcs
+zbrelcMig :: Fills (TrueJet, Jet)
+zbrelcMig = singleton "/zbrelcmig" <$> physObjH h =$<< zbrelcs
   where
     h =
       hist2DDef
-        zbtrelcbin
-        zbtrelcbin
-        ("true " <> zbtrelcname)
-        ("reco " <> zbtrelcname)
+        zbrelcbin
+        zbrelcbin
+        ("true " <> zbrelcname)
+        ("reco " <> zbrelcname)
 
 
 zbtDiff :: Fills (TrueJet, Jet)
@@ -240,28 +240,28 @@ zblcDiff = singleton "/zblcdiff" <$> physObjH h =$<< fmap (uncurry (-)) . zblcs
         ("(true - reco) " <> zblcname)
         (dsigdXpbY zblcname "1")
 
-zbtrelDiff :: Fills (TrueJet, Jet)
-zbtrelDiff = singleton "/zbtreldiff" <$> physObjH h =$<< f
+zbrelDiff :: Fills (TrueJet, Jet)
+zbrelDiff = singleton "/zbreldiff" <$> physObjH h =$<< f
   where
     f (tj, rj) = do
-      tz <- zbtrel tj
-      rz <- zbtrel rj
+      tz <- zbrel tj
+      rz <- zbrel rj
       return $ tz - rz
 
     h =
       hist1DDef
         (binD (-1) 50 1)
-        ("(true - reco) " <> zbtrelname)
-        (dsigdXpbY zbtrelname "1")
+        ("(true - reco) " <> zbrelname)
+        (dsigdXpbY zbrelname "1")
 
-zbtrelcDiff :: Fills (TrueJet, Jet)
-zbtrelcDiff = singleton "/zbtrelcdiff" <$> physObjH h =$<< fmap (uncurry (-)) . zbtrelcs
+zbrelcDiff :: Fills (TrueJet, Jet)
+zbrelcDiff = singleton "/zbrelcdiff" <$> physObjH h =$<< fmap (uncurry (-)) . zbrelcs
   where
     h =
       hist1DDef
         (binD (-1) 50 1)
-        ("(true - reco) " <> zbtrelcname)
-        (dsigdXpbY zbtrelcname "1")
+        ("(true - reco) " <> zbrelcname)
+        (dsigdXpbY zbrelcname "1")
 
 
 nsvtrkDiff :: Fills (TrueJet, Jet)
@@ -293,14 +293,14 @@ zbs f (tj, rj) = do
   return (tjz, rjz)
 
 
-zbts, zbtcs, zbls, zblcs, zbtrels, zbtrelcs, nsvtrks, npvtrks
+zbts, zbtcs, zbls, zblcs, zbrels, zbrelcs, nsvtrks, npvtrks
   :: (TrueJet, Jet) -> PhysObj (Double, Double)
 zbts = zbs zbt
 zbtcs = zbs zbtc
 zbls = zbs zbl
 zblcs = zbs zblc
-zbtrels = zbs zbtrel
-zbtrelcs = zbs zbtrelc
+zbrels = zbs zbrel
+zbrelcs = zbs zbrelc
 nsvtrks = zbs $ fmap (fromIntegral . length) . svChargedConstits
 npvtrks = zbs $ fmap (fromIntegral . length) . pvChargedConstits
 
