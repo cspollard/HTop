@@ -139,9 +139,9 @@ matchedJetHs =
     mconcat
     $ (prefixF "/probejets" <$> bfragHs <$= fmap snd)
       : (prefixF "/truejets" <$> bfragHs <$= fmap fst)
-      : [ zbtMig, zbtcMig, zblMig, zblcMig, zbtrelMig, zbtrelcMig
+      : [ zbtMig, zbtcMig, zblMig, zblcMig, zbrelMig, zbrelcMig
         , nsvtrkMig, npvtrkMig
-        , zbtDiff, zbtcDiff, zblDiff, zblcDiff, zbtrelDiff, zbtrelcDiff
+        , zbtDiff, zbtcDiff, zblDiff, zblcDiff, zbrelDiff, zbrelcDiff
         , nsvtrkDiff, npvtrkDiff
         -- , svPtDiff
         -- , svPtcDiff
@@ -174,25 +174,25 @@ zblcMig = singleton "/zblcmig" <$> h =$<< zblcs
   where
     h = hist2DDef zblcbin zblcbin ("true " <> zblcname) ("reco " <> zblcname)
 
-zbtrelMig :: VarFills (TrueJet, Jet)
-zbtrelMig = singleton "/zbtmig" <$> h =$<< zbtrels
+zbrelMig :: VarFills (TrueJet, Jet)
+zbrelMig = singleton "/zbtmig" <$> h =$<< zbrels
   where
     h =
       hist2DDef
-        zbtrelbin
-        zbtrelbin
-        ("true " <> zbtrelname)
-        ("reco " <> zbtrelname)
+        zbrelbin
+        zbrelbin
+        ("true " <> zbrelname)
+        ("reco " <> zbrelname)
 
-zbtrelcMig :: VarFills (TrueJet, Jet)
-zbtrelcMig = singleton "/zbtrelcmig" <$> h =$<< zbtrelcs
+zbrelcMig :: VarFills (TrueJet, Jet)
+zbrelcMig = singleton "/zbrelcmig" <$> h =$<< zbrelcs
   where
     h =
       hist2DDef
-        zbtrelcbin
-        zbtrelcbin
-        ("true " <> zbtrelcname)
-        ("reco " <> zbtrelcname)
+        zbrelcbin
+        zbrelcbin
+        ("true " <> zbrelcname)
+        ("reco " <> zbrelcname)
 
 
 zbtDiff :: VarFills (TrueJet, Jet)
@@ -244,28 +244,28 @@ zblcDiff = singleton "/zblcdiff" <$> h =$<< fmap (uncurry (-)) . zblcs
         ("(true - reco) " <> zblcname)
         (dsigdXpbY zblcname "1")
 
-zbtrelDiff :: VarFills (TrueJet, Jet)
-zbtrelDiff = singleton "/zbtreldiff" <$> h =$<< f
+zbrelDiff :: VarFills (TrueJet, Jet)
+zbrelDiff = singleton "/zbreldiff" <$> h =$<< f
   where
     f (tj, rj) = do
-      tz <- zbtrel tj
-      rz <- zbtrel rj
+      tz <- zbrel tj
+      rz <- zbrel rj
       return $ tz - rz
 
     h =
       hist1DDef
         (binD (-1) 50 1)
-        ("(true - reco) " <> zbtrelname)
-        (dsigdXpbY zbtrelname "1")
+        ("(true - reco) " <> zbrelname)
+        (dsigdXpbY zbrelname "1")
 
-zbtrelcDiff :: VarFills (TrueJet, Jet)
-zbtrelcDiff = singleton "/zbtrelcdiff" <$> h =$<< fmap (uncurry (-)) . zbtrelcs
+zbrelcDiff :: VarFills (TrueJet, Jet)
+zbrelcDiff = singleton "/zbrelcdiff" <$> h =$<< fmap (uncurry (-)) . zbrelcs
   where
     h =
       hist1DDef
         (binD (-1) 50 1)
-        ("(true - reco) " <> zbtrelcname)
-        (dsigdXpbY zbtrelcname "1")
+        ("(true - reco) " <> zbrelcname)
+        (dsigdXpbY zbrelcname "1")
 
 
 nsvtrkDiff :: VarFills (TrueJet, Jet)
@@ -297,14 +297,14 @@ zbs f (tj, rj) = do
   return (tjz, rjz)
 
 
-zbts, zbtcs, zbls, zblcs, zbtrels, zbtrelcs, nsvtrks, npvtrks
+zbts, zbtcs, zbls, zblcs, zbrels, zbrelcs, nsvtrks, npvtrks
   :: (TrueJet, Jet) -> PhysObj (Double, Double)
 zbts = zbs zbt
 zbtcs = zbs zbtc
 zbls = zbs zbl
 zblcs = zbs zblc
-zbtrels = zbs zbtrel
-zbtrelcs = zbs zbtrelc
+zbrels = zbs zbrel
+zbrelcs = zbs zbrelc
 nsvtrks = zbs $ fmap (fromIntegral . length) . svChargedConstits
 npvtrks = zbs $ fmap (fromIntegral . length) . pvChargedConstits
 
