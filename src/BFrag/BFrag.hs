@@ -124,23 +124,15 @@ zbrel j = do
 chargedPtH :: (HasSVConstits a, HasPVConstits a) => VarFill a
 chargedPtH = h =$<< fmap (view lvPt) . chargedSum
   where
-    h =
-      hist1DDef
-        (binD 0 25 250)
-        "charged $p_{\\mathrm T}$"
-        (dsigdXpbY pt gev)
+    h = hist1DDef (binD 0 25 250) "charged $p_{\\mathrm T}$" (dsigdXpbY pt gev)
 
 
 pvPtH :: HasPVConstits a => VarFill a
 pvPtH = h =$<< fmap (view lvPt . fold) . pvConstits
-  where
-    h =
-      hist1DDef
-        (binD 0 25 250)
-        "PV $p_{\\mathrm T}$"
-        (dsigdXpbY pt gev)
+  where h = hist1DDef (binD 0 25 250) "PV $p_{\\mathrm T}$" (dsigdXpbY pt gev)
 
-pvPtcH :: (HasPVConstits a) => VarFill a
+
+pvPtcH :: HasPVConstits a => VarFill a
 pvPtcH = h =$<< fmap (view lvPt . fold) . pvChargedConstits
   where
     h =
@@ -149,16 +141,13 @@ pvPtcH = h =$<< fmap (view lvPt . fold) . pvChargedConstits
         "PV charged $p_{\\mathrm T}$"
         (dsigdXpbY pt gev)
 
-svPtH :: (HasSVConstits a) => VarFill a
-svPtH = h =$<< fmap (view lvPt . fold) . svConstits
-  where
-    h =
-      hist1DDef
-        (binD 0 25 250)
-        "SV $p_{\\mathrm T}$"
-        (dsigdXpbY pt gev)
 
-svPtcH :: (HasSVConstits a) => VarFill a
+svPtH :: HasSVConstits a => VarFill a
+svPtH = h =$<< fmap (view lvPt . fold) . svConstits
+  where h = hist1DDef (binD 0 25 250) "SV $p_{\\mathrm T}$" (dsigdXpbY pt gev)
+
+
+svPtcH :: HasSVConstits a => VarFill a
 svPtcH = h =$<< fmap (view lvPt . fold) . svChargedConstits
   where
     h =
@@ -166,6 +155,18 @@ svPtcH = h =$<< fmap (view lvPt . fold) . svChargedConstits
         (binD 0 25 250)
         "SV charged $p_{\\mathrm T}$"
         (dsigdXpbY pt gev)
+
+
+svMH :: HasSVConstits a => VarFill a
+svMH = h =$<< fmap (view lvM . fold) . svConstits
+  where
+    h = hist1DDef (binD 0 25 50) "SV mass" (dsigdXpbY "m" gev)
+
+
+svMcH :: HasSVConstits a => VarFill a
+svMcH = h =$<< fmap (view lvM . fold) . svChargedConstits
+  where
+    h = hist1DDef (binD 0 25 50) "SV charged mass" (dsigdXpbY "m" gev)
 
 
 zbtH :: (HasSVConstits a, HasPVConstits a) => VarFill a
@@ -205,7 +206,7 @@ zbrelcH = h =$<< zbrelc
     h = hist1DDef zbrelcbin zbrelcname (dsigdXpbY zbrelcname "1")
 
 
-nPVTracksH :: (HasPVConstits a) => VarFill a
+nPVTracksH :: HasPVConstits a => VarFill a
 nPVTracksH = h =$<< fmap (fromIntegral . length) . pvChargedConstits
   where
     h = hist1DDef npvtrkbin npvtrkname (dsigdXpbY npvtrkname "1")
