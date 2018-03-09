@@ -231,6 +231,8 @@ bfragHs =
   , singleton "/pvpt" <$> pvPtH
   , singleton "/pvptc" <$> pvPtcH
   , singleton "/svpt" <$> svPtH
+  , singleton "/svmass" <$> svMH
+  , singleton "/svmassc" <$> svMcH
   , singleton "/svptc" <$> svPtcH
   , singleton "/npvtrk" <$> nPVTracksH
   , singleton "/nsvtrk" <$> nSVTracksH
