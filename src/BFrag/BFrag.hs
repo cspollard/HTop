@@ -247,7 +247,8 @@ bfragHs =
   ]
 
 
-zbtcMerges, zblcMerges, zbrelcMerges :: [[Int]]
+zbtcMerges, zblcMerges, zbrelcMerges, zbtMerges, zblMerges, zbrelMerges
+  :: [[Int]]
 zbtcMerges =
   [ [00, 01, 02, 03, 04, 05]
   , [06, 07, 08, 09]
@@ -258,7 +259,10 @@ zbtcMerges =
   , [19, 20]
   ]
 
+zbtMerges = zbtcMerges
+
 zblcMerges = zbtcMerges
+zblMerges = zblcMerges
 
 zbrelcMerges =
   [ [00, 01]
@@ -270,6 +274,8 @@ zbrelcMerges =
   , [15, 16, 17, 18, 19]
   ]
 
+zbrelMerges = zbrelcMerges
+
 obsTrimmers
   :: (Eq a1, Fractional a, Ord a, Monoid b, IsString a1)
   => a1 -> Histogram Vector (ArbBin a) b -> Histogram Vector (ArbBin a) b
@@ -278,6 +284,9 @@ obsTrimmers s =
     "zbtc"   -> trimH zbtcMerges
     "zblc"   -> trimH zblcMerges
     "zbrelc" -> trimH zbrelcMerges
+    "zbt"    -> trimH zbtMerges
+    "zbl"    -> trimH zblMerges
+    "zbrel"  -> trimH zbrelMerges
     _        -> id
 
 
