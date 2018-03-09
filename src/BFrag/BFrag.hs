@@ -298,6 +298,9 @@ obsNames s =
     "zbtc"    -> (zbtcrecohname, zbtctruehname, zbtcrecomatchhname, zbtcmatrixname)
     "zblc"    -> (zblcrecohname, zblctruehname, zblcrecomatchhname, zblcmatrixname)
     "zbrelc" -> (zbrelcrecohname, zbrelctruehname, zbrelcrecomatchhname, zbrelcmatrixname)
+    "zbt"    -> (zbtrecohname, zbttruehname, zbtrecomatchhname, zbtmatrixname)
+    "zbl"    -> (zblrecohname, zbltruehname, zblrecomatchhname, zblmatrixname)
+    "zbrec" -> (zbrelrecohname, zbreltruehname, zbrelrecomatchhname, zbrelmatrixname)
     _         -> error "unrecognized observable"
 
 
@@ -323,17 +326,35 @@ mergeV f x ks v = V.fromList $ go <$> ks
     go is = foldl f x $ (v !) <$> is
 
 
+zbtmatrixname, zbtrecohname, zbtrecomatchhname, zbttruehname :: IsString s => s
+zbtmatrixname = "/elmujjmatched/zbtmig"
+zbtrecohname = "/elmujj/probejets/zbt"
+zbtrecomatchhname = "/elmujjmatched/probejets/zbt"
+zbttruehname = "/elmujjtrue/truejets/zbt"
+
 zbtcmatrixname, zbtcrecohname, zbtcrecomatchhname, zbtctruehname :: IsString s => s
 zbtcmatrixname = "/elmujjmatched/zbtcmig"
 zbtcrecohname = "/elmujj/probejets/zbtc"
 zbtcrecomatchhname = "/elmujjmatched/probejets/zbtc"
 zbtctruehname = "/elmujjtrue/truejets/zbtc"
 
+zblmatrixname, zblrecohname, zblrecomatchhname, zbltruehname :: IsString s => s
+zblmatrixname = "/elmujjmatched/zblmig"
+zblrecohname = "/elmujj/probejets/zbl"
+zblrecomatchhname = "/elmujjmatched/probejets/zbl"
+zbltruehname = "/elmujjtrue/truejets/zbl"
+
 zblcmatrixname, zblcrecohname, zblcrecomatchhname, zblctruehname :: IsString s => s
 zblcmatrixname = "/elmujjmatched/zblcmig"
 zblcrecohname = "/elmujj/probejets/zblc"
 zblcrecomatchhname = "/elmujjmatched/probejets/zblc"
 zblctruehname = "/elmujjtrue/truejets/zblc"
+
+zbrelmatrixname, zbrelrecohname, zbrelrecomatchhname, zbreltruehname :: IsString s => s
+zbrelmatrixname = "/elmujjmatched/zbrelmig"
+zbrelrecohname = "/elmujj/probejets/zbrel"
+zbrelrecomatchhname = "/elmujjmatched/probejets/zbrel"
+zbreltruehname = "/elmujjtrue/truejets/zbrel"
 
 zbrelcmatrixname, zbrelcrecohname, zbrelcrecomatchhname, zbrelctruehname :: IsString s => s
 zbrelcmatrixname = "/elmujjmatched/zbrelcmig"
