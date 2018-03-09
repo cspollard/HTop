@@ -159,23 +159,27 @@ zbtMig = singleton "/zbtmig" <$> h =$<< zbts
   where
     h = hist2DDef zbtbin zbtbin ("true " <> zbtname) ("reco " <> zbtname)
 
+
 zbtcMig :: VarFills (TrueJet, Jet)
 zbtcMig = singleton "/zbtcmig" <$> h =$<< zbtcs
   where
     h = hist2DDef zbtcbin zbtcbin ("true " <> zbtcname) ("reco " <> zbtcname)
 
+
 zblMig :: VarFills (TrueJet, Jet)
-zblMig = singleton "/zbtmig" <$> h =$<< zbls
+zblMig = singleton "/zblmig" <$> h =$<< zbls
   where
     h = hist2DDef zblbin zblbin ("true " <> zblname) ("reco " <> zblname)
+
 
 zblcMig :: VarFills (TrueJet, Jet)
 zblcMig = singleton "/zblcmig" <$> h =$<< zblcs
   where
     h = hist2DDef zblcbin zblcbin ("true " <> zblcname) ("reco " <> zblcname)
 
+
 zbrelMig :: VarFills (TrueJet, Jet)
-zbrelMig = singleton "/zbtmig" <$> h =$<< zbrels
+zbrelMig = singleton "/zbrelmig" <$> h =$<< zbrels
   where
     h =
       hist2DDef
@@ -183,6 +187,7 @@ zbrelMig = singleton "/zbtmig" <$> h =$<< zbrels
         zbrelbin
         ("true " <> zbrelname)
         ("reco " <> zbrelname)
+
 
 zbrelcMig :: VarFills (TrueJet, Jet)
 zbrelcMig = singleton "/zbrelcmig" <$> h =$<< zbrelcs
@@ -244,6 +249,7 @@ zblcDiff = singleton "/zblcdiff" <$> h =$<< fmap (uncurry (-)) . zblcs
         ("(true - reco) " <> zblcname)
         (dsigdXpbY zblcname "1")
 
+
 zbrelDiff :: VarFills (TrueJet, Jet)
 zbrelDiff = singleton "/zbreldiff" <$> h =$<< f
   where
@@ -257,6 +263,7 @@ zbrelDiff = singleton "/zbreldiff" <$> h =$<< f
         (binD (-1) 50 1)
         ("(true - reco) " <> zbrelname)
         (dsigdXpbY zbrelname "1")
+
 
 zbrelcDiff :: VarFills (TrueJet, Jet)
 zbrelcDiff = singleton "/zbrelcdiff" <$> h =$<< fmap (uncurry (-)) . zbrelcs
@@ -276,6 +283,7 @@ nsvtrkDiff = singleton "/nsvtrkdiff" <$> h =$<< fmap (uncurry (-)) . nsvtrks
         (binD (-1) 50 1)
         ("(true - reco) " <> nsvtrkname)
         (dsigdXpbY nsvtrkname "1")
+
 
 npvtrkDiff :: VarFills (TrueJet, Jet)
 npvtrkDiff = singleton "/npvtrkdiff" <$> h =$<< fmap (uncurry (-)) . npvtrks
