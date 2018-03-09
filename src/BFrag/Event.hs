@@ -161,7 +161,7 @@ zbtcMig = singleton "/zbtcmig" <$> physObjH h =$<< zbtcs
     h = hist2DDef zbtcbin zbtcbin ("true " <> zbtcname) ("reco " <> zbtcname)
 
 zblMig :: Fills (TrueJet, Jet)
-zblMig = singleton "/zbtmig" <$> physObjH h =$<< zbls
+zblMig = singleton "/zblmig" <$> physObjH h =$<< zbls
   where
     h = hist2DDef zblbin zblbin ("true " <> zblname) ("reco " <> zblname)
 
@@ -171,7 +171,7 @@ zblcMig = singleton "/zblcmig" <$> physObjH h =$<< zblcs
     h = hist2DDef zblcbin zblcbin ("true " <> zblcname) ("reco " <> zblcname)
 
 zbrelMig :: Fills (TrueJet, Jet)
-zbrelMig = singleton "/zbtmig" <$> physObjH h =$<< zbrels
+zbrelMig = singleton "/zbrelmig" <$> physObjH h =$<< zbrels
   where
     h =
       hist2DDef
@@ -179,6 +179,7 @@ zbrelMig = singleton "/zbtmig" <$> physObjH h =$<< zbrels
         zbrelbin
         ("true " <> zbrelname)
         ("reco " <> zbrelname)
+
 
 zbrelcMig :: Fills (TrueJet, Jet)
 zbrelcMig = singleton "/zbrelcmig" <$> physObjH h =$<< zbrelcs
