@@ -19,13 +19,13 @@ import           GHC.Exts
 zbtname, zblname, zbrelname :: Text
 zbtname = "\\ensuremath{z_{\\mathrm{T,B}}}"
 zblname = "\\ensuremath{z_{\\mathrm{L,B}}}"
-zbrelname = "\\ensuremath{z_{\\mathrm{T,B}}^\\mathrm{rel}}"
+zbrelname = "\\ensuremath{z_{\\mathrm{B}}^\\mathrm{rel}}"
 
 
 zbtcname, zblcname, zbrelcname :: Text
 zbtcname = "\\ensuremath{z_{\\mathrm{T,B}}^\\mathrm{ch}}"
 zblcname = "\\ensuremath{z_{\\mathrm{L,B}}^\\mathrm{ch}}"
-zbrelcname = "\\ensuremath{z_{\\mathrm{T,B}}^\\mathrm{ch, rel}}"
+zbrelcname = "\\ensuremath{z_{\\mathrm{B}}^\\mathrm{ch, rel}}"
 
 
 zbtbin, zbtcbin, zblbin, zblcbin, zbrelbin, zbrelcbin :: BinD
@@ -307,8 +307,12 @@ obsNames s =
 trimV :: Monoid a => [[Int]] -> Vector a -> Vector a
 trimV = mergeV mappend mempty
 
+
 trimB :: [[Int]] -> ArbBin a -> ArbBin a
-trimB bm bs = foldl (flip $ uncurry mergeBinRange) bs . reverse $ (head &&& last) <$> bm
+trimB bm bs =
+  foldl (flip $ uncurry mergeBinRange) bs . reverse
+  $ (head &&& last) <$> bm
+
 
 trimH
   :: (Monoid b, Ord a, Fractional a)
@@ -319,6 +323,7 @@ trimH bm h =
   let v = views histData (trimV bm) h
       b = views bins (trimB bm) h
   in histogramUO b Nothing v
+
 
 mergeV :: (a -> a -> a) -> a -> [[Int]] -> Vector a -> Vector a
 mergeV f x ks v = V.fromList $ go <$> ks
@@ -332,31 +337,41 @@ zbtrecohname = "/elmujj/probejets/zbt"
 zbtrecomatchhname = "/elmujjmatched/probejets/zbt"
 zbttruehname = "/elmujjtrue/truejets/zbt"
 
-zbtcmatrixname, zbtcrecohname, zbtcrecomatchhname, zbtctruehname :: IsString s => s
+
+zbtcmatrixname, zbtcrecohname, zbtcrecomatchhname, zbtctruehname
+  :: IsString s => s
 zbtcmatrixname = "/elmujjmatched/zbtcmig"
 zbtcrecohname = "/elmujj/probejets/zbtc"
 zbtcrecomatchhname = "/elmujjmatched/probejets/zbtc"
 zbtctruehname = "/elmujjtrue/truejets/zbtc"
 
-zblmatrixname, zblrecohname, zblrecomatchhname, zbltruehname :: IsString s => s
+
+zblmatrixname, zblrecohname, zblrecomatchhname, zbltruehname
+  :: IsString s => s
 zblmatrixname = "/elmujjmatched/zblmig"
 zblrecohname = "/elmujj/probejets/zbl"
 zblrecomatchhname = "/elmujjmatched/probejets/zbl"
 zbltruehname = "/elmujjtrue/truejets/zbl"
 
-zblcmatrixname, zblcrecohname, zblcrecomatchhname, zblctruehname :: IsString s => s
+
+zblcmatrixname, zblcrecohname, zblcrecomatchhname, zblctruehname
+  :: IsString s => s
 zblcmatrixname = "/elmujjmatched/zblcmig"
 zblcrecohname = "/elmujj/probejets/zblc"
 zblcrecomatchhname = "/elmujjmatched/probejets/zblc"
 zblctruehname = "/elmujjtrue/truejets/zblc"
 
-zbrelmatrixname, zbrelrecohname, zbrelrecomatchhname, zbreltruehname :: IsString s => s
+
+zbrelmatrixname, zbrelrecohname, zbrelrecomatchhname, zbreltruehname
+  :: IsString s => s
 zbrelmatrixname = "/elmujjmatched/zbrelmig"
 zbrelrecohname = "/elmujj/probejets/zbrel"
 zbrelrecomatchhname = "/elmujjmatched/probejets/zbrel"
 zbreltruehname = "/elmujjtrue/truejets/zbrel"
 
-zbrelcmatrixname, zbrelcrecohname, zbrelcrecomatchhname, zbrelctruehname :: IsString s => s
+
+zbrelcmatrixname, zbrelcrecohname, zbrelcrecomatchhname, zbrelctruehname
+  :: IsString s => s
 zbrelcmatrixname = "/elmujjmatched/zbrelcmig"
 zbrelcrecohname = "/elmujj/probejets/zbrelc"
 zbrelcrecomatchhname = "/elmujjmatched/probejets/zbrelc"

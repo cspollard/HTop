@@ -103,7 +103,7 @@ bfragModel procs = do
       fromMaybe (error "error diffing H2DDs") $ H2DD <$> removeSubHist h h'
     corrDiffO (P1DD h) (P1DD h') =
       fromMaybe (error "error diffing P1DDs") $ P1DD <$> removeSubHist h h'
-    corrDiffO _ _ = error "diffing two u objects"
+    corrDiffO _ _ = error "diffing two incompatible objects"
 
     addVar name f vs = vs & variations . at name ?~ f (view nominal vs)
 
