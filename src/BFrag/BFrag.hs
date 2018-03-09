@@ -297,10 +297,10 @@ obsNames s =
   case s of
     "zbtc"    -> (zbtcrecohname, zbtctruehname, zbtcrecomatchhname, zbtcmatrixname)
     "zblc"    -> (zblcrecohname, zblctruehname, zblcrecomatchhname, zblcmatrixname)
-    "zbrelc" -> (zbrelcrecohname, zbrelctruehname, zbrelcrecomatchhname, zbrelcmatrixname)
-    "zbt"    -> (zbtrecohname, zbttruehname, zbtrecomatchhname, zbtmatrixname)
-    "zbl"    -> (zblrecohname, zbltruehname, zblrecomatchhname, zblmatrixname)
-    "zbrec" -> (zbrelrecohname, zbreltruehname, zbrelrecomatchhname, zbrelmatrixname)
+    "zbrelc"  -> (zbrelcrecohname, zbrelctruehname, zbrelcrecomatchhname, zbrelcmatrixname)
+    "zbt"     -> (zbtrecohname, zbttruehname, zbtrecomatchhname, zbtmatrixname)
+    "zbl"     -> (zblrecohname, zbltruehname, zblrecomatchhname, zblmatrixname)
+    "zbrel"   -> (zbrelrecohname, zbreltruehname, zbrelrecomatchhname, zbrelmatrixname)
     _         -> error "unrecognized observable"
 
 
