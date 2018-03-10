@@ -1,85 +1,98 @@
+TWOD=--2d
 DIR=`pwd -P`
 
 mkdir -p unfold/particlelevel/data/zblcposteriors
 cd unfold/particlelevel/data/zblcposteriors
-python $DIR/../hunfold.git/ext/plot.py < $DIR/unfold/mcmc/data/zblcmcmc.dat
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zblcmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzblc/*yoda -o unfold/particlelevel/data/zblcplots
 make-plots --pdf unfold/particlelevel/zblcplots/data/Users/*dat
 
 mkdir -p unfold/particlelevel/closure/zblcposteriors
 cd unfold/particlelevel/closure/zblcposteriors
-python $DIR/../hunfold.git/ext/plot.py < $DIR/unfold/mcmc/closure/zblcmcmc.dat
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zblcmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzblc/*yoda -o unfold/particlelevel/closure/zblcplots
 make-plots --pdf unfold/particlelevel/closure/zblcplots/Users/*dat
 
 mkdir -p unfold/particlelevel/data/zblposteriors
 cd unfold/particlelevel/data/zblposteriors
-python $DIR/../hunfold.git/ext/plot.py < $DIR/unfold/mcmc/data/zblmcmc.dat
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zblmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzbl/*yoda -o unfold/particlelevel/data/zblcplots
 make-plots --pdf unfold/particlelevel/zblplots/data/Users/*dat
 
 mkdir -p unfold/particlelevel/closure/zblposteriors
 cd unfold/particlelevel/closure/zblposteriors
-python $DIR/../hunfold.git/ext/plot.py < $DIR/unfold/mcmc/closure/zblmcmc.dat
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zblmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzbl/*yoda -o unfold/particlelevel/closure/zblcplots
 make-plots --pdf unfold/particlelevel/closure/zblplots/Users/*dat
 
 mkdir -p unfold/particlelevel/data/zbtcposteriors
 cd unfold/particlelevel/data/zbtcposteriors
-python $DIR/../hunfold.git/ext/plot.py < $DIR/unfold/mcmc/data/zbtcmcmc.dat
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbtcmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzbtc/*yoda -o unfold/particlelevel/data/zbtcplots
 make-plots --pdf unfold/particlelevel/zbtcplots/data/Users/*dat
 
 mkdir -p unfold/particlelevel/closure/zbtcposteriors
 cd unfold/particlelevel/closure/zbtcposteriors
-python $DIR/../hunfold.git/ext/plot.py < $DIR/unfold/mcmc/closure/zbtcmcmc.dat
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbtcmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzbtc/*yoda -o unfold/particlelevel/closure/zbtcplots
 make-plots --pdf unfold/particlelevel/closure/zbtcplots/Users/*dat
 
 mkdir -p unfold/particlelevel/data/zbtposteriors
 cd unfold/particlelevel/data/zbtposteriors
-python $DIR/../hunfold.git/ext/plot.py < $DIR/unfold/mcmc/data/zbtmcmc.dat
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbtmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzbt/*yoda -o unfold/particlelevel/data/zbtplots
 make-plots --pdf unfold/particlelevel/zbtplots/data/Users/*dat
 
 mkdir -p unfold/particlelevel/closure/zbtposteriors
 cd unfold/particlelevel/closure/zbtposteriors
-python $DIR/../hunfold.git/ext/plot.py < $DIR/unfold/mcmc/closure/zbtmcmc.dat
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbtmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzbtc/*yoda -o unfold/particlelevel/closure/zbtcplots
 make-plots --pdf unfold/particlelevel/closure/zbtcplots/Users/*dat
 
-mkdir -p unfold/particlelevel/data/zbtrelcposteriors
-cd unfold/particlelevel/data/zbtrelcposteriors
-python $DIR/../hunfold.git/ext/plot.py < $DIR/unfold/mcmc/data/zbtrelcmcmc.dat
+mkdir -p unfold/particlelevel/data/zbrelcposteriors
+cd unfold/particlelevel/data/zbrelcposteriors
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbrelcmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
-rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzbtrelc/*yoda -o unfold/particlelevel/data/zbtrelcplots
-make-plots --pdf unfold/particlelevel/zbtrelcplots/data/Users/*dat
+rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzbrelc/*yoda -o unfold/particlelevel/data/zbrelcplots
+make-plots --pdf unfold/particlelevel/zbrelcplots/data/Users/*dat
 
-mkdir -p unfold/particlelevel/closure/zbtrelcposteriors
-cd unfold/particlelevel/closure/zbtrelcposteriors
-python $DIR/../hunfold.git/ext/plot.py < $DIR/unfold/mcmc/closure/zbtrelcmcmc.dat
+mkdir -p unfold/particlelevel/closure/zbrelcposteriors
+cd unfold/particlelevel/closure/zbrelcposteriors
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbrelcmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
-rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzbtrelc/*yoda -o unfold/particlelevel/closure/zbtrelcplots
-make-plots --pdf unfold/particlelevel/closure/zbtrelcplots/Users/*dat
+rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzbrelc/*yoda -o unfold/particlelevel/closure/zbrelcplots
+make-plots --pdf unfold/particlelevel/closure/zbrelcplots/Users/*dat
 
-mkdir -p unfold/particlelevel/data/zbtrelposteriors
-cd unfold/particlelevel/data/zbtrelposteriors
-python $DIR/../hunfold.git/ext/plot.py < $DIR/unfold/mcmc/data/zbtrelmcmc.dat
+mkdir -p unfold/particlelevel/data/zbrelposteriors
+cd unfold/particlelevel/data/zbrelposteriors
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbrelmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
-rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzbtrel/*yoda -o unfold/particlelevel/data/zbtrelplots
-make-plots --pdf unfold/particlelevel/zbtrelplots/data/Users/*dat
+rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzbrel/*yoda -o unfold/particlelevel/data/zbrelplots
+make-plots --pdf unfold/particlelevel/zbrelplots/data/Users/*dat
 
-mkdir -p unfold/particlelevel/closure/zbtrelposteriors
-cd unfold/particlelevel/closure/zbtrelposteriors
-python $DIR/../hunfold.git/ext/plot.py < $DIR/unfold/mcmc/closure/zbtrelmcmc.dat
+mkdir -p unfold/particlelevel/closure/zbrelposteriors
+cd unfold/particlelevel/closure/zbrelposteriors
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbrelmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
-rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzbtrel/*yoda -o unfold/particlelevel/closure/zbtrelplots
-make-plots --pdf unfold/particlelevel/closure/zbtrelplots/Users/*dat
+rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzbrel/*yoda -o unfold/particlelevel/closure/zbrelplots
+make-plots --pdf unfold/particlelevel/closure/zbrelplots/Users/*dat
