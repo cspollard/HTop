@@ -21,12 +21,12 @@ mkdir -p unfold/particlelevel/data/unfoldzblc
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/zblcmcmc.dat --nsamples 100000 --yodafolder unfold/particlelevel/data/unfoldzblc --xsecfile ext/XSection-MC15-13TeV.data --observable zblc hist/*hist.gz > unfold/mcmc/data/zblc.log 2>&1 &
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/zblcmcmc.dat --nsamples 100000 --yodafolder unfold/particlelevel/closure/unfoldzblc --xsecfile ext/XSection-MC15-13TeV.data --observable zblc hist/{3,4}*hist.gz > unfold/mcmc/closure/zblc.log 2>&1
 
-mkdir -p unfold/particlelevel/closure/unfoldzbtrelc
-mkdir -p unfold/particlelevel/data/unfoldzbtrelc
-stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/zbtrelcmcmc.dat --nsamples 100000 --yodafolder unfold/particlelevel/data/unfoldzbtrelc --xsecfile ext/XSection-MC15-13TeV.data --observable zbtrelc hist/*hist.gz > unfold/mcmc/data/zbtrelc.log 2>&1 &
-stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/zbtrelcmcmc.dat --nsamples 100000 --yodafolder unfold/particlelevel/closure/unfoldzbtrelc --xsecfile ext/XSection-MC15-13TeV.data --observable zbtrelc hist/{3,4}*hist.gz > unfold/mcmc/closure/zbtrelc.log 2>&1
+mkdir -p unfold/particlelevel/closure/unfoldzbrelc
+mkdir -p unfold/particlelevel/data/unfoldzbrelc
+stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/zbrelcmcmc.dat --nsamples 100000 --yodafolder unfold/particlelevel/data/unfoldzbrelc --xsecfile ext/XSection-MC15-13TeV.data --observable zbrelc hist/*hist.gz > unfold/mcmc/data/zbrelc.log 2>&1 &
+stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/zbrelcmcmc.dat --nsamples 100000 --yodafolder unfold/particlelevel/closure/unfoldzbrelc --xsecfile ext/XSection-MC15-13TeV.data --observable zbrelc hist/{3,4}*hist.gz > unfold/mcmc/closure/zbrelc.log 2>&1
 
-mkdir -p unfold/particlelevel/closure/unfoldzbtrel
-mkdir -p unfold/particlelevel/data/unfoldzbtrel
-stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/zbtrelmcmc.dat --nsamples 100000 --yodafolder unfold/particlelevel/data/unfoldzbtrel --xsecfile ext/XSection-MC15-13TeV.data --observable zbtrel hist/*hist.gz > unfold/mcmc/data/zbtrel.log 2>&1 &
-stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/zbtrelmcmc.dat --nsamples 100000 --yodafolder unfold/particlelevel/closure/unfoldzbtrel --xsecfile ext/XSection-MC15-13TeV.data --observable zbtrel hist/{3,4}*hist.gz > unfold/mcmc/closure/zbtrel.log 2>&1
+mkdir -p unfold/particlelevel/closure/unfoldzbrel
+mkdir -p unfold/particlelevel/data/unfoldzbrel
+stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/zbrelmcmc.dat --nsamples 100000 --yodafolder unfold/particlelevel/data/unfoldzbrel --xsecfile ext/XSection-MC15-13TeV.data --observable zbrel hist/*hist.gz > unfold/mcmc/data/zbrel.log 2>&1 &
+stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/zbrelmcmc.dat --nsamples 100000 --yodafolder unfold/particlelevel/closure/unfoldzbrel --xsecfile ext/XSection-MC15-13TeV.data --observable zbrel hist/{3,4}*hist.gz > unfold/mcmc/closure/zbrel.log 2>&1
