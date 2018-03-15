@@ -89,7 +89,7 @@ readRecoEvent dmc = do
 muH :: VarFill RecoEvent
 muH = h =$<< poFromVars . view mu
   where
-    h = hist1DDef (binD 0 25 100) "$< \\mu >$" (dsigdXpbY "<\\mu>" "1")
+    h = hist1DDef (binD 0 25 100) "\\ensuremath{< \\mu >}" (dsigdXpbY "<\\mu>" "1")
 
 
 elmujj :: RecoEvent -> PhysObj Bool
@@ -113,7 +113,7 @@ recoEventHs =
     -- , singleton "/npv" <$> npvH
 
     , singleton "/met/pt"
-      . over xlabel ("$E_{\\rm T}^{\\rm miss}$ " <>)
+      . over xlabel ("\\ensuremath{_{\\rm T}^{\\rm miss}} " <>)
       <$> ptH
       <$= fmap (view met)
 
