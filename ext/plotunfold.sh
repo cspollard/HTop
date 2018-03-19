@@ -1,4 +1,8 @@
-TWOD=--2d
+# TODO
+# there is a problem here: certain migration matrices are not being
+# produced.
+
+TWOD= #--2d
 DIR=`pwd -P`
 
 mkdir -p unfold/particlelevel/data/zblcposteriors

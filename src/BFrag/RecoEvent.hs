@@ -113,7 +113,7 @@ recoEventHs =
     -- , singleton "/npv" <$> npvH
 
     , singleton "/met/pt"
-      . over xlabel ("\\ensuremath{_{\\rm T}^{\\rm miss}} " <>)
+      . set xlabel "\\ensuremath{E_{\\rm T}^{\\rm miss}} [GeV]"
       <$> ptH
       <$= fmap (view met)
 

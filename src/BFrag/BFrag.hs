@@ -160,13 +160,13 @@ svPtcH = h =$<< fmap (view lvPt . fold) . svChargedConstits
 svMH :: HasSVConstits a => VarFill a
 svMH = h =$<< fmap (view lvM . fold) . svConstits
   where
-    h = hist1DDef (binD 0 20 10) "SV mass" (dsigdXpbY "m" gev)
+    h = hist1DDef (binD 0 20 10) "SV mass [GeV]" (dsigdXpbY "m" gev)
 
 
 svMcH :: HasSVConstits a => VarFill a
 svMcH = h =$<< fmap (view lvM . fold) . svChargedConstits
   where
-    h = hist1DDef (binD 0 20 10) "SV charged mass" (dsigdXpbY "m" gev)
+    h = hist1DDef (binD 0 20 10) "SV charged mass [GeV]" (dsigdXpbY "m" gev)
 
 
 zbtH :: (HasSVConstits a, HasPVConstits a) => VarFill a
