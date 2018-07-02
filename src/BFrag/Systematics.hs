@@ -13,14 +13,15 @@ module BFrag.Systematics
   ) where
 
 import           Atlas
-import           Control.Lens         (imap)
-import           Control.Monad.Writer hiding ((<>))
-import           Data.Bifunctor       (first)
-import qualified Data.IntMap.Strict   as IM
-import           Data.Semigroup       ((<>))
-import qualified Data.Text            as T
+import           BFrag.Systematics.TrackingSystHists
+import           Control.Lens                        (imap)
+import           Control.Monad.Writer                hiding ((<>))
+import           Data.Bifunctor                      (first)
+import qualified Data.IntMap.Strict                  as IM
+import           Data.Semigroup                      ((<>))
+import qualified Data.Text                           as T
 import           Data.TTree
-import           GHC.Exts             (fromList)
+import           GHC.Exts                            (fromList)
 import           GHC.Float
 
 

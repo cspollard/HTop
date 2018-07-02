@@ -1,9 +1,11 @@
 
 {-# LANGUAGE OverloadedLists #-}
 
-import Data.Histogram.Generic (Histogram, histogram)
-import Data.Vector (Vector)
-import Data.Histogram.Bin.Arb
+module BFrag.Systematics.TrackingSystHists where
+
+import           Data.Histogram.Bin.Arb
+import           Data.Histogram.Generic (Histogram, histogram)
+import           Data.Vector            (Vector)
 
 sveff_v2TRK_BIAS_QOVERP_SAGITTA_WM :: Histogram Vector (ArbBin Double) Double
 sveff_v2TRK_BIAS_QOVERP_SAGITTA_WM = histogram xbins vals
@@ -589,4 +591,3 @@ svdphi_v2TRK_RES_Z0_MEAS = histogram xbins vals
   where
     xbins = arbBin [-5.00e-01, -4.00e-01, -3.00e-01, -2.00e-01, -1.00e-01, -5.00e-02, -4.00e-02, -3.00e-02, -2.00e-02, -1.00e-02, 0.00e+00, 1.00e-02, 2.00e-02, 3.00e-02, 4.00e-02, 5.00e-02, 1.00e-01, 2.00e-01, 3.00e-01, 4.00e-01, 5.00e-01]
     vals = [1.11e-01, 2.17e-01, 2.42e-01, 1.76e-01, 7.41e-02, 3.54e-02, 1.97e-02, 8.32e-03, -1.93e-03, -1.37e-02, -1.35e-02, -2.44e-03, 7.94e-03, 2.06e-02, 2.98e-02, 7.53e-02, 1.74e-01, 2.41e-01, 2.09e-01, 1.14e-01]
-
