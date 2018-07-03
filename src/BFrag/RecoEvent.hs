@@ -20,6 +20,7 @@ import           BFrag.Jet         as X
 import           BFrag.Muon        as X
 import           BFrag.PtEtaPhiE   as X
 import           BFrag.Systematics as X
+import           BFrag.TrueJet
 import qualified Control.Foldl     as F
 import           Control.Lens
 import           Control.Monad     (guard, join)
@@ -75,13 +76,13 @@ muVars _ m = pure m
 
 readRecoEvent
   :: (MonadIO m, MonadThrow m)
-  => DataMC' -> TreeRead m (PhysObj RecoEvent)
-readRecoEvent dmc = do
+  => DataMC' -> [BHadron] -> TreeRead m (PhysObj RecoEvent)
+readRecoEvent dmc bhs = do
   w <- recoWgt dmc
   mu' <- muVars dmc . float2Double <$> readBranch "mu"
   els <- readElectrons
   mus <- readMuons
-  js <- readJets dmc
+  js <- readJets dmc bhs
   met' <- readMET
   return $ w >> return (RecoEvent mu' els mus js met')
 

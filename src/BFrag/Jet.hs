@@ -13,20 +13,26 @@ import           Atlas
 import           BFrag.BFrag
 import           BFrag.PtEtaPhiE
 import           BFrag.Systematics
-import           Control.Applicative  (ZipList (..))
+import           BFrag.TrueJet
+import           Control.Applicative    (ZipList (..))
 import           Control.Lens
 import           Control.Monad.Writer
-import           Data.Semigroup       (Any (..))
+import           Data.Foldable          (fold)
+import           Data.Histogram.Generic (atV)
+import           Data.Semigroup         (Any (..), Arg (..), Min (..),
+                                         Option (..))
 import           Data.TTree
-import qualified Data.Vector          as V
+import qualified Data.Vector            as V
 import           GHC.Float
-import           GHC.Generics         (Generic)
+import           GHC.Generics           (Generic)
 
 
 data JetFlavor = L | C | B | T
     deriving (Generic, Show, Eq, Ord)
 
 
+-- TODO
+-- partial
 flavFromCInt :: CInt -> JetFlavor
 flavFromCInt x =
   case x of
@@ -62,8 +68,34 @@ instance HasPVConstits Jet where
   pvChargedConstits = pvConstits
 
 
-readJets :: (MonadIO m, MonadThrow m) => DataMC' -> TreeRead m [Jet]
-readJets dmc = do
+appSVRW :: DataMC' -> Maybe BHadron -> PtEtaPhiE -> PhysObj ()
+appSVRW Data' _ _ = return ()
+appSVRW (MC' NoVars) _ _ = return ()
+appSVRW _ Nothing _ = return ()
+appSVRW _ (Just bh) svp4 = do
+  let bhpt = view lvPt bh
+      dphi = lvDPhi bh svp4
+      deta = lvDEta bh svp4
+      svEffVars = (+ 1) . flip atV bhpt <$> svEffSysts
+      phiResVars = (+ 1) . flip atV dphi <$> phiResSysts
+      etaResVars = (+ 1) . flip atV deta <$> etaResSysts
+
+  varSF $ sf "sveffsf" <$> Variation 1.0 svEffVars
+  varSF $ sf "svphiressf" <$> Variation 1.0 phiResVars
+  varSF $ sf "svetaressf" <$> Variation 1.0 etaResVars
+
+
+matchBH :: [BHadron] -> PtEtaPhiE -> Maybe BHadron
+matchBH bhs j = getOption $ do
+  Min (Arg dr bh) <-
+    foldMap (\bh' -> Option . Just . Min $ Arg (lvDREta j bh') bh') bhs
+  if dr < 0.3
+    then return bh
+    else Option Nothing
+
+
+readJets :: (MonadIO m, MonadThrow m) => DataMC' -> [BHadron] -> TreeRead m [Jet]
+readJets dmc bhs = do
   tlvs <- lvsFromTTreeF "jet_pt" "jet_eta" "jet_phi" "jet_e"
   tagged' <-
     fmap ((> 0) . (fromEnum :: CChar -> Int)) <$> readBranch "jet_isbtagged_70"
@@ -96,6 +128,14 @@ readJets dmc = do
       "jet_sv1_track_phi"
       "jet_sv1_track_e"
 
+  let svtrksums = fold <$> svtrks
+      mbhs = matchBH bhs <$> tlvs
+      rws = appSVRW dmc <$> mbhs <*> svtrksums
+      svtrks' :: ZipList (PhysObj [PtEtaPhiE])
+      svtrks' =
+        (\rw svtrk -> rw >> return svtrk)
+        <$> rws
+        <*> svtrks
 
   flvs <-
     case dmc of
@@ -109,7 +149,7 @@ readJets dmc = do
           <*> tagged
           <*> jvts
           <*> fmap pure pvtrks
-          <*> fmap pure svtrks
+          <*> svtrks'
           <*> flvs
 
   return js

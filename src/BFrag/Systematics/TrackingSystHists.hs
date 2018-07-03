@@ -1,4 +1,3 @@
-
 {-# LANGUAGE OverloadedLists #-}
 
 module BFrag.Systematics.TrackingSystHists where

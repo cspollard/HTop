@@ -13,10 +13,12 @@ module Main where
 
 import           Atlas
 import           BFrag.Event
+import           Control.Applicative        (empty)
 import qualified Control.Foldl              as F
 import           Control.Lens               hiding (each)
 import           Control.Monad              (when)
 import           Control.Monad.State.Strict
+import           Control.Monad.Writer.Class (writer)
 import           Data.Bifunctor             (first)
 import           Data.List                  (isInfixOf, nub)
 import qualified Data.Map.Strict            as M
@@ -199,23 +201,40 @@ readEvents systflag tttrue ttnom ttsysts = do
   ((rn, en), (mitrue, minom, isysts)) <- await
 
   -- TODO
-  -- I am so confused.
+  -- fugly
+  -- this attempts to read an entry from a tree and returns "empty" if it's not
+  -- there
   let f tr t (Just i) =
-        flip runStateT t
-        $ fromMaybe (error "unable to read event from ttree!") <$> readTTreeEntry tr i
-      f _ t Nothing   = return (poFail, t)
+        fmap (first Just)
+        . flip runStateT t
+        $ fromMaybe (error "unable to read event from ttree!")
+          <$> readTTreeEntry tr i
+      f _ t Nothing   = return (Nothing, t)
 
+      g tr t (Just i) =
+        flip runStateT t
+        $ fromMaybe (error "unable to read event from ttree!")
+          <$> readTTreeEntry tr i
+      g _ t Nothing   = return (empty, t)
+
+  (true, tttrue') <- f readTrueEvent tttrue mitrue
+
+  let bhs :: [BHadron]
+      bhs =
+        case true of
+          Nothing -> []
+          Just (trueEvt, _) ->
+            toListOf (trueJets.traverse.tjBHadrons.traverse) trueEvt
 
       systs' =
         M.mergeWithKey
-          (\_ t mi -> Just $ f (readRecoEvent $ MC' NoVars) t mi)
+          (\_ t mi -> Just $ g (readRecoEvent (MC' NoVars) bhs) t mi)
           (fmap $ const $ throwM TreeReadError)
           (fmap $ const $ throwM TreeReadError)
           ttsysts
           isysts
 
-  (true, tttrue') <- f readTrueEvent tttrue mitrue
-  (nom, ttnom') <- f (readRecoEvent systflag) ttnom minom
+  (nom, ttnom') <- g (readRecoEvent systflag bhs) ttnom minom
   msysts <- sequence systs'
 
   -- TODO
@@ -224,7 +243,7 @@ readEvents systflag tttrue ttnom ttsysts = do
       ttsysts' = snd <$> msysts
 
   yield
-    . Event rn en true
+    . Event rn en (maybe empty writer true)
     . toEvent nom
     . fromList
     . fmap (first T.pack)

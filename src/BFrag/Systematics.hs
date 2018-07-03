@@ -9,7 +9,8 @@
 module BFrag.Systematics
   ( recoWgt, trueWgt, treeSysts, lumi
   , DataMC'(..), VarCfg(..)
-  , procDict
+  , procDict, Reweight1D, Reweight2D
+  , svEffSysts, phiResSysts, etaResSysts
   ) where
 
 import           Atlas
@@ -21,6 +22,7 @@ import qualified Data.IntMap.Strict                  as IM
 import           Data.Semigroup                      ((<>))
 import qualified Data.Text                           as T
 import           Data.TTree
+import qualified Data.Vector                         as V
 import           GHC.Exts                            (fromList)
 import           GHC.Float
 
@@ -42,11 +44,11 @@ recoWgt (MC' vcfg) = do
     jvtw <- jvtWgt vcfg
     lsf <- lepSF vcfg
     bsf <- btagSF vcfg
-    return $ tw >> puw >> jvtw >> lsf >> bsf
+    return $ tell tw >> puw >> jvtw >> lsf >> bsf
 
 
-trueWgt :: (MonadThrow m, MonadIO m) => TreeRead m (PhysObj ())
-trueWgt = tell . sf "evtw" . float2Double <$> readBranch "weight_mc"
+trueWgt :: (MonadThrow m, MonadIO m) => TreeRead m SF
+trueWgt = sf "evtw" . float2Double <$> readBranch "weight_mc"
 
 
 -- TODO
@@ -215,3 +217,36 @@ procDict =
   , (410004, "PowHerpp")
   , (410501, "PowPy8")
   ]
+
+type Reweight1D = Histogram V.Vector (ArbBin Double) Double
+type Reweight2D =
+  Histogram V.Vector (Bin2D (ArbBin Double) (ArbBin Double)) Double
+
+-- TODO
+-- explicit tracking systematics
+
+svEffSysts :: VarMap Reweight1D
+svEffSysts =
+  [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", sveff_v2TRK_BIAS_QOVERP_SAGITTA_WM)
+  , ("v2TRK_EFF_LOOSE_GLOBAL",       sveff_v2TRK_EFF_LOOSE_GLOBAL)
+  , ("v2TRK_EFF_LOOSE_IBL",          sveff_v2TRK_EFF_LOOSE_IBL)
+  , ("v2TRK_EFF_LOOSE_PHYSMODEL",    sveff_v2TRK_EFF_LOOSE_PHYSMODEL)
+  , ("v2TRK_EFF_LOOSE_PP0",          sveff_v2TRK_EFF_LOOSE_PP0)
+  , ("v2TRK_EFF_TIGHT_GLOBAL",       sveff_v2TRK_EFF_TIGHT_GLOBAL)
+  , ("v2TRK_EFF_TIGHT_IBL",          sveff_v2TRK_EFF_TIGHT_IBL)
+  , ("v2TRK_EFF_TIGHT_PHYSMODEL",    sveff_v2TRK_EFF_TIGHT_PHYSMODEL)
+  , ("v2TRK_EFF_TIGHT_PP0",          sveff_v2TRK_EFF_TIGHT_PP0)
+  , ("v2TRK_FAKE_RATE_LOOSE",        sveff_v2TRK_FAKE_RATE_LOOSE)
+  , ("v2TRK_FAKE_RATE_TIGHT",        sveff_v2TRK_FAKE_RATE_TIGHT)
+  , ("v2TRK_RES_D0_DEAD",            sveff_v2TRK_RES_D0_DEAD)
+  , ("v2TRK_RES_D0_MEAS",            sveff_v2TRK_RES_D0_MEAS)
+  , ("v2TRK_RES_Z0_DEAD",            sveff_v2TRK_RES_Z0_DEAD)
+  , ("v2TRK_RES_Z0_MEAS",            sveff_v2TRK_RES_Z0_MEAS)
+  ]
+
+
+phiResSysts :: VarMap Reweight1D
+phiResSysts = undefined
+
+etaResSysts :: VarMap Reweight1D
+etaResSysts = undefined

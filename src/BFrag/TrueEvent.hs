@@ -28,13 +28,13 @@ data TrueEvent =
   } deriving (Generic, Show)
 
 
-readTrueEvent :: (MonadIO m, MonadThrow m) => TreeRead m (PhysObj TrueEvent)
+readTrueEvent :: (MonadIO m, MonadThrow m) => TreeRead m (TrueEvent, SF)
 readTrueEvent = do
   js <- readTrueJets
   es <- readTrueElectrons
   ms <- readTrueMuons
   w <- trueWgt
-  return $ w >> pure (TrueEvent js es ms)
+  return (TrueEvent js es ms, w)
 
 
 trueJets :: Lens' TrueEvent [TrueJet]
