@@ -76,13 +76,21 @@ appSVRW _ (Just bh) svp4 = do
   let bhpt = view lvPt bh
       dphi = lvDPhi bh svp4
       deta = lvDEta bh svp4
-      svEffVars = (+ 1) . flip atV bhpt <$> svEffSysts
-      phiResVars = (+ 1) . flip atV dphi <$> phiResSysts
-      etaResVars = (+ 1) . flip atV deta <$> etaResSysts
+
+      svEffVars = (+ 1) . flip safeAt bhpt <$> svEffSysts
+      phiResVars = (+ 1) . flip safeAt dphi <$> phiResSysts
+      etaResVars = (+ 1) . flip safeAt deta <$> etaResSysts
 
   varSF $ sf "sveffsf" <$> Variation 1.0 svEffVars
   varSF $ sf "svphiressf" <$> Variation 1.0 phiResVars
   varSF $ sf "svetaressf" <$> Variation 1.0 etaResVars
+
+  where
+    safeAt h x =
+      let b = view bins h
+      in if inRange b x
+          then atV h x
+          else 0.0
 
 
 matchBH :: [BHadron] -> PtEtaPhiE -> Maybe BHadron

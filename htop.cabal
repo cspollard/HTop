@@ -21,6 +21,7 @@ library
         BFrag.Muon
         BFrag.PtEtaPhiE
         BFrag.Systematics
+        BFrag.Systematics.TrackingSystHists
         BFrag.BFrag
         BFrag.Model
     build-depends:
