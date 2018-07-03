@@ -283,4 +283,3 @@ etaResSysts =
   , ("v2TRK_RES_Z0_DEAD",            svdeta_v2TRK_RES_Z0_DEAD)
   , ("v2TRK_RES_Z0_MEAS",            svdeta_v2TRK_RES_Z0_MEAS)
   ]
-ned
