@@ -246,7 +246,41 @@ svEffSysts =
 
 
 phiResSysts :: VarMap Reweight1D
-phiResSysts = undefined
+phiResSysts =
+  [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", svdphi_v2TRK_BIAS_QOVERP_SAGITTA_WM)
+  , ("v2TRK_EFF_LOOSE_GLOBAL",       svdphi_v2TRK_EFF_LOOSE_GLOBAL)
+  , ("v2TRK_EFF_LOOSE_IBL",          svdphi_v2TRK_EFF_LOOSE_IBL)
+  , ("v2TRK_EFF_LOOSE_PHYSMODEL",    svdphi_v2TRK_EFF_LOOSE_PHYSMODEL)
+  , ("v2TRK_EFF_LOOSE_PP0",          svdphi_v2TRK_EFF_LOOSE_PP0)
+  , ("v2TRK_EFF_TIGHT_GLOBAL",       svdphi_v2TRK_EFF_TIGHT_GLOBAL)
+  , ("v2TRK_EFF_TIGHT_IBL",          svdphi_v2TRK_EFF_TIGHT_IBL)
+  , ("v2TRK_EFF_TIGHT_PHYSMODEL",    svdphi_v2TRK_EFF_TIGHT_PHYSMODEL)
+  , ("v2TRK_EFF_TIGHT_PP0",          svdphi_v2TRK_EFF_TIGHT_PP0)
+  , ("v2TRK_FAKE_RATE_LOOSE",        svdphi_v2TRK_FAKE_RATE_LOOSE)
+  , ("v2TRK_FAKE_RATE_TIGHT",        svdphi_v2TRK_FAKE_RATE_TIGHT)
+  , ("v2TRK_RES_D0_DEAD",            svdphi_v2TRK_RES_D0_DEAD)
+  , ("v2TRK_RES_D0_MEAS",            svdphi_v2TRK_RES_D0_MEAS)
+  , ("v2TRK_RES_Z0_DEAD",            svdphi_v2TRK_RES_Z0_DEAD)
+  , ("v2TRK_RES_Z0_MEAS",            svdphi_v2TRK_RES_Z0_MEAS)
+  ]
+
 
 etaResSysts :: VarMap Reweight1D
-etaResSysts = undefined
+etaResSysts =
+  [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", svdeta_v2TRK_BIAS_QOVERP_SAGITTA_WM)
+  , ("v2TRK_EFF_LOOSE_GLOBAL",       svdeta_v2TRK_EFF_LOOSE_GLOBAL)
+  , ("v2TRK_EFF_LOOSE_IBL",          svdeta_v2TRK_EFF_LOOSE_IBL)
+  , ("v2TRK_EFF_LOOSE_PHYSMODEL",    svdeta_v2TRK_EFF_LOOSE_PHYSMODEL)
+  , ("v2TRK_EFF_LOOSE_PP0",          svdeta_v2TRK_EFF_LOOSE_PP0)
+  , ("v2TRK_EFF_TIGHT_GLOBAL",       svdeta_v2TRK_EFF_TIGHT_GLOBAL)
+  , ("v2TRK_EFF_TIGHT_IBL",          svdeta_v2TRK_EFF_TIGHT_IBL)
+  , ("v2TRK_EFF_TIGHT_PHYSMODEL",    svdeta_v2TRK_EFF_TIGHT_PHYSMODEL)
+  , ("v2TRK_EFF_TIGHT_PP0",          svdeta_v2TRK_EFF_TIGHT_PP0)
+  , ("v2TRK_FAKE_RATE_LOOSE",        svdeta_v2TRK_FAKE_RATE_LOOSE)
+  , ("v2TRK_FAKE_RATE_TIGHT",        svdeta_v2TRK_FAKE_RATE_TIGHT)
+  , ("v2TRK_RES_D0_DEAD",            svdeta_v2TRK_RES_D0_DEAD)
+  , ("v2TRK_RES_D0_MEAS",            svdeta_v2TRK_RES_D0_MEAS)
+  , ("v2TRK_RES_Z0_DEAD",            svdeta_v2TRK_RES_Z0_DEAD)
+  , ("v2TRK_RES_Z0_MEAS",            svdeta_v2TRK_RES_Z0_MEAS)
+  ]
+ned
