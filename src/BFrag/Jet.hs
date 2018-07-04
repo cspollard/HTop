@@ -76,10 +76,11 @@ appSVRW Data' _ _ = return ()
 appSVRW (MC' NoVars) _ _ = return ()
 appSVRW _ Nothing _ = return ()
 appSVRW _ (Just bh) svp4 = do
-  let bhpt = view lvPt bh
+  -- note that the binning used in the reweighting histograms is in MeV!!!
+  let bhpt = view lvPt bh * 1e3
       dphi = lvDPhi bh svp4
       deta = lvDEta bh svp4
-      dpt = bhpt - view lvPt svp4
+      dpt = bhpt - (view lvPt svp4 * 1e3)
 
       svEffVars = (+1) . flip safeAt bhpt <$> svEffSysts
       phiResVars = (+1) . flip safeAt dphi <$> phiResSysts
@@ -96,7 +97,8 @@ appTrkRW :: DataMC' -> Double -> Double -> PhysObj ()
 appTrkRW Data' _ _ = return ()
 appTrkRW (MC' NoVars) _ _ = return ()
 appTrkRW _ jpt trkpt =
-  let trkVars = (+1) . flip safeAt (jpt, trkpt) <$> sumPtTrkSysts
+  -- note that the binning used in the reweighting histograms is in MeV!!!
+  let trkVars = (+1) . flip safeAt (jpt*1e3, trkpt*1e3) <$> sumPtTrkSysts
   in varSF $ sf "trkptsf" <$> Variation 1.0 trkVars
 
 
