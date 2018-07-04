@@ -1,11 +1,12 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE OverloadedLists     #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE RankNTypes          #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedLists       #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module BFrag.Jet where
 
@@ -23,6 +24,7 @@ import           Data.Semigroup         (Any (..), Arg (..), Min (..),
                                          Option (..))
 import           Data.TTree
 import qualified Data.Vector            as V
+import qualified Data.Vector.Generic    as GV
 import           GHC.Float
 import           GHC.Generics           (Generic)
 
@@ -41,6 +43,7 @@ flavFromCInt x =
     0  -> L
     15 -> T
     _  -> error $ "bad jet flavor label: " ++ show x
+
 
 -- TODO
 -- add Track datatype for holding z0, d0, etc...
@@ -76,21 +79,35 @@ appSVRW _ (Just bh) svp4 = do
   let bhpt = view lvPt bh
       dphi = lvDPhi bh svp4
       deta = lvDEta bh svp4
+      dpt = bhpt - view lvPt svp4
 
-      svEffVars = (+ 1) . flip safeAt bhpt <$> svEffSysts
-      phiResVars = (+ 1) . flip safeAt dphi <$> phiResSysts
-      etaResVars = (+ 1) . flip safeAt deta <$> etaResSysts
+      svEffVars = (+1) . flip safeAt bhpt <$> svEffSysts
+      phiResVars = (+1) . flip safeAt dphi <$> phiResSysts
+      etaResVars = (+1) . flip safeAt deta <$> etaResSysts
+      ptResVars = (+1) . flip safeAt (bhpt, dpt) <$> ptResSysts
 
   varSF $ sf "sveffsf" <$> Variation 1.0 svEffVars
   varSF $ sf "svphiressf" <$> Variation 1.0 phiResVars
   varSF $ sf "svetaressf" <$> Variation 1.0 etaResVars
+  varSF $ sf "svptressf" <$> Variation 1.0 ptResVars
 
-  where
-    safeAt h x =
-      let b = view bins h
-      in if inRange b x
-          then atV h x
-          else 0.0
+
+appTrkRW :: DataMC' -> Double -> Double -> PhysObj ()
+appTrkRW Data' _ _ = return ()
+appTrkRW (MC' NoVars) _ _ = return ()
+appTrkRW _ jpt trkpt =
+  let trkVars = (+1) . flip safeAt (jpt, trkpt) <$> sumPtTrkSysts
+  in varSF $ sf "trkptsf" <$> Variation 1.0 trkVars
+
+
+safeAt
+  :: (Fractional a, Bin b, GV.Vector v a)
+  => Histogram v b a -> BinValue b -> a
+safeAt h x =
+  let b = view bins h
+  in if inRange b x
+      then atV h x
+      else 0.0
 
 
 matchBH :: [BHadron] -> PtEtaPhiE -> Maybe BHadron
@@ -118,7 +135,6 @@ readJets dmc bhs = do
 
   let withsf x xsf = writer (x, xsf)
       tagged = withsf <$> tagged' <*> mv2c10sfs
-
 
   jvts <- fmap float2Double <$> readBranch "jet_jvt"
 
@@ -176,7 +192,8 @@ jetTracksTLV spt seta sphi se = do
     trkphis <- (fmap.fmap) float2Double . fromVVector <$> readBranch sphi
     trkes <- (fmap.fmap) ((/1e3) . float2Double) . fromVVector <$> readBranch se
 
-    let trks = V.zipWith4
+    let trks =
+          V.zipWith4
             ( \pts etas phis es ->
                 V.toList $ V.zipWith4 PtEtaPhiE pts etas phis es
             ) trkpts trketas trkphis trkes

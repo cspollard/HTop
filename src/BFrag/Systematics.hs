@@ -10,7 +10,7 @@ module BFrag.Systematics
   ( recoWgt, trueWgt, treeSysts, lumi
   , DataMC'(..), VarCfg(..)
   , procDict, Reweight1D, Reweight2D
-  , svEffSysts, phiResSysts, etaResSysts
+  , svEffSysts, phiResSysts, etaResSysts, ptResSysts, sumPtTrkSysts
   ) where
 
 import           Atlas
@@ -282,4 +282,42 @@ etaResSysts =
   , ("v2TRK_RES_D0_MEAS",            svdeta_v2TRK_RES_D0_MEAS)
   , ("v2TRK_RES_Z0_DEAD",            svdeta_v2TRK_RES_Z0_DEAD)
   , ("v2TRK_RES_Z0_MEAS",            svdeta_v2TRK_RES_Z0_MEAS)
+  ]
+
+ptResSysts :: VarMap Reweight2D
+ptResSysts =
+  [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", svabsres_v2TRK_BIAS_QOVERP_SAGITTA_WM)
+  , ("v2TRK_EFF_LOOSE_GLOBAL",       svabsres_v2TRK_EFF_LOOSE_GLOBAL)
+  , ("v2TRK_EFF_LOOSE_IBL",          svabsres_v2TRK_EFF_LOOSE_IBL)
+  , ("v2TRK_EFF_LOOSE_PHYSMODEL",    svabsres_v2TRK_EFF_LOOSE_PHYSMODEL)
+  , ("v2TRK_EFF_LOOSE_PP0",          svabsres_v2TRK_EFF_LOOSE_PP0)
+  , ("v2TRK_EFF_TIGHT_GLOBAL",       svabsres_v2TRK_EFF_TIGHT_GLOBAL)
+  , ("v2TRK_EFF_TIGHT_IBL",          svabsres_v2TRK_EFF_TIGHT_IBL)
+  , ("v2TRK_EFF_TIGHT_PHYSMODEL",    svabsres_v2TRK_EFF_TIGHT_PHYSMODEL)
+  , ("v2TRK_EFF_TIGHT_PP0",          svabsres_v2TRK_EFF_TIGHT_PP0)
+  , ("v2TRK_FAKE_RATE_LOOSE",        svabsres_v2TRK_FAKE_RATE_LOOSE)
+  , ("v2TRK_FAKE_RATE_TIGHT",        svabsres_v2TRK_FAKE_RATE_TIGHT)
+  , ("v2TRK_RES_D0_DEAD",            svabsres_v2TRK_RES_D0_DEAD)
+  , ("v2TRK_RES_D0_MEAS",            svabsres_v2TRK_RES_D0_MEAS)
+  , ("v2TRK_RES_Z0_DEAD",            svabsres_v2TRK_RES_Z0_DEAD)
+  , ("v2TRK_RES_Z0_MEAS",            svabsres_v2TRK_RES_Z0_MEAS)
+  ]
+
+sumPtTrkSysts :: VarMap Reweight2D
+sumPtTrkSysts =
+  [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", trkptsum_v2TRK_BIAS_QOVERP_SAGITTA_WM)
+  , ("v2TRK_EFF_LOOSE_GLOBAL",       trkptsum_v2TRK_EFF_LOOSE_GLOBAL)
+  , ("v2TRK_EFF_LOOSE_IBL",          trkptsum_v2TRK_EFF_LOOSE_IBL)
+  , ("v2TRK_EFF_LOOSE_PHYSMODEL",    trkptsum_v2TRK_EFF_LOOSE_PHYSMODEL)
+  , ("v2TRK_EFF_LOOSE_PP0",          trkptsum_v2TRK_EFF_LOOSE_PP0)
+  , ("v2TRK_EFF_TIGHT_GLOBAL",       trkptsum_v2TRK_EFF_TIGHT_GLOBAL)
+  , ("v2TRK_EFF_TIGHT_IBL",          trkptsum_v2TRK_EFF_TIGHT_IBL)
+  , ("v2TRK_EFF_TIGHT_PHYSMODEL",    trkptsum_v2TRK_EFF_TIGHT_PHYSMODEL)
+  , ("v2TRK_EFF_TIGHT_PP0",          trkptsum_v2TRK_EFF_TIGHT_PP0)
+  , ("v2TRK_FAKE_RATE_LOOSE",        trkptsum_v2TRK_FAKE_RATE_LOOSE)
+  , ("v2TRK_FAKE_RATE_TIGHT",        trkptsum_v2TRK_FAKE_RATE_TIGHT)
+  , ("v2TRK_RES_D0_DEAD",            trkptsum_v2TRK_RES_D0_DEAD)
+  , ("v2TRK_RES_D0_MEAS",            trkptsum_v2TRK_RES_D0_MEAS)
+  , ("v2TRK_RES_Z0_DEAD",            trkptsum_v2TRK_RES_Z0_DEAD)
+  , ("v2TRK_RES_Z0_MEAS",            trkptsum_v2TRK_RES_Z0_MEAS)
   ]
