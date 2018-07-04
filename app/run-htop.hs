@@ -46,6 +46,7 @@ data Args =
   Args
     { outfile :: String
     , infiles :: String
+    , nevents :: Maybe Int
     } deriving (Show, Generic)
 
 instance ParseRecord Args where
@@ -61,12 +62,12 @@ main = do
   fns <- filter (not . null) . lines <$> readFile (infiles args)
 
   let combF (Just (procinfo, sow, hs)) f = do
-        (procinfo', sow', hs') <- fillFile treeSysts f
+        (procinfo', sow', hs') <- fillFile treeSysts f Nothing
         let hs'' = mappend hs hs'
         seq hs'' . return $ if procinfo == procinfo'
           then Just (procinfo, sow+sow', hs'')
           else Nothing
-      combF Nothing f = Just <$> fillFile treeSysts f
+      combF Nothing f = Just <$> fillFile treeSysts f (nevents args)
 
       foldFiles = F.FoldM combF (return Nothing) return
 
@@ -82,8 +83,9 @@ fillFile
   :: (MonadIO m, MonadCatch m)
   => [String]
   -> String
+  -> Maybe Int
   -> m (ProcessInfo, Sum Double, Folder (Annotated (Vars Obj)))
-fillFile systs fn = do
+fillFile systs fn nevt = do
   liftIO . putStrLn $ "analyzing file " <> fn
 
   -- check whether or not this is a data file
@@ -144,11 +146,12 @@ fillFile systs fn = do
         case dsid' of
           0 -> Data'
           _ -> MC' AllVars
-
+      take' = maybe cat P.take nevt
 
   hs <-
     F.purely P.fold eventHs
     $ each allEntries
+      >-> take'
       >-> doEvery 100
           ( \i _ -> liftIO . putStrLn $ show i ++ " entries processed." )
       >-> readEvents systflag trueTree nomTree systTrees
