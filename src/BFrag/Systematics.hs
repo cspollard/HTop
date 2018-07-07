@@ -11,6 +11,7 @@ module BFrag.Systematics
   , DataMC'(..), VarCfg(..)
   , procDict, Reweight1D, Reweight2D
   , svEffSysts, phiResSysts, etaResSysts, ptResSysts, sumPtTrkSysts
+  , nsvtrkSyst, npvtrkSyst
   ) where
 
 import           Atlas
@@ -18,6 +19,7 @@ import           BFrag.Systematics.TrackingSystHists
 import           Control.Lens                        (imap)
 import           Control.Monad.Writer                hiding ((<>))
 import           Data.Bifunctor                      (first)
+import           Data.Histogram.Generic              (Histogram, histogram)
 import qualified Data.IntMap.Strict                  as IM
 import           Data.Semigroup                      ((<>))
 import qualified Data.Text                           as T
@@ -321,3 +323,23 @@ sumPtTrkSysts =
   , ("v2TRK_RES_Z0_DEAD",            trkptsum_v2TRK_RES_Z0_DEAD)
   , ("v2TRK_RES_Z0_MEAS",            trkptsum_v2TRK_RES_Z0_MEAS)
   ]
+
+nsvtrkSyst :: Reweight1D
+nsvtrkSyst = histogram xbins vals
+  where
+    xbins = arbBin [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    vals =
+      [ 9.628969e-01, 9.738253e-01, 1.018527e+00, 1.076142e+00, 1.115221e+00
+      , 1.108247e+00, 9.983492e-01, 1.028850e+00, 6.806861e-01, 1.400987e+00
+      ]
+
+npvtrkSyst :: Reweight1D
+npvtrkSyst = histogram xbins vals
+  where
+    xbins = arbBin [0..20]
+    vals =
+      [ 8.905407e-01, 9.322888e-01, 1.011352e+00, 1.031504e+00, 9.908142e-01
+      , 1.006516e+00, 1.034857e+00, 1.014147e+00, 1.010799e+00, 9.657193e-01
+      , 1.015290e+00, 9.757830e-01, 1.013545e+00, 9.402477e-01, 9.822957e-01
+      , 9.720444e-01, 9.011401e-01, 9.163709e-01, 9.912843e-01, 1.039900e+00
+      ]

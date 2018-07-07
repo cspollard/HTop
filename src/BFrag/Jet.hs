@@ -71,35 +71,52 @@ instance HasPVConstits Jet where
   pvChargedConstits = pvConstits
 
 
-appSVRW :: DataMC' -> Maybe BHadron -> PtEtaPhiE -> PhysObj ()
+appSVRW :: DataMC' -> Maybe BHadron -> [PtEtaPhiE] -> PhysObj ()
 appSVRW Data' _ _ = return ()
 appSVRW (MC' NoVars) _ _ = return ()
 appSVRW _ Nothing _ = return ()
-appSVRW _ (Just bh) svp4 = do
+appSVRW _ (Just bh) svtrks = do
   -- note that the binning used in the reweighting histograms is in MeV!!!
-  let bhpt = view lvPt bh * 1e3
+  let svp4 = fold svtrks
+      bhpt = view lvPt bh * 1e3
       dphi = lvDPhi bh svp4
       deta = lvDEta bh svp4
       dpt = bhpt - (view lvPt svp4 * 1e3)
+      nsvtrks = fromIntegral $ length svtrks
 
       svEffVars = (+1) . flip safeAt bhpt <$> svEffSysts
       phiResVars = (+1) . flip safeAt dphi <$> phiResSysts
       etaResVars = (+1) . flip safeAt deta <$> etaResSysts
       ptResVars = (+1) . flip safeAt (bhpt, dpt) <$> ptResSysts
+      -- this one is already the ratio data/simulation
+      nsvtrkRW = safeAt nsvtrkSyst nsvtrks
 
   varSF $ sf "sveffsf" <$> Variation 1.0 svEffVars
   varSF $ sf "svphiressf" <$> Variation 1.0 phiResVars
   varSF $ sf "svetaressf" <$> Variation 1.0 etaResVars
   varSF $ sf "svptressf" <$> Variation 1.0 ptResVars
+  varSF $ sf "nsvtrksf" <$> Variation 1.0 [("nsvtrksf", nsvtrkRW)]
 
 
-appTrkRW :: DataMC' -> Double -> Double -> PhysObj ()
-appTrkRW Data' _ _ = return ()
-appTrkRW (MC' NoVars) _ _ = return ()
-appTrkRW _ jpt trkpt =
-  -- note that the binning used in the reweighting histograms is in MeV!!!
-  let trkVars = (+1) . flip safeAt (jpt*1e3, trkpt*1e3) <$> sumPtTrkSysts
-  in varSF $ sf "trkptsf" <$> Variation 1.0 trkVars
+appPVRW :: DataMC' -> [PtEtaPhiE] -> PhysObj ()
+appPVRW Data' _ = return ()
+appPVRW (MC' NoVars) _ = return ()
+appPVRW _ pvtrks = do
+  let npvtrks = fromIntegral $ length pvtrks
+      -- this one is already the ratio data/simulation
+      npvtrkRW = safeAt npvtrkSyst npvtrks
+
+  varSF $ sf "npvtrksf" <$> Variation 1.0 [("npvtrksf", npvtrkRW)]
+
+
+appPVSVRW :: DataMC' -> Double -> Double -> PhysObj ()
+appPVSVRW Data' _ _ = return ()
+appPVSVRW (MC' NoVars) _ _ = return ()
+appPVSVRW _ jpt trkpt = do
+  let -- note that the binning used in the reweighting histograms is in MeV!!!
+      trkVars = (+1) . flip safeAt (jpt*1e3, trkpt*1e3) <$> sumPtTrkSysts
+
+  varSF $ sf "trkptsf" <$> Variation 1.0 trkVars
 
 
 safeAt
@@ -154,14 +171,24 @@ readJets dmc bhs = do
       "jet_sv1_track_phi"
       "jet_sv1_track_e"
 
-  let svtrksums = fold <$> svtrks
-      mbhs = matchBH bhs <$> tlvs
-      rws = appSVRW dmc <$> mbhs <*> svtrksums
+  -- apply the various systematic reweightings...
+  let mbhs = matchBH bhs <$> tlvs
+      jpts = view lvPt <$> tlvs
+      pvsvpts = (\pv sv -> view lvPt (fold pv <> fold sv)) <$> pvtrks <*> svtrks
+      pvsvrws :: ZipList (PhysObj ())
+      pvsvrws = appPVSVRW dmc <$> jpts <*> pvsvpts
+      pvtrks' :: ZipList (PhysObj [PtEtaPhiE])
+      pvtrks' =
+        (\pvsvrw pvt -> appPVRW dmc pvt >> pvsvrw >> return pvt)
+        <$> pvsvrws
+        <*> pvtrks
       svtrks' :: ZipList (PhysObj [PtEtaPhiE])
       svtrks' =
-        (\rw svtrk -> rw >> return svtrk)
-        <$> rws
+        (\pvsvrw mbh svt -> appSVRW dmc mbh svt >> pvsvrw >> return svt)
+        <$> pvsvrws
+        <*> mbhs
         <*> svtrks
+
 
   flvs <-
     case dmc of
@@ -174,7 +201,7 @@ readJets dmc bhs = do
           <*> mv2c10s
           <*> tagged
           <*> jvts
-          <*> fmap pure pvtrks
+          <*> pvtrks'
           <*> svtrks'
           <*> flvs
 
