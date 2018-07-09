@@ -11,7 +11,6 @@ import           Control.Lens
 import qualified Data.HashMap.Strict as HM
 import           Data.List           (partition)
 import qualified Data.Map            as M
-import           Data.Maybe          (fromMaybe)
 import           Data.Semigroup      ((<>))
 import qualified Data.Text           as T
 import           GHC.Exts            (toList)
@@ -70,7 +69,9 @@ bfragModel procs = do
       radup' = mappend nomnom raddiff
       fullpred =
         nom
-        & inFA2 (\v n -> n & variations . at "MEUp" ?~ v) me'
+        -- TODO
+        -- note: remove matrix element variation!
+        -- & inFA2 (\v n -> n & variations . at "MEUp" ?~ v) me'
         & inFA2 (\v n -> n & variations . at "RadUp" ?~ v) radup'
         & inFA2 (\v n -> n & variations . at "PSUp" ?~ v) ps'
         & traverse.traverse %~ collapseVars
@@ -83,7 +84,8 @@ bfragModel procs = do
           $ getProcs procs [datakey]
 
 
-  return (data', fullpred, nonttpred
+  return
+    ( data', fullpred, nonttpred
     , fmap ((fmap.fmap) (view nominal) . mappend nonttpred) . strictMap
       $ inSM (HM.filterWithKey $ \k _ -> k `elem` ttkeys) procs)
 
@@ -98,11 +100,11 @@ bfragModel procs = do
 
     corrDiffO :: Obj -> Obj -> Obj
     corrDiffO (H1DD h) (H1DD h') =
-      fromMaybe (error "error diffing H1DDs") $ H1DD <$> removeSubHist h h'
+      maybe (error "error diffing H1DDs") H1DD $ removeSubHist h h'
     corrDiffO (H2DD h) (H2DD h') =
-      fromMaybe (error "error diffing H2DDs") $ H2DD <$> removeSubHist h h'
+      maybe (error "error diffing H2DDs") H2DD $ removeSubHist h h'
     corrDiffO (P1DD h) (P1DD h') =
-      fromMaybe (error "error diffing P1DDs") $ P1DD <$> removeSubHist h h'
+      maybe (error "error diffing P1DDs") P1DD $ removeSubHist h h'
     corrDiffO _ _ = error "diffing two incompatible objects"
 
     addVar name f vs = vs & variations . at name ?~ f (view nominal vs)

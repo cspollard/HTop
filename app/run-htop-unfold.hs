@@ -14,6 +14,7 @@ import           BFrag.Model
 import           BFrag.Systematics      (lumi)
 import           Control.Applicative    (liftA2, liftA3)
 import           Control.Lens
+import           Control.Monad          (forM_)
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
@@ -174,7 +175,7 @@ main = do
   putStrLn "model:"
   print model
 
-  unfolded' <-
+  (unfolded', unfoldedcov) <-
     runModel (nsamples args) (mcmcfile args) (view histData datah) model params
 
   let unfolded'' =
@@ -203,6 +204,11 @@ main = do
         $ zipWith (\x (_, y) -> (x, y)) xs unfolded''
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm")
         $ zipWith (\x (_, y) -> (x, y)) xs unfoldednorm
+
+  putStr "covariances:"
+  forM_ (HM.toList unfoldedcov) $ \(ts, cov) -> do
+    putStr $ show ts ++ ": "
+    print cov
 
 
   where
