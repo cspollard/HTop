@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedLists           #-}
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE TupleSections             #-}
 {-# LANGUAGE TypeFamilies              #-}
 
 module Main where
@@ -19,6 +20,7 @@ import           Data.Foldable          (fold)
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
+import           Data.List              (nub)
 import           Data.List              (intercalate, sort)
 import           Data.Maybe             (catMaybes, fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
@@ -200,84 +202,127 @@ main = do
         q84 <- quantile 0.84 y
         return (x, (q16, q84))
 
-  withFile (yodafolder args <> "/htop.yoda") WriteMode $ \h ->
-    do
+  withFile (yodafolder args <> "/htop.yoda") WriteMode $ \h -> do
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname)
         $ zipWith (\x (_, y) -> (x, y)) xs unfolded''
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm")
         $ zipWith (\x (_, y) -> (x, y)) xs unfoldednorm
 
-  let names = V.fromList . sort $ HM.keys unfolded'
-      for = flip fmap
-      vals =
-        for names $ \name ->
-          fromMaybe (error "missing best fit values") $ do
-            (mx, _) <- HM.lookup name unfolded'
-            mx
+      -- names = V.fromList . sort $ HM.keys unfolded'
+      -- for = flip fmap
 
-      covs =
-        for names $ \name ->
-          for names $ \name' ->
-            fromMaybe (error "missing covariance")
-            $ HM.lookup (name, name') unfoldedcov
+      -- vals =
+      --   for names $ \name ->
+      --     fromMaybe (error "missing best fit values") $ do
+      --       (mx, _) <- HM.lookup name unfolded'
+      --       mx
+      --
+      -- covs =
+      --   for names $ \name ->
+      --     for names $ \name' ->
+      --       fromMaybe (error "missing covariance")
+      --       $ HM.lookup (name, name') unfoldedcov
+      --
+      -- absuncerts :: Vector (Vector Double)
+      -- absuncerts =
+      --   for covs $ \cov ->
+      --     flip imap cov $ \j c ->
+      --       abs $ c / sqrt (covs V.! j V.! j)
+      --
+      -- reluncerts =
+      --   flip imap absuncerts $ \i aus ->
+      --     for aus $ \au ->
+      --       abs $ au / (vals V.! i)
 
-      absuncerts :: Vector (Vector Double)
-      absuncerts =
-        for covs $ \cov ->
-          flip imap cov $ \j c ->
-            abs $ c / sqrt (covs V.! j V.! j)
+  let reluncerts =
+        flip HM.mapMaybeWithKey unfoldedcov $ \(name, name') cov ->
+          let val =
+                fromMaybe (error "missing best fit value") $ do
+                  (mx, _) <- HM.lookup name unfolded'
+                  mx
 
-      reluncerts =
-        flip imap absuncerts $ \i aus ->
-          for aus $ \au ->
-            abs $ au / (vals V.! i)
+              var' =
+                fromMaybe (error "missing variance")
+                $ HM.lookup (name', name') unfoldedcov
 
-      printMatrix m h =
-        forM_ m $ \v -> do
-          forM_ v $ \x -> do
-            hPutStr h $ show x
-            hPutStr h "\t"
-          hPutStrLn h ""
+          in
+            if T.isPrefixOf "normtruthbin" name
+                && not (T.isPrefixOf "truthbin" name')
+                && not (T.isPrefixOf "recobin" name')
+                && name' /= "llh"
+              then Just . abs $ cov / var' / val
+              else Nothing
+
 
       latex =
-        let pois :: [(String, Vector Double)]
-            pois =
-              catMaybes . V.toList . flip imap reluncerts $ \i rus ->
-                let n = names V.! i
-                in if T.isPrefixOf "normtruth" n
-                  then Just (T.unpack n, rus)
-                  else Nothing
-            fmtLine (n, rus) =
-              n
+        let ks = HM.keys reluncerts
+            poinames = sort . nub $ fst <$> ks
+            names = sort . nub $ snd <$> ks
+            hmlookup k hm = fromMaybe (error "can't find key") $ HM.lookup k hm
+            fmtLine poiname =
+              T.unpack poiname
               ++ " & "
-              ++ intercalate " & " (V.toList $ printf "%.2f" <$> rus)
+              ++ intercalate " & "
+                  ( printf "%.2f" . flip hmlookup reluncerts . (poiname,)
+                    <$> names
+                  )
 
         in unlines $
-          [ "\\begin{tabular}{ l " ++ fold (replicate (V.length names) "| c ") ++ "}"
-          , intercalate " & " (V.toList $ T.unpack <$> names) ++ " \\"
+          [ "\\begin{tabular}{ l " ++ fold (replicate (length names) "| c ") ++ "}"
+          , " & " ++ intercalate " & " (T.unpack <$> names) ++ " \\"
           ]
-          ++ (fmtLine <$> pois)
+          ++ (fmtLine <$> poinames)
           ++ ["\\end{tabular}"]
+
+
+      -- printMatrix m h =
+      --   forM_ m $ \v -> do
+      --     forM_ v $ \x -> do
+      --       hPutStr h $ show x
+      --       hPutStr h "\t"
+      --     hPutStrLn h ""
+
+      -- latex =
+      --   let pois :: [(String, Vector Double)]
+      --       pois =
+      --         catMaybes . V.toList . flip imap reluncerts $ \i rus ->
+      --           let n = names V.! i
+      --           in if T.isPrefixOf "normtruth" n
+      --             then Just (T.unpack n, rus)
+      --             else Nothing
+      --       fmtLine (n, rus) =
+      --         n
+      --         ++ " & "
+      --         ++ intercalate " & " (V.toList $ printf "%.2f" <$> rus)
+      --
+      --       p
+      --
+      --   in unlines $
+      --     [ "\\begin{tabular}{ l " ++ fold (replicate (V.length names) "| c ") ++ "}"
+      --     , " & " ++ intercalate " & " (V.toList $ T.unpack <$> names) ++ " \\"
+      --     ]
+      --     ++ (fmtLine <$> pois)
+      --     ++ ["\\end{tabular}"]
 
 
 
   withFile (yodafolder args <> "/htop.stat") WriteMode $ \h -> do
     -- remove quotes from names...
-    hPutStrLn h . T.unpack . T.intercalate "\t" $ V.toList names
-    hPutStrLn h ""
-    printMatrix (vals:[]) h
-    hPutStrLn h ""
+    -- hPutStrLn h . T.unpack . T.intercalate "\t" $ V.toList names
+    -- hPutStrLn h ""
+    -- printMatrix (vals:[]) h
+    -- hPutStrLn h ""
+    --
+    -- printMatrix covs h
+    -- hPutStrLn h ""
+    --
+    -- printMatrix absuncerts h
+    -- hPutStrLn h ""
+    --
+    -- printMatrix reluncerts h
+    -- hPutStrLn h ""
 
-    printMatrix covs h
-    hPutStrLn h ""
-
-    printMatrix absuncerts h
-    hPutStrLn h ""
-
-    printMatrix reluncerts h
-    hPutStrLn h ""
-
-    print latex
+    putStrLn latex
 
   where
     normToXsec
