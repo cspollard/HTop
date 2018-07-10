@@ -251,7 +251,7 @@ main = do
 
 
   withFile (yodafolder args <> "/htop.stat") WriteMode $ \h -> do
-    print "covariances:"
+    putStrLn "covariances:"
     print unfoldedcov
 
     hPutStrLn h latex
