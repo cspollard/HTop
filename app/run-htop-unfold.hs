@@ -205,7 +205,7 @@ main = do
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm")
         $ zipWith (\x (_, y) -> (x, y)) xs unfoldednorm
 
-  let names = sort $ HM.keys unfolded'
+  let names = V.fromList . sort $ HM.keys unfolded'
       for = flip fmap
       vals =
         for names $ \name ->
@@ -219,13 +219,16 @@ main = do
             fromMaybe (error "missing covariance")
             $ HM.lookup (name, name') unfoldedcov
 
-      vars =
-        for names $ \name ->
-            fromMaybe (error "missing covariance")
-            $ HM.lookup (name, name) unfoldedcov
+      absuncerts :: Vector (Vector Double)
+      absuncerts =
+        for covs $ \cov ->
+          flip imap cov $ \j c ->
+            abs $ c / sqrt (covs V.! j V.! j)
 
-      absuncerts = zipWith (\v c -> fmap (abs . (/ sqrt v)) c) vars covs
-      reluncerts = fmap (\us -> zipWith (/) us vals) absuncerts
+      reluncerts =
+        flip imap absuncerts $ \i aus ->
+          for aus $ \au ->
+            abs $ au / (vals V.! i)
 
       printMatrix m h =
         forM_ m $ \v -> do
