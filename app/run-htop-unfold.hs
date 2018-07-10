@@ -322,7 +322,7 @@ main = do
     -- printMatrix reluncerts h
     -- hPutStrLn h ""
 
-    putStrLn latex
+    hPutStrLn h latex
 
   where
     normToXsec
