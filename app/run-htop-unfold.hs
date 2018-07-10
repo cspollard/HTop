@@ -208,32 +208,6 @@ main = do
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm")
         $ zipWith (\x (_, y) -> (x, y)) xs unfoldednorm
 
-      -- names = V.fromList . sort $ HM.keys unfolded'
-      -- for = flip fmap
-
-      -- vals =
-      --   for names $ \name ->
-      --     fromMaybe (error "missing best fit values") $ do
-      --       (mx, _) <- HM.lookup name unfolded'
-      --       mx
-      --
-      -- covs =
-      --   for names $ \name ->
-      --     for names $ \name' ->
-      --       fromMaybe (error "missing covariance")
-      --       $ HM.lookup (name, name') unfoldedcov
-      --
-      -- absuncerts :: Vector (Vector Double)
-      -- absuncerts =
-      --   for covs $ \cov ->
-      --     flip imap cov $ \j c ->
-      --       abs $ c / sqrt (covs V.! j V.! j)
-      --
-      -- reluncerts =
-      --   flip imap absuncerts $ \i aus ->
-      --     for aus $ \au ->
-      --       abs $ au / (vals V.! i)
-
   let reluncerts =
         flip HM.mapMaybeWithKey unfoldedcov $ \(name, name') cov ->
           let val =
@@ -266,61 +240,19 @@ main = do
                   ( printf "%.2f" . flip hmlookup reluncerts . (poiname,)
                     <$> names
                   )
+              ++ "\\\\"
 
         in unlines $
           [ "\\begin{tabular}{ l " ++ fold (replicate (length names) "| c ") ++ "}"
-          , " & " ++ intercalate " & " (T.unpack <$> names) ++ " \\"
+          , " & " ++ intercalate " & " (T.unpack <$> names) ++ " \\\\"
           ]
           ++ (fmtLine <$> poinames)
           ++ ["\\end{tabular}"]
 
 
-      -- printMatrix m h =
-      --   forM_ m $ \v -> do
-      --     forM_ v $ \x -> do
-      --       hPutStr h $ show x
-      --       hPutStr h "\t"
-      --     hPutStrLn h ""
-
-      -- latex =
-      --   let pois :: [(String, Vector Double)]
-      --       pois =
-      --         catMaybes . V.toList . flip imap reluncerts $ \i rus ->
-      --           let n = names V.! i
-      --           in if T.isPrefixOf "normtruth" n
-      --             then Just (T.unpack n, rus)
-      --             else Nothing
-      --       fmtLine (n, rus) =
-      --         n
-      --         ++ " & "
-      --         ++ intercalate " & " (V.toList $ printf "%.2f" <$> rus)
-      --
-      --       p
-      --
-      --   in unlines $
-      --     [ "\\begin{tabular}{ l " ++ fold (replicate (V.length names) "| c ") ++ "}"
-      --     , " & " ++ intercalate " & " (V.toList $ T.unpack <$> names) ++ " \\"
-      --     ]
-      --     ++ (fmtLine <$> pois)
-      --     ++ ["\\end{tabular}"]
-
-
-
   withFile (yodafolder args <> "/htop.stat") WriteMode $ \h -> do
-    -- remove quotes from names...
-    -- hPutStrLn h . T.unpack . T.intercalate "\t" $ V.toList names
-    -- hPutStrLn h ""
-    -- printMatrix (vals:[]) h
-    -- hPutStrLn h ""
-    --
-    -- printMatrix covs h
-    -- hPutStrLn h ""
-    --
-    -- printMatrix absuncerts h
-    -- hPutStrLn h ""
-    --
-    -- printMatrix reluncerts h
-    -- hPutStrLn h ""
+    print "covariances:"
+    print unfoldedcov
 
     hPutStrLn h latex
 
