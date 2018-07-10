@@ -277,7 +277,7 @@ main = do
     printMatrix reluncerts h
     hPutStrLn h ""
 
-    print latex
+    hPutStrLn h latex
 
   where
     normToXsec
