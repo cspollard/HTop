@@ -208,8 +208,12 @@ main = do
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm")
         $ zipWith (\x (_, y) -> (x, y)) xs unfoldednorm
 
-  let reluncerts =
-        flip HM.mapMaybeWithKey unfoldedcov $ \(name, name') cov ->
+  let symmetrize hm =
+        let insert' h (x, y) = HM.insert (y, x) (h HM.! (x, y)) h
+        in foldl insert' hm $ HM.keys hm
+
+      reluncerts =
+        flip HM.mapMaybeWithKey (symmetrize unfoldedcov) $ \(name, name') cov ->
           let val =
                 fromMaybe (error "missing best fit value") $ do
                   (mx, _) <- HM.lookup name unfolded'
