@@ -15,11 +15,12 @@ import           BFrag.Systematics      (lumi)
 import           Control.Applicative    (liftA2, liftA3)
 import           Control.Lens
 import           Control.Monad          (forM_)
+import           Data.Foldable          (fold)
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
 import           Data.List              (intercalate, sort)
-import           Data.Maybe             (fromJust, fromMaybe)
+import           Data.Maybe             (catMaybes, fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
 import           Data.Semigroup         ((<>))
 import           Data.TDigest           (quantile)
@@ -32,6 +33,7 @@ import           RunModel
 import           System.IO              (BufferMode (..), IOMode (..), hPutStr,
                                          hPutStrLn, hSetBuffering, stdout,
                                          withFile)
+import           Text.Printf
 
 
 type TextMap = HashMap T.Text
@@ -237,8 +239,31 @@ main = do
             hPutStr h "\t"
           hPutStrLn h ""
 
+      latex =
+        let pois :: [(String, Vector Double)]
+            pois =
+              catMaybes . V.toList . flip imap reluncerts $ \i rus ->
+                let n = names V.! i
+                in if T.isPrefixOf "normtruth" n
+                  then Just (T.unpack n, rus)
+                  else Nothing
+            fmtLine (n, rus) =
+              n
+              ++ " & "
+              ++ intercalate " & " (V.toList $ printf "%.2f" <$> rus)
+
+        in unlines $
+          [ "\\begin{tabular}{ l " ++ fold (replicate (V.length names) "| c ") ++ "}"
+          , intercalate " & " (V.toList $ T.unpack <$> names) ++ " \\"
+          ]
+          ++ (fmtLine <$> pois)
+          ++ ["\\end{tabular}"]
+
+
+
   withFile (yodafolder args <> "/htop.stat") WriteMode $ \h -> do
-    printMatrix (names:[]) h
+    -- remove quotes from names...
+    hPutStrLn h . T.unpack . T.intercalate "\t" $ V.toList names
     hPutStrLn h ""
     printMatrix (vals:[]) h
     hPutStrLn h ""
@@ -250,7 +275,9 @@ main = do
     hPutStrLn h ""
 
     printMatrix reluncerts h
+    hPutStrLn h ""
 
+    print latex
 
   where
     normToXsec
