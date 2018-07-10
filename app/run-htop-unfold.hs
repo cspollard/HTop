@@ -206,36 +206,47 @@ main = do
         $ zipWith (\x (_, y) -> (x, y)) xs unfoldednorm
 
   let names = sort $ HM.keys unfolded'
+      for = flip fmap
+      vals =
+        for names $ \name ->
+          fromMaybe (error "missing best fit values") $ do
+            (mx, _) <- HM.lookup name unfolded'
+            mx
 
-  withFile (yodafolder args <> "/htop.stat") WriteMode $ \h ->
-    do
-      hPutStrLn h . T.unpack $ T.intercalate "\t" names
+      covs =
+        for names $ \name ->
+          for names $ \name' ->
+            fromMaybe (error "missing covariance")
+            $ HM.lookup (name, name') unfoldedcov
 
-      -- print out the global mode
-      forM_ names $ \name -> do
-        let x =
-              maybe (error "missing best fit values") fst
-              $ HM.lookup name unfolded'
+      vars =
+        for names $ \name ->
+            fromMaybe (error "missing covariance")
+            $ HM.lookup (name, name) unfoldedcov
 
-        hPutStr h $ show x
-        hPutStr h "\t"
+      absuncerts = zipWith (\v c -> fmap (abs . (/ sqrt v)) c) vars covs
+      reluncerts = fmap (\us -> zipWith (/) us vals) absuncerts
 
-      hPutStrLn h ""
-      hPutStrLn h ""
+      printMatrix m h =
+        forM_ m $ \v -> do
+          forM_ v $ \x -> do
+            hPutStr h $ show x
+            hPutStr h "\t"
+          hPutStrLn h ""
 
-      -- print out the covariance matrix
-      forM_ names $ \name -> do
-        forM_ names $ \name' -> do
-          let cov =
-                fromMaybe (error "missing covariance")
-                $ HM.lookup (name, name') unfoldedcov
+  withFile (yodafolder args <> "/htop.stat") WriteMode $ \h -> do
+    printMatrix (names:[]) h
+    hPutStrLn h ""
+    printMatrix (vals:[]) h
+    hPutStrLn h ""
 
-          hPutStr h $ show cov
-          hPutStr h "\t"
+    printMatrix covs h
+    hPutStrLn h ""
 
-        hPutStrLn h ""
+    printMatrix absuncerts h
+    hPutStrLn h ""
 
-
+    printMatrix reluncerts h
 
 
   where
