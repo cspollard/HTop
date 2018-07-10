@@ -29,7 +29,7 @@ import qualified Data.Vector            as V
 import           Model
 import           Options.Applicative
 import           RunModel
-import           System.IO              (BufferMode (..), IOMode (..),
+import           System.IO              (BufferMode (..), IOMode (..), hPutStr,
                                          hPutStrLn, hSetBuffering, stdout,
                                          withFile)
 
@@ -205,10 +205,37 @@ main = do
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm")
         $ zipWith (\x (_, y) -> (x, y)) xs unfoldednorm
 
-  putStr "covariances:"
-  forM_ (HM.toList unfoldedcov) $ \(ts, cov) -> do
-    putStr $ show ts ++ ": "
-    print cov
+  let names = sort $ HM.keys unfolded'
+
+  withFile (yodafolder args <> "/htop.stat") WriteMode $ \h ->
+    do
+      hPutStrLn h . T.unpack $ T.intercalate "\t" names
+
+      -- print out the global mode
+      forM_ names $ \name -> do
+        let x =
+              maybe (error "missing best fit values") fst
+              $ HM.lookup name unfolded'
+
+        hPutStr h $ show x
+        hPutStr h "\t"
+
+      hPutStrLn h ""
+      hPutStrLn h ""
+
+      -- print out the covariance matrix
+      forM_ names $ \name -> do
+        forM_ names $ \name' -> do
+          let cov =
+                fromMaybe (error "missing covariance")
+                $ HM.lookup (name, name') unfoldedcov
+
+          hPutStr h $ show cov
+          hPutStr h "\t"
+
+        hPutStrLn h ""
+
+
 
 
   where
