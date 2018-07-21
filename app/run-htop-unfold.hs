@@ -27,10 +27,11 @@ import           Data.TDigest           (quantile)
 import qualified Data.Text              as T
 import           Data.Vector            (Vector)
 import qualified Data.Vector            as V
+import           Debug.Trace
 import           Model
 import           Options.Applicative
 import           RunModel
-import           System.IO              (BufferMode (..), IOMode (..), hPutStr,
+import           System.IO              (BufferMode (..), IOMode (..),
                                          hPutStrLn, hSetBuffering, stdout,
                                          withFile)
 import           Text.Printf
@@ -181,30 +182,31 @@ main = do
     runModel (nsamples args) (mcmcfile args) (view histData datah) model params
 
   let unfolded'' =
+        fromMaybe (error "error getting mode or quantiles") . sequence
+        $ quant <$> unfolded'
+
+      unfolded''' =
         sort
-        . fromMaybe (error "missing best fit values")
-        . (traverse.traverse) quant
         . filter (T.isPrefixOf "truth" . fst)
-        $ HM.toList unfolded'
+        $ HM.toList unfolded''
 
       unfoldednorm =
         sort
-        . fromMaybe (error "missing best fit values")
-        . (traverse.traverse) quant
         . filter (T.isPrefixOf "normtruth" . fst)
-        $ HM.toList unfolded'
+        $ HM.toList unfolded''
 
       quant (mx, y) = do
         x <- mx
         q16 <- quantile 0.16 y
+        q50 <- quantile 0.50 y
         q84 <- quantile 0.84 y
-        return (x, (q16, q84))
+        return (x, (q16, q50, q84))
 
   withFile (yodafolder args <> "/htop.yoda") WriteMode $ \h -> do
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname)
-        $ zipWith (\x (_, y) -> (x, y)) xs unfolded''
+        $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) xs unfolded'''
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm")
-        $ zipWith (\x (_, y) -> (x, y)) xs unfoldednorm
+        $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) xs unfoldednorm
 
   let symmetrize hm =
         let insert' h (x, y) = HM.insert (y, x) (h HM.! (x, y)) h
@@ -212,13 +214,15 @@ main = do
 
       reluncerts =
         flip HM.mapMaybeWithKey (symmetrize unfoldedcov) $ \(name, name') cov ->
-          let val =
-                fromMaybe (error "missing best fit value") $ do
-                  (mx, _) <- HM.lookup name unfolded'
-                  mx
+          let mean =
+                trace ("mean of " ++ T.unpack name ++ ": ") . traceShowId
+                . fromMaybe (error "missing best fit value") $ do
+                    (_, (_, q50, _)) <- HM.lookup name unfolded''
+                    return q50
 
               var' =
-                fromMaybe (error "missing variance")
+                trace ("variance of " ++ T.unpack name' ++ ": ") . traceShowId
+                . fromMaybe (error "missing variance")
                 $ HM.lookup (name', name') unfoldedcov
 
           in
@@ -226,7 +230,7 @@ main = do
                 && not (T.isPrefixOf "truthbin" name')
                 && not (T.isPrefixOf "recobin" name')
                 && name' /= "llh"
-              then Just . abs $ cov / var' / val
+              then Just . abs $ cov / var' / mean
               else Nothing
 
 
