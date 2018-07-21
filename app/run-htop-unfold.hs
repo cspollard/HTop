@@ -230,7 +230,7 @@ main = do
                 && not (T.isPrefixOf "truthbin" name')
                 && not (T.isPrefixOf "recobin" name')
                 && name' /= "llh"
-              then Just . abs $ cov / var' / mean
+              then Just . abs $ cov / sqrt var' / mean
               else Nothing
 
 
