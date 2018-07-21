@@ -15,14 +15,12 @@ import           BFrag.Model
 import           BFrag.Systematics      (lumi)
 import           Control.Applicative    (liftA2, liftA3)
 import           Control.Lens
-import           Control.Monad          (forM_)
 import           Data.Foldable          (fold)
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
-import           Data.List              (nub)
-import           Data.List              (intercalate, sort)
-import           Data.Maybe             (catMaybes, fromJust, fromMaybe)
+import           Data.List              (intercalate, nub, sort)
+import           Data.Maybe             (fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
 import           Data.Semigroup         ((<>))
 import           Data.TDigest           (quantile)
