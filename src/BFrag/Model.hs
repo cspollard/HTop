@@ -11,6 +11,7 @@ import           Control.Lens
 import qualified Data.HashMap.Strict as HM
 import           Data.List           (partition)
 import qualified Data.Map            as M
+import           Data.Maybe          (fromMaybe)
 import           Data.Semigroup      ((<>))
 import qualified Data.Text           as T
 import           GHC.Exts            (toList)
@@ -126,15 +127,17 @@ bfragModel procs = do
     collapseVars (Variation n vs) =
       let vs' = toList vs
           filt s = T.isInfixOf (T.toLower s) . T.toLower
-          rm s =
+          rmEnd s =
             fmap $ \(x, y) ->
               let x' = T.toLower x
                   s' = T.toLower s
-                  x'' = mconcat $ T.splitOn s' x'
+                  x'' =
+                    fromMaybe (error "empty systematic name!")
+                    $ T.stripSuffix s' x'
               in (x'', y)
 
           (downs, ups) =
-            ((HM.fromList . rm "down") *** (HM.fromList . rm "up"))
+            ((HM.fromList . rmEnd "down") *** (HM.fromList . rmEnd "up"))
             $ partition (filt "down" . fst) vs'
       in Variation n . strictMap $ HM.unionWith (vardiff n) ups downs
 
