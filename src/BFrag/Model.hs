@@ -131,9 +131,7 @@ bfragModel procs = do
             fmap $ \(x, y) ->
               let x' = T.toLower x
                   s' = T.toLower s
-                  x'' =
-                    fromMaybe (error "empty systematic name!")
-                    $ T.stripSuffix s' x'
+                  x'' = fromMaybe x' $ T.stripSuffix s' x'
               in (x'', y)
 
           (downs, ups) =
