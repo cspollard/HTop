@@ -70,10 +70,7 @@ inArgs =
     option auto ( long "nsamples" <> metavar "NSAMPLES=1000000" )
     <|> pure 1000000
     )
-  <*> (
-    option auto ( long "stat-only" <> metavar "stat-only=False" )
-    <|> pure False
-    )
+  <*> switch (long "stat-only")
   <*> strOption
     ( long "yodafolder" <> metavar "YODAFOLDER" )
   <*> strOption
