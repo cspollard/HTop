@@ -370,7 +370,7 @@ buildModel statonly trueH matH bkgHs = (nommod, params)
 
     params =
       if statonly
-        then mempty
+        then trueparams
         else matparams `mappend` trueparams `mappend` lumiparam
 
     systify v = fmap Just v & nominal .~ Nothing
