@@ -54,6 +54,7 @@ data Args =
   Args
     { mcmcfile   :: String
     , nsamples   :: Int
+    , statOnly   :: Bool
     , yodafolder :: String
     , xsecfile   :: String
     , observable :: String
@@ -68,6 +69,10 @@ inArgs =
   <*> (
     option auto ( long "nsamples" <> metavar "NSAMPLES=1000000" )
     <|> pure 1000000
+    )
+  <*> (
+    option auto ( long "stat-only" <> metavar "stat-only=False" )
+    <|> pure False
     )
   <*> strOption
     ( long "yodafolder" <> metavar "YODAFOLDER" )
@@ -162,6 +167,7 @@ main = do
 
       (model, params) =
         buildModel
+          (statOnly args)
           (view histData trueh)
           (getH2DD <$> filtVar matFilt (view noted migration))
           (HM.singleton "bkg" . view histData <$> filtVar bkgFilt (view noted bkg))
@@ -323,11 +329,12 @@ unfoldingInputs obs hs =
 
 
 buildModel
-  :: Vector Double
+  :: Bool
+  -> Vector Double
   -> Vars (Vector (Vector Double))
   -> Vars (TextMap (Vector Double))
   -> (Model Double, TextMap (ModelParam Double))
-buildModel trueH matH bkgHs = (nommod, params)
+buildModel statonly trueH matH bkgHs = (nommod, params)
   where
     emptysig = 0 <$ trueH
 
@@ -364,7 +371,10 @@ buildModel trueH matH bkgHs = (nommod, params)
           $ ModelVar Nothing (Just (emptysig & ix i .~ 1)) Nothing Nothing
         )
 
-    params = matparams `mappend` trueparams `mappend` lumiparam
+    params =
+      if statonly
+        then mempty
+        else matparams `mappend` trueparams `mappend` lumiparam
 
     systify v = fmap Just v & nominal .~ Nothing
 
