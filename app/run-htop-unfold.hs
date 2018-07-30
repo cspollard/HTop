@@ -241,12 +241,12 @@ main = do
         let ks = HM.keys reluncerts
             poinames = sort . nub $ fst <$> ks
             names = sort . nub $ snd <$> ks
-            hmlookup k hm = fromMaybe (error "can't find key") $ HM.lookup k hm
-            fmtLine poiname =
-              T.unpack poiname
+            hmlookup k hm = hm HM.! k
+            fmtLine npname =
+              T.unpack npname
               ++ " & "
               ++ intercalate " & "
-                  ( printf "%.2f" . flip hmlookup reluncerts . (poiname,)
+                  ( printf "%.2f" . flip hmlookup reluncerts . (,npname)
                     <$> names
                   )
               ++ "\\\\"
