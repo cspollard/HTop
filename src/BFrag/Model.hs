@@ -8,6 +8,7 @@ import           BFrag.Systematics
 import           Control.Applicative (liftA2)
 import           Control.Arrow       ((***))
 import           Control.Lens
+import           Data.Foldable       (fold)
 import qualified Data.HashMap.Strict as HM
 import           Data.List           (partition)
 import qualified Data.Map            as M
@@ -25,14 +26,24 @@ bfragModel procs = do
   zjets <-
     getProcs procs zjetskeys
     & traverse.traverse.traverse %~ addVar "ZJetsNormUp" (scaleO 1.3)
-  stop <-
-    (fmap.fmap) (addVar "STopNormUp" (scaleO 1.3))
-    <$> getProcs procs stopkeys
+
+  stopdr <- getProcs procs stopdrkeys
+  stopds <- getProcs procs stopdskeys & (traverse.traverse.noted) %~ view nominal
+
+  let inFA2 f = inF2 (M.intersectionWith $ liftA2 f)
+      stop =
+        stopdr
+        & inFA2 (\v n -> n & variations . at "STopDS" ?~ v) stopds
+        & (fmap.fmap) (addVar "STopNormUp" (scaleO 1.3))
+
+  diboson <-
+    (fmap.fmap) (addVar "DibosonNormUp" (scaleO 1.3))
+    <$> getProcs procs dibosonkeys
 
 
   let nonttpred =
         inF (M.filterWithKey (\k _ -> filtReco k))
-        $ zjets `mappend` stop
+        $ fold [zjets, stop, diboson]
 
 
       filtReco k =
@@ -49,6 +60,10 @@ bfragModel procs = do
     getProcs procs [radupkey] & (traverse.traverse.noted) %~ view nominal
   raddown <-
     getProcs procs [raddownkey] & (traverse.traverse.noted) %~ view nominal
+  fsrup <-
+    getProcs procs [fsrupkey] & (traverse.traverse.noted) %~ view nominal
+  fsrdown <-
+    getProcs procs [fsrdownkey] & (traverse.traverse.noted) %~ view nominal
   me <-
     getProcs procs [amcpy8key] & (traverse.traverse.noted) %~ view nominal
   ps <-
@@ -61,19 +76,20 @@ bfragModel procs = do
   let nomnom =
         nom & (traverse.noted) %~ view nominal
 
-      inFA2 f = inF2 (M.intersectionWith $ liftA2 f)
-
       afiidiff = inFA2 corrDiffO nomnom afii
       raddiff = inFA2 (fmap (scaleO 0.5) . corrDiffO) radup raddown
+      fsrdiff = inFA2 (fmap (scaleO 0.5) . corrDiffO) fsrup fsrdown
       me' = mappend me afiidiff
       ps' = mappend ps afiidiff
       radup' = mappend nomnom raddiff
+      fsrup' = mappend nomnom fsrdiff
       fullpred =
         nom
         -- TODO
         -- note: remove matrix element variation!
         -- & inFA2 (\v n -> n & variations . at "MEUp" ?~ v) me'
         & inFA2 (\v n -> n & variations . at "RadUp" ?~ v) radup'
+        & inFA2 (\v n -> n & variations . at "FSRUp" ?~ v) fsrup'
         & inFA2 (\v n -> n & variations . at "PSUp" ?~ v) ps'
         & traverse.traverse %~ collapseVars
 
@@ -140,15 +156,17 @@ bfragModel procs = do
       in Variation n . strictMap $ HM.unionWith (vardiff n) ups downs
 
     ttkeys =
-      [ nomkey, afiikey, radupkey, raddownkey, amcpy8key
+      [ nomkey, afiikey, radupkey, raddownkey, fsrupkey, fsrdownkey, amcpy8key
       , powh7key, sherpakey, powp6key
       ]
 
-nomkey, afiikey, radupkey, raddownkey, amcpy8key
+nomkey, afiikey, radupkey, raddownkey, fsrupkey, fsrdownkey, amcpy8key
   , powh7key, sherpakey, powp6key, datakey
   :: ProcessInfo
 nomkey = ProcessInfo 410501 FS
 afiikey = ProcessInfo 410501 AFII
+fsrupkey = ProcessInfo 410028 AFII
+fsrdownkey = ProcessInfo 410029 AFII
 radupkey = ProcessInfo 410511 AFII
 raddownkey = ProcessInfo 410512 AFII
 amcpy8key = ProcessInfo 410225 AFII
@@ -157,9 +175,11 @@ sherpakey = ProcessInfo 410252 AFII
 powp6key = ProcessInfo 410000 FS
 datakey = ProcessInfo 0 DS
 
-zjetskeys, stopkeys :: [ProcessInfo]
+zjetskeys, stopdrkeys, stopdskeys, dibosonkeys :: [ProcessInfo]
 zjetskeys = flip ProcessInfo FS <$> [364128..364141]
-stopkeys = flip ProcessInfo FS <$> [410015, 410016]
+stopdrkeys = flip ProcessInfo FS <$> [410015, 410016]
+stopdskeys = flip ProcessInfo FS <$> [410064, 410065]
+dibosonkeys = flip ProcessInfo FS <$> [361068, 361096]
 
 
 procToText :: ProcessInfo -> T.Text
