@@ -216,7 +216,11 @@ main = do
 
       uncerts =
         flip HM.mapMaybeWithKey (symmetrize unfoldedcov) $ \(name, name') cov ->
-          let var' =
+          let var =
+                fromMaybe (error "missing variance")
+                $ HM.lookup (name, name) unfoldedcov
+
+              var' =
                 fromMaybe (error "missing variance")
                 $ HM.lookup (name', name') unfoldedcov
 
@@ -225,16 +229,17 @@ main = do
                   (_, (_, q50, _)) <- HM.lookup name unfolded''
                   return q50
 
+              corr = abs $ cov / sqrt var / sqrt var'
               absuncert = abs $ cov / sqrt var'
               reluncert = absuncert / mean
-                
+
 
           in
             if T.isPrefixOf "normtruthbin" name
                 && not (T.isPrefixOf "truthbin" name')
                 && not (T.isPrefixOf "recobin" name')
                 && name' /= "llh"
-              then Just (absuncert, reluncert)
+              then Just (absuncert, reluncert, corr)
               else Nothing
 
 
@@ -264,11 +269,15 @@ main = do
     print unfoldedcov
 
     hPutStrLn h "absolute uncertainties:"
-    hPutStrLn h . latextable $ fst <$> uncerts
+    hPutStrLn h . latextable $ view _1 <$> uncerts
 
     hPutStrLn h ""
     hPutStrLn h "relative uncertainties:"
-    hPutStrLn h . latextable $ snd <$> uncerts
+    hPutStrLn h . latextable $ view _2 <$> uncerts
+
+    hPutStrLn h ""
+    hPutStrLn h "correlations:"
+    hPutStrLn h . latextable $ view _3 <$> uncerts
 
   where
     normToXsec
