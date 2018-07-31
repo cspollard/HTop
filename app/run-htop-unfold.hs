@@ -229,7 +229,7 @@ main = do
                   (_, (_, q50, _)) <- HM.lookup name unfolded''
                   return q50
 
-              corr = abs $ cov / sqrt var / sqrt var'
+              corr = cov / sqrt var / sqrt var'
               absuncert = abs $ cov / sqrt var'
               reluncert = absuncert / mean
 
