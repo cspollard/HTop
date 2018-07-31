@@ -27,7 +27,6 @@ import           Data.TDigest           (quantile)
 import qualified Data.Text              as T
 import           Data.Vector            (Vector)
 import qualified Data.Vector            as V
-import           Debug.Trace
 import           Model
 import           Options.Applicative
 import           RunModel
@@ -215,47 +214,48 @@ main = do
         let insert' h (x, y) = HM.insert (y, x) (h HM.! (x, y)) h
         in foldl insert' hm $ HM.keys hm
 
-      reluncerts =
+      uncerts =
         flip HM.mapMaybeWithKey (symmetrize unfoldedcov) $ \(name, name') cov ->
-          let mean =
-                trace ("mean of " ++ T.unpack name ++ ": ") . traceShowId
-                . fromMaybe (error "missing best fit value") $ do
-                    (_, (_, q50, _)) <- HM.lookup name unfolded''
-                    return q50
-
-              var' =
-                trace ("variance of " ++ T.unpack name' ++ ": ") . traceShowId
-                . fromMaybe (error "missing variance")
+          let var' =
+                fromMaybe (error "missing variance")
                 $ HM.lookup (name', name') unfoldedcov
+
+              mean =
+                fromMaybe (error "missing best fit value") $ do
+                  (_, (_, q50, _)) <- HM.lookup name unfolded''
+                  return q50
+
+              absuncert = abs $ cov / sqrt var'
+              reluncert = absuncert / mean
+                
 
           in
             if T.isPrefixOf "normtruthbin" name
                 && not (T.isPrefixOf "truthbin" name')
                 && not (T.isPrefixOf "recobin" name')
                 && name' /= "llh"
-              then Just . abs $ cov / sqrt var' / mean
+              then Just (absuncert, reluncert)
               else Nothing
 
 
-      latex =
-        let ks = HM.keys reluncerts
+      latextable m =
+        let ks = HM.keys m
             poinames = sort . nub $ fst <$> ks
-            names = sort . nub $ snd <$> ks
-            hmlookup k hm = hm HM.! k
+            npnames = sort . nub $ snd <$> ks
             fmtLine npname =
               T.unpack npname
               ++ " & "
               ++ intercalate " & "
-                  ( printf "%.2f" . flip hmlookup reluncerts . (,npname)
-                    <$> names
+                  ( printf "%.3f" . (HM.!) m . (,npname)
+                    <$> poinames
                   )
-              ++ "\\\\"
+              ++ " \\\\"
 
         in unlines $
-          [ "\\begin{tabular}{ l " ++ fold (replicate (length names) "| c ") ++ "}"
-          , " & " ++ intercalate " & " (T.unpack <$> names) ++ " \\\\"
+          [ "\\begin{tabular}{ l " ++ fold (replicate (length poinames) "| c ") ++ "}"
+          , " & " ++ intercalate " & " (T.unpack <$> poinames) ++ " \\\\"
           ]
-          ++ (fmtLine <$> poinames)
+          ++ (fmtLine <$> npnames)
           ++ ["\\end{tabular}"]
 
 
@@ -263,7 +263,12 @@ main = do
     putStrLn "covariances:"
     print unfoldedcov
 
-    hPutStrLn h latex
+    hPutStrLn h "absolute uncertainties:"
+    hPutStrLn h . latextable $ fst <$> uncerts
+
+    hPutStrLn h ""
+    hPutStrLn h "relative uncertainties:"
+    hPutStrLn h . latextable $ snd <$> uncerts
 
   where
     normToXsec
