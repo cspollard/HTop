@@ -259,6 +259,7 @@ main = do
         in unlines $
           [ "\\begin{tabular}{ l " ++ fold (replicate (length poinames) "| c ") ++ "}"
           , " & " ++ intercalate " & " (T.unpack <$> poinames) ++ " \\\\"
+          , "\\hline"
           ]
           ++ (fmtLine <$> npnames)
           ++ ["\\end{tabular}"]
