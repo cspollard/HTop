@@ -11,7 +11,6 @@ python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zblcmcmc.da
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzblc/*yoda -o unfold/particlelevel/data/zblcplots
-make-plots --pdf unfold/particlelevel/zblcplots/data/Users/*dat
 
 mkdir -p unfold/particlelevel/closure/zblcposteriors
 cd unfold/particlelevel/closure/zblcposteriors
@@ -27,7 +26,6 @@ python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zblmcmc.dat
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzbl/*yoda -o unfold/particlelevel/data/zblplots
-make-plots --pdf unfold/particlelevel/zblplots/data/Users/*dat
 
 mkdir -p unfold/particlelevel/closure/zblposteriors
 cd unfold/particlelevel/closure/zblposteriors
@@ -43,7 +41,6 @@ python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbtcmcmc.da
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzbtc/*yoda -o unfold/particlelevel/data/zbtcplots
-make-plots --pdf unfold/particlelevel/zbtcplots/data/Users/*dat
 
 mkdir -p unfold/particlelevel/closure/zbtcposteriors
 cd unfold/particlelevel/closure/zbtcposteriors
@@ -59,7 +56,6 @@ python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbtmcmc.dat
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzbt/*yoda -o unfold/particlelevel/data/zbtplots
-make-plots --pdf unfold/particlelevel/zbtplots/data/Users/*dat
 
 mkdir -p unfold/particlelevel/closure/zbtposteriors
 cd unfold/particlelevel/closure/zbtposteriors
@@ -75,7 +71,6 @@ python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbrelcmcmc.
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzbrelc/*yoda -o unfold/particlelevel/data/zbrelcplots
-make-plots --pdf unfold/particlelevel/zbrelcplots/data/Users/*dat
 
 mkdir -p unfold/particlelevel/closure/zbrelcposteriors
 cd unfold/particlelevel/closure/zbrelcposteriors
@@ -91,7 +86,6 @@ python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbrelmcmc.d
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzbrel/*yoda -o unfold/particlelevel/data/zbrelplots
-make-plots --pdf unfold/particlelevel/zbrelplots/data/Users/*dat
 
 mkdir -p unfold/particlelevel/closure/zbrelposteriors
 cd unfold/particlelevel/closure/zbrelposteriors
