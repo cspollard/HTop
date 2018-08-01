@@ -13,6 +13,7 @@ module Main where
 
 import           Atlas
 import           BFrag.Event
+import           BFrag.Model
 import           Control.Applicative        (empty)
 import qualified Control.Foldl              as F
 import           Control.Lens               hiding (each)
@@ -145,7 +146,10 @@ fillFile systs fn nevt = do
       systflag =
         case dsid' of
           0 -> Data'
-          _ -> MC' AllVars
+          _ ->
+            if procinfo `elem` ([nomkey] ++ zjetskeys ++ stopdrkeys ++ dibosonkeys)
+              then MC' AllVars
+              else MC' NoVars
       take' = maybe cat P.take nevt
 
   hs <-
