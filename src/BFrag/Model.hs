@@ -60,10 +60,10 @@ bfragModel procs = do
     getProcs procs [radupkey] & (traverse.traverse.noted) %~ view nominal
   raddown <-
     getProcs procs [raddownkey] & (traverse.traverse.noted) %~ view nominal
-  -- fsrup <-
-  --   getProcs procs [fsrupkey] & (traverse.traverse.noted) %~ view nominal
-  -- fsrdown <-
-  --   getProcs procs [fsrdownkey] & (traverse.traverse.noted) %~ view nominal
+  fsrup <-
+    getProcs procs [fsrupkey] & (traverse.traverse.noted) %~ view nominal
+  fsrdown <-
+    getProcs procs [fsrdownkey] & (traverse.traverse.noted) %~ view nominal
   me <-
     getProcs procs [amcpy8key] & (traverse.traverse.noted) %~ view nominal
   ps <-
@@ -78,18 +78,18 @@ bfragModel procs = do
 
       afiidiff = inFA2 corrDiffO nomnom afii
       raddiff = inFA2 (fmap (scaleO 0.5) . corrDiffO) radup raddown
-      -- fsrdiff = inFA2 (fmap (scaleO 0.5) . corrDiffO) fsrup fsrdown
+      fsrdiff = inFA2 (fmap (scaleO 0.5) . corrDiffO) fsrup fsrdown
       me' = mappend me afiidiff
       ps' = mappend ps afiidiff
       rad' = mappend nomnom raddiff
-      -- fsr' = mappend nomnom fsrdiff
+      fsr' = mappend nomnom fsrdiff
       fullpred =
         nom
         -- TODO
         -- note: remove matrix element variation!
         -- & inFA2 (\v n -> n & variations . at "MEUp" ?~ v) me'
         & inFA2 (\v n -> n & variations . at "RadUp" ?~ v) rad'
-        -- & inFA2 (\v n -> n & variations . at "FSRUp" ?~ v) fsr'
+        & inFA2 (\v n -> n & variations . at "FSRUp" ?~ v) fsr'
         & inFA2 (\v n -> n & variations . at "PSUp" ?~ v) ps'
         & traverse.traverse %~ collapseVars
 
@@ -156,7 +156,7 @@ bfragModel procs = do
       in Variation n . strictMap $ HM.unionWith (vardiff n) ups downs
 
     ttkeys =
-      [ nomkey, afiikey, radupkey, raddownkey, {- fsrupkey, fsrdownkey, -} amcpy8key
+      [ nomkey, afiikey, radupkey, raddownkey, fsrupkey, fsrdownkey, amcpy8key
       , powh7key, sherpakey, powp6key
       ]
 

@@ -1,4 +1,5 @@
 mkdir -p unfold/mcmc/closure
+mkdir -p unfold/mcmc/closure_statonly
 mkdir -p unfold/mcmc/data
 
 mkdir -p unfold/particlelevel/closure/unfoldzbtc
