@@ -245,8 +245,8 @@ main = do
 
       latextable m =
         let ks = HM.keys m
-            poinames = sort . nub $ fst <$> ks
-            npnames = sort . nub $ snd <$> ks
+            poinames = fmap paramToName . sort . nub $ fst <$> ks
+            npnames = fmap paramToName . sort . nub $ snd <$> ks
             fmtLine npname =
               T.unpack npname
               ++ " & "

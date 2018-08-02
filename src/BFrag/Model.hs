@@ -195,3 +195,16 @@ procToText (ProcessInfo 410028 AFII) = "PowPy8FSRUpAFII"
 procToText (ProcessInfo 410029 AFII) = "PowPy8FSRDownAFII"
 procToText (ProcessInfo 0 DS)        = "data"
 procToText _                         = "OTHER"
+
+
+paramToName :: T.Text -> T.Text
+paramToName s =
+  if "normtruthbin" `T.isPrefixOf` s
+    then
+      T.replace "normtruthbin" "\\sigma_"
+      . T.cons '$'
+      $ T.snoc s '$'
+    else
+      T.replace "__1" ""
+      . T.replace "v2trk" "trk"
+      $ T.replace "_" " " s
