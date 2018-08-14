@@ -135,15 +135,7 @@ fillFile systs fn nevt = do
       then return mempty
       else entries trueTree
 
-  (systTrees :: M.Map String TTree) <-
-    if dsid' == 0
-      then return mempty
-      else M.fromList <$> mapM (\tn -> (tn,) <$> ttree tfile tn) systs
-
-  systEntries <- mapM entries systTrees
-
-  let allEntries = entryMap trueEntries nomEntries systEntries
-      systflag =
+  let systflag =
         case dsid' of
           0 -> Data'
           _ ->
@@ -151,6 +143,16 @@ fillFile systs fn nevt = do
               then MC' AllVars
               else MC' NoVars
       take' = maybe cat P.take nevt
+
+  (systTrees :: M.Map String TTree) <-
+    case systflag of
+      Data' -> return mempty
+      MC' NoVars -> return mempty
+      MC' AllVars -> M.fromList <$> mapM (\tn -> (tn,) <$> ttree tfile tn) systs
+
+  systEntries <- mapM entries systTrees
+
+  let allEntries = entryMap trueEntries nomEntries systEntries
 
   hs <-
     F.purely P.fold eventHs
