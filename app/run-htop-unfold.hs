@@ -245,10 +245,10 @@ main = do
 
       latextable m =
         let ks = HM.keys m
-            poinames = fmap paramToName . sort . nub $ fst <$> ks
-            npnames = fmap paramToName . sort . nub $ snd <$> ks
+            poinames = sort . nub $ fst <$> ks
+            npnames = sort . nub $ snd <$> ks
             fmtLine npname =
-              T.unpack npname
+              T.unpack (paramToName npname)
               ++ " & "
               ++ intercalate " & "
                   ( printf "%.3f" . (HM.!) m . (,npname)
@@ -258,7 +258,7 @@ main = do
 
         in unlines $
           [ "\\begin{tabular}{ l " ++ fold (replicate (length poinames) "| c ") ++ "}"
-          , " & " ++ intercalate " & " (T.unpack <$> poinames) ++ " \\\\"
+          , " & " ++ intercalate " & " (T.unpack . paramToName <$> poinames) ++ " \\\\"
           , "\\hline"
           ]
           ++ (fmtLine <$> npnames)
@@ -266,8 +266,8 @@ main = do
 
 
   withFile (yodafolder args <> "/htop.stat") WriteMode $ \h -> do
-    putStrLn "covariances:"
-    print unfoldedcov
+    putStrLn "uncertainties and correlations:"
+    print uncerts
 
     hPutStrLn h "absolute uncertainties:"
     hPutStrLn h . latextable $ view _1 <$> uncerts
