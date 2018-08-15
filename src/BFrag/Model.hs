@@ -53,7 +53,10 @@ bfragModel procs = do
           ]
 
 
-  nom <- mappend nonttpred <$> getProcs procs [nomkey]
+  nom <-
+    mappend nonttpred
+    . (fmap.fmap) (addVar "TTBarNormUp" (scaleO 1.05))
+    <$> getProcs procs [nomkey]
   afii <-
     getProcs procs [afiikey] & (traverse.traverse.noted) %~ view nominal
   radup <-
