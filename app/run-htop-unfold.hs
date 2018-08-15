@@ -267,7 +267,7 @@ main = do
 
   withFile (yodafolder args <> "/htop.stat") WriteMode $ \h -> do
     putStrLn "covariances:"
-    print unfoldedcov
+    print uncerts
 
     hPutStrLn h "absolute uncertainties:"
     hPutStrLn h . latextable $ view _1 <$> uncerts
