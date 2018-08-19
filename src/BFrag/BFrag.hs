@@ -19,13 +19,13 @@ import           GHC.Exts
 zbtname, zblname, zbrelname :: Text
 zbtname = "\\ensuremath{z_{\\mathrm{T,B}}}"
 zblname = "\\ensuremath{z_{\\mathrm{L,B}}}"
-zbrelname = "\\ensuremath{z_{\\mathrm{B}}^\\mathrm{rel}}"
+zbrelname = "\\ensuremath{z_{\\mathrm{rel,B}}}"
 
 
 zbtcname, zblcname, zbrelcname :: Text
 zbtcname = "\\ensuremath{z_{\\mathrm{T,B}}^\\mathrm{ch}}"
 zblcname = "\\ensuremath{z_{\\mathrm{L,B}}^\\mathrm{ch}}"
-zbrelcname = "\\ensuremath{z_{\\mathrm{B}}^\\mathrm{ch, rel}}"
+zbrelcname = "\\ensuremath{z_{\\mathrm{rel,B}}^\\mathrm{ch}}"
 
 
 zbtbin, zbtcbin, zblbin, zblcbin, zbrelbin, zbrelcbin :: BinD

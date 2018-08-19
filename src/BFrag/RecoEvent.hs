@@ -105,36 +105,55 @@ elmujj e =
         [j1, j2] -> lvDREta j1 j2 > 1.0
         _        -> False
 
+fakeEvent :: RecoEvent -> PhysObj Bool
+fakeEvent e =
+  let els = _electrons e
+      mus = _muons e
+      js = _jets e
+  in return
+    $ length els == 1
+      && length mus == 1
+      && ((not . null $ filter ePrompt els) || (not . null $ filter mPrompt mus))
+      && case js of
+        [j1, j2] -> lvDREta j1 j2 > 1.0
+        _        -> False
+
+
 -- so much boilerplate
 recoEventHs :: VarFills RecoEvent
 recoEventHs =
-  channelWithLabel "/elmujj" elmujj
-  $ mconcat
-    [ singleton "/mu" <$> muH
-    -- , singleton "/npv" <$> npvH
+  mappend hs
+  $ channelWithLabel "/fakes" fakeEvent hs
 
-    , singleton "/met/pt"
-      . set xlabel "\\ensuremath{E_{\\rm T}^{\\rm miss}} [GeV]"
-      <$> ptH
-      <$= fmap (view met)
+  where
+    hs =
+          channelWithLabel "/elmujj" elmujj
+          $ mconcat
+            [ singleton "/mu" <$> muH
+            -- , singleton "/npv" <$> npvH
 
-    , prefixF "/jets"
-      . over (traverse.xlabel) ("jet " <>)
-      <$> F.handles folded lvHs <$= collapsePO . fmap (view jets)
+            , singleton "/met/pt"
+              . set xlabel "\\ensuremath{E_{\\rm T}^{\\rm miss}} [GeV]"
+              <$> ptH
+              <$= fmap (view met)
 
-    , prefixF "/electrons"
-      . over (traverse.xlabel) ("electron " <>)
-      <$> F.handles folded lvHs <$= collapsePO . fmap (view electrons)
+            , prefixF "/jets"
+              . over (traverse.xlabel) ("jet " <>)
+              <$> F.handles folded lvHs <$= collapsePO . fmap (view jets)
 
-    , prefixF "/muons"
-      . over (traverse.xlabel) ("muon " <>)
-      <$> F.handles folded lvHs <$= collapsePO . fmap (view muons)
+            , prefixF "/electrons"
+              . over (traverse.xlabel) ("electron " <>)
+              <$> F.handles folded lvHs <$= collapsePO . fmap (view electrons)
 
-    , prefixF "/probejets"
-      . over (traverse.xlabel) ("probe jet " <>)
-      <$> F.handles folded (bfragHs `mappend` lvHs)
-      <$= fmap join . collapsePO . fmap probeJets
-    ]
+            , prefixF "/muons"
+              . over (traverse.xlabel) ("muon " <>)
+              <$> F.handles folded lvHs <$= collapsePO . fmap (view muons)
+
+            , prefixF "/probejets"
+              . over (traverse.xlabel) ("probe jet " <>)
+              <$> F.handles folded (bfragHs `mappend` lvHs)
+              <$= fmap join . collapsePO . fmap probeJets
+            ]
 
 
 
