@@ -44,6 +44,14 @@ flavFromCInt x =
     15 -> T
     _  -> error $ "bad jet flavor label: " ++ show x
 
+flavToNum :: Num a => JetFlavor -> a
+flavToNum x =
+  case x of
+    B -> 5
+    C -> 4
+    L -> 0
+    T -> 15
+
 
 -- TODO
 -- add Track datatype for holding z0, d0, etc...
@@ -235,6 +243,19 @@ mv2c10H =
   singleton "/mv2c10"
   <$> hist1DDef (binD (-1) 25 1) "MV2c10" (dsigdXpbY "\\mathrm{MV2c10}" "1")
   <$= fmap (view mv2c10)
+
+
+hadronLabelH :: VarFills Jet
+hadronLabelH =
+  singleton "/hadronlabel"
+  <$> hist1DDef (binD 0 16 16) "hadron label" (dsigdXpbY "\\mathrm{label}" "1")
+  =$<< go
+
+  where
+    go j =
+      case view truthFlavor j of
+        Nothing -> poFail
+        Just f  -> return $ flavToNum f
 
 
 bLabeled :: Jet -> Bool
