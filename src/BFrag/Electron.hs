@@ -13,14 +13,15 @@ import           GHC.Float
 import           GHC.Generics        (Generic)
 
 
-data Electron =
-  Electron
-    { ePtEtaPhiE   :: PtEtaPhiE
-    , eClEta       :: Double
-    , eCharge      :: Double
-    , eD0Sig       :: Double
-    , ePtVarCone20 :: Double
-    } deriving (Show, Generic)
+data Electron
+  = Electron
+  { ePtEtaPhiE   :: PtEtaPhiE
+  , eClEta       :: Double
+  , eCharge      :: Double
+  , eD0Sig       :: Double
+  , ePtVarCone20 :: Double
+  , ePrompt      :: Bool
+  } deriving (Show, Generic)
 
 instance Serialize Electron where
 
@@ -34,9 +35,10 @@ readElectrons = do
   chs <- fmap float2Double <$> readBranch "el_charge"
   d0sigs <- fmap float2Double <$> readBranch "el_d0sig"
   ptvc20s <- fmap ((/1e3) . float2Double) <$> readBranch "el_ptvarcone20"
+  prompt <- fmap (== (2 :: CInt)) <$> readBranch "el_true_type"
 
   let es =
         getZipList
-        $ Electron <$> tlvs <*> cletas <*> chs <*> d0sigs <*> ptvc20s
+        $ Electron <$> tlvs <*> cletas <*> chs <*> d0sigs <*> ptvc20s <*> prompt
 
   return es

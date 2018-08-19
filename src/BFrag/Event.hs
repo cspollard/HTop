@@ -104,8 +104,6 @@ matchedEventHs =
       in (>>= fromMaybe') <$> matches
 
     fromMaybe' (Just x) = return x
-    -- TODO
-    -- is this correct?
     fromMaybe' Nothing  = poFail
 
 

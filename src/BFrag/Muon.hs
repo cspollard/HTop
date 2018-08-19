@@ -19,6 +19,7 @@ data Muon =
     , mCharge      :: Double
     , mD0Sig       :: Double
     , mPtVarCone30 :: Double
+    , mPrompt      :: Bool
     } deriving (Show, Generic)
 
 instance Serialize Muon
@@ -32,7 +33,8 @@ readMuons = do
   chs <- fmap float2Double <$> readBranch "mu_charge"
   d0sigs <- fmap float2Double <$> readBranch "mu_d0sig"
   ptvc30s <- fmap ((/1e3) . float2Double) <$> readBranch "mu_ptvarcone30"
+  prompt <- fmap (== (6 :: CInt)) <$> readBranch "mu_true_type"
 
-  let ms = getZipList $ Muon <$> tlvs <*> chs <*> d0sigs <*> ptvc30s
+  let ms = getZipList $ Muon <$> tlvs <*> chs <*> d0sigs <*> ptvc30s <*> prompt
 
   return ms
