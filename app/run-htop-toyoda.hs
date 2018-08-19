@@ -42,7 +42,7 @@ writeFiles outf pm = do
 
       -- don't scale truth histograms to lumi
       appLumi t yo =
-        if T.isInfixOf "/elmujjtrue/" t || T.isInfixOf "/elmujjmatched/" t
+        if T.isInfixOf "/elmujjtrue/" t
           then yo
           else
             over ylabel (T.replace "\\sigma" "n" . T.replace "pb" "1")
