@@ -80,8 +80,8 @@ readRecoEvent
 readRecoEvent dmc bhs = do
   w <- recoWgt dmc
   mu' <- muVars dmc . float2Double <$> readBranch "mu"
-  els <- readElectrons
-  mus <- readMuons
+  els <- readElectrons dmc
+  mus <- readMuons dmc
   js <- readJets dmc bhs
   met' <- readMET
   return $ w >> return (RecoEvent mu' els mus js met')

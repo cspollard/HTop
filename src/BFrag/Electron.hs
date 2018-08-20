@@ -5,6 +5,7 @@ module BFrag.Electron where
 
 import           Atlas
 import           BFrag.PtEtaPhiE
+import           BFrag.Systematics
 import           Control.Applicative (ZipList (..))
 import           Control.Lens
 import           Data.Serialize
@@ -28,14 +29,17 @@ instance Serialize Electron where
 instance HasLorentzVector Electron where
     toPtEtaPhiE = lens ePtEtaPhiE $ \e lv -> e { ePtEtaPhiE = lv }
 
-readElectrons :: (MonadIO m, MonadThrow m) => TreeRead m [Electron]
-readElectrons = do
+readElectrons :: (MonadIO m, MonadThrow m) => DataMC' -> TreeRead m [Electron]
+readElectrons dmc = do
   tlvs <- lvsFromTTreeF "el_pt" "el_eta" "el_phi" "el_e"
   cletas <- fmap float2Double <$> readBranch "el_cl_eta"
   chs <- fmap float2Double <$> readBranch "el_charge"
   d0sigs <- fmap float2Double <$> readBranch "el_d0sig"
   ptvc20s <- fmap ((/1e3) . float2Double) <$> readBranch "el_ptvarcone20"
-  prompt <- fmap (== (2 :: CInt)) <$> readBranch "el_true_type"
+  prompt <-
+    case dmc of
+      Data' -> return $ pure True
+      MC' _ -> fmap (== (2 :: CInt)) <$> readBranch "el_true_type"
 
   let es =
         getZipList
