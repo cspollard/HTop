@@ -28,14 +28,14 @@ instance Serialize Muon
 instance HasLorentzVector Muon where
     toPtEtaPhiE = lens mPtEtaPhiE $ \m lv -> m { mPtEtaPhiE = lv }
 
-readMuons :: (MonadIO m, MonadThrow m) => DataMC -> TreeRead m [Muon]
+readMuons :: (MonadIO m, MonadThrow m) => DataMC' -> TreeRead m [Muon]
 readMuons dmc = do
   tlvs <- lvsFromTTreeF "mu_pt" "mu_eta" "mu_phi" "mu_e"
   chs <- fmap float2Double <$> readBranch "mu_charge"
   d0sigs <- fmap float2Double <$> readBranch "mu_d0sig"
   ptvc30s <- fmap ((/1e3) . float2Double) <$> readBranch "mu_ptvarcone30"
   prompt <-
-    case dmcs of
+    case dmc of
       Data' -> return $ pure True
       MC' _ -> fmap (== (6 :: CInt)) <$> readBranch "mu_true_type"
 
