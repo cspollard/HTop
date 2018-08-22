@@ -113,7 +113,7 @@ fakeEvent e =
   in return
     $ length els == 1
       && length mus == 1
-      && ((null $ filter ePrompt els) || (null $ filter mPrompt mus))
+      && (not (any ePrompt els) || not (any mPrompt mus))
       && case js of
         [j1, j2] -> lvDREta j1 j2 > 1.0
         _        -> False
