@@ -219,34 +219,39 @@ nSVTracksH = h =$<< fmap (fromIntegral . length) . svChargedConstits
 
 
 bfragHs :: (HasPVConstits a, HasSVConstits a, HasLorentzVector a) => VarFills a
-bfragHs =
-  mconcat
-  [ singleton "/zbt" <$> zbtH
-  , singleton "/zbtc" <$> zbtcH
-  , singleton "/zbl" <$> zblH
-  , singleton "/zblc" <$> zblcH
-  , singleton "/zbrel" <$> zbrelH
-  , singleton "/zbrelc" <$> zbrelcH
-  , singleton "/chargedpt" <$> chargedPtH
-  , singleton "/pvpt" <$> pvPtH
-  , singleton "/pvptc" <$> pvPtcH
-  , singleton "/svpt" <$> svPtH
-  , singleton "/svmass" <$> svMH
-  , singleton "/svmassc" <$> svMcH
-  , singleton "/svptc" <$> svPtcH
-  , singleton "/npvtrk" <$> nPVTracksH
-  , singleton "/nsvtrk" <$> nSVTracksH
+bfragHs = mconcat [hs, hs', hs'']
+  where
+    hs =
+        mconcat
+        [ singleton "/zbt" <$> zbtH
+        , singleton "/zbtc" <$> zbtcH
+        , singleton "/zbl" <$> zblH
+        , singleton "/zblc" <$> zblcH
+        , singleton "/zbrel" <$> zbrelH
+        , singleton "/zbrelc" <$> zbrelcH
+        , singleton "/chargedpt" <$> chargedPtH
+        , singleton "/pvpt" <$> pvPtH
+        , singleton "/pvptc" <$> pvPtcH
+        , singleton "/svpt" <$> svPtH
+        , singleton "/svmass" <$> svMH
+        , singleton "/svmassc" <$> svMcH
+        , singleton "/svptc" <$> svPtcH
+        , singleton "/npvtrk" <$> nPVTracksH
+        , singleton "/nsvtrk" <$> nSVTracksH
 
---     -- , childSumPtProfPt
---     -- , svChildSumPtProfPt
---     -- , zbtChargedProfPt
---     -- , childSumPtProfEta
---     -- , svChildSumPtProfEta
---     -- , zbtChargedProfEta
---     -- , nPVChildProfPt
---     -- , nSVChildProfPt
---     -- , zbtChargedVsPt
-  ]
+      --     -- , childSumPtProfPt
+      --     -- , svChildSumPtProfPt
+      --     -- , zbtChargedProfPt
+      --     -- , childSumPtProfEta
+      --     -- , svChildSumPtProfEta
+      --     -- , zbtChargedProfEta
+      --     -- , nPVChildProfPt
+      --     -- , nSVChildProfPt
+      --     -- , zbtChargedVsPt
+        ]
+
+    hs' = channelWithLabel "/5psvtrk" (fmap ((>= 5) . length) . svChargedConstits) hs
+    hs'' = channelWithLabel "/4psvtrk" (fmap ((>= 4) . length) . svChargedConstits) hs
 
 
 zbtcMerges, zblcMerges, zbrelcMerges, zbtMerges, zblMerges, zbrelMerges

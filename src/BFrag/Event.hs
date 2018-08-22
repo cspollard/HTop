@@ -118,13 +118,14 @@ trueMatch tjs j = (j,) . getOption $ do
 
 matchedJetHs :: VarFills (TrueJet, Jet)
 matchedJetHs =
-  -- channelsWithLabels
+  channelsWithLabels
     -- [ ("/2precosvtrks", recoSVTrkCut (>= 2))
     -- , ("/2recosvtrks", recoSVTrkCut (== 2))
     -- , ("/3recosvtrks", recoSVTrkCut (== 3))
     -- , ("/4recosvtrks", recoSVTrkCut (== 4))
-    -- , ("/4precosvtrks", recoSVTrkCut (>= 4))
-    -- , ("/5recosvtrks", recoSVTrkCut (== 5))
+    [ ("", return . const True)
+    , ("/4precosvtrks", recoSVTrkCut (>= 4))
+    , ("/5precosvtrks", recoSVTrkCut (>= 5))
     -- , ("/6precosvtrks", recoSVTrkCut (>= 6))
     -- ]
     -- . channelsWithLabels
@@ -132,9 +133,9 @@ matchedJetHs =
     --   , ("/recoptgt40", recoPtCut 40)
     --   , ("/recoptgt50", recoPtCut 50)
     --   , ("/recoptgt75", recoPtCut 75)
-    --   ]
+      ]
     -- . mconcat
-    mconcat
+    . mconcat
     $ (prefixF "/probejets" <$> bfragHs <$= fmap snd)
       : (prefixF "/truejets" <$> bfragHs <$= fmap fst)
       : [ zbtMig, zbtcMig, zblMig, zblcMig, zbrelMig, zbrelcMig
@@ -147,8 +148,8 @@ matchedJetHs =
         -- , pvPtcDiff
         ]
 
-  -- where
-  --   recoSVTrkCut f = fmap (f . length) . svChargedConstits . snd
+  where
+    recoSVTrkCut f = fmap (f . length) . svChargedConstits . snd
   --   recoPtCut ptMin = pure . (> ptMin) . view lvPt . snd
 
 
@@ -278,7 +279,7 @@ nsvtrkDiff = singleton "/nsvtrkdiff" <$> h =$<< fmap (uncurry (-)) . nsvtrks
   where
     h =
       hist1DDef
-        (binD (-1) 50 1)
+        (binD (-5) 10 5)
         ("(true - reco) " <> nsvtrkname)
         (dsigdXpbY nsvtrkname "1")
 
@@ -288,7 +289,7 @@ npvtrkDiff = singleton "/npvtrkdiff" <$> h =$<< fmap (uncurry (-)) . npvtrks
   where
     h =
       hist1DDef
-        (binD (-1) 50 1)
+        (binD (-10) 20 10)
         ("(true - reco) " <> npvtrkname)
         (dsigdXpbY npvtrkname "1")
 
