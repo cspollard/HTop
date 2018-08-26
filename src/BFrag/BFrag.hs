@@ -17,15 +17,15 @@ import           GHC.Exts
 
 
 zbtname, zblname, zbrelname :: Text
-zbtname = "\\ensuremath{z_{\\mathrm{T,B}}}"
-zblname = "\\ensuremath{z_{\\mathrm{L,B}}}"
-zbrelname = "\\ensuremath{z_{\\mathrm{rel,B}}}"
+zbtname = "\\ensuremath{z_{\\mathrm{T,b}}}"
+zblname = "\\ensuremath{z_{\\mathrm{L,b}}}"
+zbrelname = "\\ensuremath{z_{\\mathrm{rel,b}}}"
 
 
 zbtcname, zblcname, zbrelcname :: Text
-zbtcname = "\\ensuremath{z_{\\mathrm{T,B}}^\\mathrm{ch}}"
-zblcname = "\\ensuremath{z_{\\mathrm{L,B}}^\\mathrm{ch}}"
-zbrelcname = "\\ensuremath{z_{\\mathrm{rel,B}}^\\mathrm{ch}}"
+zbtcname = "\\ensuremath{z_{\\mathrm{T,b}}^\\mathrm{ch}}"
+zblcname = "\\ensuremath{z_{\\mathrm{L,b}}^\\mathrm{ch}}"
+zbrelcname = "\\ensuremath{z_{\\mathrm{rel,b}}^\\mathrm{ch}}"
 
 
 zbtbin, zbtcbin, zblbin, zblcbin, zbrelbin, zbrelcbin :: BinD
@@ -124,12 +124,12 @@ zbrel j = do
 chargedPtH :: (HasSVConstits a, HasPVConstits a) => VarFill a
 chargedPtH = h =$<< fmap (view lvPt) . chargedSum
   where
-    h = hist1DDef (binD 0 25 250) "charged $p_{\\mathrm T}$" (dsigdXpbY pt gev)
+    h = hist1DDef (binD 0 25 250) "charged $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
 
 
 pvPtH :: HasPVConstits a => VarFill a
 pvPtH = h =$<< fmap (view lvPt . fold) . pvConstits
-  where h = hist1DDef (binD 0 25 250) "PV $p_{\\mathrm T}$" (dsigdXpbY pt gev)
+  where h = hist1DDef (binD 0 25 250) "PV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
 
 
 pvPtcH :: HasPVConstits a => VarFill a
@@ -138,13 +138,13 @@ pvPtcH = h =$<< fmap (view lvPt . fold) . pvChargedConstits
     h =
       hist1DDef
         (binD 0 25 250)
-        "PV charged $p_{\\mathrm T}$"
+        "PV charged $p_{\\mathrm T}$ [GeV]"
         (dsigdXpbY pt gev)
 
 
 svPtH :: HasSVConstits a => VarFill a
 svPtH = h =$<< fmap (view lvPt . fold) . svConstits
-  where h = hist1DDef (binD 0 25 250) "SV $p_{\\mathrm T}$" (dsigdXpbY pt gev)
+  where h = hist1DDef (binD 0 25 250) "SV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
 
 
 svPtcH :: HasSVConstits a => VarFill a
