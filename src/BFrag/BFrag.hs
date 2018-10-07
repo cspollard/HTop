@@ -257,8 +257,7 @@ bfragHs = mconcat [hs, hs', hs'']
 zbtcMerges, zblcMerges, zbrelcMerges, zbtMerges, zblMerges, zbrelMerges
   :: [[Int]]
 zbtcMerges =
-  [ [00, 01, 02, 03, 04, 05]
-  , [06, 07, 08, 09]
+  [ [00, 01, 02, 03, 04, 05, 06, 07, 08, 09]
   , [10, 11, 12]
   , [13, 14]
   , [15, 16]
@@ -277,8 +276,7 @@ zbrelcMerges =
   , [04, 05]
   , [06, 07]
   , [08, 09, 10]
-  , [11, 12, 13, 14]
-  , [15, 16, 17, 18, 19]
+  , [11, 12, 13, 14, 15, 16, 17, 18, 19]
   ]
 
 zbrelMerges = zbrelcMerges
