@@ -16,6 +16,7 @@ import           Control.Applicative
 import           Control.Lens           hiding (each)
 import           Data.Bifunctor
 import qualified Data.Histogram.Generic as H
+import           Data.Semigroup
 import qualified Data.Text              as T
 import           GHC.Exts               (IsList (..))
 import           Pipes

@@ -24,6 +24,7 @@ import           BFrag.TrueJet
 import qualified Control.Foldl     as F
 import           Control.Lens
 import           Control.Monad     (guard, join)
+import           Data.Semigroup
 import           Data.TTree
 import           GHC.Float
 import           GHC.Generics      (Generic)
