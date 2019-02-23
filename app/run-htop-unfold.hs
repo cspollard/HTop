@@ -390,6 +390,7 @@ buildModel statonly trueH matH bkgHs = (nommod, params)
 
     systify v = fmap Just v & nominal .~ Nothing
 
+
 getH2DD :: H2DD -> Vector (Vector Double)
 getH2DD h =
   V.fromList

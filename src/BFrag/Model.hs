@@ -21,7 +21,13 @@ import           GHC.Exts            (toList)
 
 bfragModel
   :: StrictMap ProcessInfo (Folder (Annotated (Vars Obj)))
-  -> Either String (Folder (Annotated Obj), Folder (Annotated (Vars Obj)), Folder (Annotated (Vars Obj)), StrictMap ProcessInfo (Folder YodaObj))
+  -> Either String
+      ( Folder (Annotated Obj)
+      , Folder (Annotated (Vars Obj))
+      , Folder (Annotated (Vars Obj))
+      , StrictMap ProcessInfo (Folder YodaObj)
+      )
+
 bfragModel procs = do
   zjets <-
     getProcs procs zjetskeys
@@ -52,25 +58,32 @@ bfragModel procs = do
           , T.isInfixOf "/elmujjtrue/"
           ]
 
-
   nom <-
     mappend nonttpred
     . (fmap.fmap) (addVar "TTBarNormUp" (scaleO 1.05))
     <$> getProcs procs [nomkey]
+
   afii <-
     getProcs procs [afiikey] & (traverse.traverse.noted) %~ view nominal
+
   radup <-
     getProcs procs [radupkey] & (traverse.traverse.noted) %~ view nominal
+
   raddown <-
     getProcs procs [raddownkey] & (traverse.traverse.noted) %~ view nominal
+
   fsrup <-
     getProcs procs [fsrupkey] & (traverse.traverse.noted) %~ view nominal
+
   fsrdown <-
     getProcs procs [fsrdownkey] & (traverse.traverse.noted) %~ view nominal
-  me <-
-    getProcs procs [amcpy8key] & (traverse.traverse.noted) %~ view nominal
+
+  -- me <-
+  --   getProcs procs [amcpy8key] & (traverse.traverse.noted) %~ view nominal
+
   ps <-
     getProcs procs [powh7key] & (traverse.traverse.noted) %~ view nominal
+
   sherpa <-
     mappend nonttpred
     <$> getProcs procs [sherpakey] & (traverse.traverse.noted) %~ view nominal
@@ -82,15 +95,13 @@ bfragModel procs = do
       afiidiff = inFA2 corrDiffO nomnom afii
       raddiff = inFA2 (fmap (scaleO 0.5) . corrDiffO) radup raddown
       fsrdiff = inFA2 (fmap (scaleO 0.5) . corrDiffO) fsrup fsrdown
-      me' = mappend me afiidiff
+      -- me' = mappend me afiidiff
       ps' = mappend ps afiidiff
       rad' = mappend nomnom raddiff
       fsr' = mappend nomnom fsrdiff
+
       fullpred =
         nom
-        -- TODO
-        -- note: remove matrix element variation!
-        -- & inFA2 (\v n -> n & variations . at "MEUp" ?~ v) me'
         & inFA2 (\v n -> n & variations . at "RadUp" ?~ v) rad'
         & inFA2 (\v n -> n & variations . at "FSRUp" ?~ v) fsr'
         & inFA2 (\v n -> n & variations . at "PSUp" ?~ v) ps'
@@ -104,10 +115,14 @@ bfragModel procs = do
           $ getProcs procs [datakey]
 
 
-  return
-    ( data', fullpred, nonttpred
-    , fmap ((fmap.fmap) (view nominal) . mappend nonttpred) . strictMap
-      $ inSM (HM.filterWithKey $ \k _ -> k `elem` ttkeys) procs)
+      ttprocs = inSM (HM.filterWithKey $ \k _ -> k `elem` ttkeys) procs
+
+      ttpred =
+        (fmap.fmap) (view nominal) . mappend nonttpred
+        <$> strictMap ttprocs
+
+
+  return (data', fullpred, nonttpred, ttpred)
 
   where
     toEither s Nothing  = Left s
@@ -146,6 +161,7 @@ bfragModel procs = do
     collapseVars (Variation n vs) =
       let vs' = toList vs
           filt s = T.isInfixOf (T.toLower s) . T.toLower
+
           rmEnd s =
             fmap $ \(x, y) ->
               let x' = T.toLower x
@@ -156,12 +172,17 @@ bfragModel procs = do
           (downs, ups) =
             ((HM.fromList . rmEnd "down") *** (HM.fromList . rmEnd "up"))
             $ partition (filt "down" . fst) vs'
-      in Variation n . strictMap $ HM.unionWith (vardiff n) ups downs
+
+      in Variation n . strictMap
+          -- remove systs from LOOSE tracks.
+          . HM.filterWithKey (\k _ -> not $ "LOOSE" `T.isInfixOf` k)
+          $ HM.unionWith (vardiff n) ups downs
 
     ttkeys =
       [ nomkey, afiikey, radupkey, raddownkey, fsrupkey, fsrdownkey, amcpy8key
       , powh7key, sherpakey, powp6key
       ]
+
 
 nomkey, afiikey, radupkey, raddownkey, fsrupkey, fsrdownkey, amcpy8key
   , powh7key, sherpakey, powp6key, datakey
@@ -177,6 +198,7 @@ powh7key = ProcessInfo 410525 AFII
 sherpakey = ProcessInfo 410252 AFII
 powp6key = ProcessInfo 410000 FS
 datakey = ProcessInfo 0 DS
+
 
 zjetskeys, stopdrkeys, stopdskeys, dibosonkeys :: [ProcessInfo]
 zjetskeys = flip ProcessInfo FS <$> [364128..364141]
