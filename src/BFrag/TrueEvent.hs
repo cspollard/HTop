@@ -15,7 +15,6 @@ import           BFrag.TrueJet      as X
 import           BFrag.TrueMuon     as X
 import qualified Control.Foldl      as F
 import           Control.Lens
-import           Data.Semigroup
 import           Data.TTree
 import           GHC.Generics       (Generic)
 

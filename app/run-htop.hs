@@ -18,6 +18,7 @@ import           Control.Applicative        (empty)
 import qualified Control.Foldl              as F
 import           Control.Lens               hiding (each)
 import           Control.Monad              (when)
+import           Control.Monad.Fail
 import           Control.Monad.State.Strict
 import           Control.Monad.Writer.Class (writer)
 import           Data.Bifunctor             (first)
@@ -81,7 +82,7 @@ main = do
 -- TODO
 -- bracket around file
 fillFile
-  :: (MonadIO m, MonadCatch m)
+  :: (MonadIO m, MonadCatch m, MonadFail m)
   => [String]
   -> String
   -> Maybe Int

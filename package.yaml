@@ -1,0 +1,75 @@
+name:                htop
+version:             0.2.1.0
+github:              "cspollard/htop"
+license:             BSD3
+author:              "Chris Pollard"
+maintainer:          "cspollard@gmail.com"
+copyright:           "2019 Chris Pollard"
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/test#readme>
+
+
+dependencies:
+- base 
+- lens 
+- containers 
+- unordered-containers 
+- mmorph 
+- attoparsec 
+- vector 
+- cereal-vector 
+- text 
+- bytestring 
+- exceptions 
+- transformers 
+- mtl 
+- cereal 
+- cereal-text 
+- histogram-fill 
+- histogram-fill-cereal 
+- primitive 
+- semigroups 
+- bifunctors 
+- foldl 
+- pipes 
+- mwc-probability 
+- hhep 
+- histogram-extras 
+- ttree 
+- atlas 
+
+library:
+  source-dirs: src
+  ghc-options: -Wall
+  ghc-prof-options: -Wall -fprof-auto -caf-all
+
+executables:
+  run-htop:
+    source-dirs: app
+    main: run-htop.hs
+    dependencies:
+      - htop
+      - optparse-generic
+
+
+  run-htop-toyoda:
+    source-dirs: app
+    main: run-htop-toyoda.hs
+    dependencies:
+      - htop
+
+  run-htop-unfold:
+    source-dirs: app
+    main: run-htop-unfold.hs
+    dependencies:
+      - htop
+      - hunfold
+      - tdigest
+      - optparse-applicative
