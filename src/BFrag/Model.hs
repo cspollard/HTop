@@ -175,7 +175,7 @@ bfragModel procs = do
 
       in Variation n . strictMap
           -- remove systs from LOOSE tracks.
-          . HM.filterWithKey (\k _ -> not $ "LOOSE" `T.isInfixOf` k)
+          . HM.filterWithKey (\k _ -> not $ "loose" `T.isInfixOf` k || "npvtrksf" `T.isInfixOf` k)
           $ HM.unionWith (vardiff n) ups downs
 
     ttkeys =
