@@ -88,7 +88,7 @@ main = do
       regex = intercalate "|" $ obsNames (observable args) ^.. each
 
   xsecs <- fromMaybe (error "failed to read xsecs") <$> readXSecFile (xsecfile args)
-  procs <- either error id <$> decodeFiles (Just regex) (infiles args)
+  procs <- either error id <$> decodeFiles (pure regex) empty (infiles args)
 
   let normedProcs = either error id $ itraverse (normToXsec xsecs) procs
       (data', pred', _, _) = either error id $ bfragModel normedProcs
