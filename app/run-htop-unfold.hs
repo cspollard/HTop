@@ -19,7 +19,7 @@ import           Data.Foldable          (fold)
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
-import           Data.List              (intercalate, nub, sort)
+import           Data.List              (intercalate, nub, sortBy)
 import           Data.Maybe             (fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
 import           Data.Semigroup         ((<>))
@@ -245,8 +245,10 @@ main = do
 
       latextable m =
         let ks = HM.keys m
-            poinames = sort . nub $ fst <$> ks
-            npnames = sort . nub $ snd <$> ks
+            srt s s' = if T.isPrefixOf "normtruthbin" s then LT else s `cmp` s'
+
+            poinames = sortBy srt . nub $ fst <$> ks
+            npnames = sortBy srt . nub $ snd <$> ks
             fmtLine npname =
               T.unpack (paramToName npname)
               ++ " & "
@@ -257,7 +259,7 @@ main = do
               ++ " \\\\"
 
         in unlines $
-          [ "\\begin{tabular}{ l " ++ fold (replicate (length poinames) "| c ") ++ "}"
+          [ "\\begin{tabular}{ l " ++ fold (replicate (length poinames) "| r ") ++ "}"
           , " & " ++ intercalate " & " (T.unpack . paramToName <$> poinames) ++ " \\\\"
           , "\\hline"
           ]

@@ -7,7 +7,6 @@ import numpy as np
 from sys import stdin, stdout, argv
 
 def llh(modes, cov):
-    print(np.linalg.det(cov))
     norm = 1.0/np.sqrt(2*np.pi*np.linalg.det(cov))
     covinv = np.linalg.inv(cov)
     def f(ins):
@@ -48,6 +47,7 @@ idxs = np.array(idxs)
 print("names: %s" % names)
 print("idxs: %s" % idxs)
 
+# we throw out the last bin since this is a normalized distribution.
 xs = xs[idxs[names]][:-1]
 
 modes = xs[:,0]
@@ -59,6 +59,7 @@ cov = np.cov(xs)
 
 print("covariance:")
 print(cov)
+
 
 sherpa_zbtcnorm = np.array([8.821322591083589e-2, 9.92282660527188e-2,
     0.13408325588342646, 0.22980462411586663, 0.2969697671086123,
@@ -84,22 +85,23 @@ powh7_zbtcnorm = np.array([0.14685035881988126, 0.13486016361005285,
     0.14209857948672514, 0.20211157378695255, 0.23410708484687398,
     0.1399722394495142])[:-1]
 
+
 thisllh = llh(modes, cov)
-nomllh = thisllh(powpy8_zbtcnorm)
+llhs = np.array([thisllh(x) for x in xs.T])
+print llhs
 
-print("nominal llh:")
-print(nomllh)
-print("")
+nllhs = len(llhs)
 
-for (i, h) in [("sherpa", sherpa_zbtcnorm), ("py8fsrup",
-    powpy8fsrup_zbtcnorm), ("py8fsrdown", powpy8fsrdown_zbtcnorm),
+
+def pval(xs):
+    return float(np.sum(thisllh(xs) > llhs)) / nllhs
+
+
+
+for (i, h) in [("powpy8", powpy8_zbtcnorm), ("sherpa", sherpa_zbtcnorm),
+    ("py8fsrup", powpy8fsrup_zbtcnorm), ("py8fsrdown", powpy8fsrdown_zbtcnorm),
     ("powpy6", powpy6_zbtcnorm), ("powh7", powh7_zbtcnorm)]:
 
-    l = thisllh(h)
-    print("llh of %s:" % i)
-    print(l)
-    print("")
-
-    print("LLR to nominal")
-    print(l/nomllh)
-    print("")
+        print("pvalue of %s:" % i)
+        print(pval(h))
+        print("")

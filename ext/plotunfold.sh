@@ -1,7 +1,3 @@
-# TODO
-# there is a problem here: certain migration matrices are not being
-# produced.
-
 TWOD= #--2d
 DIR=`pwd -P`
 
@@ -18,7 +14,7 @@ python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zblcmcmc
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzblc/*yoda -o unfold/particlelevel/closure/zblcplots
-make-plots --pdf unfold/particlelevel/closure/zblcplots/Users/*dat
+make-plots --pdf unfold/particlelevel/closure/zblcplots/*/*dat
 
 # mkdir -p unfold/particlelevel/data/zblposteriors
 # cd unfold/particlelevel/data/zblposteriors
@@ -33,7 +29,7 @@ make-plots --pdf unfold/particlelevel/closure/zblcplots/Users/*dat
 # gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 # cd $DIR
 # rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzbl/*yoda -o unfold/particlelevel/closure/zblplots
-# make-plots --pdf unfold/particlelevel/closure/zblplots/Users/*dat
+# make-plots --pdf unfold/particlelevel/closure/zblplots/*/*dat
 
 mkdir -p unfold/particlelevel/data/zbtcposteriors
 cd unfold/particlelevel/data/zbtcposteriors
@@ -48,7 +44,7 @@ python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbtcmcmc
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzbtc/*yoda -o unfold/particlelevel/closure/zbtcplots
-make-plots --pdf unfold/particlelevel/closure/zbtcplots/Users/*dat
+make-plots --pdf unfold/particlelevel/closure/zbtcplots/*/*dat
 
 # mkdir -p unfold/particlelevel/data/zbtposteriors
 # cd unfold/particlelevel/data/zbtposteriors
@@ -63,7 +59,7 @@ make-plots --pdf unfold/particlelevel/closure/zbtcplots/Users/*dat
 # gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 # cd $DIR
 # rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzbt/*yoda -o unfold/particlelevel/closure/zbtplots
-# make-plots --pdf unfold/particlelevel/closure/zbtplots/Users/*dat
+# make-plots --pdf unfold/particlelevel/closure/zbtplots/*/*dat
 
 mkdir -p unfold/particlelevel/data/zbrelcposteriors
 cd unfold/particlelevel/data/zbrelcposteriors
@@ -78,7 +74,7 @@ python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbrelcmc
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzbrelc/*yoda -o unfold/particlelevel/closure/zbrelcplots
-make-plots --pdf unfold/particlelevel/closure/zbrelcplots/Users/*dat
+make-plots --pdf unfold/particlelevel/closure/zbrelcplots/*/*dat
 
 # mkdir -p unfold/particlelevel/data/zbrelposteriors
 # cd unfold/particlelevel/data/zbrelposteriors
@@ -93,4 +89,4 @@ make-plots --pdf unfold/particlelevel/closure/zbrelcplots/Users/*dat
 # gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 # cd $DIR
 # rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzbrel/*yoda -o unfold/particlelevel/closure/zbrelplots
-# make-plots --pdf unfold/particlelevel/closure/zbrelplots/Users/*dat
+# make-plots --pdf unfold/particlelevel/closure/zbrelplots/*/*dat
