@@ -88,7 +88,10 @@ powh7_zbtcnorm = np.array([0.14685035881988126, 0.13486016361005285,
 
 thisllh = llh(modes, cov)
 llhs = np.array([thisllh(x) for x in xs.T])
-print llhs
+
+tsts = -2*np.log(llhs)
+meantsts = np.mean(tsts)
+stddevtst = np.sqrt(np.var(tsts))
 
 nllhs = len(llhs)
 
@@ -105,3 +108,7 @@ for (i, h) in [("powpy8", powpy8_zbtcnorm), ("sherpa", sherpa_zbtcnorm),
         print("pvalue of %s:" % i)
         print(pval(h))
         print("")
+
+	print("Z of %s:" %i)
+	print((-2*np.log(thisllh(h)) - meantsts)/stddevtst)
+	print("")
