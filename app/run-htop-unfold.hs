@@ -181,7 +181,7 @@ main = do
   print model
 
   (unfolded', unfoldedcov) <-
-    runModel (nsamples args) (mcmcfile args) (view histData datah) model params
+    runModel (Just (10, 0.1)) (nsamples args) (mcmcfile args) (view histData datah) model params
 
   let unfolded'' =
         fromMaybe (error "error getting mode or quantiles") . sequence
