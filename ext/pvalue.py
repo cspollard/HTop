@@ -4,7 +4,10 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import matplotlib.lines as lines
 import numpy as np
+import yoda as y
 from sys import stdin, stdout, argv
+
+
 
 def llh(modes, cov):
     norm = 1.0/np.sqrt(2*np.pi*np.linalg.det(cov))
@@ -61,30 +64,6 @@ print("covariance:")
 print(cov)
 
 
-sherpa_zbtcnorm = np.array([8.821322591083589e-2, 9.92282660527188e-2,
-    0.13408325588342646, 0.22980462411586663, 0.2969697671086123,
-    0.15170086092854013])[:-1]
-
-powpy8_zbtcnorm = np.array([0.10692002743535663, 0.11786083140764149,
-    0.13805726633020934, 0.21121689589116674, 0.2661283347730284,
-    0.1598166441625974])[:-1]
-
-powpy8fsrup_zbtcnorm = np.array([0.13126816922541598,
-    0.14073369308799036, 0.15470149089941687, 0.21376640537445457,
-    0.23584990396089672, 0.12368033745182536])[:-1]
-
-powpy8fsrdown_zbtcnorm = np.array([8.390230920096885e-2,
-    9.781717085183853e-2, 0.12280302301171915, 0.20589233865970744,
-    0.29089597695885894, 0.1986891813169071])[:-1]
-
-powpy6_zbtcnorm = np.array([0.11866906079624263, 0.13300122224205888,
-    0.15251761264539876, 0.22261971792301252, 0.2510316958951893,
-    0.12216069049809797])[:-1]
-
-powh7_zbtcnorm = np.array([0.14685035881988126, 0.13486016361005285,
-    0.14209857948672514, 0.20211157378695255, 0.23410708484687398,
-    0.1399722394495142])[:-1]
-
 
 thisllh = llh(modes, cov)
 llhs = np.array([thisllh(x) for x in xs.T])
@@ -99,16 +78,41 @@ nllhs = len(llhs)
 def pval(xs):
     return float(np.sum(thisllh(xs) > llhs)) / nllhs
 
+observable = argv[1]
+
+histkey = "/htop/elmujjtrue/truejets/" + observable
+
+files = \
+    { "PowPy8" : "yoda/PowPy8FS.yoda" \
+    , "Sherpa221" : "yoda/Sherpa221AFII.yoda" \
+    , "Powheg+Herwig7": "yoda/PowH7AFII.yoda" \
+    , "Powheg+Pythia6": "yoda/PowPy6FS.yoda" \
+    , "Powheg+Pythia8 (FSR down)": "yoda/PowPy8FSRDownAFII.yoda" \
+    , "Powheg+Pythia8 (FSR up)": "yoda/PowPy8FSRUpAFII.yoda" \
+    , "Powheg+Pythia8 (ISR down)": "yoda/PowPy8RadDownAFII.yoda" \
+    , "Powheg+Pythia8 (ISR up)": "yoda/PowPy8RadUpAFII.yoda" \
+    , "aMC@NLO+Pythia8": "yoda/aMCPy8AFII.yoda" \
+    }
 
 
-for (i, h) in [("powpy8", powpy8_zbtcnorm), ("sherpa", sherpa_zbtcnorm),
-    ("py8fsrup", powpy8fsrup_zbtcnorm), ("py8fsrdown", powpy8fsrdown_zbtcnorm),
-    ("powpy6", powpy6_zbtcnorm), ("powh7", powh7_zbtcnorm)]:
+hs = {}
 
-        print("pvalue of %s:" % i)
-        print(pval(h))
-        print("")
+for (k, f) in files.iteritems():
+    h = y.readYODA(f)[histkey]
+    hs[k] = [b.area for b in h.bins[:-1]]
 
-	print("Z of %s:" %i)
-	print((-2*np.log(thisllh(h)) - meantsts)/stddevtst)
-	print("")
+print hs
+
+print("pvalues:")
+
+for (k, h) in hs.iteritems():
+    print("%s: %0.3f" % (k, pval(h)))
+    # print("")
+    # print("pvalue of %s:" % k)
+    # print(pval(h))
+    # print("")
+    #
+    #
+    # print("Z of %s:" % k)
+    # print((-2*np.log(thisllh(h)) - meantsts)/stddevtst)
+    # print("")
