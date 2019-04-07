@@ -30,7 +30,7 @@ packages:
 
 - location:
     git: https://github.com/cspollard/hunfold.git
-    commit: bee4edf6e2811fc1405da4c07e7acdd0c9dc0b12
+    commit: 909daa6bc8d0f664a4cc60eb439a90d2e6ca1957
   extra-dep: true
 
 extra-deps:

@@ -218,6 +218,24 @@ nSVTracksH = h =$<< fmap (fromIntegral . length) . svChargedConstits
     h = hist1DDef nsvtrkbin nsvtrkname (dsigdXpbY nsvtrkname "1")
 
 
+zblcVszbtcH :: (HasPVConstits a, HasSVConstits a) => VarFill a
+zblcVszbtcH = h =$<< (\j -> (,) <$> zblc j <*> zbtc j)
+  where
+    h = hist2DDef zblcbin zbtcbin zblcname zbtcname
+
+
+zblcVszbrelcH :: (HasPVConstits a, HasSVConstits a) => VarFill a
+zblcVszbrelcH = h =$<< (\j -> (,) <$> zblc j <*> zbrelc j)
+  where
+    h = hist2DDef zblcbin zbrelcbin zblcname zbrelcname
+
+
+zbtcVszbrelcH :: (HasPVConstits a, HasSVConstits a) => VarFill a
+zbtcVszbrelcH = h =$<< (\j -> (,) <$> zbtc j <*> zbrelc j)
+  where
+    h = hist2DDef zbtcbin zbrelcbin zbtcname zbrelcname
+
+
 bfragHs :: (HasPVConstits a, HasSVConstits a, HasLorentzVector a) => VarFills a
 bfragHs = mconcat [hs, hs', hs'']
   where
@@ -238,6 +256,9 @@ bfragHs = mconcat [hs, hs', hs'']
         , singleton "/svptc" <$> svPtcH
         , singleton "/npvtrk" <$> nPVTracksH
         , singleton "/nsvtrk" <$> nSVTracksH
+        , singleton "/zblcvszbtc" <$> zblcVszbtcH
+        , singleton "/zblcvszbrelc" <$> zblcVszbrelcH
+        , singleton "/zbtcvszbrelc" <$> zbtcVszbrelcH
 
       --     -- , childSumPtProfPt
       --     -- , svChildSumPtProfPt

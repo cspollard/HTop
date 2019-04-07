@@ -19,7 +19,7 @@ import           Data.Foldable          (fold)
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
-import           Data.List              (intercalate, nub, sortBy)
+import           Data.List              (intercalate, nub, sort, sortBy)
 import           Data.Maybe             (fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
 import           Data.Semigroup         ((<>))
@@ -29,7 +29,7 @@ import           Data.Vector            (Vector)
 import qualified Data.Vector            as V
 import           Model
 import           Options.Applicative
-import           RunModel
+import           RunModel               (latextable, runModel)
 import           System.IO              (BufferMode (..), IOMode (..),
                                          hPutStrLn, hSetBuffering, stdout,
                                          withFile)
@@ -204,6 +204,7 @@ main = do
         q84 <- quantile 0.84 y
         return (x, (q16, q50, q84))
 
+
   withFile (yodafolder args <> "/htop.yoda") WriteMode $ \h -> do
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname)
         $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) xs unfolded'''
@@ -243,29 +244,29 @@ main = do
               else Nothing
 
 
-      latextable m =
-        let ks = HM.keys m
-            srt s s' = if T.isPrefixOf "normtruthbin" s then LT else s `cmp` s'
-
-            poinames = sortBy srt . nub $ fst <$> ks
-            npnames = sortBy srt . nub $ snd <$> ks
-            fmtLine npname =
-              T.unpack (paramToName npname)
-              ++ " & "
-              ++ intercalate " & "
-                  ( printf "%.3f" . (HM.!) m . (,npname)
-                    <$> poinames
-                  )
-              ++ " \\\\"
-
-        in unlines $
-          [ "\\begin{tabular}{ l " ++ fold (replicate (length poinames) "| r ") ++ "}"
-          , " & " ++ intercalate " & " (T.unpack . paramToName <$> poinames) ++ " \\\\"
-          , "\\hline"
-          ]
-          ++ (fmtLine <$> npnames)
-          ++ ["\\end{tabular}"]
-
+      -- latextable m =
+      --   let ks = HM.keys m
+      --       srt s s' = if T.isPrefixOf "normtruthbin" s then LT else s `cmp` s'
+      --
+      --       poinames = sortBy srt . nub $ fst <$> ks
+      --       npnames = sortBy srt . nub $ snd <$> ks
+      --       fmtLine npname =
+      --         T.unpack (paramToName npname)
+      --         ++ " & "
+      --         ++ intercalate " & "
+      --             ( printf "%.3f" . (HM.!) m . (,npname)
+      --               <$> poinames
+      --             )
+      --         ++ " \\\\"
+        --
+        -- in unlines $
+        --   [ "\\begin{tabular}{ l " ++ fold (replicate (length poinames) "| r ") ++ "}"
+        --   , " & " ++ intercalate " & " (T.unpack . paramToName <$> poinames) ++ " \\\\"
+        --   , "\\hline"
+        --   ]
+        --   ++ (fmtLine <$> npnames)
+        --   ++ ["\\end{tabular}"]
+        --
 
   withFile (yodafolder args <> "/htop.stat") WriteMode $ \h -> do
     putStrLn "uncertainties and correlations:"

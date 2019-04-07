@@ -24,7 +24,7 @@ LogZ=0
 Legend=0
 ZMin=-0.25
 ZMax=0.25
-ZLabel=relative efficiency difference
+ZLabel=relative probability difference
 # END PLOT
 
 # BEGIN PLOT /.*migdiff$
@@ -32,7 +32,7 @@ LogZ=0
 Legend=0
 ZMin=-0.005
 ZMax=0.005
-ZLabel=efficiency difference
+ZLabel=probability difference
 # END PLOT
 
 # BEGIN PLOT /.*migeff$
@@ -40,5 +40,5 @@ LogZ=0
 Legend=0
 ZMin=0
 ZMax=0.05
-ZLabel=efficiency
+ZLabel=probability
 # END PLOT

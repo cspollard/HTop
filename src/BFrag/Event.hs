@@ -118,14 +118,14 @@ trueMatch tjs j = (j,) . getOption $ do
 
 matchedJetHs :: VarFills (TrueJet, Jet)
 matchedJetHs =
-  channelsWithLabels
+  -- channelsWithLabels
     -- [ ("/2precosvtrks", recoSVTrkCut (>= 2))
     -- , ("/2recosvtrks", recoSVTrkCut (== 2))
     -- , ("/3recosvtrks", recoSVTrkCut (== 3))
     -- , ("/4recosvtrks", recoSVTrkCut (== 4))
-    [ ("", return . const True)
-    , ("/4precosvtrks", recoSVTrkCut (>= 4))
-    , ("/5precosvtrks", recoSVTrkCut (>= 5))
+    -- [ ("", return . const True)
+    -- , ("/4precosvtrks", recoSVTrkCut (>= 4))
+    -- , ("/5precosvtrks", recoSVTrkCut (>= 5))
     -- , ("/6precosvtrks", recoSVTrkCut (>= 6))
     -- ]
     -- . channelsWithLabels
@@ -133,20 +133,20 @@ matchedJetHs =
     --   , ("/recoptgt40", recoPtCut 40)
     --   , ("/recoptgt50", recoPtCut 50)
     --   , ("/recoptgt75", recoPtCut 75)
-      ]
+      -- ]
     -- . mconcat
-    . mconcat
-    $ (prefixF "/probejets" <$> bfragHs <$= fmap snd)
-      : (prefixF "/truejets" <$> bfragHs <$= fmap fst)
-      : [ zbtMig, zbtcMig, zblMig, zblcMig, zbrelMig, zbrelcMig
-        , nsvtrkMig, npvtrkMig
-        , zbtDiff, zbtcDiff, zblDiff, zblcDiff, zbrelDiff, zbrelcDiff
-        , nsvtrkDiff, npvtrkDiff
-        -- , svPtDiff
-        -- , svPtcDiff
-        -- , pvPtDiff
-        -- , pvPtcDiff
-        ]
+  mconcat
+  $ (prefixF "/probejets" <$> bfragHs <$= fmap snd)
+    : (prefixF "/truejets" <$> bfragHs <$= fmap fst)
+    : [ zbtMig, zbtcMig, zblMig, zblcMig, zbrelMig, zbrelcMig
+      , nsvtrkMig, npvtrkMig
+      , zbtDiff, zbtcDiff, zblDiff, zblcDiff, zbrelDiff, zbrelcDiff
+      , nsvtrkDiff, npvtrkDiff, nsvtrkRelDiff, npvtrkRelDiff
+      -- , svPtDiff
+      -- , svPtcDiff
+      -- , pvPtDiff
+      -- , pvPtcDiff
+      ]
 
   where
     recoSVTrkCut f = fmap (f . length) . svChargedConstits . snd
@@ -279,7 +279,7 @@ nsvtrkDiff = singleton "/nsvtrkdiff" <$> h =$<< fmap (uncurry (-)) . nsvtrks
   where
     h =
       hist1DDef
-        (binD (-5) 10 5)
+        (binD (-10) 20 10)
         ("(true - reco) " <> nsvtrkname)
         (dsigdXpbY nsvtrkname "1")
 
@@ -293,6 +293,36 @@ npvtrkDiff = singleton "/npvtrkdiff" <$> h =$<< fmap (uncurry (-)) . npvtrks
         ("(true - reco) " <> npvtrkname)
         (dsigdXpbY npvtrkname "1")
 
+
+nsvtrkRelDiff :: VarFills (TrueJet, Jet)
+nsvtrkRelDiff = singleton "/nsvtrkreldiff" <$> (h =$<< f)
+  where
+    f :: (TrueJet, Jet) -> PhysObj Double
+    f (tj, j) = do
+      ntj <- fromIntegral . length <$> svChargedConstits tj
+      nj <- fromIntegral . length <$> svChargedConstits j
+      return $ (ntj - nj) / ntj
+
+    h =
+      hist1DDef
+        (binD (-1) 20 1)
+        ("(true - reco) / true " <> nsvtrkname)
+        (dsigdXpbY nsvtrkname "1")
+
+
+npvtrkRelDiff :: VarFills (TrueJet, Jet)
+npvtrkRelDiff = singleton "/npvtrkreldiff" <$> h =$<< f
+  where
+    f (tj, j) = do
+      ntj <- fromIntegral . length <$> pvChargedConstits tj
+      nj <- fromIntegral . length <$> pvChargedConstits j
+      return $ (ntj - nj) / ntj
+
+    h =
+      hist1DDef
+        (binD (-1) 20 1)
+        ("(true - reco) / true " <> npvtrkname)
+        (dsigdXpbY npvtrkname "1")
 
 
 zbs
