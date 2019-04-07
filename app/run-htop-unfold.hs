@@ -58,6 +58,7 @@ data Args =
     , xsecfile   :: String
     , observable :: String
     , infiles    :: [String]
+    , stresstest :: Maybe String
     } deriving (Show)
 
 inArgs :: Parser Args
@@ -66,8 +67,8 @@ inArgs =
   <$> strOption
     ( long "mcmcfile" <> metavar "MCMCFILE" )
   <*> (
-    option auto ( long "nsamples" <> metavar "NSAMPLES=1000000" )
-    <|> pure 1000000
+    option auto ( long "nsamples" <> metavar "NSAMPLES=10000" )
+    <|> pure 10000
     )
   <*> switch (long "stat-only")
   <*> strOption
@@ -77,6 +78,12 @@ inArgs =
   <*> strOption
     ( long "observable" <> metavar "OBSERVABLE" )
   <*> some (strArgument (metavar "INFILES"))
+  <*> optional
+    ( strOption
+      ( long "stresstest"
+      <> help "unfold a variation as a stress test"
+      )
+    )
 
 
 main :: IO ()
@@ -91,7 +98,11 @@ main = do
   procs <- either error id <$> decodeFiles (pure regex) empty (infiles args)
 
   let normedProcs = either error id $ itraverse (normToXsec xsecs) procs
-      (data', pred', _, _) = either error id $ bfragModel normedProcs
+
+      (data', pred', _, _) =
+        either error id
+        $ bfragModel (stresstest args) normedProcs
+
       (bkg, migration) = unfoldingInputs (observable args) pred'
 
       filtVar f v =

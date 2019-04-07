@@ -32,7 +32,7 @@ main = mainWith writeFiles
 writeFiles :: String -> ProcMap (Folder (Annotated (Vars Obj))) -> IO ()
 writeFiles outf pm = do
   let (data', pred', bkgs, ttpreds) =
-        either error id $ bfragModel pm
+        either error id $ bfragModel Nothing pm
 
       predhs = imap appLumi pred'
       bkghs = imap appLumi bkgs

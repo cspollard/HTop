@@ -20,7 +20,8 @@ import           GHC.Exts            (toList)
 
 
 bfragModel
-  :: StrictMap ProcessInfo (Folder (Annotated (Vars Obj)))
+  :: Maybe String
+  -> StrictMap ProcessInfo (Folder (Annotated (Vars Obj)))
   -> Either String
       ( Folder (Annotated Obj)
       , Folder (Annotated (Vars Obj))
@@ -28,7 +29,7 @@ bfragModel
       , StrictMap ProcessInfo (Folder YodaObj)
       )
 
-bfragModel procs = do
+bfragModel stresstest procs = do
   zjets <-
     getProcs procs zjetskeys
     & traverse.traverse.traverse %~ addVar "ZJetsNormUp" (scaleO 1.3)
@@ -108,11 +109,17 @@ bfragModel procs = do
         & traverse.traverse %~ collapseVars
 
 
-      data' =
-        either
-          ((fmap.fmap) (scaleO $ view nominal lumi) . const nomnom)
-          ((fmap.fmap) (view nominal))
-          $ getProcs procs [datakey]
+      data' :: Folder (Annotated Obj) =
+        case stresstest of
+          Nothing ->
+            either error ((fmap.fmap) (view nominal)) $ getProcs procs [datakey]
+          Just "closure" ->
+            (fmap.fmap) (scaleO $ view nominal lumi) nomnom
+          Just var ->
+            let vs = (traverse.traverse) (view $ variations . at (T.pack var)) fullpred
+            in case vs of
+              Nothing -> error "missing stress test variation"
+              Just fo -> (fmap.fmap) (scaleO $ view nominal lumi) fo
 
 
       ttprocs = inSM (HM.filterWithKey $ \k _ -> k `elem` ttkeys) procs
