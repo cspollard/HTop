@@ -50,8 +50,7 @@ idxs = np.array(idxs)
 print("names: %s" % names)
 print("idxs: %s" % idxs)
 
-# we throw out the last bin since this is a normalized distribution.
-xs = xs[idxs[names]][:-1]
+xs = xs[idxs[names]]
 
 modes = xs[:,0]
 
@@ -60,8 +59,17 @@ print(modes)
 
 cov = np.cov(xs)
 
+
+print("uncertainties")
+print(np.sqrt(np.diag(cov)))
+
 print("covariance:")
 print(cov)
+
+# we throw out the last bin since this is a normalized distribution.
+xs = xs[:-1]
+modes = xs[:,0]
+cov = np.cov(xs)
 
 
 
@@ -101,7 +109,6 @@ for (k, f) in files.iteritems():
     h = y.readYODA(f)[histkey]
     hs[k] = [b.area for b in h.bins[:-1]]
 
-print hs
 
 print("pvalues:")
 
