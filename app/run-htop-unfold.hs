@@ -147,6 +147,9 @@ main = do
       doubToDist2D :: Double -> Dist2D Double
       doubToDist2D w = filling (Pair 0 0) w mempty
 
+      dist1Dfrom2D :: Fractional a => Dist2D a -> Dist1D a
+      dist1Dfrom2D (DistND w _ _ _ _) = filling (Only 0) w mempty
+
       showMigMat n ao =
         printYodaObj ("/htop" <> n)
           $ H2DD . scaleByBinSize2D <$> ao
@@ -158,6 +161,19 @@ main = do
             , maybe "" (showMigMat $ matrixname <> "diff") mdiff
             , maybe "" (showMigMat $ matrixname <> "reldiff") mreldiff
             ]
+            ++ showEffSlices matrixname m
+
+        -- this enables efficiency slices for
+        where
+          effSlices m =
+            traverse
+              (fmap (H1DD . scaleByBinSize1D . fmap dist1Dfrom2D . snd) . H.listSlicesAlongX)
+              m
+
+          showEffSlices name m =
+            (\n h -> printYodaObj ("htop" <> name <> "eff" <> T.pack (show n)) h)
+            `imap` (set ylabel "probability" <$> effSlices m)
+
 
       trueh = fmap (view sumW) . obsTrimmers (observable args)
         $ pred' ^?! ix truehname . noted . nominal . _H1DD
@@ -443,4 +459,13 @@ scaleByBinSize2D h =
   let intervals = views bins binsList h
       go ((xmin, ymin), (xmax, ymax)) =
         scaling ((xmax - xmin) * (ymax - ymin))
+  in over histData (V.zipWith go intervals) h
+
+scaleByBinSize1D
+  :: (BinValue b ~ Weight a, IntervalBin b, Fractional (Weight a), Weighted a)
+  => Histogram Vector b a -> Histogram Vector b a
+scaleByBinSize1D h =
+  let intervals = views bins binsList h
+      go ((xmin, xmax)) =
+        scaling ((xmax - xmin))
   in over histData (V.zipWith go intervals) h
