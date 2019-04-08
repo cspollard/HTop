@@ -27,6 +27,14 @@ rivet-mkhtml -c ext/htop.plot \
 make-plots --pdf unfold/particlelevel/closure/zblcplots/*/*dat
 
 
+mkdir -p unfold/particlelevel/stress_herwig/zblcposteriors
+cd unfold/particlelevel/stress_herwig/zblcposteriors
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/stress_herwig/zblcmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
+cd $DIR
+
+
+
 mkdir -p unfold/particlelevel/data/zbtcposteriors
 cd unfold/particlelevel/data/zbtcposteriors
 python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbtcmcmc.dat
@@ -53,6 +61,13 @@ rivet-mkhtml -c ext/htop.plot \
 make-plots --pdf unfold/particlelevel/closure/zbtcplots/*/*dat
 
 
+mkdir -p unfold/particlelevel/stress_herwig/zbtcposteriors
+cd unfold/particlelevel/stress_herwig/zbtcposteriors
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/stress_herwig/zbtcmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
+cd $DIR
+
+
 mkdir -p unfold/particlelevel/data/zbrelcposteriors
 cd unfold/particlelevel/data/zbrelcposteriors
 python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbrelcmcmc.dat
@@ -76,3 +91,10 @@ rivet-mkhtml -c ext/htop.plot \
   -o unfold/particlelevel/closure/zbrelcplots
 
 make-plots --pdf unfold/particlelevel/closure/zbrelcplots/*/*dat
+
+
+mkdir -p unfold/particlelevel/stress_herwig/zbrelcposteriors
+cd unfold/particlelevel/stress_herwig/zbrelcposteriors
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/stress_herwig/zbrelcmcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
+cd $DIR
