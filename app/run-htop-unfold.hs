@@ -181,7 +181,11 @@ main = do
 
           showEffSlicesY name m =
             (\n h -> printYodaObj ("htop" <> name <> "effY" <> T.pack (show n)) h)
-            `imap` (set ylabel "probability" <$> effSlicesY m)
+            `imap`
+              (set ylabel "probability"
+                . (\h -> let yl = view ylabel h in set xlabel yl h)
+                <$> effSlicesY m
+              )
 
 
       trueh = fmap (view sumW) . obsTrimmers (observable args)
