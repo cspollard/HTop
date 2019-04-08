@@ -1,5 +1,6 @@
 mkdir -p unfold/particlelevel/closure
 mkdir -p unfold/particlelevel/closure_statonly
+mkdir -p unfold/particlelevel/stress_herwig
 mkdir -p unfold/particlelevel/data
 
 yodamerge -o htop.yoda unfold/particlelevel/data/unfold*/htop.yoda
@@ -20,6 +21,13 @@ yodamerge -o htop.yoda unfold/particlelevel/closure_statonly/unfold*/htop.yoda
 
 rivet-mkhtml --mc-errs --pwd -m ".*/truejets/zb.*" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowH7AFII.yoda:"PowH7" yoda/aMCPy8AFII.yoda:"aMCPy8" yoda/Sherpa221AFII.yoda:"Sherpa221" -o unfold/particlelevel/closure_statonly/genplots
 rivet-mkhtml --mc-errs --pwd -m ".*/truejets/zb.*" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowPy8FSRUpAFII.yoda:"PowPy8FSRUp" yoda/PowPy8FSRDownAFII.yoda:"PowPy8FSRDown" yoda/PowPy6FS.yoda:"PowPy6" -o unfold/particlelevel/closure_statonly/powpygenplots
+
+rm -f htop.yoda
+
+yodamerge -o htop.yoda unfold/particlelevel/stress_herwig/unfold*/htop.yoda
+
+rivet-mkhtml --mc-errs --pwd -m ".*/truejets/zb.*" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowH7AFII.yoda:"PowH7" yoda/aMCPy8AFII.yoda:"aMCPy8" yoda/Sherpa221AFII.yoda:"Sherpa221" -o unfold/particlelevel/stress_herwig/genplots
+rivet-mkhtml --mc-errs --pwd -m ".*/truejets/zb.*" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowPy8FSRUpAFII.yoda:"PowPy8FSRUp" yoda/PowPy8FSRDownAFII.yoda:"PowPy8FSRDown" yoda/PowPy6FS.yoda:"PowPy6" -o unfold/particlelevel/stress_herwig/powpygenplots
 
 rm -f htop.yoda
 
