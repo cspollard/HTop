@@ -1,0 +1,13 @@
+all the things that need to be rerun:
+
+- histogramming on the batch queue
+- ext/hadd.sh
+- ext/unfold.sh
+- ext/makeyoda.sh
+- ext/plotunfold.sh
+- rsync unfold/particlelevel/ into note figs/ directory
+- rsync detectorlevel/ into note figs/ directory
+- ext/updateplots.sh
+- copy covariance/correlation/uncertainty tables from e.g. 
+- make pvalue tables (ext/pvalue.py)
+

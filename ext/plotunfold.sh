@@ -53,26 +53,26 @@ rivet-mkhtml -c ext/htop.plot \
 make-plots --pdf unfold/particlelevel/closure/zbtcplots/*/*dat
 
 
-mkdir -p unfold/particlelevel/data/zbtrelcposteriors
-cd unfold/particlelevel/data/zbtrelcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbtrelcmcmc.dat
+mkdir -p unfold/particlelevel/data/zbrelcposteriors
+cd unfold/particlelevel/data/zbrelcposteriors
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbrelcmcmc.dat
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 
 
-mkdir -p unfold/particlelevel/closure/zbtrelcposteriors
-cd unfold/particlelevel/closure/zbtrelcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbtrelcmcmc.dat
+mkdir -p unfold/particlelevel/closure/zbrelcposteriors
+cd unfold/particlelevel/closure/zbrelcposteriors
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbrelcmcmc.dat
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 
 rivet-mkhtml -c ext/htop.plot \
-  unfold/particlelevel/closure/unfoldzbtrelc/nominal.yoda \
-  unfold/particlelevel/closure/unfoldzbtrelc/fsr.yoda \
-  unfold/particlelevel/closure/unfoldzbtrelc/puwgt.yoda \
-  unfold/particlelevel/closure/unfoldzbtrelc/v2trk_fake_rate_tight.yoda \
-  unfold/particlelevel/closure/unfoldzbtrelc/v2trk_res_d0_meas.yoda \
-  unfold/particlelevel/closure/unfoldzbtrelc/v2trk_res_z0_meas.yoda \
-  -o unfold/particlelevel/closure/zbtrelcplots
+  unfold/particlelevel/closure/unfoldzbrelc/nominal.yoda \
+  unfold/particlelevel/closure/unfoldzbrelc/fsr.yoda \
+  unfold/particlelevel/closure/unfoldzbrelc/puwgt.yoda \
+  unfold/particlelevel/closure/unfoldzbrelc/v2trk_fake_rate_tight.yoda \
+  unfold/particlelevel/closure/unfoldzbrelc/v2trk_res_d0_meas.yoda \
+  unfold/particlelevel/closure/unfoldzbrelc/v2trk_res_z0_meas.yoda \
+  -o unfold/particlelevel/closure/zbrelcplots
 
-make-plots --pdf unfold/particlelevel/closure/zbtrelcplots/*/*dat
+make-plots --pdf unfold/particlelevel/closure/zbrelcplots/*/*dat

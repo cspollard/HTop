@@ -42,3 +42,13 @@ ZMin=0
 ZMax=0.05
 ZLabel=probability
 # END PLOT
+
+# BEGIN PLOT /.*vs.*
+Legend=0
+PolyMarker=
+# END PLOT
+
+# BEGIN PLOT /.*data\.yoda.*
+PolyMarker=*
+color=black
+# END PLOT
