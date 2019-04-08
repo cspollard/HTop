@@ -6,14 +6,24 @@ cd unfold/particlelevel/data/zblcposteriors
 python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zblcmcmc.dat
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
-rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzblc/*yoda -o unfold/particlelevel/data/zblcplots
+
 
 mkdir -p unfold/particlelevel/closure/zblcposteriors
 cd unfold/particlelevel/closure/zblcposteriors
 python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zblcmcmc.dat
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
-rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzblc/*yoda -o unfold/particlelevel/closure/zblcplots
+
+rivet-mkhtml -c ext/htop.plot \
+  unfold/particlelevel/closure/unfoldzblc/nominal.yoda \
+  unfold/particlelevel/closure/unfoldzblc/fsr.yoda \
+  unfold/particlelevel/closure/unfoldzblc/ps.yoda \
+  unfold/particlelevel/closure/unfoldzblc/puwgt.yoda \
+  unfold/particlelevel/closure/unfoldzblc/v2trk_fake_rate_tight.yoda \
+  unfold/particlelevel/closure/unfoldzblc/v2trk_res_d0_meas.yoda \
+  unfold/particlelevel/closure/unfoldzblc/v2trk_res_z0_meas.yoda \
+  -o unfold/particlelevel/closure/zblcplots
+
 make-plots --pdf unfold/particlelevel/closure/zblcplots/*/*dat
 
 
@@ -22,28 +32,47 @@ cd unfold/particlelevel/data/zbtcposteriors
 python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbtcmcmc.dat
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
-rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzbtc/*yoda -o unfold/particlelevel/data/zbtcplots
+
 
 mkdir -p unfold/particlelevel/closure/zbtcposteriors
 cd unfold/particlelevel/closure/zbtcposteriors
 python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbtcmcmc.dat
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
-rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzbtc/*yoda -o unfold/particlelevel/closure/zbtcplots
+
+rivet-mkhtml -c ext/htop.plot \
+  unfold/particlelevel/closure/unfoldzbtc/nominal.yoda \
+  unfold/particlelevel/closure/unfoldzbtc/fsr.yoda \
+  unfold/particlelevel/closure/unfoldzbtc/ps.yoda \
+  unfold/particlelevel/closure/unfoldzbtc/puwgt.yoda \
+  unfold/particlelevel/closure/unfoldzbtc/v2trk_fake_rate_tight.yoda \
+  unfold/particlelevel/closure/unfoldzbtc/v2trk_res_d0_meas.yoda \
+  unfold/particlelevel/closure/unfoldzbtc/v2trk_res_z0_meas.yoda \
+  -o unfold/particlelevel/closure/zbtcplots
+
 make-plots --pdf unfold/particlelevel/closure/zbtcplots/*/*dat
 
 
-mkdir -p unfold/particlelevel/data/zbrelcposteriors
-cd unfold/particlelevel/data/zbrelcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbrelcmcmc.dat
+mkdir -p unfold/particlelevel/data/zbtrelcposteriors
+cd unfold/particlelevel/data/zbtrelcposteriors
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbtrelcmcmc.dat
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
-rivet-mkhtml -c ext/htop.plot unfold/particlelevel/data/unfoldzbrelc/*yoda -o unfold/particlelevel/data/zbrelcplots
 
-mkdir -p unfold/particlelevel/closure/zbrelcposteriors
-cd unfold/particlelevel/closure/zbrelcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbrelcmcmc.dat
+
+mkdir -p unfold/particlelevel/closure/zbtrelcposteriors
+cd unfold/particlelevel/closure/zbtrelcposteriors
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbtrelcmcmc.dat
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
-rivet-mkhtml -c ext/htop.plot unfold/particlelevel/closure/unfoldzbrelc/*yoda -o unfold/particlelevel/closure/zbrelcplots
-make-plots --pdf unfold/particlelevel/closure/zbrelcplots/*/*dat
+
+rivet-mkhtml -c ext/htop.plot \
+  unfold/particlelevel/closure/unfoldzbtrelc/nominal.yoda \
+  unfold/particlelevel/closure/unfoldzbtrelc/fsr.yoda \
+  unfold/particlelevel/closure/unfoldzbtrelc/puwgt.yoda \
+  unfold/particlelevel/closure/unfoldzbtrelc/v2trk_fake_rate_tight.yoda \
+  unfold/particlelevel/closure/unfoldzbtrelc/v2trk_res_d0_meas.yoda \
+  unfold/particlelevel/closure/unfoldzbtrelc/v2trk_res_z0_meas.yoda \
+  -o unfold/particlelevel/closure/zbtrelcplots
+
+make-plots --pdf unfold/particlelevel/closure/zbtrelcplots/*/*dat
