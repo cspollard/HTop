@@ -30,8 +30,8 @@ ZLabel=relative probability difference
 # BEGIN PLOT /.*migdiff$
 LogZ=0
 Legend=0
-ZMin=-0.005
-ZMax=0.005
+ZMin=-0.01
+ZMax=0.01
 ZLabel=probability difference
 # END PLOT
 
@@ -39,7 +39,7 @@ ZLabel=probability difference
 LogZ=0
 Legend=0
 ZMin=0
-ZMax=0.05
+ZMax=0.20
 ZLabel=probability
 # END PLOT
 

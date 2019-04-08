@@ -161,18 +161,27 @@ main = do
             , maybe "" (showMigMat $ matrixname <> "diff") mdiff
             , maybe "" (showMigMat $ matrixname <> "reldiff") mreldiff
             ]
-            ++ showEffSlices matrixname m
+            ++ showEffSlicesY matrixname m
+            ++ showEffSlicesX matrixname m
 
-        -- this enables efficiency slices for
         where
-          effSlices m =
+          effSlicesX m =
             traverse
               (fmap (H1DD . scaleByBinSize1D . fmap dist1Dfrom2D . snd) . H.listSlicesAlongX)
               m
 
-          showEffSlices name m =
-            (\n h -> printYodaObj ("htop" <> name <> "eff" <> T.pack (show n)) h)
-            `imap` (set ylabel "probability" <$> effSlices m)
+          effSlicesY m =
+            traverse
+              (fmap (H1DD . scaleByBinSize1D . fmap dist1Dfrom2D . snd) . H.listSlicesAlongY)
+              m
+
+          showEffSlicesX name m =
+            (\n h -> printYodaObj ("htop" <> name <> "effX" <> T.pack (show n)) h)
+            `imap` (set ylabel "probability" <$> effSlicesX m)
+
+          showEffSlicesY name m =
+            (\n h -> printYodaObj ("htop" <> name <> "effY" <> T.pack (show n)) h)
+            `imap` (set ylabel "probability" <$> effSlicesY m)
 
 
       trueh = fmap (view sumW) . obsTrimmers (observable args)
@@ -452,6 +461,7 @@ printScatter2D pa xys =
         $ [x, x - xdown, xup - x, y/area, (y - ydown)/area, (yup - y)/area]
 
 
+
 scaleByBinSize2D
   :: (BinValue b ~ (Weight a, Weight a), IntervalBin b, Fractional (Weight a), Weighted a)
   => Histogram Vector b a -> Histogram Vector b a
@@ -466,6 +476,5 @@ scaleByBinSize1D
   => Histogram Vector b a -> Histogram Vector b a
 scaleByBinSize1D h =
   let intervals = views bins binsList h
-      go ((xmin, xmax)) =
-        scaling ((xmax - xmin))
+      go (xmin, xmax) = scaling (xmax - xmin)
   in over histData (V.zipWith go intervals) h
