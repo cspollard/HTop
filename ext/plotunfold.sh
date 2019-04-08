@@ -84,6 +84,7 @@ cd $DIR
 rivet-mkhtml -c ext/htop.plot \
   unfold/particlelevel/closure/unfoldzbrelc/nominal.yoda \
   unfold/particlelevel/closure/unfoldzbrelc/fsr.yoda \
+  unfold/particlelevel/closure/unfoldzbrelc/ps.yoda \
   unfold/particlelevel/closure/unfoldzbrelc/puwgt.yoda \
   unfold/particlelevel/closure/unfoldzbrelc/v2trk_fake_rate_tight.yoda \
   unfold/particlelevel/closure/unfoldzbrelc/v2trk_res_d0_meas.yoda \
