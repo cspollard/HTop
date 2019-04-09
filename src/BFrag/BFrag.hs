@@ -300,10 +300,10 @@ zbrelcMerges =
 
 zbrelMerges = zbrelcMerges
 
-obsTrimmers
+obsTruthTrimmers
   :: (Eq a1, Fractional a, Ord a, Monoid b, IsString a1)
   => a1 -> Histogram Vector (ArbBin a) b -> Histogram Vector (ArbBin a) b
-obsTrimmers s =
+obsTruthTrimmers s =
   case s of
     "zbtc"   -> trimH zbtcMerges
     "zblc"   -> trimH zblcMerges
@@ -312,6 +312,9 @@ obsTrimmers s =
     "zbl"    -> trimH zblMerges
     "zbrel"  -> trimH zbrelMerges
     _        -> id
+
+obsRecoTrimmers :: a -> b -> b
+obsRecoTrimmers = const id
 
 
 obsNames

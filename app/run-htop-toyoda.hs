@@ -18,6 +18,7 @@ import           Data.Bifunctor
 import qualified Data.Histogram.Generic as H
 import           Data.Semigroup
 import qualified Data.Text              as T
+import           Data.Vector            (Vector)
 import           GHC.Exts               (IsList (..))
 import           Pipes
 import qualified Pipes.Prelude          as P
@@ -62,11 +63,22 @@ writeFiles outf pm = do
       trim (t, yo) = (t, trim' <$> yo)
         where
           t' = T.takeWhileEnd (/= '/') t
-          trim' (H1DD h) = H1DD $ obsTrimmers t' h
-          trim' (P1DD h) = P1DD $ obsTrimmers t' h
-          trim' (H2DD h) =
-            let f = obsTrimmers t'
-            in H2DD . H.liftX f $ H.liftY f h
+
+          trim1D
+            :: (Fractional a, Ord a, Monoid b)
+            => Histogram Vector (ArbBin a) b -> Histogram Vector (ArbBin a) b
+          trim1D =
+            case (T.isInfixOf "probejets" t, T.isInfixOf "truejets" t) of
+              (True, False) -> obsRecoTrimmers t'
+              (False, True) -> obsTruthTrimmers t'
+              _             -> id
+
+          trim' (H1DD h) = H1DD $ trim1D h
+          trim' (P1DD h) = P1DD $ trim1D h
+          trim' h        = h
+          -- trim' (H2DD h) =
+          --   let fx = obsRecoTrimmers t'
+          --   in H2DD . H.liftX f $ H.liftY f h
 
       addNorm :: (T.Text, YodaObj) -> [(T.Text, YodaObj)]
       addNorm (t, yo) =

@@ -163,6 +163,8 @@ main = do
             ]
             ++ showEffSlicesY matrixname m
             ++ showEffSlicesX matrixname m
+            ++ maybe [] (showEffSlicesY $ matrixname <> "diff") mdiff
+            ++ maybe [] (showEffSlicesX $ matrixname <> "diff") mdiff
 
         where
           effSlicesX m =
@@ -188,12 +190,12 @@ main = do
               )
 
 
-      trueh = fmap (view sumW) . obsTrimmers (observable args)
+      trueh = fmap (view sumW) . obsTruthTrimmers (observable args)
         $ pred' ^?! ix truehname . noted . nominal . _H1DD
 
       datah :: H1DI
       datah =
-        fmap (round . view sumW) . obsTrimmers (observable args)
+        fmap (round . view sumW) . obsRecoTrimmers (observable args)
         $ data' ^?! ix recohname . noted . _H1DD
 
       xs :: [(Double, (Double, Double))]
@@ -273,8 +275,6 @@ main = do
               corr = cov / sqrt var / sqrt var'
               absuncert = abs $ cov / sqrt var'
               reluncert = absuncert / mean
-
-
           in
             if T.isPrefixOf "normtruthbin" name
                 && not (T.isPrefixOf "truthbin" name')
@@ -353,25 +353,30 @@ unfoldingInputs obs hs =
   let (recohname, truehname, recomatchhname, matrixname)
         = obsNames obs
 
-      trim
-        :: (Fractional a, Ord a, Monoid b)
-        => Histogram Vector (ArbBin a) b -> Histogram Vector (ArbBin a) b
-      trim = obsTrimmers obs
+      trimR = obsRecoTrimmers obs
+      trimT = obsTruthTrimmers obs
 
       recoh, trueh, recomatchh, bkgrecoh :: Annotated (Vars H1DD)
       recoh =
-        fmap (fmap (view sumW) . trim . (^?! _H1DD))
+        fmap (fmap (view sumW) . trimR . (^?! _H1DD))
         <$> hs ^?! ix recohname
+
       trueh =
-        fmap (fmap (view sumW) . trim . (^?! _H1DD))
+        fmap (fmap (view sumW) . trimT . (^?! _H1DD))
         <$> hs ^?! ix truehname
+
       recomatchh =
-        fmap (fmap (view sumW) . trim . (^?! _H1DD))
+        fmap (fmap (view sumW) . trimR . (^?! _H1DD))
         <$> hs ^?! ix recomatchhname
 
       math :: Annotated (Vars H2DD)
       math =
-        fmap (fmap (view sumW) . H.liftY trim . H.liftX trim . fromJust . preview _H2DD)
+        fmap
+          ( fmap (view sumW)
+          . H.liftY (obsRecoTrimmers obs)
+          . H.liftX (obsTruthTrimmers obs)
+          . fromJust . preview _H2DD
+          )
         <$> hs ^?! ix matrixname
 
       bkgrecoh = liftA2 unsafeHSub <$> recoh <*> recomatchh
