@@ -232,8 +232,7 @@ procToText _                         = "OTHER"
 paramToName :: T.Text -> T.Text
 paramToName s =
   if "normtruthbin" `T.isPrefixOf` s
-    then
-      T.replace "normtruthbin" "\\sigma_"
+    then T.replace "normtruthbin" "\\sigma_"
       . T.cons '$'
       $ T.snoc s '$'
     else

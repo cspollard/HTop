@@ -17,33 +17,35 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 
 dependencies:
-- base 
-- lens 
-- containers 
-- unordered-containers 
-- mmorph 
-- attoparsec 
-- vector 
-- cereal-vector 
-- text 
-- bytestring 
-- exceptions 
-- transformers 
-- mtl 
-- cereal 
-- cereal-text 
-- histogram-fill 
-- histogram-fill-cereal 
-- primitive 
-- semigroups 
-- bifunctors 
-- foldl 
-- pipes 
-- mwc-probability 
-- hhep 
-- histogram-extras 
-- ttree 
-- atlas 
+- base
+- lens
+- containers
+- unordered-containers
+- mmorph
+- attoparsec
+- vector
+- ad
+- uncertain
+- cereal-vector
+- text
+- bytestring
+- exceptions
+- transformers
+- mtl
+- cereal
+- cereal-text
+- histogram-fill
+- histogram-fill-cereal
+- primitive
+- semigroups
+- bifunctors
+- foldl
+- pipes
+- mwc-probability
+- hhep
+- histogram-extras
+- ttree
+- atlas
 
 library:
   source-dirs: src

@@ -2,6 +2,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedLists           #-}
 {-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE RecordWildCards           #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE TupleSections             #-}
 {-# LANGUAGE TypeFamilies              #-}
@@ -28,6 +29,7 @@ import qualified Data.Text              as T
 import           Data.Vector            (Vector)
 import qualified Data.Vector            as V
 import           Model
+import           Numeric.Uncertain
 import           Options.Applicative
 import           RunModel               (latextable, runModel)
 import           System.IO              (BufferMode (..), IOMode (..),
@@ -38,12 +40,13 @@ import           Text.Printf
 
 type TextMap = HashMap T.Text
 
-type H1DI = Histogram V.Vector (ArbBin Double) Int
-type H1DD = Histogram V.Vector (ArbBin Double) Double
-type H2DD = Histogram V.Vector (Bin2D (ArbBin Double) (ArbBin Double)) Double
-
 type H1D = Hist1D (ArbBin Double)
 type H2D = Hist2D (ArbBin Double) (ArbBin Double)
+
+type H1DI = Histogram V.Vector (ArbBin Double) Int
+type H1DD = Histogram V.Vector (ArbBin Double) (Uncert Double)
+type H2DD = Histogram V.Vector (Bin2D (ArbBin Double) (ArbBin Double)) (Uncert Double)
+
 
 unsafeHAdd h h' = fromJust $ hzip' (+) h h'
 unsafeHSub h h' = fromJust $ hzip' (-) h h'
@@ -127,33 +130,26 @@ main = do
             let d = abs (v - n)
             in d > 0.001
 
-      migration' = (fmap.fmap.fmap) doubToDist2D migration
-
-      matdiffs' :: Annotated (Vars (Maybe H2DD))
-      matdiffs' =
+      matdiffs :: Annotated (Vars (Maybe H2DD))
+      matdiffs =
         let tmp = fmap Just <$> migration
             vs = tmp & traverse.nominal .~ Nothing
             n = tmp & traverse.variations .~ mempty
         in (liftA2.liftA2.liftA2) unsafeHSub vs n
 
-      matdiffs = (fmap.fmap.fmap.fmap) doubToDist2D matdiffs'
-
-      matreldiffs :: Annotated (Vars (Maybe H2D))
+      matreldiffs :: Annotated (Vars (Maybe H2DD))
       matreldiffs =
         let n = migration & traverse.variations .~ mempty & (fmap.fmap) Just
-            divs = (liftA2.liftA2.liftA2) unsafeHDiv matdiffs' n
-        in (fmap.fmap.fmap.fmap) doubToDist2D divs
+        in (liftA2.liftA2.liftA2) unsafeHDiv matdiffs n
 
-      doubToDist2D :: Double -> Dist2D Double
-      doubToDist2D w = filling (Pair 0 0) w mempty
+      showMigMat :: T.Text -> H2DD -> T.Text
+      showMigMat n mat =
+        printScatter3D ("/htop" <> n)
+        . fmap convertBin3D
+        . asList'
+        $ uncertToScat <$> mat
 
-      dist1Dfrom2D :: Fractional a => Dist2D a -> Dist1D a
-      dist1Dfrom2D (DistND w _ _ _ _) = filling (Only 0) w mempty
-
-      showMigMat n ao =
-        printYodaObj ("/htop" <> n)
-          $ H2DD . scaleByBinSize2D <$> ao
-
+      writeMigs :: T.Text -> (H2DD, Maybe H2DD, Maybe H2DD) -> IO ()
       writeMigs t (m, mdiff, mreldiff) =
         writeFile (yodafolder args <> "/" <> T.unpack t <> ".yoda")
           . T.unpack . T.intercalate "\n\n"
@@ -161,33 +157,30 @@ main = do
             , maybe "" (showMigMat $ matrixname <> "diff") mdiff
             , maybe "" (showMigMat $ matrixname <> "reldiff") mreldiff
             ]
-            ++ showEffSlicesY matrixname m
+            ++ showEffSlicesY matrixname (m :: H2DD)
             ++ showEffSlicesX matrixname m
             ++ maybe [] (showEffSlicesY $ matrixname <> "diff") mdiff
             ++ maybe [] (showEffSlicesX $ matrixname <> "diff") mdiff
 
         where
-          effSlicesX m =
-            traverse
-              (fmap (H1DD . scaleByBinSize1D . fmap dist1Dfrom2D . snd) . H.listSlicesAlongX)
-              m
-
-          effSlicesY m =
-            traverse
-              (fmap (H1DD . scaleByBinSize1D . fmap dist1Dfrom2D . snd) . H.listSlicesAlongY)
-              m
-
+          showEffSlicesX :: T.Text -> H2DD -> [T.Text]
           showEffSlicesX name m =
-            (\n h -> printYodaObj ("htop" <> name <> "effX" <> T.pack (show n)) h)
-            `imap` (set ylabel "probability" <$> effSlicesX m)
+            ( \n (_, h) ->
+                printScatter2D ("htop" <> name <> "effX" <> T.pack (show n))
+                . asList'
+                $ uncertToScat <$> h
+            )
+            `imap` H.listSlicesAlongX m
 
+
+          showEffSlicesY :: T.Text -> H2DD -> [T.Text]
           showEffSlicesY name m =
-            (\n h -> printYodaObj ("htop" <> name <> "effY" <> T.pack (show n)) h)
-            `imap`
-              (set ylabel "probability"
-                . (\h -> let yl = view ylabel h in set xlabel yl h)
-                <$> effSlicesY m
-              )
+            ( \n (_, h) ->
+                printScatter2D ("htop" <> name <> "effY" <> T.pack (show n))
+                . asList'
+                $ uncertToScat <$> h
+            )
+            `imap` H.listSlicesAlongY m
 
 
       trueh = fmap (view sumW) . obsTruthTrimmers (observable args)
@@ -208,13 +201,13 @@ main = do
           (statOnly args)
           (view histData trueh)
           (getH2DD <$> filtVar matFilt (view noted migration))
-          (HM.singleton "bkg" . view histData <$> filtVar bkgFilt (view noted bkg))
+          (HM.singleton "bkg" . fmap uMean . view histData <$> filtVar bkgFilt (view noted bkg))
 
   imapM_ writeMigs . variationToMap "nominal"
     $ liftA3 (,,)
-      (sequence migration')
-      (sequence <$> sequence matdiffs)
-      (sequence <$> sequence matreldiffs)
+      (view noted migration)
+      (view noted matdiffs)
+      (view noted matreldiffs)
 
   putStrLn "data:"
   views histData print datah
@@ -283,31 +276,6 @@ main = do
               then Just (absuncert, reluncert, corr)
               else Nothing
 
-
-      -- latextable m =
-      --   let ks = HM.keys m
-      --       srt s s' = if T.isPrefixOf "normtruthbin" s then LT else s `cmp` s'
-      --
-      --       poinames = sortBy srt . nub $ fst <$> ks
-      --       npnames = sortBy srt . nub $ snd <$> ks
-      --       fmtLine npname =
-      --         T.unpack (paramToName npname)
-      --         ++ " & "
-      --         ++ intercalate " & "
-      --             ( printf "%.3f" . (HM.!) m . (,npname)
-      --               <$> poinames
-      --             )
-      --         ++ " \\\\"
-        --
-        -- in unlines $
-        --   [ "\\begin{tabular}{ l " ++ fold (replicate (length poinames) "| r ") ++ "}"
-        --   , " & " ++ intercalate " & " (T.unpack . paramToName <$> poinames) ++ " \\\\"
-        --   , "\\hline"
-        --   ]
-        --   ++ (fmtLine <$> npnames)
-        --   ++ ["\\end{tabular}"]
-        --
-
   withFile (yodafolder args <> "/htop.stat") WriteMode $ \h -> do
     putStrLn "uncertainties and correlations:"
     print uncerts
@@ -358,31 +326,32 @@ unfoldingInputs obs hs =
 
       recoh, trueh, recomatchh, bkgrecoh :: Annotated (Vars H1DD)
       recoh =
-        fmap (fmap (view sumW) . trimR . (^?! _H1DD))
+        fmap (fmap distToUncert . trimR . (^?! _H1DD))
         <$> hs ^?! ix recohname
 
       trueh =
-        fmap (fmap (view sumW) . trimT . (^?! _H1DD))
+        fmap (fmap distToUncert . trimT . (^?! _H1DD))
         <$> hs ^?! ix truehname
 
       recomatchh =
-        fmap (fmap (view sumW) . trimR . (^?! _H1DD))
+        fmap (fmap distToUncert . trimR . (^?! _H1DD))
         <$> hs ^?! ix recomatchhname
 
       math :: Annotated (Vars H2DD)
       math =
         fmap
-          ( fmap (view sumW)
+          ( fmap distToUncert
           . H.liftY (obsRecoTrimmers obs)
           . H.liftX (obsTruthTrimmers obs)
           . fromJust . preview _H2DD
           )
         <$> hs ^?! ix matrixname
 
+      -- why does this force?!
       bkgrecoh = liftA2 unsafeHSub <$> recoh <*> recomatchh
 
       normmat :: H2DD -> H1DD -> H2DD
-      normmat m h = H.liftX (\hm -> fromJust $ hzip' (/) hm h) m
+      normmat m h = H.liftX (\hm -> fromJust $ hzip (/) hm h) m
 
   in (bkgrecoh, liftA2 normmat <$> math <*> trueh)
 
@@ -442,7 +411,7 @@ buildModel statonly trueH matH bkgHs = (nommod, params)
 getH2DD :: H2DD -> Vector (Vector Double)
 getH2DD h =
   V.fromList
-  . fmap (view histData . snd)
+  . fmap (fmap uMean . view histData . snd)
   $ H.listSlicesAlongY h
 
 
@@ -471,6 +440,33 @@ printScatter2D pa xys =
 
 
 
+printScatter3D
+  :: T.Text
+  -> [((Double, (Double, Double)), (Double, (Double, Double)), (Double, (Double, Double)))]
+  -> T.Text
+printScatter3D pa xyzs =
+  T.unlines $
+    [ "# BEGIN YODA_SCATTER3D " <> pa
+    , "Type=Scatter3D"
+    , "Path=" <> pa
+    , "IsRef=1"
+    ]
+    ++
+      fmap printPoint xyzs
+      ++
+      [ "# END YODA_SCATTER3D", ""
+      ]
+
+  where
+    printPoint ((x, (xdown, xup)), (y, (ydown, yup)), (z, (zdown, zup))) =
+      let area = (xup-xdown)*(yup-ydown)
+      in T.intercalate "\t" . fmap (T.pack . show)
+        $ [ x, x-xdown, xup-x
+          , y, y-ydown, yup-y
+          , z/area, (z-zdown)/area, (zup-z)/area
+          ]
+
+
 scaleByBinSize2D
   :: (BinValue b ~ (Weight a, Weight a), IntervalBin b, Fractional (Weight a), Weighted a)
   => Histogram Vector b a -> Histogram Vector b a
@@ -487,3 +483,37 @@ scaleByBinSize1D h =
   let intervals = views bins binsList h
       go (xmin, xmax) = scaling (xmax - xmin)
   in over histData (V.zipWith go intervals) h
+
+
+
+
+distToUncert :: Floating a => DistND v a -> Uncert a
+distToUncert DistND{..} = _sumW +/- sqrt _sumWW
+
+uncertToScat :: Floating a => Uncert a -> (a, (a, a))
+uncertToScat (x :+/- dx) = (x, (x-dx, x+dx))
+
+divCorr :: Floating a => DistND v1 a -> DistND v a -> Uncert a
+divCorr num denom =
+  let p = _sumW num
+      n = _sumW denom
+      eff = p / n
+  in eff +/- (sqrt $ eff * (1-eff) / n)
+
+
+
+asList'
+  :: IntervalBin bin
+  => Histogram Vector bin a -> [((BinValue bin, (BinValue bin, BinValue bin)), a)]
+asList' h =
+  let b = view bins h
+  in zip
+      ((\i -> (H.fromIndex b i, H.binInterval b i)) <$> [0..])
+      (V.toList $ view histData h)
+
+
+convertBin3D
+  :: (((Double, Double), ((Double, Double), (Double, Double))), (Double, (Double, Double)))
+  -> (((Double, (Double, Double)), (Double, (Double, Double)), (Double, (Double, Double))))
+convertBin3D (((x, y), ((xdown, ydown), (xup, yup))), zs)
+  = ((x, (xdown, xup)), (y, (ydown, yup)), zs)
