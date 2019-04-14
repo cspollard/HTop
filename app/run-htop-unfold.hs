@@ -13,6 +13,7 @@ import           Atlas
 import           Atlas.CrossSections
 import           BFrag.BFrag
 import           BFrag.Model
+import           BFrag.Smooth
 import           BFrag.Systematics      (lumi)
 import           Control.Applicative    (liftA2, liftA3)
 import           Control.Lens
@@ -51,6 +52,7 @@ type H2DD = Histogram V.Vector (Bin2D (ArbBin Double) (ArbBin Double)) (Uncert D
 unsafeHAdd h h' = fromJust $ hzip (+) h h'
 unsafeHSub h h' = fromJust $ hzip (-) h h'
 unsafeHDiv h h' = fromJust $ hzip (/) h h'
+unsafeHMul h h' = fromJust $ hzip (*) h h'
 
 data Args =
   Args
@@ -357,7 +359,23 @@ unfoldingInputs obs hs =
 
       normmat m h = H.liftX (\hm -> fromJust $ hzip divCorr hm h) m
 
-  in (bkgrecoh, liftA2 normmat <$> math <*> trueh)
+      mats = liftA2 normmat <$> math <*> trueh
+
+      nommat :: H2DD
+      nommat = view (noted.nominal) mats
+
+      mats' =
+        mats
+        & over (noted.variations.ix "ps") (smoothRatioUncorr2DAlongY nommat)
+        & over (noted.variations.ix "fsr") (smoothRatioUncorr2DAlongY nommat)
+        & over (noted.variations.ix "isr") (smoothRatioUncorr2DAlongY nommat)
+        & over (noted.variations.ix "puwgt") (smoothRatioUncorr2DAlongY nommat)
+        & over (noted.variations.ix "jet_21np_jet_flavor_composition__1") (smoothRatioUncorr2DAlongY nommat)
+        & over (noted.variations.ix "jet_jer_single_np__1") (smoothRatioUncorr2DAlongY nommat)
+        & over (noted.variations.ix "jet_21np_jet_pileup_rhotopology__1") (smoothRatioUncorr2DAlongY nommat)
+        & over (noted.variations.ix "nsvtrksf") (smoothRatioUncorr2DAlongY nommat)
+
+  in (bkgrecoh, mats')
 
 
 
@@ -381,8 +399,8 @@ buildModel statonly trueH matH bkgHs = (nommod, params)
         (view nominal lumi)
 
     lumiparam =
-      HM.singleton "LumiUp" . ModelParam 1.0 (LogNormal 0.0 0.021)
-      $ ModelVar Nothing Nothing Nothing (lumi ^. variations . at "LumiUp")
+      HM.singleton "lumi" . ModelParam 1.0 (LogNormal 0.0 0.021)
+      $ ModelVar Nothing Nothing Nothing (lumi ^. variations . at "lumi")
 
     matparams =
       unSM
@@ -518,7 +536,6 @@ divCorr num denom =
 
 
 
-
 asList'
   :: IntervalBin bin
   => Histogram Vector bin a -> [((BinValue bin, (BinValue bin, BinValue bin)), a)]
@@ -534,3 +551,35 @@ convertBin3D
   -> (((Double, (Double, Double)), (Double, (Double, Double)), (Double, (Double, Double))))
 convertBin3D (((x, y), ((xdown, ydown), (xup, yup))), zs)
   = ((x, (xdown, xup)), (y, (ydown, yup)), zs)
+
+
+smoothRatioUncorr
+  :: (Ord a, Floating a, Show a, RealFrac a, BinValue bin ~ a, Bin bin)
+  => Histogram Vector bin (Uncert a, Uncert a)
+  -> Histogram Vector bin (Uncert a)
+smoothRatioUncorr h = H.histogramUO (view bins h) Nothing (V.fromList smoothed)
+  where
+    lh = H.asList h
+
+    rat = over (traverse._2) (\(nom, var) -> uMeanStd $ safeDiv var nom) lh
+    (end, result) = polySmooth start 1000 rat
+
+    correction = exact . snd <$> result
+
+    smoothed = zipWith (\(_, (nom, _)) corr -> nom*corr) lh correction
+
+    safeDiv _ 0 = 1 +/- 1
+    safeDiv 0 _ = 1 +/- 1
+    safeDiv x y = x / y
+
+    start :: Num a => [a]
+    start = [1, 0, 0, 0, 0, 0]
+
+
+smoothRatioUncorr2DAlongY
+  :: (Ord a, Floating a, Show a, RealFrac a, BinValue bY ~ a, BinEq bX, BinEq bY)
+  => Histogram Vector (Bin2D bX bY) (Uncert a)
+  -> Histogram Vector (Bin2D bX bY) (Uncert a)
+  -> Histogram Vector (Bin2D bX bY) (Uncert a)
+smoothRatioUncorr2DAlongY mnom mvar =
+  H.liftY smoothRatioUncorr $ H.zip (,) mnom mvar
