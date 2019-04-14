@@ -14,7 +14,7 @@ python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zblcmcmc
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 
-rivet-mkhtml -c ext/htop.plot \
+rivet-mkhtml --mc-errs -c ext/htop.plot \
   unfold/particlelevel/closure/unfoldzblc/nominal.yoda \
   unfold/particlelevel/closure/unfoldzblc/fsr.yoda \
   unfold/particlelevel/closure/unfoldzblc/ps.yoda \
@@ -48,7 +48,7 @@ python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbtcmcmc
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 
-rivet-mkhtml -c ext/htop.plot \
+rivet-mkhtml --mc-errs -c ext/htop.plot \
   unfold/particlelevel/closure/unfoldzbtc/nominal.yoda \
   unfold/particlelevel/closure/unfoldzbtc/fsr.yoda \
   unfold/particlelevel/closure/unfoldzbtc/ps.yoda \
@@ -81,7 +81,7 @@ python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbrelcmc
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 
-rivet-mkhtml -c ext/htop.plot \
+rivet-mkhtml --mc-errs -c ext/htop.plot \
   unfold/particlelevel/closure/unfoldzbrelc/nominal.yoda \
   unfold/particlelevel/closure/unfoldzbrelc/fsr.yoda \
   unfold/particlelevel/closure/unfoldzbrelc/ps.yoda \

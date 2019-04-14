@@ -52,3 +52,15 @@ PolyMarker=
 PolyMarker=*
 color=black
 # END PLOT
+
+# BEGIN PLOT /.*migeffY.*
+YLabel=probability
+XLabel=true
+ErrorBars=1
+# END PLOT
+
+# BEGIN PLOT /.*migeffX.*
+YLabel=probability
+XLabel=reco
+ErrorBars=1
+# END PLOT

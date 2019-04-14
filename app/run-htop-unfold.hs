@@ -48,9 +48,9 @@ type H1DD = Histogram V.Vector (ArbBin Double) (Uncert Double)
 type H2DD = Histogram V.Vector (Bin2D (ArbBin Double) (ArbBin Double)) (Uncert Double)
 
 
-unsafeHAdd h h' = fromJust $ hzip' (+) h h'
-unsafeHSub h h' = fromJust $ hzip' (-) h h'
-unsafeHDiv h h' = fromJust $ hzip' (/) h h'
+unsafeHAdd h h' = fromJust $ hzip (+) h h'
+unsafeHSub h h' = fromJust $ hzip (-) h h'
+unsafeHDiv h h' = fromJust $ hzip (/) h h'
 
 data Args =
   Args
@@ -112,23 +112,25 @@ main = do
         let nom = view nominal v
         in over variations (inSM (strictMap . HM.filter (f nom))) v
 
+      bkgFilt _ _ = True
       -- only keep bkg variations with a > 5% deviation
-      bkgFilt hnom hvar =
-        or . view histData . fromJust
-        $ hzip' f hnom hvar
-        where
-          f n v =
-            let d = abs (v - n) / n
-            in d > 0.05
+      -- bkgFilt hnom hvar =
+      --   or . view histData . fromJust
+      --   $ hzip' f hnom hvar
+      --   where
+      --     f n v =
+      --       let d = abs (v - n) / n
+      --       in d > 0.05
 
+      matFilt _ _ = True
       -- only keep matrix variations with a deviation > 0.1%
-      matFilt hnom hvar =
-        or . view histData . fromJust
-        $ hzip' f hnom hvar
-        where
-          f n v =
-            let d = abs (v - n)
-            in d > 0.001
+      -- matFilt hnom hvar =
+      --   or . view histData . fromJust
+      --   $ hzip' f hnom hvar
+      --   where
+      --     f n v =
+      --       let d = abs (v - n)
+      --       in d > 0.001
 
       matdiffs :: Annotated (Vars (Maybe H2DD))
       matdiffs =
@@ -144,7 +146,7 @@ main = do
 
       showMigMat :: T.Text -> H2DD -> T.Text
       showMigMat n mat =
-        printScatter3D ("/htop" <> n)
+        printScatter3D ("/htop" <> n) False False
         . fmap convertBin3D
         . asList'
         $ uncertToScat <$> mat
@@ -166,7 +168,7 @@ main = do
           showEffSlicesX :: T.Text -> H2DD -> [T.Text]
           showEffSlicesX name m =
             ( \n (_, h) ->
-                printScatter2D ("htop" <> name <> "effX" <> T.pack (show n))
+                printScatter2D ("htop" <> name <> "effX" <> T.pack (show n)) False False
                 . asList'
                 $ uncertToScat <$> h
             )
@@ -176,7 +178,7 @@ main = do
           showEffSlicesY :: T.Text -> H2DD -> [T.Text]
           showEffSlicesY name m =
             ( \n (_, h) ->
-                printScatter2D ("htop" <> name <> "effY" <> T.pack (show n))
+                printScatter2D ("htop" <> name <> "effY" <> T.pack (show n)) False False
                 . asList'
                 $ uncertToScat <$> h
             )
@@ -241,9 +243,9 @@ main = do
 
 
   withFile (yodafolder args <> "/htop.yoda") WriteMode $ \h -> do
-      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname)
+      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname) True True
         $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) xs unfolded'''
-      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm")
+      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm") True True
         $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) xs unfoldednorm
 
   let symmetrize hm =
@@ -324,34 +326,36 @@ unfoldingInputs obs hs =
       trimR = obsRecoTrimmers obs
       trimT = obsTruthTrimmers obs
 
-      recoh, trueh, recomatchh, bkgrecoh :: Annotated (Vars H1DD)
+      recoh, trueh, recomatchh :: Annotated (Vars H1D)
       recoh =
-        fmap (fmap distToUncert . trimR . (^?! _H1DD))
+        fmap (trimR . (^?! _H1DD))
         <$> hs ^?! ix recohname
 
       trueh =
-        fmap (fmap distToUncert . trimT . (^?! _H1DD))
+        fmap (trimT . (^?! _H1DD))
         <$> hs ^?! ix truehname
 
       recomatchh =
-        fmap (fmap distToUncert . trimR . (^?! _H1DD))
+        fmap (trimR . (^?! _H1DD))
         <$> hs ^?! ix recomatchhname
 
-      math :: Annotated (Vars H2DD)
       math =
         fmap
-          ( fmap distToUncert
-          . H.liftY (obsRecoTrimmers obs)
+          ( H.liftY (obsRecoTrimmers obs)
           . H.liftX (obsTruthTrimmers obs)
           . fromJust . preview _H2DD
           )
         <$> hs ^?! ix matrixname
 
-      -- why does this force?!
-      bkgrecoh = liftA2 unsafeHSub <$> recoh <*> recomatchh
+      bkgrecoh :: Annotated (Vars H1DD)
+      bkgrecoh =
+        liftA2 (\h h' ->
+          fromJust $ hzip (\d d' -> distToUncert (removeSubDist d d')) h h'
+          )
+        <$> recoh
+        <*> recomatchh
 
-      normmat :: H2DD -> H1DD -> H2DD
-      normmat m h = H.liftX (\hm -> fromJust $ hzip (/) hm h) m
+      normmat m h = H.liftX (\hm -> fromJust $ hzip divCorr hm h) m
 
   in (bkgrecoh, liftA2 normmat <$> math <*> trueh)
 
@@ -417,24 +421,26 @@ getH2DD h =
 
 printScatter2D
   :: T.Text
+  -> Bool
+  -> Bool
   -> [((Double, (Double, Double)), (Double, (Double, Double)))]
   -> T.Text
-printScatter2D pa xys =
+printScatter2D pa isRef rescale xys =
   T.unlines $
     [ "# BEGIN YODA_SCATTER2D " <> pa
     , "Type=Scatter2D"
     , "Path=" <> pa
-    , "IsRef=1"
     ]
+    ++ if isRef then ["IsRef=1"] else []
     ++
-      fmap printPoint xys
+      fmap (printPoint rescale) xys
       ++
       [ "# END YODA_SCATTER2D", ""
       ]
 
   where
-    printPoint ((x, (xdown, xup)), (y, (ydown, yup))) =
-      let area = xup - xdown
+    printPoint rescale ((x, (xdown, xup)), (y, (ydown, yup))) =
+      let area = if rescale then xup - xdown else 1.0
       in T.intercalate "\t" . fmap (T.pack . show)
         $ [x, x - xdown, xup - x, y/area, (y - ydown)/area, (yup - y)/area]
 
@@ -442,24 +448,26 @@ printScatter2D pa xys =
 
 printScatter3D
   :: T.Text
+  -> Bool
+  -> Bool
   -> [((Double, (Double, Double)), (Double, (Double, Double)), (Double, (Double, Double)))]
   -> T.Text
-printScatter3D pa xyzs =
+printScatter3D pa isRef rescale xyzs =
   T.unlines $
     [ "# BEGIN YODA_SCATTER3D " <> pa
     , "Type=Scatter3D"
     , "Path=" <> pa
-    , "IsRef=1"
     ]
+    ++ if isRef then ["IsRef=1"] else []
     ++
-      fmap printPoint xyzs
+      fmap (printPoint rescale) xyzs
       ++
       [ "# END YODA_SCATTER3D", ""
       ]
 
   where
-    printPoint ((x, (xdown, xup)), (y, (ydown, yup)), (z, (zdown, zup))) =
-      let area = (xup-xdown)*(yup-ydown)
+    printPoint rescale ((x, (xdown, xup)), (y, (ydown, yup)), (z, (zdown, zup))) =
+      let area = if rescale then (xup-xdown)*(yup-ydown) else 1.0
       in T.intercalate "\t" . fmap (T.pack . show)
         $ [ x, x-xdown, xup-x
           , y, y-ydown, yup-y
@@ -476,6 +484,7 @@ scaleByBinSize2D h =
         scaling ((xmax - xmin) * (ymax - ymin))
   in over histData (V.zipWith go intervals) h
 
+
 scaleByBinSize1D
   :: (BinValue b ~ Weight a, IntervalBin b, Fractional (Weight a), Weighted a)
   => Histogram Vector b a -> Histogram Vector b a
@@ -485,20 +494,28 @@ scaleByBinSize1D h =
   in over histData (V.zipWith go intervals) h
 
 
-
-
 distToUncert :: Floating a => DistND v a -> Uncert a
 distToUncert DistND{..} = _sumW +/- sqrt _sumWW
 
 uncertToScat :: Floating a => Uncert a -> (a, (a, a))
 uncertToScat (x :+/- dx) = (x, (x-dx, x+dx))
 
-divCorr :: Floating a => DistND v1 a -> DistND v a -> Uncert a
+
+divCorr :: (Eq a, Floating a) => DistND v1 a -> DistND v a -> Uncert a
 divCorr num denom =
-  let p = _sumW num
-      n = _sumW denom
-      eff = p / n
-  in eff +/- (sqrt $ eff * (1-eff) / n)
+  let pw = _sumW num
+      pw2 = _sumWW num
+      nw = _sumW denom
+      nw2 = _sumWW denom
+      eff = pw / nw
+      -- from https://root.cern.ch/doc/master/TH1_8cxx_source.html#l02871
+      uncert = sqrt . abs $ ((1 - 2*pw/nw) * pw2 + sqr pw * nw2 / sqr nw) / sqr nw
+  in if pw == nw
+        then exact (if nw == 0 then 0 else 1)
+        else eff +/- uncert
+  where
+    sqr x = x ^ (2::Int)
+
 
 
 
