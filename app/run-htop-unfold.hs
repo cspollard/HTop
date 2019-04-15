@@ -29,6 +29,7 @@ import           Data.TDigest           (quantile)
 import qualified Data.Text              as T
 import           Data.Vector            (Vector)
 import qualified Data.Vector            as V
+import           Debug.Trace
 import           Model
 import           Numeric.Uncertain
 import           Options.Applicative
@@ -364,16 +365,18 @@ unfoldingInputs obs hs =
       nommat :: H2DD
       nommat = view (noted.nominal) mats
 
+      smooth = smoothRatioUncorr2DAlongXY nommat
+      -- smooth = smoothRatioUncorr2DAlongY nommat
+
       mats' =
         mats
-        & over (noted.variations.ix "ps") (smoothRatioUncorr2DAlongY nommat)
-        & over (noted.variations.ix "fsr") (smoothRatioUncorr2DAlongY nommat)
-        & over (noted.variations.ix "isr") (smoothRatioUncorr2DAlongY nommat)
-        & over (noted.variations.ix "puwgt") (smoothRatioUncorr2DAlongY nommat)
-        & over (noted.variations.ix "jet_21np_jet_flavor_composition__1") (smoothRatioUncorr2DAlongY nommat)
-        & over (noted.variations.ix "jet_jer_single_np__1") (smoothRatioUncorr2DAlongY nommat)
-        & over (noted.variations.ix "jet_21np_jet_pileup_rhotopology__1") (smoothRatioUncorr2DAlongY nommat)
-        & over (noted.variations.ix "nsvtrksf") (smoothRatioUncorr2DAlongY nommat)
+        & over (noted.variations.ix "ps") smooth
+        & over (noted.variations.ix "fsr") smooth
+        & over (noted.variations.ix "isr") smooth
+        & over (noted.variations.ix "puwgt") smooth
+        & over (noted.variations.ix "jet_21np_jet_flavor_composition__1") smooth
+        & over (noted.variations.ix "jet_jer_single_np__1") smooth
+        & over (noted.variations.ix "jet_21np_jet_pileup_rhotopology__1") smooth
 
   in (bkgrecoh, mats')
 
@@ -554,7 +557,7 @@ convertBin3D (((x, y), ((xdown, ydown), (xup, yup))), zs)
 
 
 smoothRatioUncorr
-  :: (Ord a, Floating a, Show a, RealFrac a, BinValue bin ~ a, Bin bin)
+  :: (Ord a, Floating a, BinValue bin ~ a, Bin bin)
   => Histogram Vector bin (Uncert a, Uncert a)
   -> Histogram Vector bin (Uncert a)
 smoothRatioUncorr h = H.histogramUO (view bins h) Nothing (V.fromList smoothed)
@@ -562,7 +565,7 @@ smoothRatioUncorr h = H.histogramUO (view bins h) Nothing (V.fromList smoothed)
     lh = H.asList h
 
     rat = over (traverse._2) (\(nom, var) -> uMeanStd $ safeDiv var nom) lh
-    (end, result) = polySmooth start 1000 rat
+    (end, result) = polySmooth start 10 rat
 
     correction = exact . snd <$> result
 
@@ -573,13 +576,52 @@ smoothRatioUncorr h = H.histogramUO (view bins h) Nothing (V.fromList smoothed)
     safeDiv x y = x / y
 
     start :: Num a => [a]
-    start = [1, 0, 0, 0, 0, 0]
+    start = [1, 0, 0, 0]
 
 
 smoothRatioUncorr2DAlongY
-  :: (Ord a, Floating a, Show a, RealFrac a, BinValue bY ~ a, BinEq bX, BinEq bY)
+  :: (Ord a, Floating a, BinValue bY ~ a, BinEq bX, BinEq bY)
   => Histogram Vector (Bin2D bX bY) (Uncert a)
   -> Histogram Vector (Bin2D bX bY) (Uncert a)
   -> Histogram Vector (Bin2D bX bY) (Uncert a)
 smoothRatioUncorr2DAlongY mnom mvar =
   H.liftY smoothRatioUncorr $ H.zip (,) mnom mvar
+
+
+
+smoothRatioUncorr2D
+  :: (Ord a, Floating a, Show a, Bin bX, BinValue bX ~ a, Bin bY, BinValue bY ~ a)
+  => Histogram Vector (Bin2D bX bY) (Uncert a, Uncert a)
+  -> Histogram Vector (Bin2D bX bY) (Uncert a)
+smoothRatioUncorr2D h = H.histogramUO (view bins h) Nothing (V.fromList smoothed)
+  where
+    lh = H.asList h
+
+    rat = over (traverse._2) (\(nom, var) -> uMeanStd $ safeDiv var nom) lh
+    (end, result) = traceShowId $ polySmooth2D start (length start ^ 2) rat
+
+    correction = exact . snd <$> result
+
+    smoothed = zipWith (\(_, (nom, _)) corr -> nom*corr) lh correction
+
+    safeDiv _ 0 = 1 +/- 1
+    safeDiv 0 _ = 1 +/- 1
+    safeDiv x y = x / y
+
+    start :: Num a => [[a]]
+    start =
+      [ [1, 0, 0, 0, 0, 0]
+      , [0, 0, 0, 0, 0, 0]
+      , [0, 0, 0, 0, 0, 0]
+      , [0, 0, 0, 0, 0, 0]
+      , [0, 0, 0, 0, 0, 0]
+      , [0, 0, 0, 0, 0, 0]
+      ]
+
+smoothRatioUncorr2DAlongXY
+  :: (Ord a, Floating a, Show a, BinValue bY ~ a, BinValue bX ~ a, BinEq bX, BinEq bY)
+  => Histogram Vector (Bin2D bX bY) (Uncert a)
+  -> Histogram Vector (Bin2D bX bY) (Uncert a)
+  -> Histogram Vector (Bin2D bX bY) (Uncert a)
+smoothRatioUncorr2DAlongXY mnom mvar =
+  smoothRatioUncorr2D $ H.zip (,) mnom mvar
