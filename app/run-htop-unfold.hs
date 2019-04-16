@@ -450,12 +450,9 @@ printScatter2D pa isRef rescale xys =
     , "Type=Scatter2D"
     , "Path=" <> pa
     ]
-    ++ if isRef then ["IsRef=1"] else []
-    ++
-      fmap (printPoint rescale) xys
-      ++
-      [ "# END YODA_SCATTER2D", ""
-      ]
+    ++ (if isRef then ["IsRef=1"] else [])
+    ++ fmap (printPoint rescale) xys
+    ++ [ "# END YODA_SCATTER2D", "" ]
 
   where
     printPoint rescale ((x, (xdown, xup)), (y, (ydown, yup))) =
@@ -477,12 +474,9 @@ printScatter3D pa isRef rescale xyzs =
     , "Type=Scatter3D"
     , "Path=" <> pa
     ]
-    ++ if isRef then ["IsRef=1"] else []
-    ++
-      fmap (printPoint rescale) xyzs
-      ++
-      [ "# END YODA_SCATTER3D", ""
-      ]
+    ++ (if isRef then ["IsRef=1"] else [])
+    ++ fmap (printPoint rescale) xyzs
+    ++ [ "# END YODA_SCATTER3D", "" ]
 
   where
     printPoint rescale ((x, (xdown, xup)), (y, (ydown, yup)), (z, (zdown, zup))) =
