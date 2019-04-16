@@ -8,10 +8,16 @@ RatioPlotYMax=1.50
 
 # BEGIN PLOT /.*zbtc?(norm)?$
 LegendXPos=0.1
+XLabel=\ensuremath{z_{\mathrm{T,b}}^\mathrm{ch}}
 # END PLOT
 
 # BEGIN PLOT /.*zblc?(norm)?$
 LegendXPos=0.1
+XLabel=\ensuremath{z_{\mathrm{L,b}}^\mathrm{ch}}
+# END PLOT
+
+# BEGIN PLOT /.*zbrellc?(norm)?$
+XLabel=\ensuremath{z_{\mathrm{rel,b}}^\mathrm{ch}}
 # END PLOT
 
 # BEGIN PLOT /.*ptc?$

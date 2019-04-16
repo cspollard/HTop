@@ -40,7 +40,7 @@ rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(zbtc|zblc|zbrelc)(|n
 rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(zbtc|zblc|zbrelc)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowPy8FSRUpAFII.yoda:"PowPy8FSRUp" yoda/PowPy8FSRDownAFII.yoda:"PowPy8FSRDown" yoda/PowPy6FS.yoda:"PowPy6" -o unfold/particlelevel/stress_herwig/powpygenplots
 
 perl -p -i -e "s/\/REF\/htop\/elmujj\//\/htop\/elmujj\//g" htop.yoda
-rivet-mkhtml -m "/htop/elmujj/probejets/(zbtc|zblc|zbrelc)$" --mc-errs -c ext/htop.plot yoda/nominal.yoda yoda/background.yoda:"backgrounds" htop.yoda:"Title=posterior":"LineColor=green" yoda/PowH7AFII.yoda:"LineColor=black" -o detectorlevel/recoclosure/stress_herwig
+rivet-mkhtml -m "/htop/elmujj/probejets/(zbtc|zblc|zbrelc)$" --mc-errs -c ext/htop.plot yoda/nominal.yoda yoda/background.yoda:"backgrounds" htop.yoda:"Title=posterior":"LineColor=green" yoda/ps.yoda:"Title=PowH7":"LineColor=black" -o detectorlevel/recoclosure/stress_herwig
 
 rm -f htop.yoda
 
