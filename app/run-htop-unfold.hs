@@ -201,7 +201,7 @@ main = do
 
       recobins =
         V.toList . fmap (\(mn, mx) -> ((mn+mx)/2, (mn, mx))) . binsList
-        $ view bins recoh
+        $ view bins datah
 
       (model, params) =
         buildModel
