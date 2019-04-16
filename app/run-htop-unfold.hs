@@ -370,7 +370,7 @@ unfoldingInputs obs hs =
         mats
         & over (noted.variations.ix "ps") smooth
         & over (noted.variations.ix "fsr") smooth
-        & over (noted.variations.ix "isr") smooth
+        & over (noted.variations.ix "rad") smooth
         & over (noted.variations.ix "puwgt") smooth
         & over (noted.variations.ix "jet_21np_jet_flavor_composition__1") smooth
         & over (noted.variations.ix "jet_jer_single_np__1") smooth

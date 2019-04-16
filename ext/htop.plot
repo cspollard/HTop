@@ -53,14 +53,17 @@ PolyMarker=*
 color=black
 # END PLOT
 
-# BEGIN PLOT /.*migeffY.*
+# BEGIN PLOT /.*zblcmigeffY.*
 YLabel=probability
-XLabel=true
-ErrorBars=1
+XLabel=reco \ensuremath{z_{\mathrm{L,b}}^\mathrm{ch}}
 # END PLOT
 
-# BEGIN PLOT /.*migeffX.*
+# BEGIN PLOT /.*zbtcmigeffY.*
 YLabel=probability
-XLabel=reco
-ErrorBars=1
+XLabel=reco \ensuremath{z_{\mathrm{T,b}}^\mathrm{ch}}
+# END PLOT
+
+# BEGIN PLOT /.*zbtcmigeffY.*
+YLabel=probability
+XLabel=reco \ensuremath{z_{\mathrm{rel,b}}^\mathrm{ch}}
 # END PLOT
