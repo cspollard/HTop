@@ -61,7 +61,7 @@ bfragModel stresstest procs = do
 
   nom <-
     mappend nonttpred
-    . (fmap.fmap) (addVar "TTBarNormUp" (scaleO 1.05))
+    . (fmap.fmap) (addVar "TTBarNormUp" (scaleO 1.20))
     <$> getProcs procs [nomkey]
 
   afii <-
