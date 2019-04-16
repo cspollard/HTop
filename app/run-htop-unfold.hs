@@ -194,10 +194,14 @@ main = do
         fmap (round . view sumW) . obsRecoTrimmers (observable args)
         $ data' ^?! ix recohname . noted . _H1DD
 
-      xs :: [(Double, (Double, Double))]
-      xs =
+      truebins, recobins :: [(Double, (Double, Double))]
+      truebins =
         V.toList . fmap (\(mn, mx) -> ((mn+mx)/2, (mn, mx))) . binsList
         $ view bins trueh
+
+      recobins =
+        V.toList . fmap (\(mn, mx) -> ((mn+mx)/2, (mn, mx))) . binsList
+        $ view bins recoh
 
       (model, params) =
         buildModel
@@ -225,6 +229,12 @@ main = do
         fromMaybe (error "error getting mode or quantiles") . sequence
         $ quant <$> unfolded'
 
+
+      reco' =
+        sort
+        . filter (T.isPrefixOf "reco" . fst)
+        $ HM.toList unfolded''
+
       unfolded''' =
         sort
         . filter (T.isPrefixOf "truth" . fst)
@@ -245,9 +255,11 @@ main = do
 
   withFile (yodafolder args <> "/htop.yoda") WriteMode $ \h -> do
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname) True True
-        $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) xs unfolded'''
+        $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) truebins unfolded'''
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm") True True
-        $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) xs unfoldednorm
+        $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) truebins unfoldednorm
+      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> recohname) False True
+        $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) recobins reco'
 
   let symmetrize hm =
         let insert' h (x, y) = HM.insert (y, x) (h HM.! (x, y)) h
