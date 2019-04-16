@@ -46,3 +46,4 @@ rivet-mkhtml -c ext/htop.plot \
   -o unfold/particlelevel/closure/zbrelcplots
 
 
+make-plots --pdf unfold/particlelevel/closure/zbrelcplots/*/*dat
