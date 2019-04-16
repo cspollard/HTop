@@ -115,25 +115,23 @@ main = do
         let nom = view nominal v
         in over variations (inSM (strictMap . HM.filter (f nom))) v
 
-      bkgFilt _ _ = True
       -- only keep bkg variations with a > 5% deviation
-      -- bkgFilt hnom hvar =
-      --   or . view histData . fromJust
-      --   $ hzip' f hnom hvar
-      --   where
-      --     f n v =
-      --       let d = abs (v - n) / n
-      --       in d > 0.05
+      bkgFilt hnom hvar =
+        or . view histData . fromJust
+        $ hzip' f hnom hvar
+        where
+          f n v =
+            let d = abs (v - n) / n
+            in d > 0.05
 
-      matFilt _ _ = True
-      -- only keep matrix variations with a deviation > 0.1%
-      -- matFilt hnom hvar =
-      --   or . view histData . fromJust
-      --   $ hzip' f hnom hvar
-      --   where
-      --     f n v =
-      --       let d = abs (v - n)
-      --       in d > 0.001
+      -- only keep matrix variations with a deviation > 0.01%
+      matFilt hnom hvar =
+        or . view histData . fromJust
+        $ hzip' f hnom hvar
+        where
+          f n v =
+            let d = abs (v - n)
+            in d > 0.0001
 
       matdiffs :: Annotated (Vars (Maybe H2DD))
       matdiffs =
@@ -221,7 +219,7 @@ main = do
   print model
 
   (unfolded', unfoldedcov) <-
-    runModel (Just (10, 0.1)) (nsamples args) (mcmcfile args) (view histData datah) model params
+    runModel (Just (5, 0.2)) (nsamples args) (mcmcfile args) (view histData datah) model params
 
   let unfolded'' =
         fromMaybe (error "error getting mode or quantiles") . sequence
