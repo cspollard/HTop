@@ -366,6 +366,8 @@ unfoldingInputs obs hs =
       smooth = smoothRatioUncorr2DAlongXY nommat
       -- smooth = smoothRatioUncorr2DAlongY nommat
 
+      -- can't this be simplified somehow? e.g. target several keys in
+      -- one pass?
       mats' =
         mats
         & over (noted.variations.ix "ps") smooth
