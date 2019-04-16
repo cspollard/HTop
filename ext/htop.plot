@@ -45,7 +45,7 @@ ZLabel=probability difference
 LogZ=0
 Legend=0
 ZMin=0
-ZMax=0.20
+ZMax=0.1
 ZLabel=probability
 # END PLOT
 
