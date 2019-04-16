@@ -260,7 +260,7 @@ main = do
         $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) truebins unfolded'''
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm") True True
         $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) truebins unfoldednorm
-      hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> recohname) False True
+      hPutStrLn h . T.unpack . printScatter2D ("/htop" <> recohname) False True
         $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) recobins reco'
 
   let symmetrize hm =
