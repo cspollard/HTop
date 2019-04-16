@@ -17,11 +17,12 @@ import           BFrag.Smooth
 import           BFrag.Systematics      (lumi)
 import           Control.Applicative    (liftA2, liftA3)
 import           Control.Lens
+import           Data.Char              (isNumber)
 import           Data.Foldable          (fold)
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
-import           Data.List              (intercalate, nub, sort, sortBy)
+import           Data.List              (intercalate, nub, sort, sortBy, sortOn)
 import           Data.Maybe             (fromJust, fromMaybe)
 import           Data.Monoid            (Sum (..))
 import           Data.Semigroup         ((<>))
@@ -229,19 +230,20 @@ main = do
         fromMaybe (error "error getting mode or quantiles") . sequence
         $ quant <$> unfolded'
 
+      byNum t = (read :: String -> Int) . T.unpack $ T.takeWhileEnd isNumber t
 
       reco' =
-        sort
+        sortOn (byNum . fst)
         . filter (T.isPrefixOf "reco" . fst)
         $ HM.toList unfolded''
 
       unfolded''' =
-        sort
+        sortOn (byNum . fst)
         . filter (T.isPrefixOf "truth" . fst)
         $ HM.toList unfolded''
 
       unfoldednorm =
-        sort
+        sortOn (byNum . fst)
         . filter (T.isPrefixOf "normtruth" . fst)
         $ HM.toList unfolded''
 
