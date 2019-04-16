@@ -5,7 +5,9 @@ all the things that need to be rerun:
 - ext/unfold.sh
 - ext/makeyoda.sh
 - ext/plotunfold.sh
-- ext/updateplots.sh
+- ext/plotmatrices.sh
+- ext/plotreco.sh
+- ext/plotposteriors.sh
 - rsync unfold/particlelevel/ into note figs/ directory
 - rsync detectorlevel/ into note figs/ directory
 - copy covariance/correlation/uncertainty tables from e.g. unfold/particlelevel/data/unfoldzblc/htop.stat

@@ -1,107 +1,44 @@
-TWOD= #--2d
-DIR=`pwd -P`
+mkdir -p detectorlevel/recoclosure/
 
-mkdir -p unfold/particlelevel/data/zblcposteriors
-cd unfold/particlelevel/data/zblcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zblcmcmc.dat
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
-cd $DIR
+yodamerge -o htop.yoda unfold/particlelevel/data/unfold*/htop.yoda
 
+rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(zbtc|zblc|zbrelc)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowH7AFII.yoda:"PowH7" yoda/aMCPy8AFII.yoda:"aMCPy8" yoda/Sherpa221AFII.yoda:"Sherpa221" -o unfold/particlelevel/data/genplots
+rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(zbtc|zblc|zbrelc)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowPy8FSRUpAFII.yoda:"PowPy8FSRUp" yoda/PowPy8FSRDownAFII.yoda:"PowPy8FSRDown" yoda/PowPy6FS.yoda:"PowPy6" -o unfold/particlelevel/data/powpygenplots
 
-mkdir -p unfold/particlelevel/closure/zblcposteriors
-cd unfold/particlelevel/closure/zblcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zblcmcmc.dat
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
-cd $DIR
+perl -p -i -e "s/\/REF\/htop\/elmujj\//\/htop\/elmujj\//g" htop.yoda
+rivet-mkhtml -m "/htop/elmujj/probejets/(zbtc|zblc|zbrelc)$" --mc-errs -c ext/htop.plot yoda/nominal.yoda yoda/background.yoda:"backgrounds" htop.yoda:"Title=posterior":"LineColor=green" yoda/data.yoda:"LineColor=black" -o detectorlevel/recoclosure/data
 
-rivet-mkhtml -c ext/htop.plot \
-  -m ".*migeffY?[0-9]*$" \
-  unfold/particlelevel/closure/unfoldzblc/nominal.yoda \
-  unfold/particlelevel/closure/unfoldzblc/fsr.yoda \
-  unfold/particlelevel/closure/unfoldzblc/rad.yoda \
-  unfold/particlelevel/closure/unfoldzblc/ps.yoda \
-  unfold/particlelevel/closure/unfoldzblc/puwgt.yoda \
-  unfold/particlelevel/closure/unfoldzblc/v2trk_fake_rate_tight.yoda \
-  unfold/particlelevel/closure/unfoldzblc/v2trk_res_d0_meas.yoda \
-  unfold/particlelevel/closure/unfoldzblc/v2trk_res_z0_meas.yoda \
-  -o unfold/particlelevel/closure/zblcplots
+rm -f htop.yoda
 
-make-plots --pdf unfold/particlelevel/closure/zblcplots/*/*dat
+yodamerge -o htop.yoda unfold/particlelevel/closure/unfold*/htop.yoda
 
+rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(zbtc|zblc|zbrelc)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowH7AFII.yoda:"PowH7" yoda/aMCPy8AFII.yoda:"aMCPy8" yoda/Sherpa221AFII.yoda:"Sherpa221" -o unfold/particlelevel/closure/genplots
+rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(zbtc|zblc|zbrelc)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowPy8FSRUpAFII.yoda:"PowPy8FSRUp" yoda/PowPy8FSRDownAFII.yoda:"PowPy8FSRDown" yoda/PowPy6FS.yoda:"PowPy6" -o unfold/particlelevel/closure/powpygenplots
 
-mkdir -p unfold/particlelevel/stress_herwig/zblcposteriors
-cd unfold/particlelevel/stress_herwig/zblcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/stress_herwig/zblcmcmc.dat
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
-cd $DIR
+perl -p -i -e "s/\/REF\/htop\/elmujj\//\/htop\/elmujj\//g" htop.yoda
+rivet-mkhtml -m "/htop/elmujj/probejets/(zbtc|zblc|zbrelc)$" --mc-errs -c ext/htop.plot yoda/nominal.yoda yoda/background.yoda:"backgrounds" htop.yoda:"Title=posterior":"LineColor=green" yoda/nominal.yoda:"LineColor=black" -o detectorlevel/recoclosure/closure
 
+rm -f htop.yoda
 
+yodamerge -o htop.yoda unfold/particlelevel/closure_statonly/unfold*/htop.yoda
 
-mkdir -p unfold/particlelevel/data/zbtcposteriors
-cd unfold/particlelevel/data/zbtcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbtcmcmc.dat
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
-cd $DIR
+rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(zbtc|zblc|zbrelc)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowH7AFII.yoda:"PowH7" yoda/aMCPy8AFII.yoda:"aMCPy8" yoda/Sherpa221AFII.yoda:"Sherpa221" -o unfold/particlelevel/closure_statonly/genplots
+rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(zbtc|zblc|zbrelc)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowPy8FSRUpAFII.yoda:"PowPy8FSRUp" yoda/PowPy8FSRDownAFII.yoda:"PowPy8FSRDown" yoda/PowPy6FS.yoda:"PowPy6" -o unfold/particlelevel/closure_statonly/powpygenplots
 
+perl -p -i -e "s/\/REF\/htop\/elmujj\//\/htop\/elmujj\//g" htop.yoda
+rivet-mkhtml -m "/htop/elmujj/probejets/(zbtc|zblc|zbrelc)$" --mc-errs -c ext/htop.plot yoda/nominal.yoda yoda/background.yoda:"backgrounds" htop.yoda:"Title=posterior":"LineColor=green" yoda/nominal.yoda:"LineColor=black" -o detectorlevel/recoclosure/closure_statonly
 
-mkdir -p unfold/particlelevel/closure/zbtcposteriors
-cd unfold/particlelevel/closure/zbtcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbtcmcmc.dat
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
-cd $DIR
+rm -f htop.yoda
 
-rivet-mkhtml -c ext/htop.plot \
-  -m ".*migeffY?[0-9]*$" \
-  unfold/particlelevel/closure/unfoldzbtc/nominal.yoda \
-  unfold/particlelevel/closure/unfoldzbtc/fsr.yoda \
-  unfold/particlelevel/closure/unfoldzbtc/rad.yoda \
-  unfold/particlelevel/closure/unfoldzbtc/ps.yoda \
-  unfold/particlelevel/closure/unfoldzbtc/puwgt.yoda \
-  unfold/particlelevel/closure/unfoldzbtc/v2trk_fake_rate_tight.yoda \
-  unfold/particlelevel/closure/unfoldzbtc/v2trk_res_d0_meas.yoda \
-  unfold/particlelevel/closure/unfoldzbtc/v2trk_res_z0_meas.yoda \
-  -o unfold/particlelevel/closure/zbtcplots
+yodamerge -o htop.yoda unfold/particlelevel/stress_herwig/unfold*/htop.yoda
 
-make-plots --pdf unfold/particlelevel/closure/zbtcplots/*/*dat
+rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(zbtc|zblc|zbrelc)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowH7AFII.yoda:"PowH7" yoda/aMCPy8AFII.yoda:"aMCPy8" yoda/Sherpa221AFII.yoda:"Sherpa221" -o unfold/particlelevel/stress_herwig/genplots
+rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(zbtc|zblc|zbrelc)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowPy8FSRUpAFII.yoda:"PowPy8FSRUp" yoda/PowPy8FSRDownAFII.yoda:"PowPy8FSRDown" yoda/PowPy6FS.yoda:"PowPy6" -o unfold/particlelevel/stress_herwig/powpygenplots
 
+perl -p -i -e "s/\/REF\/htop\/elmujj\//\/htop\/elmujj\//g" htop.yoda
+rivet-mkhtml -m "/htop/elmujj/probejets/(zbtc|zblc|zbrelc)$" --mc-errs -c ext/htop.plot yoda/nominal.yoda yoda/background.yoda:"backgrounds" htop.yoda:"Title=posterior":"LineColor=green" yoda/ps.yoda:"Title=PowH7":"LineColor=black" -o detectorlevel/recoclosure/stress_herwig
 
-mkdir -p unfold/particlelevel/stress_herwig/zbtcposteriors
-cd unfold/particlelevel/stress_herwig/zbtcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/stress_herwig/zbtcmcmc.dat
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
-cd $DIR
+rm -f htop.yoda
 
-
-mkdir -p unfold/particlelevel/data/zbrelcposteriors
-cd unfold/particlelevel/data/zbrelcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbrelcmcmc.dat
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
-cd $DIR
-
-
-mkdir -p unfold/particlelevel/closure/zbrelcposteriors
-cd unfold/particlelevel/closure/zbrelcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbrelcmcmc.dat
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
-cd $DIR
-
-rivet-mkhtml -c ext/htop.plot \
-  -m ".*migeffY?[0-9]*$" \
-  unfold/particlelevel/closure/unfoldzbrelc/nominal.yoda \
-  unfold/particlelevel/closure/unfoldzbrelc/fsr.yoda \
-  unfold/particlelevel/closure/unfoldzbrelc/rad.yoda \
-  unfold/particlelevel/closure/unfoldzbrelc/ps.yoda \
-  unfold/particlelevel/closure/unfoldzbrelc/puwgt.yoda \
-  unfold/particlelevel/closure/unfoldzbrelc/v2trk_fake_rate_tight.yoda \
-  unfold/particlelevel/closure/unfoldzbrelc/v2trk_res_d0_meas.yoda \
-  unfold/particlelevel/closure/unfoldzbrelc/v2trk_res_z0_meas.yoda \
-  -o unfold/particlelevel/closure/zbrelcplots
-
-make-plots --pdf unfold/particlelevel/closure/zbrelcplots/*/*dat
-
-
-mkdir -p unfold/particlelevel/stress_herwig/zbrelcposteriors
-cd unfold/particlelevel/stress_herwig/zbrelcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/stress_herwig/zbrelcmcmc.dat
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
-cd $DIR
+rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(zbtc|zblc|zbrelc)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowH7AFII.yoda:"PowH7" yoda/aMCPy8AFII.yoda:"aMCPy8" yoda/Sherpa221AFII.yoda:"Sherpa221" -o unfold/particlelevel/genplotsnodata
+rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(zbtc|zblc|zbrelc)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowPy8FSRUpAFII.yoda:"PowPy8FSRUp" yoda/PowPy8FSRDownAFII.yoda:"PowPy8FSRDown" yoda/PowPy6FS.yoda:"PowPy6" -o unfold/particlelevel/powpygenplotsnodata
