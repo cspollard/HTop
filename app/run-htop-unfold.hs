@@ -12,6 +12,7 @@ module Main where
 import           Atlas
 import           Atlas.CrossSections
 import           BFrag.BFrag
+import           Control.Arrow ((>>>))
 import           BFrag.Model
 import           BFrag.Smooth
 import           BFrag.Systematics      (lumi)
@@ -33,6 +34,7 @@ import qualified Data.Vector            as V
 import           Debug.Trace
 import           Model
 import           Numeric.Uncertain
+import qualified Numeric.AD             as AD
 import           Options.Applicative
 import           RunModel               (latextable, runModel)
 import           System.IO              (BufferMode (..), IOMode (..),
@@ -223,8 +225,14 @@ main = do
   putStrLn "model:"
   print model
 
+  let regularization :: (Ord a, Floating a, AD.Mode a, AD.Scalar a ~ Double) => V.Vector a -> a
+      regularization =
+        if "rel" `T.isInfixOf` (T.pack $ observable args)
+          then V.toList >>> zipWith (flip (/)) (AD.auto <$> normFactors trueh) >>> falling 2
+          else const 0
+
   (unfolded', unfoldedcov) <-
-    runModel (Just (5, 0.2)) (nsamples args) (mcmcfile args) (view histData datah) model params
+    runModel (Just (5, 0.2)) (nsamples args) (mcmcfile args) (view histData datah) model regularization params
 
   let unfolded'' =
         fromMaybe (error "error getting mode or quantiles") . sequence
@@ -626,6 +634,7 @@ smoothRatioUncorr2D h = H.histogramUO (view bins h) Nothing (V.fromList smoothed
       , [0, 0, 0, 0, 0, 0]
       ]
 
+
 smoothRatioUncorr2DAlongXY
   :: (Ord a, Floating a, Show a, BinValue bY ~ a, BinValue bX ~ a, BinEq bX, BinEq bY)
   => Histogram Vector (Bin2D bX bY) (Uncert a)
@@ -633,3 +642,20 @@ smoothRatioUncorr2DAlongXY
   -> Histogram Vector (Bin2D bX bY) (Uncert a)
 smoothRatioUncorr2DAlongXY mnom mvar =
   smoothRatioUncorr2D $ H.zip (,) mnom mvar
+
+
+
+normFactors :: (IntervalBin bin, Num (BinValue bin)) => Histogram Vector bin a -> [BinValue bin]
+normFactors = asList' >>> fmap (views (_1._2) (\(x, y) -> (y-x)))
+
+
+vdiff :: Num a => [a] -> [a]
+vdiff [] = []
+vdiff [_] = []
+vdiff (x:xs@(y:_)) = x - y : vdiff xs
+
+
+falling :: (Ord a, Num a) => a -> [a] -> a
+falling weight = vdiff >>> foldMap go >>> getSum >>> (*weight)
+  where
+    go x = if x > 0 then mempty else Sum (abs x)
