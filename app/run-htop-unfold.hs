@@ -225,14 +225,14 @@ main = do
   putStrLn "model:"
   print model
 
-  let regularization :: (Ord a, Floating a, AD.Mode a, AD.Scalar a ~ Double) => V.Vector a -> a
-      regularization =
-        if "rel" `T.isInfixOf` (T.pack $ observable args)
-          then V.toList >>> zipWith (flip (/)) (AD.auto <$> normFactors trueh) >>> falling 2
-          else const 0
+  -- let regularization :: (Ord a, Floating a, AD.Mode a, AD.Scalar a ~ Double) => V.Vector a -> a
+  --     regularization =
+  --       if "rel" `T.isInfixOf` (T.pack $ observable args)
+  --         then V.toList >>> zipWith (flip (/)) (AD.auto <$> normFactors trueh) >>> falling 2
+  --         else const 0
 
   (unfolded', unfoldedcov) <-
-    runModel (Just (5, 0.2)) (nsamples args) (mcmcfile args) (view histData datah) model regularization params
+    runModel (Just (5, 0.2)) (nsamples args) (mcmcfile args) (view histData datah) model (const 0) params
 
   let unfolded'' =
         fromMaybe (error "error getting mode or quantiles") . sequence
