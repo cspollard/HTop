@@ -105,18 +105,14 @@ elmujj e =
         [j1, j2] -> lvDREta j1 j2 > 1.0
         _        -> False
 
+
 fakeEvent :: RecoEvent -> PhysObj Bool
 fakeEvent e =
   let els = _electrons e
       mus = _muons e
-      js = _jets e
-  in return
-    $ length els == 1
-      && length mus == 1
-      && (not (any ePrompt els) || not (any mPrompt mus))
-      && case js of
-        [j1, j2] -> lvDREta j1 j2 > 1.0
-        _        -> False
+  in do
+    re <- elmujj
+    return $ re && (not (any ePrompt els) || not (any mPrompt mus))
 
 
 -- so much boilerplate
@@ -157,6 +153,8 @@ recoEventHs =
 
 
 
+-- note:
+-- AnalysisTop selection requires == 2 jets with pT > 30 GeV
 probeJets :: RecoEvent -> [PhysObj Jet]
 probeJets revt = fmap join . collapsePO . return $
   case view jets revt of
