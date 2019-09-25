@@ -22,6 +22,7 @@ import qualified Data.Text                           as T
 import           Data.TTree
 import           GHC.Exts                            (fromList)
 import           GHC.Float
+import Atlas.StrictHashMap
 
 
 -- TODO
@@ -50,8 +51,6 @@ trueWgt :: (MonadThrow m, MonadIO m) => TreeRead m SF
 trueWgt = sf "evtw" . float2Double <$> readBranch "weight_mc"
 
 
--- TODO
--- partial!
 lepSF :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
 lepSF _ = tell . sf "lepton_sf" . float2Double <$> readBranch "weight_leptonSF"
 
@@ -185,7 +184,7 @@ type Reweight1D = Binned Double Double
 type Reweight2D = Binned Double (Binned Double Double)
 
 
-svEffSysts :: Folder Reweight1D
+svEffSysts :: StrictHashMap T.Text Reweight1D
 svEffSysts =
   [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", sveff_v2TRK_BIAS_QOVERP_SAGITTA_WM)
   , ("v2TRK_EFF_LOOSE_GLOBAL",       sveff_v2TRK_EFF_LOOSE_GLOBAL)
@@ -205,7 +204,7 @@ svEffSysts =
   ]
 
 
-phiResSysts :: Folder Reweight1D
+phiResSysts :: StrictHashMap T.Text Reweight1D
 phiResSysts =
   [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", svdphi_v2TRK_BIAS_QOVERP_SAGITTA_WM)
   , ("v2TRK_EFF_LOOSE_GLOBAL",       svdphi_v2TRK_EFF_LOOSE_GLOBAL)
@@ -225,7 +224,7 @@ phiResSysts =
   ]
 
 
-etaResSysts :: Folder Reweight1D
+etaResSysts :: StrictHashMap T.Text Reweight1D
 etaResSysts =
   [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", svdeta_v2TRK_BIAS_QOVERP_SAGITTA_WM)
   , ("v2TRK_EFF_LOOSE_GLOBAL",       svdeta_v2TRK_EFF_LOOSE_GLOBAL)
@@ -244,7 +243,7 @@ etaResSysts =
   , ("v2TRK_RES_Z0_MEAS",            svdeta_v2TRK_RES_Z0_MEAS)
   ]
 
-ptResSysts :: Folder Reweight2D
+ptResSysts :: StrictHashMap T.Text Reweight2D
 ptResSysts =
   [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", svabsres_v2TRK_BIAS_QOVERP_SAGITTA_WM)
   , ("v2TRK_EFF_LOOSE_GLOBAL",       svabsres_v2TRK_EFF_LOOSE_GLOBAL)
@@ -263,7 +262,7 @@ ptResSysts =
   , ("v2TRK_RES_Z0_MEAS",            svabsres_v2TRK_RES_Z0_MEAS)
   ]
 
-sumPtTrkSysts :: Folder Reweight2D
+sumPtTrkSysts :: StrictHashMap T.Text Reweight2D
 sumPtTrkSysts =
   [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", trkptsum_v2TRK_BIAS_QOVERP_SAGITTA_WM)
   , ("v2TRK_EFF_LOOSE_GLOBAL",       trkptsum_v2TRK_EFF_LOOSE_GLOBAL)

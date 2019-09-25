@@ -13,11 +13,10 @@ import           BFrag.Systematics
 import           BFrag.TrueElectron as X
 import           BFrag.TrueJet      as X
 import           BFrag.TrueMuon     as X
-import qualified Control.Foldl      as F
 import           Control.Lens
-import           Data.Semigroup
 import           Data.TTree
 import           GHC.Generics       (Generic)
+import Data.Annotated
 
 
 data TrueEvent =
@@ -47,18 +46,18 @@ trueElectrons :: Lens' TrueEvent [TrueElectron]
 trueElectrons = lens _trueElectrons $ \te x -> te { _trueElectrons = x }
 
 
-trueEventHs :: VarFills TrueEvent
+trueEventHs :: Fills TrueEvent
 trueEventHs =
-  channelWithLabel "/elmujjtrue" (return . elmujjTrue)
-  $ prefixF "/truejets"
-    . over (traverse.xlabel) ("true jet " <>)
-    <$> F.handles folded (bfragHs `mappend` lvHs `mappend` bHs)
+  channel "/elmujjtrue/truejets"
+  $ over (traverse.xlabel._Just) ("true jet " <>)
+    <$> foldlMoore (bfragHs `mappend` lvHs `mappend` bHs)
     <$= collapsePO . fmap (view trueJets)
+    =$<< (\e -> if elmujjTrue e then return e else poFail)
 
   where
-    bHs :: VarFills TrueJet
+    bHs :: Fills TrueJet
     bHs =
-      F.handles folded (mconcat [bMesonH, bBaryonH])
+      foldlMoore (bMesonH <> bBaryonH)
       <$= collapsePO . fmap (view tjBHadrons)
 
 

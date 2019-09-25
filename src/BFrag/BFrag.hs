@@ -1,22 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE OverloadedLists #-}
 
 module BFrag.BFrag where
 
-import           Control.Applicative    (Alternative (..))
-import           Control.Lens
-import           Data.Foldable          (fold)
-import           Data.HEP.ThreeMomentum
-import           Data.HEP.LorentzVector
-import           Data.Text              (Text)
-import           GHC.Exts
-import Data.Moore
-import Data.Both
+import Control.Applicative    (Alternative (..))
+import Control.Lens
+import Data.Foldable          (fold)
+import Data.HEP.ThreeMomentum
+import Data.HEP.LorentzVector
+import Data.Text              (Text)
+import GHC.Exts
 import Data.Annotated
 import Data.Binned
 import Atlas.Variation
 import Atlas.PhysObj
 import Atlas.Histogramming
+
 
 
 zbtname, zblname, zbrelname :: Text
@@ -60,21 +60,27 @@ class HasPVConstits a where
   pvChargedConstits :: a -> PhysObj [PtEtaPhiE]
 
 
-constitsSum :: (HasSVConstits a, HasPVConstits a) => a -> PhysObj PtEtaPhiE
+constitsSum
+  :: (HasSVConstits a, HasPVConstits a)
+  => a -> PhysObj PtEtaPhiE
 constitsSum j = do
   svt <- svConstits j
   pvt <- pvConstits j
   return . fold $ svt ++ pvt
 
 
-chargedSum :: (HasSVConstits a, HasPVConstits a) => a -> PhysObj PtEtaPhiE
+chargedSum
+  :: (HasSVConstits a, HasPVConstits a)
+  => a -> PhysObj PtEtaPhiE
 chargedSum j = do
   svt <- svChargedConstits j
   pvt <- pvChargedConstits j
   return . fold $ svt ++ pvt
 
 
-zbtc, zblc, zbrelc :: (HasSVConstits a, HasPVConstits a) => a -> PhysObj Double
+zbtc, zblc, zbrelc
+  :: (HasSVConstits a, HasPVConstits a)
+  => a -> PhysObj Double
 zbtc j = do
   svp4 <- fold <$> svChargedConstits j
   p4 <- chargedSum j
@@ -99,7 +105,9 @@ zbrelc j = do
   return $ num / denom
 
 
-zbt, zbl, zbrel :: (HasSVConstits a, HasPVConstits a) => a -> PhysObj Double
+zbt, zbl, zbrel
+  :: (HasSVConstits a, HasPVConstits a)
+  => a -> PhysObj Double
 zbt j = do
   svp4 <- fold <$> svConstits j
   p4 <- constitsSum j
@@ -124,147 +132,176 @@ zbrel j = do
   return $ num / denom
 
 
-chargedPtH
+ptcH
   :: (HasSVConstits a, HasPVConstits a)
-  => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-chargedPtH = physObjMoore h =$<< fmap (Identity . view lvPt) . chargedSum
+  => Fills a
+ptcH = h =$<< fmap (view lvPt) . chargedSum
   where
-    h = hist1DDef (evenBins' 0 25 250) "charged $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
+    h = histo1DDef (evenBins' 0 25 250) "charged $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) "/ptc"
 
 
-pvPtH :: HasPVConstits a => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-pvPtH = physObjMoore h =$<< fmap (Identity . view lvPt . fold) . pvConstits
-  where h = hist1DDef (evenBins' 0 25 250) "PV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
+pvPtH
+  :: HasPVConstits a
+  => Fills a
+pvPtH = h =$<< fmap (view lvPt . fold) . pvConstits
+  where h = histo1DDef (evenBins' 0 25 250) "PV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) "/pvpt"
 
 
-pvPtcH :: HasPVConstits a => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-pvPtcH = physObjMoore h =$<< fmap (Identity . view lvPt . fold) . pvChargedConstits
+pvPtcH
+  :: HasPVConstits a
+  => Fills a
+pvPtcH = h =$<< fmap (view lvPt . fold) . pvChargedConstits
   where
-    h =
-      hist1DDef
-        (evenBins' 0 25 250)
-        "PV charged $p_{\\mathrm T}$ [GeV]"
-        (dsigdXpbY pt gev)
+    h = histo1DDef (evenBins' 0 25 250) "PV charged $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) "/pvptc"
+
+svPtH
+  :: HasSVConstits a
+  => Fills a
+svPtH = h =$<< fmap (view lvPt . fold) . svConstits
+  where h = histo1DDef (evenBins' 0 25 250) "SV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev) "/svpt"
 
 
-svPtH :: HasSVConstits a => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-svPtH = physObjMoore h =$<< fmap (Identity . view lvPt . fold) . svConstits
-  where h = hist1DDef (evenBins' 0 25 250) "SV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
-
-
-svPtcH :: HasSVConstits a => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-svPtcH = physObjMoore h =$<< fmap (Identity . view lvPt . fold) . svChargedConstits
+svPtcH
+  :: HasSVConstits a
+  => Fills a
+svPtcH = h =$<< fmap (view lvPt . fold) . svChargedConstits
   where
-    h =
-      hist1DDef
-        (evenBins' 0 25 250)
-        "SV charged $p_{\\mathrm T}$"
-        (dsigdXpbY pt gev)
+    h = histo1DDef (evenBins' 0 25 250) "SV charged $p_{\\mathrm T}$" (dsigdXpbY pt gev) "/svptc"
 
 
-svMH :: HasSVConstits a => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-svMH = physObjMoore h =$<< fmap (Identity . view lvM . fold) . svConstits
+svMH
+  :: HasSVConstits a
+  => Fills a
+svMH = h =$<< fmap (view lvM . fold) . svConstits
   where
-    h = hist1DDef (evenBins' 0 20 10) "SV mass [GeV]" (dsigdXpbY "m" gev)
+    h = histo1DDef (evenBins' 0 20 10) "SV mass [GeV]" (dsigdXpbY "m" gev) "/svmass"
 
 
-svMcH :: HasSVConstits a => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-svMcH = physObjMoore h =$<< fmap (Identity . view lvM . fold) . svChargedConstits
+svMcH
+  :: HasSVConstits a
+  => Fills a
+svMcH = h =$<< fmap (view lvM . fold) . svChargedConstits
   where
-    h = hist1DDef (evenBins' 0 20 10) "SV charged mass [GeV]" (dsigdXpbY "m" gev)
+    h = histo1DDef (evenBins' 0 20 10) "SV charged mass [GeV]" (dsigdXpbY "m" gev) "/svmassc"
 
 
-zbtH :: (HasSVConstits a, HasPVConstits a) => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-zbtH = physObjMoore h =$<< fmap Identity . zbt
+zbtH
+  :: (HasSVConstits a, HasPVConstits a)
+  => Fills a
+zbtH = h =$<< zbt
   where
-    h = hist1DDef zbtbin zbtname (dsigdXpbY zbtname "1")
+    h = histo1DDef zbtbin zbtname (dsigdXpbY zbtname "1") "/zbt"
 
 
-zbtcH :: (HasSVConstits a, HasPVConstits a) => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-zbtcH = physObjMoore h =$<< fmap Identity . zbtc
+zbtcH
+  :: (HasSVConstits a, HasPVConstits a)
+  => Fills a
+zbtcH = h =$<< zbtc
   where
-    h = hist1DDef zbtcbin zbtcname (dsigdXpbY zbtcname "1")
+    h = histo1DDef zbtcbin zbtcname (dsigdXpbY zbtcname "1") "/zbtc"
 
 
-zblH :: (HasSVConstits a, HasPVConstits a) => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-zblH = physObjMoore h =$<< fmap Identity . zbl
+zblH
+  :: (HasSVConstits a, HasPVConstits a)
+  => Fills a
+zblH = h =$<< zbl
   where
-    h = hist1DDef zblbin zblname (dsigdXpbY zblname "1")
+    h = histo1DDef zblbin zblname (dsigdXpbY zblname "1") "/zbl"
 
 
-zblcH :: (HasSVConstits a, HasPVConstits a) => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-zblcH = physObjMoore h =$<< fmap Identity . zblc
+zblcH
+  :: (HasSVConstits a, HasPVConstits a)
+  => Fills a
+zblcH = h =$<< zblc
   where
-    h = hist1DDef zblcbin zblcname (dsigdXpbY zblcname "1")
+    h = histo1DDef zblcbin zblcname (dsigdXpbY zblcname "1") "/zblc"
 
 
-zbrelH :: (HasSVConstits a, HasPVConstits a) => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-zbrelH = physObjMoore h =$<< fmap Identity . zbrel
+zbrelH
+  :: (HasSVConstits a, HasPVConstits a)
+  => Fills a
+zbrelH = h =$<< zbrel
   where
-    h = hist1DDef zbrelbin zbrelname (dsigdXpbY zbrelname "1")
+    h = histo1DDef zbrelbin zbrelname (dsigdXpbY zbrelname "1") "/zbrel"
 
 
 
-zbrelcH :: (HasSVConstits a, HasPVConstits a) => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-zbrelcH = physObjMoore h =$<< fmap Identity . zbrelc
+zbrelcH
+  :: (HasSVConstits a, HasPVConstits a)
+  => Fills a
+zbrelcH = h =$<< zbrelc
   where
-    h = hist1DDef zbrelcbin zbrelcname (dsigdXpbY zbrelcname "1")
+    h = histo1DDef zbrelcbin zbrelcname (dsigdXpbY zbrelcname "1") "/zbrelc"
 
 
-nPVTracksH :: HasPVConstits a => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-nPVTracksH = physObjMoore h =$<< fmap (Identity . fromIntegral . length) . pvChargedConstits
+nPVTracksH
+  :: HasPVConstits a
+  => Fills a
+nPVTracksH = h =$<< fmap (fromIntegral . length) . pvChargedConstits
   where
-    h = hist1DDef npvtrkbin npvtrkname (dsigdXpbY npvtrkname "1")
+    h = histo1DDef npvtrkbin npvtrkname (dsigdXpbY npvtrkname "1") "/npvtrk"
 
 
-nSVTracksH :: (HasLorentzVector a, HasSVConstits a) => Moore' (PhysObj a) (Vars (Annotated Histo1D))
-nSVTracksH = physObjMoore h =$<< fmap (Identity . fromIntegral . length) . svChargedConstits
+nSVTracksH
+  :: (HasLorentzVector a, HasSVConstits a)
+  => Fills a
+nSVTracksH =
+  h =$<< fmap (fromIntegral . length) . svChargedConstits
   where
-    h = hist1DDef nsvtrkbin nsvtrkname (dsigdXpbY nsvtrkname "1")
+    h = histo1DDef nsvtrkbin nsvtrkname (dsigdXpbY nsvtrkname "1") "/nsvtrk"
 
 
-zblcVszbtcH :: (HasPVConstits a, HasSVConstits a) => Moore' (PhysObj a) (Vars (Annotated Histo2D))
-zblcVszbtcH = physObjMoore h =$<< (\j -> TF <$> zblc j <*> zbtc j)
+zblcVszbtcH
+  :: (HasPVConstits a, HasSVConstits a)
+  => Fills a
+zblcVszbtcH = h =$<< (\j -> (,) <$> zblc j <*> zbtc j)
   where
-    h = hist2DDef zblcbin zbtcbin zblcname zbtcname
+    h = histo2DDef zblcbin zbtcbin zblcname zbtcname "/zblcvszbtc"
 
 
-zblcVszbrelcH :: (HasPVConstits a, HasSVConstits a) => Moore' (PhysObj a) (Vars (Annotated Histo2D))
-zblcVszbrelcH = physObjMoore h =$<< (\j -> TF <$> zblc j <*> zbrelc j)
+zblcVszbrelcH
+  :: (HasPVConstits a, HasSVConstits a)
+  => Fills a
+zblcVszbrelcH = h =$<< (\j -> (,) <$> zblc j <*> zbrelc j)
   where
-    h = hist2DDef zblcbin zbrelcbin zblcname zbrelcname
+    h = histo2DDef zblcbin zbrelcbin zblcname zbrelcname "/zblcvszbrelc"
 
 
-zbtcVszbrelcH :: (HasPVConstits a, HasSVConstits a) => Moore' (PhysObj a) (Vars (Annotated Histo2D))
-zbtcVszbrelcH = physObjMoore h =$<< (\j -> TF <$> zbtc j <*> zbrelc j)
+zbtcVszbrelcH
+  :: (HasPVConstits a, HasSVConstits a)
+  => Fills a
+zbtcVszbrelcH = h =$<< (\j -> (,) <$> zbtc j <*> zbrelc j)
   where
-    h = hist2DDef zbtcbin zbrelcbin zbtcname zbrelcname
+    h = histo2DDef zbtcbin zbrelcbin zbtcname zbrelcname "/zbtcvszbrelc"
 
+
+type AV a = Annotated (Vars a)
 
 bfragHs
   :: (HasPVConstits a, HasSVConstits a, HasLorentzVector a)
-  => Moore' (PhysObj a) (StrictMap Text (Annotated (Vars (Either Histo1D Histo2D))))
-bfragHs =
+  -- => Fills a
+  => Fills a
+bfragHs = 
   mconcat
-  [ singleton "/zbt" . (fmap.fmap) Left . sequenceA <$> zbtH
-  , singleton "/zbtc" . (fmap.fmap) Left . sequenceA <$> zbtcH
-  , singleton "/zbl" . (fmap.fmap) Left . sequenceA <$> zblH
-  , singleton "/zblc" . (fmap.fmap) Left . sequenceA <$> zblcH
-  , singleton "/zbrel" . (fmap.fmap) Left . sequenceA <$> zbrelH
-  , singleton "/zbrelc" . (fmap.fmap) Left . sequenceA <$> zbrelcH
-  , singleton "/chargedpt" . (fmap.fmap) Left . sequenceA <$> chargedPtH
-  , singleton "/pvpt" . (fmap.fmap) Left . sequenceA <$> pvPtH
-  , singleton "/pvptc" . (fmap.fmap) Left . sequenceA <$> pvPtcH
-  , singleton "/svpt" . (fmap.fmap) Left . sequenceA <$> svPtH
-  , singleton "/svmass" . (fmap.fmap) Left . sequenceA <$> svMH
-  , singleton "/svmassc" . (fmap.fmap) Left . sequenceA <$> svMcH
-  , singleton "/svptc" . (fmap.fmap) Left . sequenceA <$> svPtcH
-  , singleton "/npvtrk" . (fmap.fmap) Left . sequenceA <$> nPVTracksH
-  , singleton "/nsvtrk" . (fmap.fmap) Left . sequenceA <$> nSVTracksH
-
-  , singleton "/zblcvszbtc" . (fmap.fmap) Right . sequenceA <$> zblcVszbtcH
-  , singleton "/zblcvszbrelc" . (fmap.fmap) Right . sequenceA <$> zblcVszbrelcH
-  , singleton "/zbtcvszbrelc" . (fmap.fmap) Right . sequenceA <$> zbtcVszbrelcH
+  [ zbtH
+  , zbtcH
+  , zblH
+  , zblcH
+  , zbrelH
+  , zbrelcH
+  , ptcH
+  , pvPtH
+  , pvPtcH
+  , svPtH
+  , svMH
+  , svMcH
+  , svPtcH
+  , nPVTracksH
+  , nSVTracksH
+  , zblcVszbtcH
+  , zblcVszbrelcH
+  , zbtcVszbrelcH
+  ]
 
       --     -- , childSumPtProfPt
       --     -- , svChildSumPtProfPt
@@ -275,10 +312,6 @@ bfragHs =
       --     -- , nPVChildProfPt
       --     -- , nSVChildProfPt
       --     -- , zbtChargedVsPt
-  ]
-    --
-    -- hs' = channelWithLabel "/5psvtrk" (fmap ((>= 5) . length) . svChargedConstits) hs
-    -- hs'' = channelWithLabel "/4psvtrk" (fmap ((>= 4) . length) . svChargedConstits) hs
 
 
 -- zbtcMerges, zblcMerges, zbrelcMerges, zbtMerges, zblMerges, zbrelMerges
@@ -355,9 +388,9 @@ bfragHs =
 --   -> Histogram Vector (ArbBin a) b
 --   -> Histogram Vector (ArbBin a) b
 -- trimH bm h =
---   let v = views histData (trimV bm) h
+--   let v = views histoData (trimV bm) h
 --       b = views bins (trimB bm) h
---   in histogramUO b Nothing v
+--   in histoogramUO b Nothing v
 
 
 -- mergeV :: (a -> a -> a) -> a -> [[Int]] -> Vector a -> Vector a
@@ -366,7 +399,8 @@ bfragHs =
 --     go is = foldl f x $ (v !) <$> is
 
 
-zbtmatrixname, zbtrecohname, zbtrecomatchhname, zbttruehname :: IsString s => s
+zbtmatrixname, zbtrecohname, zbtrecomatchhname, zbttruehname
+  :: IsString s => s
 zbtmatrixname = "/elmujjmatched/zbtmig"
 zbtrecohname = "/elmujj/probejets/zbt"
 zbtrecomatchhname = "/elmujjmatched/probejets/zbt"
@@ -441,7 +475,7 @@ zbrelctruehname = "/elmujjtrue/truejets/zbrelc"
 --   => Foldl (PhysObj a) YodaObj
 -- zbtChargedVsPt =
 --   fmap (singleton "/zbtvspt")
---   $ hist2DDef
+--   $ histo2DDef
 --     (evenBins' 25 18 250)
 --     (evenBins' 0 21 1.05)
 --     "$p_{\\mathrm T}$ [GeV]"

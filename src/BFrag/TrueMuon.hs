@@ -1,9 +1,9 @@
 module BFrag.TrueMuon where
 
 import           BFrag.PtEtaPhiE
+import Data.HEP.LorentzVector
 import           Control.Applicative (ZipList (..))
 import           Control.Lens
-import           Data.Serialize
 import           Data.TTree
 import           GHC.Float
 

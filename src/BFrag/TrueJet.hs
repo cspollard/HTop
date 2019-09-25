@@ -23,6 +23,7 @@ import qualified Data.Vector         as V
 import           GHC.Float
 import           GHC.Generics        (Generic)
 
+
 data TrueParticle =
   TrueParticle
     { _tpPID       :: PID
@@ -173,23 +174,16 @@ matchBTJ bh tjs =
         else j
 
 
-bMesonH :: VarFills BHadron
-bMesonH = singleton "/bmesonpid" <$> h =$<< pure . fromIntegral . view abspid
+bMesonH :: Fills BHadron
+bMesonH = h <$= fmap (fromIntegral . view abspid)
   where
-    h =
-      hist1DDef
-        (evenBins' 500 100 600)
-        "B meson PDGID"
-        (dsigdXpbY "\\mathrm{PDGID}" "1")
+    h = histo1DDef (evenBins' 500 100 600) "B meson PDGID" (dsigdXpbY "\\mathrm{PDGID}" "1") "/bmesonpid" 
 
-bBaryonH :: VarFills BHadron
-bBaryonH = singleton "/bbaryonpid" <$> h =$<< pure . fromIntegral . view abspid
+
+bBaryonH :: Fills BHadron
+bBaryonH = h <$= fmap (fromIntegral . view abspid)
   where
-    h =
-      hist1DDef
-        (evenBins' 5000 1000 6000)
-        "B baryon PDGID"
-        (dsigdXpbY "\\mathrm{PDGID}" "1")
+    h = histo1DDef (evenBins' 5000 1000 6000) "B baryon PDGID" (dsigdXpbY "\\mathrm{PDGID}" "1") "/bbaryonpid"
 
 
 

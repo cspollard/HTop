@@ -12,6 +12,7 @@ module BFrag.Jet where
 
 import           Atlas
 import           BFrag.BFrag
+import Data.Maybe (fromMaybe)
 import           BFrag.PtEtaPhiE
 import           BFrag.Systematics
 import           BFrag.TrueJet
@@ -19,12 +20,10 @@ import           Control.Applicative    (ZipList (..))
 import           Control.Lens
 import           Control.Monad.Writer
 import           Data.Foldable          (fold)
-import           Data.Histogram.Generic (atV)
 import           Data.Semigroup         (Any (..), Arg (..), Min (..),
                                          Option (..))
 import           Data.TTree
 import qualified Data.Vector            as V
-import qualified Data.Vector.Generic    as GV
 import           GHC.Float
 import           GHC.Generics           (Generic)
 
@@ -53,9 +52,6 @@ flavToNum x =
     T -> 15
 
 
--- TODO
--- add Track datatype for holding z0, d0, etc...
-
 data Jet =
   Jet
   { _jPtEtaPhiE  :: PtEtaPhiE
@@ -67,16 +63,20 @@ data Jet =
   , _truthFlavor :: Maybe JetFlavor
   } deriving (Generic, Show)
 
+
 instance HasLorentzVector Jet where
     toPtEtaPhiE = lens _jPtEtaPhiE $ \j x -> j { _jPtEtaPhiE = x }
+
 
 instance HasSVConstits Jet where
   svConstits = view svTrks
   svChargedConstits = svConstits
 
+
 instance HasPVConstits Jet where
   pvConstits = view pvTrks
   pvChargedConstits = pvConstits
+
 
 
 appSVRW :: DataMC' -> Maybe BHadron -> [PtEtaPhiE] -> PhysObj ()
@@ -92,12 +92,15 @@ appSVRW _ (Just bh) svtrks = do
       dpt = bhpt - (view lvPt svp4 * 1e3)
       nsvtrks = fromIntegral $ length svtrks
 
+      -- these are variations around zero.
       svEffVars = (+1) . flip safeAt bhpt <$> svEffSysts
       phiResVars = (+1) . flip safeAt dphi <$> phiResSysts
       etaResVars = (+1) . flip safeAt deta <$> etaResSysts
-      ptResVars = (+1) . flip safeAt (bhpt, dpt) <$> ptResSysts
+      ptResVars = (+1) . flip safeAt2 (bhpt, dpt) <$> ptResSysts
+
       -- this one is already the ratio data/simulation
       nsvtrkRW = safeAt nsvtrkSyst nsvtrks
+
 
   varSF $ sf "sveffsf" <$> Variation 1.0 svEffVars
   varSF $ sf "svphiressf" <$> Variation 1.0 phiResVars
@@ -122,19 +125,21 @@ appPVSVRW Data' _ _ = return ()
 appPVSVRW (MC' NoVars) _ _ = return ()
 appPVSVRW _ jpt trkpt = do
   let -- note that the binning used in the reweighting histograms is in MeV!!!
-      trkVars = (+1) . flip safeAt (jpt*1e3, trkpt*1e3) <$> sumPtTrkSysts
+      trkVars = (+1) . flip safeAt2 (jpt*1e3, trkpt*1e3) <$> sumPtTrkSysts
 
   varSF $ sf "trkptsf" <$> Variation 1.0 trkVars
 
 
-safeAt
-  :: (Fractional a, Bin b, GV.Vector v a)
-  => Histogram v b a -> BinValue b -> a
-safeAt h x =
-  let b = view bins h
-  in if inRange b x
-      then atV h x
-      else 0.0
+safeAt :: (Num a, Ord x) => Binned x a -> x -> a
+safeAt = atDefault 0
+
+
+safeAt2 :: (Num a, Ord x, Ord y) => Binned y (Binned x a) -> (x, y) -> a
+safeAt2 b (x, y) = flip safeAt x $ atDefault (Binned [] mempty) b y
+
+
+atDefault :: Ord x => a -> Binned x a -> x -> a
+atDefault a b = fromMaybe a . atBin b
 
 
 matchBH :: [BHadron] -> PtEtaPhiE -> Maybe BHadron
@@ -238,20 +243,16 @@ jetTracksTLV spt seta sphi se = do
     return . ZipList $ V.toList trks
 
 
-mv2c10H :: VarFills Jet
-mv2c10H =
-  singleton "/mv2c10"
-  <$> hist1DDef (evenBins' (-1) 25 1) "MV2c10" (dsigdXpbY "\\mathrm{MV2c10}" "1")
-  <$= fmap (view mv2c10)
-
-
-hadronLabelH :: VarFills Jet
-hadronLabelH =
-  singleton "/hadronlabel"
-  <$> hist1DDef (evenBins' 0 16 16) "hadron label" (dsigdXpbY "\\mathrm{label}" "1")
-  =$<< go
-
+mv2c10H :: Fills Jet
+mv2c10H = h <$= fmap (view mv2c10)
   where
+    h = histo1DDef (evenBins' (-1) 25 1) "MV2c10" (dsigdXpbY "\\mathrm{MV2c10}" "1") "/mv2c10"
+
+
+hadronLabelH :: Fills Jet
+hadronLabelH = h =$<< go
+  where
+    h = histo1DDef (evenBins' 0 16 16) "hadron label" (dsigdXpbY "\\mathrm{label}" "1") "/hadronlabel"
     go j =
       case view truthFlavor j of
         Nothing -> poFail

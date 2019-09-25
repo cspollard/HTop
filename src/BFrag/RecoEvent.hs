@@ -14,6 +14,7 @@ module BFrag.RecoEvent
 
 
 import           Atlas
+import           Atlas.StrictMap
 import           BFrag.BFrag       as X
 import           BFrag.Electron    as X
 import           BFrag.Jet         as X
@@ -21,13 +22,13 @@ import           BFrag.Muon        as X
 import           BFrag.PtEtaPhiE   as X
 import           BFrag.Systematics as X
 import           BFrag.TrueJet
-import qualified Control.Foldl     as F
 import           Control.Lens
 import           Control.Monad     (guard, join)
-import           Data.Semigroup
+import Data.Annotated
 import           Data.TTree
 import           GHC.Float
 import           GHC.Generics      (Generic)
+import qualified Data.Map.Strict as M
 
 
 data RecoEvent =
@@ -87,69 +88,60 @@ readRecoEvent dmc bhs = do
   return $ w >> return (RecoEvent mu' els mus js met')
 
 
-muH :: VarFill RecoEvent
+muH :: Fills RecoEvent
 muH = h =$<< poFromVars . view mu
   where
-    h = hist1DDef (evenBins' 0 25 100) "\\ensuremath{< \\mu >}" (dsigdXpbY "<\\mu>" "1")
+    h = histo1DDef (evenBins' 0 25 100) "\\ensuremath{< \\mu >}" (dsigdXpbY "<\\mu>" "1") "/mu"
 
 
-elmujj :: RecoEvent -> PhysObj Bool
-elmujj e =
-  let els = _electrons e
-      mus = _muons e
-      js = _jets e
-  in return
-    $ length els == 1
-      && length mus == 1
-      && case js of
-        [j1, j2] -> lvDREta j1 j2 > 1.0
-        _        -> False
+elmujj :: RecoEvent -> PhysObj RecoEvent
+elmujj e = do
+  let [_el] = _electrons e
+      [_mu] = _muons e
+      [j1, j2] = _jets e
+  guard $ lvDREta j1 j2 > 1.0
+  return e
 
 
-fakeEvent :: RecoEvent -> PhysObj Bool
-fakeEvent e =
-  let els = _electrons e
-      mus = _muons e
-  in do
-    re <- elmujj
-    return $ re && (not (any ePrompt els) || not (any mPrompt mus))
+fakeEvent :: RecoEvent -> PhysObj RecoEvent
+fakeEvent e = do
+  let [el] = _electrons e
+      [mu] = _muons e
+  guard $ not (ePrompt el && mPrompt mu)
+  return e
 
 
 -- so much boilerplate
-recoEventHs :: VarFills RecoEvent
+recoEventHs :: Fills RecoEvent
 recoEventHs =
-  mappend hs
-  $ channelWithLabel "/fakes" fakeEvent hs
+  hs <> channel "/fakes" (hs =$<< fakeEvent)
 
   where
     hs =
-          channelWithLabel "/elmujj" elmujj
-          $ mconcat
-            [ singleton "/mu" <$> muH
-            -- , singleton "/npv" <$> npvH
+      channel "/elmujj"
+      $ mconcat
+        [ muH
+        , channel "/met"
+          $ set (traverse.xlabel) (Just "\\ensuremath{E_{\\rm T}^{\\rm miss}} [GeV]")
+            <$> ptH <$= fmap (view met)
 
-            , singleton "/met/pt"
-              . set xlabel "\\ensuremath{E_{\\rm T}^{\\rm miss}} [GeV]"
-              <$> ptH
-              <$= fmap (view met)
+        , channel "/jets"
+          $ over (traverse.xlabel._Just) ("jet " <>)
+            <$> foldlMoore lvHs <$= collapsePO . fmap (view jets)
 
-            , prefixF "/jets"
-              . over (traverse.xlabel) ("jet " <>)
-              <$> F.handles folded lvHs <$= collapsePO . fmap (view jets)
+        , channel "/electrons"
+          $ over (traverse.xlabel._Just) ("electron " <>)
+            <$> foldlMoore lvHs <$= collapsePO . fmap (view electrons)
 
-            , prefixF "/electrons"
-              . over (traverse.xlabel) ("electron " <>)
-              <$> F.handles folded lvHs <$= collapsePO . fmap (view electrons)
+        , channel "/muons"
+          $ over (traverse.xlabel._Just) ("muon " <>)
+            <$> foldlMoore lvHs <$= collapsePO . fmap (view muons)
 
-            , prefixF "/muons"
-              . over (traverse.xlabel) ("muon " <>)
-              <$> F.handles folded lvHs <$= collapsePO . fmap (view muons)
-
-            , prefixF "/probejets"
-              . over (traverse.xlabel) ("probe jet " <>)
-              <$> F.handles folded (bfragHs `mappend` lvHs `mappend` hadronLabelH)
-              <$= fmap join . collapsePO . fmap probeJets
-            ]
+        , channel "/probejets"
+          $ over (traverse.xlabel._Just) ("probe jet " <>)
+            <$> foldlMoore (bfragHs `mappend` lvHs `mappend` hadronLabelH)
+            <$= fmap join . collapsePO . fmap probeJets
+        ] =$<< elmujj
 
 
 
@@ -159,7 +151,7 @@ probeJets :: RecoEvent -> [PhysObj Jet]
 probeJets revt = fmap join . collapsePO . return $
   case view jets revt of
     [j1, j2] ->
-      if lvDREta j1 j2 > 1.0
+      if (lvDREta j1 j2 > 1.0)
         then [probeJet j1 j2, probeJet j2 j1]
         else []
     _ -> []
