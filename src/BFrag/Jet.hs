@@ -241,14 +241,14 @@ jetTracksTLV spt seta sphi se = do
 mv2c10H :: VarFills Jet
 mv2c10H =
   singleton "/mv2c10"
-  <$> hist1DDef (binD (-1) 25 1) "MV2c10" (dsigdXpbY "\\mathrm{MV2c10}" "1")
+  <$> hist1DDef (evenBins' (-1) 25 1) "MV2c10" (dsigdXpbY "\\mathrm{MV2c10}" "1")
   <$= fmap (view mv2c10)
 
 
 hadronLabelH :: VarFills Jet
 hadronLabelH =
   singleton "/hadronlabel"
-  <$> hist1DDef (binD 0 16 16) "hadron label" (dsigdXpbY "\\mathrm{label}" "1")
+  <$> hist1DDef (evenBins' 0 16 16) "hadron label" (dsigdXpbY "\\mathrm{label}" "1")
   =$<< go
 
   where

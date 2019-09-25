@@ -97,16 +97,16 @@ writeFiles outf pm = do
               else "\\ensuremath{\\frac{1}{n}}" <> yl
 
 
-      psmc :: VarMap (Folder YodaObj)
+      psmc :: Folder (Folder YodaObj)
       psmc = variationToMap "nominal" . sequence $ sequence <$> predhs
 
-      pstt :: VarMap (Folder YodaObj)
+      pstt :: Folder (Folder YodaObj)
       pstt = fromList . fmap (first procToText) . toList $ ttpredhs
 
-      psbkg :: VarMap (Folder YodaObj)
+      psbkg :: Folder (Folder YodaObj)
       psbkg = [("background", view nominal . sequence $ sequence <$> bkghs)]
 
-      psdata :: VarMap (Folder YodaObj)
+      psdata :: Folder (Folder YodaObj)
       psdata = [("data", data')]
 
 

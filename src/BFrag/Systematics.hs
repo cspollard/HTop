@@ -1,9 +1,5 @@
-{-# LANGUAGE FlexibleContexts          #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedLists           #-}
 {-# LANGUAGE OverloadedStrings         #-}
-{-# LANGUAGE ScopedTypeVariables       #-}
-{-# LANGUAGE TypeFamilies              #-}
 
 
 module BFrag.Systematics
@@ -14,17 +10,16 @@ module BFrag.Systematics
   , nsvtrkSyst, npvtrkSyst
   ) where
 
+import Data.Binned
 import           Atlas
 import           BFrag.Systematics.TrackingSystHists
 import           Control.Lens                        (imap)
 import           Control.Monad.Writer                hiding ((<>))
 import           Data.Bifunctor                      (first)
-import           Data.Histogram.Generic              (Histogram, histogram)
 import qualified Data.IntMap.Strict                  as IM
 import           Data.Semigroup                      ((<>))
 import qualified Data.Text                           as T
 import           Data.TTree
-import qualified Data.Vector                         as V
 import           GHC.Exts                            (fromList)
 import           GHC.Float
 
@@ -35,8 +30,10 @@ import           GHC.Float
 data DataMC' = Data' | MC' VarCfg deriving Show
 data VarCfg = NoVars | AllVars deriving Show
 
+
 lumi :: Vars Double
 lumi = Variation 36100 [("LumiUp", 36858.1)]
+
 
 recoWgt :: (MonadIO m, MonadThrow m) => DataMC' -> TreeRead m (PhysObj ())
 recoWgt Data' = return $ pure ()
@@ -57,17 +54,7 @@ trueWgt = sf "evtw" . float2Double <$> readBranch "weight_mc"
 -- partial!
 lepSF :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
 lepSF _ = tell . sf "lepton_sf" . float2Double <$> readBranch "weight_leptonSF"
--- TODO
--- in XRedTop there are 38 (!!) lepSF variations. This can't be right.
--- lepSF NoVarsT m = pure . sf "lepsf" . float2Double . head <$> readBranch "SFLept"
--- lepSF AllVarsT m = do
---   (nom:vars) <- fmap float2Double <$> readBranch "SFLept"
---   let vars' =
---         M.fromList
---         . imap (\i x -> ("lepsf" <> T.pack (show i), sf "lepsf" x))
---         $ vars
---
---   return $ Variations (sf "lepsf" nom) vars'
+
 
 puWgt :: (MonadIO m, MonadThrow m) => VarCfg -> TreeRead m (PhysObj ())
 puWgt vcfg = do
@@ -184,32 +171,6 @@ treeSysts =
   ]
 
 
--- TODO
--- is this partial?
--- ttbarSysts
---   :: ProcMap (Folder (Vars YodaObj)) -> ProcMap (Folder (Vars YodaObj))
--- ttbarSysts preds =
---   let systttbarDSIDs = (+410000) <$> [1, 2, 3, 4] :: [Int]
---       (systttbar', systpreds) =
---         IM.partitionWithKey (\k _ -> k `elem` systttbarDSIDs) preds
---
---       -- the "nominal" variations from the ttbar systematic samples
---       -- are actually variations
---       systttbar = over (traverse.traverse) (view nominal) systttbar'
---
---       addSysts x =
---         foldr
---           ( \(k, fs) fv ->
---               inF2 (M.intersectionWith (\s v -> v & variations . at k ?~ s)) fs fv
---           )
---           x
---           $ fmap (first (procDict IM.!))
---             . IM.toList
---             $ systttbar
---
---   in over (ix 410000) addSysts systpreds
-
-
 procDict :: IM.IntMap T.Text
 procDict =
   [ (410000, "PowPy6")
@@ -220,14 +181,11 @@ procDict =
   , (410501, "PowPy8")
   ]
 
-type Reweight1D = Histogram V.Vector (ArbBin Double) Double
-type Reweight2D =
-  Histogram V.Vector (Bin2D (ArbBin Double) (ArbBin Double)) Double
+type Reweight1D = Binned Double Double
+type Reweight2D = Binned Double (Binned Double Double)
 
--- TODO
--- explicit tracking systematics
 
-svEffSysts :: VarMap Reweight1D
+svEffSysts :: Folder Reweight1D
 svEffSysts =
   [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", sveff_v2TRK_BIAS_QOVERP_SAGITTA_WM)
   , ("v2TRK_EFF_LOOSE_GLOBAL",       sveff_v2TRK_EFF_LOOSE_GLOBAL)
@@ -247,7 +205,7 @@ svEffSysts =
   ]
 
 
-phiResSysts :: VarMap Reweight1D
+phiResSysts :: Folder Reweight1D
 phiResSysts =
   [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", svdphi_v2TRK_BIAS_QOVERP_SAGITTA_WM)
   , ("v2TRK_EFF_LOOSE_GLOBAL",       svdphi_v2TRK_EFF_LOOSE_GLOBAL)
@@ -267,7 +225,7 @@ phiResSysts =
   ]
 
 
-etaResSysts :: VarMap Reweight1D
+etaResSysts :: Folder Reweight1D
 etaResSysts =
   [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", svdeta_v2TRK_BIAS_QOVERP_SAGITTA_WM)
   , ("v2TRK_EFF_LOOSE_GLOBAL",       svdeta_v2TRK_EFF_LOOSE_GLOBAL)
@@ -286,7 +244,7 @@ etaResSysts =
   , ("v2TRK_RES_Z0_MEAS",            svdeta_v2TRK_RES_Z0_MEAS)
   ]
 
-ptResSysts :: VarMap Reweight2D
+ptResSysts :: Folder Reweight2D
 ptResSysts =
   [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", svabsres_v2TRK_BIAS_QOVERP_SAGITTA_WM)
   , ("v2TRK_EFF_LOOSE_GLOBAL",       svabsres_v2TRK_EFF_LOOSE_GLOBAL)
@@ -305,7 +263,7 @@ ptResSysts =
   , ("v2TRK_RES_Z0_MEAS",            svabsres_v2TRK_RES_Z0_MEAS)
   ]
 
-sumPtTrkSysts :: VarMap Reweight2D
+sumPtTrkSysts :: Folder Reweight2D
 sumPtTrkSysts =
   [ ("v2TRK_BIAS_QOVERP_SAGITTA_WM", trkptsum_v2TRK_BIAS_QOVERP_SAGITTA_WM)
   , ("v2TRK_EFF_LOOSE_GLOBAL",       trkptsum_v2TRK_EFF_LOOSE_GLOBAL)
@@ -325,18 +283,18 @@ sumPtTrkSysts =
   ]
 
 nsvtrkSyst :: Reweight1D
-nsvtrkSyst = histogram xbins vals
+nsvtrkSyst = Binned xbins . IM.fromList $ enumerate vals
   where
-    xbins = arbBin [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    xbins = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
     vals =
       [ 9.628969e-01, 9.738253e-01, 1.018527e+00, 1.076142e+00, 1.115221e+00
       , 1.108247e+00, 9.983492e-01, 1.028850e+00, 6.806861e-01, 1.400987e+00
       ]
 
 npvtrkSyst :: Reweight1D
-npvtrkSyst = histogram xbins vals
+npvtrkSyst = Binned xbins . IM.fromList $ enumerate vals
   where
-    xbins = arbBin [0..20]
+    xbins = [0..20]
     vals =
       [ 8.905407e-01, 9.322888e-01, 1.011352e+00, 1.031504e+00, 9.908142e-01
       , 1.006516e+00, 1.034857e+00, 1.014147e+00, 1.010799e+00, 9.657193e-01

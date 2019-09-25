@@ -1,28 +1,23 @@
-{-# LANGUAGE DeriveGeneric #-}
-
 module BFrag.TrueElectron where
 
-import           Atlas
 import           BFrag.PtEtaPhiE
 import           Control.Applicative (ZipList (..))
 import           Control.Lens
 import           Data.Serialize
 import           Data.TTree
 import           GHC.Float
-import           GHC.Generics        (Generic)
 
 
 data TrueElectron =
   TrueElectron
     { tePtEtaPhiE :: PtEtaPhiE
     , teCharge    :: Double
-    } deriving (Show, Generic)
+    } deriving Show
 
-
-instance Serialize TrueElectron where
 
 instance HasLorentzVector TrueElectron where
     toPtEtaPhiE = lens tePtEtaPhiE $ \e lv -> e { tePtEtaPhiE = lv }
+
 
 readTrueElectrons :: (MonadIO m, MonadThrow m) => TreeRead m [TrueElectron]
 readTrueElectrons = do

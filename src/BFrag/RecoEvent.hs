@@ -90,7 +90,7 @@ readRecoEvent dmc bhs = do
 muH :: VarFill RecoEvent
 muH = h =$<< poFromVars . view mu
   where
-    h = hist1DDef (binD 0 25 100) "\\ensuremath{< \\mu >}" (dsigdXpbY "<\\mu>" "1")
+    h = hist1DDef (evenBins' 0 25 100) "\\ensuremath{< \\mu >}" (dsigdXpbY "<\\mu>" "1")
 
 
 elmujj :: RecoEvent -> PhysObj Bool

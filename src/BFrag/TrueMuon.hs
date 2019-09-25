@@ -1,28 +1,23 @@
-{-# LANGUAGE DeriveGeneric #-}
-
 module BFrag.TrueMuon where
 
-import           Atlas
 import           BFrag.PtEtaPhiE
 import           Control.Applicative (ZipList (..))
 import           Control.Lens
 import           Data.Serialize
 import           Data.TTree
 import           GHC.Float
-import           GHC.Generics        (Generic)
 
 
 data TrueMuon =
   TrueMuon
     { tmPtEtaPhiE :: PtEtaPhiE
     , tmCharge    :: Double
-    } deriving (Show, Generic)
+    } deriving Show
 
-
-instance Serialize TrueMuon where
 
 instance HasLorentzVector TrueMuon where
     toPtEtaPhiE = lens tmPtEtaPhiE $ \m lv -> m { tmPtEtaPhiE = lv }
+
 
 readTrueMuons :: (MonadIO m, MonadThrow m) => TreeRead m [TrueMuon]
 readTrueMuons = do

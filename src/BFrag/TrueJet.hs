@@ -178,7 +178,7 @@ bMesonH = singleton "/bmesonpid" <$> h =$<< pure . fromIntegral . view abspid
   where
     h =
       hist1DDef
-        (binD 500 100 600)
+        (evenBins' 500 100 600)
         "B meson PDGID"
         (dsigdXpbY "\\mathrm{PDGID}" "1")
 
@@ -187,7 +187,7 @@ bBaryonH = singleton "/bbaryonpid" <$> h =$<< pure . fromIntegral . view abspid
   where
     h =
       hist1DDef
-        (binD 5000 1000 6000)
+        (evenBins' 5000 1000 6000)
         "B baryon PDGID"
         (dsigdXpbY "\\mathrm{PDGID}" "1")
 

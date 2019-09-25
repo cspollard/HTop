@@ -21,6 +21,7 @@ dependencies:
 - lens
 - containers
 - unordered-containers
+- profunctors
 - mmorph
 - attoparsec
 - vector
@@ -34,8 +35,6 @@ dependencies:
 - mtl
 - cereal
 - cereal-text
-- histogram-fill
-- histogram-fill-cereal
 - primitive
 - semigroups
 - bifunctors
@@ -46,6 +45,7 @@ dependencies:
 - histogram-extras
 - ttree
 - atlas
+- profunctor-hep
 
 library:
   source-dirs: src

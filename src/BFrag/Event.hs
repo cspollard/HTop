@@ -209,7 +209,7 @@ zbtDiff = singleton "/zbtdiff" <$> h =$<< f
 
     h =
       hist1DDef
-        (binD (-1) 50 1)
+        (evenBins' (-1) 50 1)
         ("(true - reco) " <> zbtname)
         (dsigdXpbY zbtname "1")
 
@@ -219,7 +219,7 @@ zbtcDiff = singleton "/zbtcdiff" <$> h =$<< fmap (uncurry (-)) . zbtcs
   where
     h =
       hist1DDef
-        (binD (-1) 50 1)
+        (evenBins' (-1) 50 1)
         ("(true - reco) " <> zbtcname)
         (dsigdXpbY zbtcname "1")
 
@@ -234,7 +234,7 @@ zblDiff = singleton "/zbldiff" <$> h =$<< f
 
     h =
       hist1DDef
-        (binD (-1) 50 1)
+        (evenBins' (-1) 50 1)
         ("(true - reco) " <> zblname)
         (dsigdXpbY zblname "1")
 
@@ -244,7 +244,7 @@ zblcDiff = singleton "/zblcdiff" <$> h =$<< fmap (uncurry (-)) . zblcs
   where
     h =
       hist1DDef
-        (binD (-1) 50 1)
+        (evenBins' (-1) 50 1)
         ("(true - reco) " <> zblcname)
         (dsigdXpbY zblcname "1")
 
@@ -259,7 +259,7 @@ zbrelDiff = singleton "/zbreldiff" <$> h =$<< f
 
     h =
       hist1DDef
-        (binD (-1) 50 1)
+        (evenBins' (-1) 50 1)
         ("(true - reco) " <> zbrelname)
         (dsigdXpbY zbrelname "1")
 
@@ -269,7 +269,7 @@ zbrelcDiff = singleton "/zbrelcdiff" <$> h =$<< fmap (uncurry (-)) . zbrelcs
   where
     h =
       hist1DDef
-        (binD (-1) 50 1)
+        (evenBins' (-1) 50 1)
         ("(true - reco) " <> zbrelcname)
         (dsigdXpbY zbrelcname "1")
 
@@ -279,7 +279,7 @@ nsvtrkDiff = singleton "/nsvtrkdiff" <$> h =$<< fmap (uncurry (-)) . nsvtrks
   where
     h =
       hist1DDef
-        (binD (-10) 20 10)
+        (evenBins' (-10) 20 10)
         ("(true - reco) " <> nsvtrkname)
         (dsigdXpbY nsvtrkname "1")
 
@@ -289,7 +289,7 @@ npvtrkDiff = singleton "/npvtrkdiff" <$> h =$<< fmap (uncurry (-)) . npvtrks
   where
     h =
       hist1DDef
-        (binD (-10) 20 10)
+        (evenBins' (-10) 20 10)
         ("(true - reco) " <> npvtrkname)
         (dsigdXpbY npvtrkname "1")
 
@@ -305,7 +305,7 @@ nsvtrkRelDiff = singleton "/nsvtrkreldiff" <$> (h =$<< f)
 
     h =
       hist1DDef
-        (binD (-1) 20 1)
+        (evenBins' (-1) 20 1)
         ("(true - reco) / true " <> nsvtrkname)
         (dsigdXpbY nsvtrkname "1")
 
@@ -320,7 +320,7 @@ npvtrkRelDiff = singleton "/npvtrkreldiff" <$> h =$<< f
 
     h =
       hist1DDef
-        (binD (-1) 20 1)
+        (evenBins' (-1) 20 1)
         ("(true - reco) / true " <> npvtrkname)
         (dsigdXpbY npvtrkname "1")
 
