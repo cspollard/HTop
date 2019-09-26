@@ -12,10 +12,10 @@
 module Main where
 
 import           Atlas
+import           Atlas.StrictMap
 import           BFrag.Event
-import           BFrag.Model
+-- import           BFrag.Model
 import           Control.Applicative        (empty)
-import qualified Control.Foldl              as F
 import           Control.Lens               hiding (each)
 import           Control.Monad              (when)
 import           Control.Monad.Fail
@@ -71,9 +71,9 @@ main = do
           else Nothing
       combF Nothing f = Just <$> fillFile treeSysts f (nevents args)
 
-      foldFiles = F.FoldM combF (return Nothing) return
+      foldFiles = feedback $ liftMoore (uncurry combF) Nothing
 
-  hs <- F.impurely P.foldM foldFiles $ each fns
+  hs <- P.foldM chomps foldFiles id $ each fns
 
   putStrLn ("writing to file " ++ outfile args)
   views _Just (encodeFile $ outfile args) hs
@@ -86,7 +86,7 @@ fillFile
   => [String]
   -> String
   -> Maybe Int
-  -> m (ProcessInfo, Sum Double, Folder (Annotated (Vars Obj)))
+  -> m (ProcessInfo, Sum Double, AnaObjs)
 fillFile systs fn nevt = do
   liftIO . putStrLn $ "analyzing file " <> fn
 
@@ -113,19 +113,19 @@ fillFile systs fn nevt = do
 
   sow <-
     fmap float2Double
-    . F.purely P.fold F.sum
+    . P.fold
     . evalStateP tw
     $ each ([0..] :: [Int]) >-> pipeTTree (readBranch "totalEventsWeighted")
 
   liftIO . putStrLn $ "sum of weights: " ++ show sow
 
-  let entryFold =
-        F.purely P.fold
-        $ F.Fold (\m (i, j) -> M.insert i j m) M.empty id
+  let entryFold = P.fold chomps entryMoore id
+      entryMoore = feedback $ liftMoore (\(m, (i, j)) -> M.insert i j m) M.empty
 
       entryRead = (,) <$> readRunEventNumber <*> readEntry
       entries t = entryFold . evalStateP t $ allIdxs >-> pipeTTree entryRead
       allIdxs = each ([0..] :: [Int])
+
 
   nomTree <- ttree tfile "nominal"
   nomEntries <- entries nomTree
@@ -156,7 +156,8 @@ fillFile systs fn nevt = do
   let allEntries = entryMap trueEntries nomEntries systEntries
 
   hs <-
-    F.purely P.fold eventHs
+    -- F.purely P.fold eventHs
+    P.fold chomps eventHs id
     $ each allEntries
       >-> take'
       >-> doEvery 100
