@@ -27,7 +27,6 @@ import           BFrag.Muon             as X
 import           BFrag.PtEtaPhiE        as X
 import           BFrag.RecoEvent        as X
 import           BFrag.TrueEvent        as X
-import qualified Control.Foldl          as F
 import           Control.Lens
 import           Control.Monad          (join, guard)
 import           Data.HEP.LorentzVector as X

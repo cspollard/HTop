@@ -14,7 +14,6 @@ module BFrag.RecoEvent
 
 
 import           Atlas
-import           Atlas.StrictMap
 import           BFrag.BFrag       as X
 import           BFrag.Electron    as X
 import           BFrag.Jet         as X
@@ -28,7 +27,6 @@ import Data.Annotated
 import           Data.TTree
 import           GHC.Float
 import           GHC.Generics      (Generic)
-import qualified Data.Map.Strict as M
 
 
 data RecoEvent =
@@ -105,18 +103,26 @@ elmujj e = do
 
 fakeEvent :: RecoEvent -> PhysObj RecoEvent
 fakeEvent e = do
-  let [el] = _electrons e
-      [mu] = _muons e
-  guard $ not (ePrompt el && mPrompt mu)
+  let [el'] = _electrons e
+      [mu'] = _muons e
+  guard $ not (ePrompt el' && mPrompt mu')
   return e
 
 
--- so much boilerplate
 recoEventHs :: Fills RecoEvent
 recoEventHs =
-  hs <> channel "/fakes" (hs =$<< fakeEvent)
+  hs
+  <> channel "/fakes" (hs =$<< fakeEvent)
+  <> channel "/mu_gt_40" (hs =$<< muCut (> 40))
+  <> channel "/mu_lt_40" (hs =$<< muCut (< 40))
 
   where
+    muCut :: (Double -> Bool) -> RecoEvent -> PhysObj RecoEvent
+    muCut f e = do
+      m <- poFromVars $ view mu e
+      guard $ f m
+      return e
+
     hs =
       channel "/elmujj"
       $ mconcat
