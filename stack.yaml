@@ -1,13 +1,6 @@
 flags: {}
 extra-package-dbs: []
 
-docker:
-  repo: "gitlab-registry.cern.ch/cpollard/hdocker:latest"
-  mount-mode: delegated
-  stack-exe: image
-
-
-
 packages:
 - '.'
 
