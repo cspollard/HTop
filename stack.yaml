@@ -1,48 +1,40 @@
 flags: {}
 extra-package-dbs: []
+
+docker:
+  repo: "gitlab-registry.cern.ch/cpollard/hdocker:latest"
+  mount-mode: delegated
+  stack-exe: image
+
+
+
 packages:
 - '.'
-- '/Users/cspollard/Programming/profunctor-hep.git'
-- '/Users/cspollard/Programming/histogram-extras.git'
-- '/Users/cspollard/Programming/atlas.git'
-
-# - location:
-#     git: https://github.com/cspollard/histogram-extras.git
-#     commit: 742118fb568afeda04d853244c8449c3b953ea2b
-#   extra-dep: true
-
-- location:
-    git: https://github.com/cspollard/variation.git
-    commit: e9874a39eaae7d2675c070ffc9d05e7c97d8a3e3
-  extra-dep: true
-
-- location:
-    git: https://github.com/cspollard/hhep.git
-    commit: 7b413750c82cc6ffd776c603de3e2c42ce8f9cb4
-  extra-dep: true
-
-# - location:
-#     git: https://github.com/cspollard/atlas.git
-#     commit: 7ca8ff94e48d6ba065d9241831f63303ff991819
-#   extra-dep: true
-
-- location:
-    git: https://github.com/cspollard/ttree.git
-    commit: a38292370f8c2186379f3b3324583156e47f9694
-  extra-dep: true
-
-- location:
-    git: https://github.com/cspollard/hunfold.git
-    commit: 8ccb29f6bdebfa6f4625d0ee79ea0d95e9583b86
-  extra-dep: true
-
-# - location:
-#     git: https://github.com/cspollard/profunctor-hep.git
-#     commit: 7ae0ade9ba30d51fbe7a4ca052b75aec7f2f38de
-#   extra-dep: true
 
 extra-deps:    
-- extensible-0.5.1        
-- membership-0        
+  - extensible-0.5.1        
 
-resolver: lts-13.25
+  - membership-0        
+
+  - git: https://github.com/cspollard/hunfold.git
+    commit: 8ccb29f6bdebfa6f4625d0ee79ea0d95e9583b86
+
+  - git: https://github.com/cspollard/ttree.git
+    commit: a38292370f8c2186379f3b3324583156e47f9694
+
+  - git: https://github.com/cspollard/profunctor-hep.git
+    commit: 54cede9f0f448bc929467e862d4478b0d33fdd9a
+
+  - git: https://github.com/cspollard/atlas.git
+    commit: 5b7e53205dab98243e94281688027393ba6fb72c
+
+  - git: https://github.com/cspollard/hhep.git
+    commit: 7b413750c82cc6ffd776c603de3e2c42ce8f9cb4
+
+  - git: https://github.com/cspollard/variation.git
+    commit: e9874a39eaae7d2675c070ffc9d05e7c97d8a3e3
+
+  - git: https://github.com/cspollard/histogram-extras.git
+    commit: 9d39e8461a723b839c23491a5dedfcc72db136ea
+
+resolver: lts-14.7
