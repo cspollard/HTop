@@ -298,6 +298,7 @@ zbrelcMerges =
 
 zbrelMerges = zbrelcMerges
 
+
 obsTruthTrimmers
   :: (Eq a1, Fractional a, Ord a, Monoid b, IsString a1)
   => a1 -> Histogram Vector (ArbBin a) b -> Histogram Vector (ArbBin a) b
@@ -311,8 +312,19 @@ obsTruthTrimmers s =
     "zbrel"  -> trimH zbrelMerges
     _        -> id
 
-obsRecoTrimmers :: a -> b -> b
-obsRecoTrimmers = const id
+
+obsRecoTrimmers
+  :: (Eq a1, Fractional a, Ord a, Monoid b, IsString a1)
+  => a1 -> Histogram Vector (ArbBin a) b -> Histogram Vector (ArbBin a) b
+obsRecoTrimmers s =
+  case s of
+    "zbtc"   -> trimH [ [00, 01], [02..18], [19, 20] ]
+    "zblc"   -> trimH [ [00, 01], [02..18], [19, 20] ]
+    "zbrelc" -> trimH [ [00..17], [18, 19] ]
+    "zbt"    -> trimH [ [00, 01], [02..18], [19, 20] ]
+    "zbl"    -> trimH [ [00, 01], [02..18], [19, 20] ]
+    "zbrel"  -> trimH [ [00..17], [18, 19] ]
+    _         -> error "unrecognized observable"
 
 
 obsNames
