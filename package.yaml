@@ -16,6 +16,16 @@ copyright:           "2019 Chris Pollard"
 description:         Please see the README on GitHub at <https://github.com/githubuser/test#readme>
 
 
+default-extensions:
+- DeriveGeneric
+- DeriveFunctor
+- DeriveFoldable
+- DeriveTraversable
+- NoMonomorphismRestriction
+- RankNTypes
+- ScopedTypeVariables
+- TupleSections
+
 dependencies:
 - base
 - lens
@@ -45,7 +55,7 @@ dependencies:
 - histogram-extras
 - ttree
 - atlas
-- profunctor-hep
+- moore
 
 library:
   source-dirs: src
@@ -61,17 +71,17 @@ executables:
       - optparse-generic
 
 
-  run-htop-toyoda:
-    source-dirs: app
-    main: run-htop-toyoda.hs
-    dependencies:
-      - htop
+  # run-htop-toyoda:
+  #   source-dirs: app
+  #   main: run-htop-toyoda.hs
+  #   dependencies:
+  #     - htop
 
-  run-htop-unfold:
-    source-dirs: app
-    main: run-htop-unfold.hs
-    dependencies:
-      - htop
-      - hunfold
-      - tdigest
-      - optparse-applicative
+  # run-htop-unfold:
+  #   source-dirs: app
+  #   main: run-htop-unfold.hs
+  #   dependencies:
+  #     - htop
+  #     - hunfold
+  #     - tdigest
+  #     - optparse-applicative

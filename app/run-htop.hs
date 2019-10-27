@@ -1,12 +1,7 @@
-{-# LANGUAGE DeriveGeneric             #-}
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE MultiParamTypeClasses     #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedLists           #-}
 {-# LANGUAGE OverloadedStrings         #-}
-{-# LANGUAGE Rank2Types                #-}
-{-# LANGUAGE ScopedTypeVariables       #-}
-{-# LANGUAGE TupleSections             #-}
 {-# LANGUAGE TypeFamilies              #-}
 
 module Main where
@@ -31,6 +26,8 @@ import           Data.TFile
 import           Data.TTree
 import           Data.Typeable
 import           GHC.Exts                   (IsList (..))
+import qualified Data.Serialize as S
+import qualified Data.ByteString.Lazy as BS
 import           GHC.Float
 import           Options.Generic
 import           Pipes
@@ -48,7 +45,6 @@ data Args =
   Args
     { outfile :: String
     , infiles :: String
-    , nevents :: Maybe Int
     } deriving (Show, Generic)
 
 instance ParseRecord Args where
@@ -63,31 +59,30 @@ main = do
   -- get the list of input trees
   fns <- filter (not . null) . lines <$> readFile (infiles args)
 
-  let combF (Just (procinfo, sow, hs)) f = do
-        (procinfo', sow', hs') <- fillFile treeSysts f Nothing
+  let combF :: _
+      combF (Just (procinfo, sow, hs)) f = do
+        (procinfo', sow', hs') <- fillFile treeSysts f
         let hs'' = mappend hs hs'
         seq hs'' . return $ if procinfo == procinfo'
           then Just (procinfo, sow+sow', hs'')
           else Nothing
-      combF Nothing f = Just <$> fillFile treeSysts f (nevents args)
+      combF Nothing f = Just <$> fillFile treeSysts f
 
       foldFiles = feedback $ liftMoore (uncurry combF) Nothing
 
   hs <- P.foldM chomps foldFiles id $ each fns
 
   putStrLn ("writing to file " ++ outfile args)
-  views _Just (encodeFile $ outfile args) hs
+  views _Just (BS.writeFile (outfile args) . S.encodeLazy) hs  
 
 
 -- TODO
 -- bracket around file
 fillFile
   :: (MonadIO m, MonadCatch m, MonadFail m)
-  => [String]
-  -> String
-  -> Maybe Int
-  -> m (ProcessInfo, Sum Double, AnaObjs)
-fillFile systs fn nevt = do
+  => [String] -- ^ systematic tree names
+  -> MooreK m (ProcessInfo, Sum Double, AnaObjs)
+fillFile systs = do
   liftIO . putStrLn $ "analyzing file " <> fn
 
   -- check whether or not this is a data file

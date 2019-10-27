@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE OverloadedLists           #-}
 {-# LANGUAGE OverloadedStrings         #-}
 
@@ -179,6 +180,7 @@ procDict =
   , (410004, "PowHerpp")
   , (410501, "PowPy8")
   ]
+
 
 type Reweight1D = Binned Double Double
 type Reweight2D = Binned Double (Binned Double Double)
