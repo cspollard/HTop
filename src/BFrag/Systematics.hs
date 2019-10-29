@@ -40,12 +40,12 @@ lumi = Variation 36100 [("LumiUp", 36858.1)]
 recoWgt :: (MonadIO m, MonadThrow m) => DataMC' -> TreeRead m (PhysObj ())
 recoWgt Data' = return $ pure ()
 recoWgt (MC' vcfg) = do
-    tw <- trueWgt
-    puw <- puWgt vcfg
-    jvtw <- jvtWgt vcfg
-    lsf <- lepSF vcfg
-    bsf <- btagSF vcfg
-    return $ tell tw >> puw >> jvtw >> lsf >> bsf
+  tw <- trueWgt
+  puw <- puWgt vcfg
+  jvtw <- jvtWgt vcfg
+  lsf <- lepSF vcfg
+  bsf <- btagSF vcfg
+  return $ tell tw >> puw >> jvtw >> lsf >> bsf
 
 
 trueWgt :: (MonadThrow m, MonadIO m) => TreeRead m SF
@@ -183,7 +183,7 @@ procDict =
 
 
 type Reweight1D = Binned Double Double
-type Reweight2D = Binned Double (Binned Double Double)
+type Reweight2D = Binned2D Double Double Double
 
 
 svEffSysts :: StrictHashMap T.Text Reweight1D
@@ -284,7 +284,7 @@ sumPtTrkSysts =
   ]
 
 nsvtrkSyst :: Reweight1D
-nsvtrkSyst = Binned xbins . IM.fromList $ enumerate vals
+nsvtrkSyst = binned xbins . fromList $ enumerate vals
   where
     xbins = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
     vals =
@@ -293,7 +293,7 @@ nsvtrkSyst = Binned xbins . IM.fromList $ enumerate vals
       ]
 
 npvtrkSyst :: Reweight1D
-npvtrkSyst = Binned xbins . IM.fromList $ enumerate vals
+npvtrkSyst = binned xbins . fromList $ enumerate vals
   where
     xbins = [0..20]
     vals =

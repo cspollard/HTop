@@ -6,10 +6,14 @@
 
 module Main where
 
+import Prelude hiding (id, (.))
 import           Atlas
 import           Atlas.StrictMap
+import Data.Histogram.Instances
+import Data.Profunctor
+import Both
 import           BFrag.Event
--- import           BFrag.Model
+import           BFrag.Model
 import           Control.Applicative        (empty)
 import           Control.Lens               hiding (each)
 import           Control.Monad              (when)
@@ -27,10 +31,12 @@ import           Data.TTree
 import           Data.Typeable
 import           GHC.Exts                   (IsList (..))
 import qualified Data.Serialize as S
+import Data.Serialize.Text
 import qualified Data.ByteString.Lazy as BS
 import           GHC.Float
 import           Options.Generic
 import           Pipes
+import Control.Category
 import           Pipes.Lift
 import qualified Pipes.Prelude              as P
 import           System.IO                  (BufferMode (..), hSetBuffering,
@@ -59,30 +65,28 @@ main = do
   -- get the list of input trees
   fns <- filter (not . null) . lines <$> readFile (infiles args)
 
-  let combF :: _
-      combF (Just (procinfo, sow, hs)) f = do
-        (procinfo', sow', hs') <- fillFile treeSysts f
-        let hs'' = mappend hs hs'
-        seq hs'' . return $ if procinfo == procinfo'
-          then Just (procinfo, sow+sow', hs'')
-          else Nothing
-      combF Nothing f = Just <$> fillFile treeSysts f
-
-      foldFiles = feedback $ liftMoore (uncurry combF) Nothing
-
-  hs <- P.foldM chomps foldFiles id $ each fns
+  let yummy = foldlMooreK $ fillFile treeSysts
+  hs <- runStar (extract . update yummy) fns
 
   putStrLn ("writing to file " ++ outfile args)
-  views _Just (BS.writeFile (outfile args) . S.encodeLazy) hs  
+  BS.writeFile (outfile args) $ S.encodeLazy hs  
 
 
--- TODO
--- bracket around file
+  where
+    chompM m i = runStar (update m) i
+
+
+
+type Three a b c = Both a (Both b c)
+
+
 fillFile
   :: (MonadIO m, MonadCatch m, MonadFail m)
   => [String] -- ^ systematic tree names
-  -> MooreK m (ProcessInfo, Sum Double, AnaObjs)
-fillFile systs = do
+  -> MooreK m String (Three ProcessInfo (Sum Double) AnaObjs)
+fillFile systs = feedback . liftMoore (Both mempty (Both mempty mempty)) . Star $ \(th, fn) -> do
+  let Both _ (Both sow aos) = th
+
   liftIO . putStrLn $ "analyzing file " <> fn
 
   -- check whether or not this is a data file
@@ -106,16 +110,16 @@ fillFile systs = do
 
   liftIO . putStrLn $ "procinfo: " ++ show procinfo
 
-  sow <-
+  sow' <-
     fmap float2Double
     . P.fold
     . evalStateP tw
     $ each ([0..] :: [Int]) >-> pipeTTree (readBranch "totalEventsWeighted")
 
-  liftIO . putStrLn $ "sum of weights: " ++ show sow
+  liftIO . putStrLn $ "sum of weights: " ++ show sow'
 
   let entryFold = P.fold chomps entryMoore id
-      entryMoore = feedback $ liftMoore (\(m, (i, j)) -> M.insert i j m) M.empty
+      entryMoore = feedback $ liftMoore M.empty (\(m, (i, j)) -> M.insert i j m)
 
       entryRead = (,) <$> readRunEventNumber <*> readEntry
       entries t = entryFold . evalStateP t $ allIdxs >-> pipeTTree entryRead
@@ -150,9 +154,9 @@ fillFile systs = do
 
   let allEntries = entryMap trueEntries nomEntries systEntries
 
-  hs <-
+  aos' <-
     -- F.purely P.fold eventHs
-    P.fold chomps eventHs id
+    P.fold chomps aos id
     $ each allEntries
       >-> take'
       >-> doEvery 100
@@ -162,7 +166,7 @@ fillFile systs = do
 
   liftIO . putStrLn $ "closing file " <> fn
   liftIO $ tfileClose tfile
-  return (procinfo, Sum sow, hs)
+  return (procinfo, sow <> sow', aos')
 
   where
     entryMap

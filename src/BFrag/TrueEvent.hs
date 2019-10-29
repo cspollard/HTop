@@ -49,7 +49,8 @@ trueElectrons = lens _trueElectrons $ \te x -> te { _trueElectrons = x }
 trueEventHs :: Fills TrueEvent
 trueEventHs =
   channel "/elmujjtrue/truejets"
-  $ over (traverse.xlabel._Just) ("true jet " <>)
+  $ over (_1.traverse.xlabel._Just) ("true jet " <>)
+    . over (_2.traverse.xlabel._Just) ("true jet " <>) 
     <$> foldlMoore (bfragHs `mappend` lvHs `mappend` bHs)
     <$= collapsePO . fmap (view trueJets)
     =$<< (\e -> if elmujjTrue e then return e else poFail)

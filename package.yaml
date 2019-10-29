@@ -29,6 +29,7 @@ default-extensions:
 dependencies:
 - base
 - lens
+- semigroupoids
 - containers
 - unordered-containers
 - profunctors

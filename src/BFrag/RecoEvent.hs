@@ -92,6 +92,14 @@ muH = h =$<< poFromVars . view mu
     h = histo1DDef (evenBins' 0 25 100) "\\ensuremath{< \\mu >}" (dsigdXpbY "<\\mu>" "1") "/mu"
 
 
+metH :: Fills RecoEvent
+metH = premap (fmap $ view met) h
+  where
+    h =
+      set (_1.traverse.xlabel) (Just "\\ensuremath{E_{\\rm T}^{\\rm miss}} [GeV]")
+      <$> ptH
+
+
 elmujj :: RecoEvent -> PhysObj RecoEvent
 elmujj e = do
   let [_el] = _electrons e
@@ -123,31 +131,36 @@ recoEventHs =
       guard $ f m
       return e
 
+    hs :: Fills RecoEvent
     hs =
       channel "/elmujj"
       $ mconcat
         [ muH
-        , channel "/met"
-          $ set (traverse.xlabel) (Just "\\ensuremath{E_{\\rm T}^{\\rm miss}} [GeV]")
-            <$> ptH <$= fmap (view met)
+        , channel "/met" metH
 
         , channel "/jets"
-          $ over (traverse.xlabel._Just) ("jet " <>)
+          $ prefixXlabel "jet "
             <$> foldlMoore lvHs <$= collapsePO . fmap (view jets)
 
         , channel "/electrons"
-          $ over (traverse.xlabel._Just) ("electron " <>)
+          $ prefixXlabel "electron "
             <$> foldlMoore lvHs <$= collapsePO . fmap (view electrons)
 
         , channel "/muons"
-          $ over (traverse.xlabel._Just) ("muon " <>)
+          $ prefixXlabel "muon "
             <$> foldlMoore lvHs <$= collapsePO . fmap (view muons)
 
         , channel "/probejets"
-          $ over (traverse.xlabel._Just) ("probe jet " <>)
+          $ prefixXlabel "probe jet "
             <$> foldlMoore (bfragHs `mappend` lvHs `mappend` hadronLabelH)
             <$= fmap join . collapsePO . fmap probeJets
         ] =$<< elmujj
+
+
+    prefixXlabel s = bimap go go
+      where
+        go :: Traversable t => t (Annotated a) -> t (Annotated a)
+        go = over (traverse.xlabel._Just) (s <>)
 
 
 

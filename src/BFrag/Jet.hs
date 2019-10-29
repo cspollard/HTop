@@ -26,6 +26,7 @@ import           Data.TTree
 import qualified Data.Vector            as V
 import           GHC.Float
 import           GHC.Generics           (Generic)
+import Data.Functor.Compose
 
 
 data JetFlavor = L | C | B | T
@@ -134,12 +135,12 @@ safeAt :: (Num a, Ord x) => Binned x a -> x -> a
 safeAt = atDefault 0
 
 
-safeAt2 :: (Num a, Ord x, Ord y) => Binned y (Binned x a) -> (x, y) -> a
-safeAt2 b (x, y) = flip safeAt x $ atDefault (Binned [] mempty) b y
+safeAt2 :: (Num a, Ord x, Ord y) => Binned2D y x a -> (x, y) -> a
+safeAt2 (Compose b) (x, y) = flip safeAt x $ atDefault (binned [] mempty) b y
 
 
 atDefault :: Ord x => a -> Binned x a -> x -> a
-atDefault a b = fromMaybe a . atBin b
+atDefault a b x = fromMaybe a $ atBin b x
 
 
 matchBH :: [BHadron] -> PtEtaPhiE -> Maybe BHadron
