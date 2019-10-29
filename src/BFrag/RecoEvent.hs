@@ -121,16 +121,8 @@ recoEventHs :: Fills RecoEvent
 recoEventHs =
   hs
   <> channel "/fakes" (hs =$<< fakeEvent)
-  <> channel "/mu_gt_40" (hs =$<< muCut (> 40))
-  <> channel "/mu_lt_40" (hs =$<< muCut (< 40))
 
   where
-    muCut :: (Double -> Bool) -> RecoEvent -> PhysObj RecoEvent
-    muCut f e = do
-      m <- poFromVars $ view mu e
-      guard $ f m
-      return e
-
     hs :: Fills RecoEvent
     hs =
       channel "/elmujj"

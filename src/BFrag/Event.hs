@@ -69,17 +69,41 @@ readRunEventNumber = (,) <$> readRunNumber <*> readEventNumber
 
 eventHs :: Fills Event
 eventHs =
-  mconcat
-  [ recoEventHs =$<< view recoEvent
-  , trueEventHs =$<< view trueEvent
-  , matchedEventHs =$<< go
-  ]
+  hs
+  <> channel "/mu_gt_40" (hs =$<< muCut (> 40))
+  <> channel "/mu_lt_40" (hs =$<< muCut (< 40))
+  <> channel "/njets_eq_2" (hs =$<< njCut (== 2))
+  <> channel "/njets_gt_2" (hs =$<< njCut (> 2))
 
   where
     go evt = do
       tevt <- view trueEvent evt
       revt <- view recoEvent evt
       return (tevt, revt)
+
+    eCut :: (Event -> PhysObj Bool) -> Event -> PhysObj Event
+    eCut f e = do
+      c <- f e
+      guard c
+      return e
+
+    muCut f = eCut $ \e -> do
+      re <- view recoEvent e
+      m <- poFromVars $ view mu re
+      return $ f m
+
+    njCut f = eCut $ \e -> do
+      re <- view recoEvent e
+      return . f . length $ view jets re
+
+
+    hs = 
+      mconcat
+      [ recoEventHs =$<< view recoEvent
+      , trueEventHs =$<< view trueEvent
+      , matchedEventHs =$<< go
+      ]
+
 
 
 matchedEventHs :: Fills (TrueEvent, RecoEvent)
