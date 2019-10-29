@@ -6,14 +6,14 @@ module BFrag.Model where
 
 import           Atlas
 import Data.Functor.Apply
-import           Atlas.StrictMap
+import           Data.StrictMap
 import           Data.Biapplicative
 import           BFrag.Systematics
 import           Control.Applicative (liftA2)
 import           Control.Arrow       ((***))
 import           Control.Lens hiding (_1, _2)
 import           Data.Foldable       (fold)
-import qualified Data.HashMap.Strict as HM
+import Data.StrictHashMap
 import           Data.List           (partition)
 import qualified Data.Map            as M
 import           Data.Maybe          (fromMaybe)
@@ -26,6 +26,7 @@ import Optic (hubble)
 
 
 
+type Folder = StrictMap T.Text
 type FA a = Folder (Annotated a)
 
 -- bfragModel

@@ -23,7 +23,7 @@ import qualified Data.Text                           as T
 import           Data.TTree
 import           GHC.Exts                            (fromList)
 import           GHC.Float
-import Atlas.StrictHashMap
+import Data.StrictHashMap
 
 
 -- TODO

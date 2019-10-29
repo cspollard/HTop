@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE RecordWildCards        #-}
 
 module BFrag.RecoEvent
   ( module X
@@ -101,11 +102,10 @@ metH = premap (fmap $ view met) h
 
 
 elmujj :: RecoEvent -> PhysObj RecoEvent
-elmujj e = do
-  let [_el] = _electrons e
-      [_mu] = _muons e
-      [j1, j2] = _jets e
-  guard $ lvDREta j1 j2 > 1.0
+elmujj e@RecoEvent{..} = do
+  guard $ length _electrons == 1
+  guard $ length _muons == 1
+  guard $ length _jets >= 2
   return e
 
 
@@ -167,25 +167,31 @@ recoEventHs =
 -- note:
 -- AnalysisTop selection requires == 2 jets with pT > 30 GeV
 probeJets :: RecoEvent -> [PhysObj Jet]
-probeJets revt = fmap join . collapsePO . return $
-  case view jets revt of
-    [j1, j2] ->
-      if (lvDREta j1 j2 > 1.0)
-        then [probeJet j1 j2, probeJet j2 j1]
-        else []
-    _ -> []
+probeJets revt =
+  fmap join
+  . collapsePO
+  . return
+  . fmap (uncurry probeJet)
+  $ combinations [] (view jets revt)
 
   where
-    probeJet :: Jet -> Jet -> PhysObj Jet
-    probeJet j j' = do
-      bt <- view isBTagged j
-      sv <- hasSV j'
-      trks <- svChargedConstits j'
-      let pt' = view lvPt j'
-      guard
-        $ bt
-          && sv
-          && (view lvAbsEta j' < 2.1)
-          && length trks >= 3
-          && pt' >= 30
-      return j'
+    combinations _ [] = []
+    combinations ls (x:rs) = (x, ls ++ rs) : combinations (x:ls) rs
+
+    probeJet :: Jet -> [Jet] -> PhysObj Jet
+    probeJet j js = do
+      bt <- traverse (view isBTagged) js
+      trks <- svChargedConstits j
+
+      let drs = lvDREta j <$> js
+
+      guard $ view lvAbsEta j < 2.1
+      guard $ view lvPt j >= 30
+      guard $ length trks >= 3
+
+      guard $ all (>= 1.0) drs
+
+      guard $ or bt
+      guard =<< hasSV j
+
+      return j

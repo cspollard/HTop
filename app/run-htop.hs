@@ -8,7 +8,9 @@ module Main where
 
 import Prelude hiding (id, (.))
 import           Atlas
-import           Atlas.StrictMap
+import           Data.StrictMap
+import           Data.StrictHashMap
+import qualified Data.Map.Strict as M
 import Data.Histogram.Instances
 import Data.Profunctor
 import Both
@@ -16,15 +18,15 @@ import           BFrag.Event
 import           BFrag.Model
 import           Control.Applicative        (empty)
 import           Control.Lens               hiding (each)
+import Data.Monoid (First(..))
 import           Control.Monad              (when)
 import           Control.Monad.Fail
 import           Control.Monad.State.Strict
 import           Control.Monad.Writer.Class (writer)
 import           Data.Bifunctor             (first)
 import           Data.List                  (isInfixOf, nub)
-import qualified Data.Map.Strict            as M
 import           Data.Maybe                 (fromMaybe)
-import           Data.Semigroup
+import           Data.Semigroup hiding (First)
 import qualified Data.Text                  as T
 import           Data.TFile
 import           Data.TTree
@@ -34,7 +36,7 @@ import qualified Data.Serialize as S
 import Data.Serialize.Text
 import qualified Data.ByteString.Lazy as BS
 import           GHC.Float
-import           Options.Generic
+import           Options.Generic hiding (First)
 import           Pipes
 import Control.Category
 import           Pipes.Lift
@@ -69,7 +71,7 @@ main = do
   hs <- runStar (extract . update yummy) fns
 
   putStrLn ("writing to file " ++ outfile args)
-  BS.writeFile (outfile args) $ S.encodeLazy hs  
+  BS.writeFile (outfile args) . S.encodeLazy $ (fmap.fmap) extract hs  
 
 
   where
@@ -83,106 +85,106 @@ type Three a b c = Both a (Both b c)
 fillFile
   :: (MonadIO m, MonadCatch m, MonadFail m)
   => [String] -- ^ systematic tree names
-  -> MooreK m String (Three ProcessInfo (Sum Double) AnaObjs)
-fillFile systs = feedback . liftMoore (Both mempty (Both mempty mempty)) . Star $ \(th, fn) -> do
-  let Both _ (Both sow aos) = th
+  -> MooreK m String (Three (First ProcessInfo) (Sum Double) (Moore' (PhysObj Event) AnaObjs))
+fillFile systs =
+  feedback . liftMoore (Both mempty (Both mempty eventHs)) . Star $ \(th, fn) -> do
+    let Both pi (Both sow aos) = th
 
-  liftIO . putStrLn $ "analyzing file " <> fn
+    liftIO . putStrLn $ "analyzing file " <> fn
 
-  -- check whether or not this is a data file
-  tfile <- tfileOpen fn
-  liftIO . putStrLn $ "checking sumWeights"
+    -- check whether or not this is a data file
+    tfile <- tfileOpen fn
+    liftIO . putStrLn $ "checking sumWeights"
 
-  tw <- ttree tfile "sumWeights"
+    tw <- ttree tfile "sumWeights"
 
-  -- partial.
-  -- throw an error when there is no dsid.
-  (Just (dsidc :: CInt)) <-
-    P.head . evalStateP tw $ yield 0 >-> pipeTTree (readBranch "dsid")
+    -- partial.
+    -- throw an error when there is no dsid.
+    (Just (dsidc :: CInt)) <-
+      P.head . evalStateP tw $ yield 0 >-> pipeTTree (readBranch "dsid")
 
-  let dsid' = fromEnum dsidc
-      procinfo =
-        ProcessInfo dsid'
-        $ if "_a" `isInfixOf` fn
-          then AFII
-          else if dsid' == 0 then DS else FS
-
-
-  liftIO . putStrLn $ "procinfo: " ++ show procinfo
-
-  sow' <-
-    fmap float2Double
-    . P.fold
-    . evalStateP tw
-    $ each ([0..] :: [Int]) >-> pipeTTree (readBranch "totalEventsWeighted")
-
-  liftIO . putStrLn $ "sum of weights: " ++ show sow'
-
-  let entryFold = P.fold chomps entryMoore id
-      entryMoore = feedback $ liftMoore M.empty (\(m, (i, j)) -> M.insert i j m)
-
-      entryRead = (,) <$> readRunEventNumber <*> readEntry
-      entries t = entryFold . evalStateP t $ allIdxs >-> pipeTTree entryRead
-      allIdxs = each ([0..] :: [Int])
+    let dsid' = fromEnum dsidc
+        procinfo =
+          ProcessInfo dsid'
+          $ if "_a" `isInfixOf` fn
+            then AFII
+            else if dsid' == 0 then DS else FS
 
 
-  nomTree <- ttree tfile "nominal"
-  nomEntries <- entries nomTree
+    liftIO . putStrLn $ "procinfo: " ++ show procinfo
 
-  trueTree <- ttree tfile "particleLevel"
-  trueEntries <-
-    if dsid' == 0
-      then return mempty
-      else entries trueTree
+    sow' <-
+      fmap float2Double
+      . P.fold (+) 0 id
+      . evalStateP tw
+      $ each ([0..] :: [Int])
+        >-> pipeTTree (readBranch "totalEventsWeighted")
 
-  let systflag =
-        case dsid' of
-          0 -> Data'
-          _ ->
-            if procinfo `elem` ([nomkey] ++ zjetskeys ++ stopdrkeys ++ dibosonkeys)
-              then MC' AllVars
-              else MC' NoVars
-      take' = maybe cat P.take nevt
+    liftIO . putStrLn $ "sum of weights: " ++ show sow'
 
-  (systTrees :: M.Map String TTree) <-
-    case systflag of
-      Data' -> return mempty
-      MC' NoVars -> return mempty
-      MC' AllVars -> M.fromList <$> mapM (\tn -> (tn,) <$> ttree tfile tn) systs
+    let entryFold = P.fold chomps entryMoore id
+        entryMoore = feedback $ liftMoore mempty (\(m, (i, j)) -> liftSM (M.insert i j) m)
 
-  systEntries <- mapM entries systTrees
+        entryRead = (,) <$> readRunEventNumber <*> readEntry
+        entries t = fmap extract . entryFold . evalStateP t $ allIdxs >-> pipeTTree entryRead
+        allIdxs = each ([0..] :: [Int])
 
-  let allEntries = entryMap trueEntries nomEntries systEntries
 
-  aos' <-
-    -- F.purely P.fold eventHs
-    P.fold chomps aos id
-    $ each allEntries
-      >-> take'
-      >-> doEvery 100
-          ( \i _ -> liftIO . putStrLn $ show i ++ " entries processed." )
-      >-> readEvents systflag trueTree nomTree systTrees
-      >-> P.map return
+    nomTree <- ttree tfile "nominal"
+    nomEntries <- entries nomTree
 
-  liftIO . putStrLn $ "closing file " <> fn
-  liftIO $ tfileClose tfile
-  return (procinfo, sow <> sow', aos')
+    trueTree <- ttree tfile "particleLevel"
+    trueEntries <-
+      if dsid' == 0
+        then return mempty
+        else entries trueTree
+
+    let systflag =
+          case dsid' of
+            0 -> Data'
+            _ ->
+              if procinfo `elem` ([nomkey] ++ zjetskeys ++ stopdrkeys ++ dibosonkeys)
+                then MC' AllVars
+                else MC' NoVars
+
+    (systTrees :: StrictMap String TTree) <-
+      case systflag of
+        Data' -> return mempty
+        MC' NoVars -> return mempty
+        MC' AllVars -> fromList <$> mapM (\tn -> (tn,) <$> ttree tfile tn) systs
+
+    systEntries <- mapM entries systTrees
+
+    let allEntries = entryMap trueEntries nomEntries systEntries
+
+    aos' <-
+      P.fold chomps aos id
+      $ each allEntries
+        >-> doEvery 100
+            ( \i _ -> liftIO . putStrLn $ show i ++ " entries processed." )
+        >-> readEvents systflag trueTree nomTree systTrees
+        >-> P.map return
+
+    liftIO . putStrLn $ "closing file " <> fn
+    liftIO $ tfileClose tfile
+    return . Both (pi <> First (Just procinfo)) $ Both (sow <> Sum sow') aos'
 
   where
     entryMap
       :: Ord a
-      => M.Map a b
-      -> M.Map a b
-      -> M.Map k (M.Map a b)
-      -> [(a, (Maybe b, Maybe b, M.Map k (Maybe b)))]
+      => StrictMap a b
+      -> StrictMap a b
+      -> StrictMap k (StrictMap a b)
+      -> [(a, (Maybe b, Maybe b, StrictMap k (Maybe b)))]
     entryMap trueMap nomMap systMaps =
       fmap (\i -> (i, lookup' i)) . nub
-      $ M.keys trueMap ++ M.keys nomMap ++ foldMap M.keys systMaps
+      $ keys' trueMap ++ keys' nomMap ++ foldMap keys' systMaps
       where
+        keys' = inSM M.keys
         lookup' i =
-          ( M.lookup i trueMap
-          , M.lookup i nomMap
-          , fmap (M.lookup i) systMaps
+          ( trueMap ^? ix i
+          , nomMap ^? ix i
+          , fmap (^? ix i) systMaps
           )
 
 
@@ -205,8 +207,8 @@ readEvents
   => DataMC'
   -> TTree
   -> TTree
-  -> M.Map String TTree
-  -> Pipe ((CUInt, CULong), (Maybe Int, Maybe Int, M.Map String (Maybe Int))) Event m r
+  -> StrictMap String TTree
+  -> Pipe ((CUInt, CULong), (Maybe Int, Maybe Int, StrictMap String (Maybe Int))) Event m r
 readEvents systflag tttrue ttnom ttsysts = do
   ((rn, en), (mitrue, minom, isysts)) <- await
 
@@ -236,13 +238,13 @@ readEvents systflag tttrue ttnom ttsysts = do
           Just (trueEvt, _) ->
             toListOf (trueJets.traverse.tjBHadrons.traverse) trueEvt
 
-      systs' =
-        M.mergeWithKey
-          (\_ t mi -> Just $ g (readRecoEvent (MC' NoVars) bhs) t mi)
-          (fmap $ const $ throwM TreeReadError)
-          (fmap $ const $ throwM TreeReadError)
-          ttsysts
-          isysts
+      systs' = liftSM2 go ttsysts isysts
+        where
+          go =
+            M.mergeWithKey
+              (\_ t mi -> Just $ g (readRecoEvent (MC' NoVars) bhs) t mi)
+              (fmap $ const $ throwM TreeReadError)
+              (fmap $ const $ throwM TreeReadError)
 
   (nom, ttnom') <- g (readRecoEvent systflag bhs) ttnom minom
   msysts <- sequence systs'
@@ -257,12 +259,12 @@ readEvents systflag tttrue ttnom ttsysts = do
     . toEvent nom
     . fromList
     . fmap (first T.pack)
-    $ M.toList systs
+    $ toList systs
 
   readEvents systflag tttrue' ttnom' ttsysts'
 
   where
-    toEvent :: PhysObj a -> StrictMap T.Text (PhysObj a) -> PhysObj a
+    toEvent :: PhysObj a -> StrictHashMap T.Text (PhysObj a) -> PhysObj a
     toEvent n s =
       let systs = view nominal . runPhysObj <$> s
           n' = runPhysObj n
