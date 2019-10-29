@@ -8,8 +8,10 @@ module Main where
 
 import Prelude hiding (id, (.))
 import           Atlas
-import           Data.StrictMap
-import           Data.StrictHashMap
+import           Data.StrictMap (StrictMap)
+import qualified Data.StrictMap as SM
+import           Data.StrictHashMap (StrictHashMap)
+import qualified Data.StrictHashMap as SHM
 import qualified Data.Map.Strict as M
 import Data.Histogram.Instances
 import Data.Profunctor
@@ -71,11 +73,14 @@ main = do
   hs <- runStar (extract . update yummy) fns
 
   putStrLn ("writing to file " ++ outfile args)
-  BS.writeFile (outfile args) . S.encodeLazy $ (fmap.fmap) extract hs  
+  BS.writeFile (outfile args) . S.encodeLazy $ toMap hs  
 
 
   where
     chompM m i = runStar (update m) i
+
+    toMap (Both (First (Just pi)) (Both sow aos)) = SM.singleton pi . Both sow $ extract aos
+    toMap (Both (First Nothing) _) = mempty
 
 
 
@@ -83,18 +88,17 @@ type Three a b c = Both a (Both b c)
 
 
 fillFile
-  :: (MonadIO m, MonadCatch m, MonadFail m)
-  => [String] -- ^ systematic tree names
-  -> MooreK m String (Three (First ProcessInfo) (Sum Double) (Moore' (PhysObj Event) AnaObjs))
+  :: [String] -- ^ systematic tree names
+  -> MooreK IO String (Three (First ProcessInfo) (Sum Double) (Moore' (PhysObj Event) AnaObjs))
 fillFile systs =
   feedback . liftMoore (Both mempty (Both mempty eventHs)) . Star $ \(th, fn) -> do
     let Both pi (Both sow aos) = th
 
-    liftIO . putStrLn $ "analyzing file " <> fn
+    putStrLn $ "analyzing file " <> fn
 
     -- check whether or not this is a data file
     tfile <- tfileOpen fn
-    liftIO . putStrLn $ "checking sumWeights"
+    putStrLn $ "checking sumWeights"
 
     tw <- ttree tfile "sumWeights"
 
@@ -111,7 +115,7 @@ fillFile systs =
             else if dsid' == 0 then DS else FS
 
 
-    liftIO . putStrLn $ "procinfo: " ++ show procinfo
+    putStrLn $ "procinfo: " ++ show procinfo
 
     sow' <-
       fmap float2Double
@@ -120,10 +124,10 @@ fillFile systs =
       $ each ([0..] :: [Int])
         >-> pipeTTree (readBranch "totalEventsWeighted")
 
-    liftIO . putStrLn $ "sum of weights: " ++ show sow'
+    putStrLn $ "sum of weights: " ++ show sow'
 
     let entryFold = P.fold chomps entryMoore id
-        entryMoore = feedback $ liftMoore mempty (\(m, (i, j)) -> liftSM (M.insert i j) m)
+        entryMoore = feedback $ liftMoore mempty (\(m, (i, j)) -> SM.liftSM (M.insert i j) m)
 
         entryRead = (,) <$> readRunEventNumber <*> readEntry
         entries t = fmap extract . entryFold . evalStateP t $ allIdxs >-> pipeTTree entryRead
@@ -157,16 +161,28 @@ fillFile systs =
 
     let allEntries = entryMap trueEntries nomEntries systEntries
 
+    putStrLn "num true entries:"
+    print $ length trueEntries
+
+    putStrLn "num nom entries:"
+    print $ length nomEntries
+
+    putStrLn "num syst entries:"
+    print $ length systEntries
+
+    putStrLn "num total entries:"
+    print $ length allEntries
+
     aos' <-
       P.fold chomps aos id
       $ each allEntries
         >-> doEvery 100
-            ( \i _ -> liftIO . putStrLn $ show i ++ " entries processed." )
+            ( \i _ -> putStrLn $ show i ++ " entries processed." )
         >-> readEvents systflag trueTree nomTree systTrees
         >-> P.map return
 
-    liftIO . putStrLn $ "closing file " <> fn
-    liftIO $ tfileClose tfile
+    putStrLn $ "closing file " <> fn
+    tfileClose tfile
     return . Both (pi <> First (Just procinfo)) $ Both (sow <> Sum sow') aos'
 
   where
@@ -180,7 +196,7 @@ fillFile systs =
       fmap (\i -> (i, lookup' i)) . nub
       $ keys' trueMap ++ keys' nomMap ++ foldMap keys' systMaps
       where
-        keys' = inSM M.keys
+        keys' = SM.inSM M.keys
         lookup' i =
           ( trueMap ^? ix i
           , nomMap ^? ix i
@@ -238,7 +254,7 @@ readEvents systflag tttrue ttnom ttsysts = do
           Just (trueEvt, _) ->
             toListOf (trueJets.traverse.tjBHadrons.traverse) trueEvt
 
-      systs' = liftSM2 go ttsysts isysts
+      systs' = SM.liftSM2 go ttsysts isysts
         where
           go =
             M.mergeWithKey

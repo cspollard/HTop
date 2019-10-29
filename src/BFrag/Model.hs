@@ -25,8 +25,6 @@ import Both
 import Optic (hubble)
 
 
-
-type Folder = StrictMap T.Text
 type FA a = Folder (Annotated a)
 
 -- bfragModel
