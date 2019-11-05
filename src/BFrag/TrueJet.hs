@@ -75,7 +75,8 @@ instance HasSVConstits TrueJet where
 
 instance HasPVConstits TrueJet where
   pvConstits = pure . toListOf (tjPVConstits.traverse.toPtEtaPhiE)
-  pvChargedConstits = pure . filter ((> 500) . view lvPt) . toListOf (tjPVConstits.traverse.filtered charged.toPtEtaPhiE)
+  -- cut out charged constituents with pT < 500 MeV
+  pvChargedConstits = pure . filter ((> 0.5) . view lvPt) . toListOf (tjPVConstits.traverse.filtered charged.toPtEtaPhiE)
 
 
 svTrue :: TrueJet -> PtEtaPhiE

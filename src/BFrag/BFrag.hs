@@ -29,7 +29,7 @@ zbrelcname = "\\ensuremath{z_{\\mathrm{rel,b}}^\\mathrm{ch}}"
 
 
 zbtbin, zbtcbin, zblbin, zblcbin, zbrelbin, zbrelcbin :: BinD
-zbtbin = binD 0 20 1.00
+zbtbin = binD 0 20 1
 zbtcbin = zbtbin
 zblbin = zbtbin
 zblcbin = zblbin
@@ -44,7 +44,7 @@ nsvtrkname = "\\ensuremath{n_{\\mathrm{B}}^\\mathrm{ch}}"
 
 npvtrkbin, nsvtrkbin :: BinD
 npvtrkbin = binD 0 20 20
-nsvtrkbin = binD 0 20 20
+nsvtrkbin = binD 3 8 11
 
 
 class HasSVConstits a where
@@ -121,15 +121,18 @@ zbrel j = do
   return $ num / denom
 
 
+
+localBins = logBinD 1 20 150
+
 chargedPtH :: (HasSVConstits a, HasPVConstits a) => VarFill a
 chargedPtH = h =$<< fmap (view lvPt) . chargedSum
   where
-    h = hist1DDef (binD 0 25 250) "charged $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
+    h = hist1DDef localBins "charged $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
 
 
 pvPtH :: HasPVConstits a => VarFill a
 pvPtH = h =$<< fmap (view lvPt . fold) . pvConstits
-  where h = hist1DDef (binD 0 25 250) "PV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
+  where h = hist1DDef localBins "PV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
 
 
 pvPtcH :: HasPVConstits a => VarFill a
@@ -137,14 +140,14 @@ pvPtcH = h =$<< fmap (view lvPt . fold) . pvChargedConstits
   where
     h =
       hist1DDef
-        (binD 0 25 250)
+        localBins
         "PV charged $p_{\\mathrm T}$ [GeV]"
         (dsigdXpbY pt gev)
 
 
 svPtH :: HasSVConstits a => VarFill a
 svPtH = h =$<< fmap (view lvPt . fold) . svConstits
-  where h = hist1DDef (binD 0 25 250) "SV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
+  where h = hist1DDef localBins "SV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
 
 
 svPtcH :: HasSVConstits a => VarFill a
@@ -152,7 +155,7 @@ svPtcH = h =$<< fmap (view lvPt . fold) . svChargedConstits
   where
     h =
       hist1DDef
-        (binD 0 25 250)
+        localBins
         "SV charged $p_{\\mathrm T}$"
         (dsigdXpbY pt gev)
 
@@ -160,7 +163,7 @@ svPtcH = h =$<< fmap (view lvPt . fold) . svChargedConstits
 svMH :: HasSVConstits a => VarFill a
 svMH = h =$<< fmap (view lvM . fold) . svConstits
   where
-    h = hist1DDef (binD 0 20 10) "SV mass [GeV]" (dsigdXpbY "m" gev)
+    h = hist1DDef (binD 0 12 6) "SV mass [GeV]" (dsigdXpbY "m" gev)
 
 
 svMcH :: HasSVConstits a => VarFill a
