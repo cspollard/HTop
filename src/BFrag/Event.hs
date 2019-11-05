@@ -74,7 +74,7 @@ eventHs =
   mconcat
   [ hs
   , channelWithLabel "/njets_eq_2" (fmap ((==2) . nj) . view recoEvent) hs
-  , channelWithLabel "/njets_eq_2" (fmap ((>=2) . nj) . view recoEvent) hs
+  , channelWithLabel "/njets_gt_2" (fmap ((>2) . nj) . view recoEvent) hs
   , channelWithLabel "/mu_le_22" (muCut (<= 22)) hs
   , channelWithLabel "/mu_gt_22" (muCut (> 22)) hs
   ]
