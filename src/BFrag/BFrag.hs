@@ -85,7 +85,9 @@ zblc j = do
   p3 <- toXYZ <$> chargedSum j
   let denom = modulus2 p3
       num = svp3 `inner` p3
-  return $ num / denom
+  case denom of
+    0.0 -> empty
+    x -> return $ num / x
 
 
 zbrelc j = do
@@ -93,7 +95,9 @@ zbrelc j = do
   p3 <- toXYZ <$> chargedSum j
   let denom = modulus2 p3
       num = modulus $ svp3 `cross` p3
-  return $ num / denom
+  case denom of
+    0.0 -> empty
+    x -> return $ num / x
 
 
 zbt, zbl, zbrel :: (HasSVConstits a, HasPVConstits a) => a -> PhysObj Double
@@ -110,7 +114,9 @@ zbl j = do
   p3 <- toXYZ <$> constitsSum j
   let denom = modulus2 p3
       num = svp3 `inner` p3
-  return $ num / denom
+  case denom of
+    0.0 -> empty
+    x -> return $ num / x
 
 
 zbrel j = do
@@ -118,7 +124,9 @@ zbrel j = do
   p3 <- toXYZ <$> constitsSum j
   let denom = modulus2 p3
       num = modulus $ svp3 `cross` p3
-  return $ num / denom
+  case denom of
+    0.0 -> empty
+    x -> return $ num / x
 
 
 
