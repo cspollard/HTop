@@ -103,10 +103,10 @@ btagSF vcfg = do
     AllVars -> do
       btagwsup <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_B_up"
       btagwsdown <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_B_down"
-      ctagwsup <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_C_up"
-      ctagwsdown <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_C_down"
-      ltagwsup <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_Light_up"
-      ltagwsdown <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_Light_down"
+      -- ctagwsup <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_C_up"
+      -- ctagwsdown <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_C_down"
+      -- ltagwsup <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_Light_up"
+      -- ltagwsdown <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_Light_down"
 
       return . varSF . fmap (sf "weight_btag")
         $ Variation btagw
@@ -114,10 +114,10 @@ btagSF vcfg = do
             $ mconcat
               [ first (<> "up") <$> enum "btagsf" btagwsup
               , first (<> "down") <$> enum "btagsf" btagwsdown
-              , first (<> "up") <$> enum "ctagsf" ctagwsup
-              , first (<> "down") <$> enum "ctagsf" ctagwsdown
-              , first (<> "up") <$> enum "ltagsf" ltagwsup
-              , first (<> "down") <$> enum "ltagsf" ltagwsdown
+              -- , first (<> "up") <$> enum "ctagsf" ctagwsup
+              -- , first (<> "down") <$> enum "ctagsf" ctagwsdown
+              -- , first (<> "up") <$> enum "ltagsf" ltagwsup
+              -- , first (<> "down") <$> enum "ltagsf" ltagwsdown
               ]
           )
 
