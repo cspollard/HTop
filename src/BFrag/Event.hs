@@ -73,8 +73,6 @@ eventHs :: VarFills Event
 eventHs =
   mconcat
   [ hs
-  , channelWithLabel "/njets_eq_2" (fmap ((==2) . nj) . view recoEvent) hs
-  , channelWithLabel "/njets_gt_2" (fmap ((>2) . nj) . view recoEvent) hs
   , channelWithLabel "/mu_le_22" (muCut (<= 22)) hs
   , channelWithLabel "/mu_gt_22" (muCut (> 22)) hs
   ]
@@ -97,8 +95,6 @@ eventHs =
         re <- _recoEvent
         m <- poFromVars $ view mu re
         return $ c m
-
-    nj = length . view jets
 
 
 
