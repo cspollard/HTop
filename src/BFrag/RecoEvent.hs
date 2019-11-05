@@ -91,7 +91,7 @@ readRecoEvent dmc bhs = do
 muH :: VarFill RecoEvent
 muH = h =$<< poFromVars . view mu
   where
-    h = hist1DDef (binD 0 50 50) "\\ensuremath{< \\mu >}" (dsigdXpbY "<\\mu>" "1")
+    h = hist1DDef (binD 0 20 40) "\\ensuremath{< \\mu >}" (dsigdXpbY "<\\mu>" "1")
 
 
 elmujj :: RecoEvent -> PhysObj Bool
@@ -126,7 +126,8 @@ recoEventHs = hs `mappend` channelWithLabel "/fakes" fakeEvent hs
 
             , prefixF "/jets"
               . over (traverse.xlabel) ("jet " <>)
-              <$> F.handles folded lvHs <$= collapsePO . fmap (view jets)
+              <$> ((singleton "/n" <$> nH 5) `mappend` (F.handles folded lvHs <$= collapsePO))
+              <$= fmap (view jets)
 
             , prefixF "/electrons"
               . over (traverse.xlabel) ("electron " <>)

@@ -122,7 +122,7 @@ zbrel j = do
 
 
 
-localBins = logBinD 1 20 150
+localBins = binD 0 20 120
 
 chargedPtH :: (HasSVConstits a, HasPVConstits a) => VarFill a
 chargedPtH = h =$<< fmap (view lvPt) . chargedSum
@@ -169,7 +169,7 @@ svMH = h =$<< fmap (view lvM . fold) . svConstits
 svMcH :: HasSVConstits a => VarFill a
 svMcH = h =$<< fmap (view lvM . fold) . svChargedConstits
   where
-    h = hist1DDef (binD 0 20 10) "SV charged mass [GeV]" (dsigdXpbY "m" gev)
+    h = hist1DDef (binD 0 12 6) "SV charged mass [GeV]" (dsigdXpbY "m" gev)
 
 
 zbtH :: (HasSVConstits a, HasPVConstits a) => VarFill a
