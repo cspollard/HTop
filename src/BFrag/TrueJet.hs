@@ -25,10 +25,10 @@ import           GHC.Generics        (Generic)
 
 data TrueParticle =
   TrueParticle
-    { _tpPID       :: PID
-    , _tp3Q        :: Int
-    , _tpPtEtaPhiE :: PtEtaPhiE
-    } deriving  (Generic, Show)
+  { _tpPID       :: PID
+  , _tp3Q        :: Int
+  , _tpPtEtaPhiE :: PtEtaPhiE
+  } deriving  (Generic, Show)
 
 neutral :: TrueParticle -> Bool
 neutral = (==0) . view threeCharge
@@ -48,19 +48,19 @@ instance HasLorentzVector TrueParticle where
 
 data TrueJet =
   TrueJet
-    { _tjPtEtaPhiE  :: PtEtaPhiE
-    , _tjPVConstits :: [TrueParticle]
-    , _tjBHadrons   :: [BHadron]
-    } deriving (Generic, Show)
+  { _tjPtEtaPhiE  :: PtEtaPhiE
+  , _tjPVConstits :: [TrueParticle]
+  , _tjBHadrons   :: [BHadron]
+  } deriving (Generic, Show)
 
 instance HasLorentzVector TrueJet where
   toPtEtaPhiE = lens _tjPtEtaPhiE $ \tj x -> tj { _tjPtEtaPhiE = x }
 
 data BHadron =
   BHadron
-    { _bhTP       :: TrueParticle
-    , _bhChildren :: [TrueParticle]
-    } deriving (Generic, Show)
+  { _bhTP       :: TrueParticle
+  , _bhChildren :: [TrueParticle]
+  } deriving (Generic, Show)
 
 
 instance HasPID BHadron where
@@ -75,7 +75,7 @@ instance HasSVConstits TrueJet where
 
 instance HasPVConstits TrueJet where
   pvConstits = pure . toListOf (tjPVConstits.traverse.toPtEtaPhiE)
-  pvChargedConstits = pure . toListOf (tjPVConstits.traverse.filtered charged.toPtEtaPhiE)
+  pvChargedConstits = pure . filter ((> 500) . view lvPt) . toListOf (tjPVConstits.traverse.filtered charged.toPtEtaPhiE)
 
 
 svTrue :: TrueJet -> PtEtaPhiE
