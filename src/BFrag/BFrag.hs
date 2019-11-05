@@ -29,11 +29,11 @@ zbrelcname = "\\ensuremath{z_{\\mathrm{rel,b}}^\\mathrm{ch}}"
 
 
 zbtbin, zbtcbin, zblbin, zblcbin, zbrelbin, zbrelcbin :: BinD
-zbtbin = binD 0 21 1.05
+zbtbin = binD 0 20 1.00
 zbtcbin = zbtbin
 zblbin = zbtbin
 zblcbin = zblbin
-zbrelbin = binD 0 20 0.05
+zbrelbin = binD 0 20 0.02
 zbrelcbin = zbrelbin
 
 
