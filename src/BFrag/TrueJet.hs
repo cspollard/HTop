@@ -71,7 +71,7 @@ instance HasLorentzVector BHadron where
 
 instance HasSVConstits TrueJet where
   svConstits = pure . toListOf (tjBHadrons.traverse.toPtEtaPhiE)
-  svChargedConstits = pure . toListOf (tjBHadrons.traverse.bhChildren.traverse.filtered charged.toPtEtaPhiE)
+  svChargedConstits = pure . filter ((> 0.5) . view lvPt) . toListOf (tjBHadrons.traverse.bhChildren.traverse.filtered charged.toPtEtaPhiE)
 
 instance HasPVConstits TrueJet where
   pvConstits = pure . toListOf (tjPVConstits.traverse.toPtEtaPhiE)
