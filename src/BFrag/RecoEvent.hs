@@ -110,19 +110,9 @@ fakeEvent RecoEvent{..} =
 
 -- so much boilerplate
 recoEventHs :: VarFills RecoEvent
-recoEventHs =
-  mconcat
-  [ hs
-  , channelWithLabel "/fakes" fakeEvent hs
-  , channelWithLabel "/njets_eq_2" (pure . (==2) . nj) hs
-  , channelWithLabel "/njets_gt_2" (pure . (>2) . nj) hs
-  , channelWithLabel "/mu_lt_20" (poFromVars . fmap (<20) . view mu) hs
-  , channelWithLabel "/mu_gt_20" (poFromVars . fmap (>20) . view mu) hs
-  ]
+recoEventHs = hs `mappend` channelWithLabel "/fakes" fakeEvent hs
 
   where
-    nj RecoEvent{..} = length _jets
-
     hs =
           channelWithLabel "/elmujj" elmujj
           $ mconcat
