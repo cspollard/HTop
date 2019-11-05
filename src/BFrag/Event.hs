@@ -116,7 +116,7 @@ matchedEventHs =
     go (tevt, revt) =
       let rjs = probeJets revt
           tjs = toListOf (trueJets . traverse . filtered trueBJet) tevt
-          tjs' = filter tjfilt tjs
+          tjs' = filter hasGoodSV tjs
           matches = fmap (fmap swap . sequence . trueMatch tjs') <$> rjs
       in (>>= fromMaybe') <$> matches
 
@@ -124,11 +124,6 @@ matchedEventHs =
     fromMaybe' Nothing  = poFail
 
 
-    tjfilt =
-        (>= 3)
-        . length
-        . filter ((> 0.5) . view lvPt)
-        . toListOf (tjBHadrons.traverse.bhChildren.traverse.filtered charged.toPtEtaPhiE)
 
 
 trueMatch :: [TrueJet] -> Jet -> (Jet, Maybe TrueJet)

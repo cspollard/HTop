@@ -54,7 +54,7 @@ trueEventHs =
   $ prefixF "/truejets"
     . over (traverse.xlabel) ("true jet " <>)
     <$> F.handles folded (bfragHs `mappend` lvHs `mappend` bHs)
-    <$= collapsePO . fmap (view trueJets)
+    <$= collapsePO . fmap (filter hasGoodSV . view trueJets)
 
   where
     bHs :: VarFills TrueJet

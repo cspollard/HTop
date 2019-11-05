@@ -9,7 +9,7 @@ module BFrag.TrueJet
   , tjPVConstits, tjBHadrons
   , bhTP
   , readTrueJets, bhChildren
-  , trueBJet, svTrue
+  , trueBJet, svTrue, hasGoodSV
   , bMesonH, bBaryonH
   ) where
 
@@ -119,6 +119,13 @@ readTrueJets = do
 
 trueBJet :: TrueJet -> Bool
 trueBJet j = lengthOf (tjBHadrons.traverse) j == 1 && view lvPt j > 25
+
+hasGoodSV :: TrueJet -> Bool
+hasGoodSV =
+    (>= 3)
+    . length
+    . filter ((> 0.5) . view lvPt)
+    . toListOf (tjBHadrons.traverse.bhChildren.traverse.filtered charged.toPtEtaPhiE)
 
 
 vecVecTP
