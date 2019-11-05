@@ -116,17 +116,27 @@ matchedEventHs =
     go (tevt, revt) =
       let rjs = probeJets revt
           tjs = toListOf (trueJets . traverse . filtered trueBJet) tevt
-          matches = fmap (fmap swap . sequence . trueMatch tjs) <$> rjs
+          tjs' = filter tjfilt tjs
+          matches = fmap (fmap swap . sequence . trueMatch tjs') <$> rjs
       in (>>= fromMaybe') <$> matches
 
     fromMaybe' (Just x) = return x
     fromMaybe' Nothing  = poFail
 
 
+    tjfilt =
+        (>= 3)
+        . length
+        . filter ((> 0.5) . view lvPt)
+        . toListOf (tjBHadrons.traverse.bhChildren.traverse.filtered charged.toPtEtaPhiE)
+
+
 trueMatch :: [TrueJet] -> Jet -> (Jet, Maybe TrueJet)
 trueMatch tjs j = (j,) . getOption $ do
+
   Min (Arg dr tj) <-
     foldMap (\tj' -> Option . Just . Min $ Arg (lvDREta j tj') tj') tjs
+
   if dr < 0.3
     then return tj
     else Option Nothing

@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module BFrag.TrueJet
@@ -71,6 +72,7 @@ instance HasLorentzVector BHadron where
 
 instance HasSVConstits TrueJet where
   svConstits = pure . toListOf (tjBHadrons.traverse.toPtEtaPhiE)
+  -- cut out charged constituents with pT < 500 MeV
   svChargedConstits = pure . filter ((> 0.5) . view lvPt) . toListOf (tjBHadrons.traverse.bhChildren.traverse.filtered charged.toPtEtaPhiE)
 
 instance HasPVConstits TrueJet where
@@ -96,8 +98,12 @@ readBHadrons = do
 
   childs <- vecVecTP "bhad_child_"
   let tps = liftA3 TrueParticle pids chs tlvs
+      bhs = getZipList $ liftA2 BHadron tps childs
 
-  return . getZipList $ liftA2 BHadron tps childs
+      -- bcfilt tp = charged tp && view lvPt tp > 0.5
+      -- bhfilt BHadron{..} = length (filter bcfilt _bhChildren) >= 3
+
+  return bhs
 
 
 readTrueJets :: (MonadIO m, MonadThrow m) => TreeRead m [TrueJet]
@@ -157,8 +163,6 @@ vecVecTLV spt seta sphi se = do
     return . ZipList $ V.toList ps
 
 
--- TODO
--- better matching criterion?
 matchBTJ :: BHadron -> V.Vector TrueJet -> V.Vector TrueJet
 matchBTJ bh tjs =
   if V.length tjs == 0
