@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses     #-}
+{-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedLists           #-}
 {-# LANGUAGE OverloadedStrings         #-}
@@ -23,12 +24,29 @@ import           GHC.Exts               (IsList (..))
 import           Pipes
 import qualified Pipes.Prelude          as P
 import           System.IO
-
+import Control.Monad (foldM)
 
 
 main :: IO ()
 main = mainWith writeFiles
 
+
+totalUncert :: Vars Obj -> Obj
+totalUncert (Variation h@(H2DD _) _) = h
+totalUncert (Variation h@(P1DD _) _) = h
+totalUncert (Variation (H1DD n') vs') =
+  let vs'' = maybe (error "not all H1DDs") id $ traverse (preview _H1DD) vs'
+  in H1DD $ go n' vs''
+
+  where
+    go n vs =
+      maybe (error "failed to calculate total uncert") id $ do
+        let addSyst dn dsyst =
+              let diff = view sumW dn - view sumW dsyst
+              in over sumWW (+ diff*diff) dn
+
+        foldM (hzip' addSyst) n vs
+  
 
 writeFiles :: String -> ProcMap (Folder (Annotated (Vars Obj))) -> IO ()
 writeFiles outf pm = do
@@ -37,6 +55,7 @@ writeFiles outf pm = do
 
       predhs = imap appLumi pred'
       bkghs = imap appLumi bkgs
+
       ttpredhs =
         ((fmap.fmap) (view nominal) . imap appLumi . (fmap.fmap) pure)
         <$> ttpreds
@@ -49,13 +68,12 @@ writeFiles outf pm = do
             over ylabel (T.replace "\\sigma" "n" . T.replace "pb" "1")
             $ yo <&> liftA2 scaleH lumi
 
-      write :: Bool -> T.Text -> Folder YodaObj -> IO ()
-      write normed varname hs =
+      write :: T.Text -> Folder YodaObj -> IO ()
+      write varname hs =
         withFile (outf ++ '/' : T.unpack varname ++ ".yoda") WriteMode $ \h ->
           runEffect
           $ each (toList $ _toMap hs)
             >-> P.map trim
-            >-> P.mapFoldable (if normed then addNorm else pure)
             >-> P.map (T.unpack . uncurry printYodaObj . first ("/htop" <>))
             >-> P.toHandle h
 
@@ -80,16 +98,19 @@ writeFiles outf pm = do
           --   let fx = obsRecoTrimmers t'
           --   in H2DD . H.liftX f $ H.liftY f h
 
-      addNorm :: (T.Text, YodaObj) -> [(T.Text, YodaObj)]
-      addNorm (t, yo) =
-        [ (t, yo)
-        , ( t <> "norm"
-          , yo
-            & set (noted._H1DD.integral) 1
-              . over ylabel g
-          )
-        ]
 
+      addNorm :: Folder (Annotated (Vars Obj)) -> Folder (Annotated (Vars Obj))
+      addNorm f = ifoldl go f f
+        where
+          go :: T.Text -> Folder (Annotated (Vars Obj)) -> Annotated (Vars Obj) -> Folder (Annotated (Vars Obj))
+          go t f' avo = f' & at (t <> "norm") ?~ normalize avo
+
+
+      normalize :: Annotated (Vars Obj) -> Annotated (Vars Obj)
+      normalize =
+        set (noted.nominal._H1DD.integral) 1
+        . set (noted.variations.traverse._H1DD.integral) 1
+        . over ylabel g
         where
           g yl =
             if T.isInfixOf "\\sigma" yl
@@ -97,8 +118,12 @@ writeFiles outf pm = do
               else "\\ensuremath{\\frac{1}{n}}" <> yl
 
 
+      addTot v = let tot = totalUncert v in v & variations . at "total" ?~ tot
+
+      predhs' = over (traverse.traverse) addTot $ addNorm predhs
+
       psmc :: VarMap (Folder YodaObj)
-      psmc = variationToMap "nominal" . sequence $ sequence <$> predhs
+      psmc = variationToMap "nominal" . sequence $ sequence <$> predhs'
 
       pstt :: VarMap (Folder YodaObj)
       pstt = fromList . fmap (first procToText) . toList $ ttpredhs
@@ -107,11 +132,11 @@ writeFiles outf pm = do
       psbkg = [("background", view nominal . sequence $ sequence <$> bkghs)]
 
       psdata :: VarMap (Folder YodaObj)
-      psdata = [("data", data')]
+      psdata = [("data", (fmap.fmap) (view nominal) . addNorm $ (fmap.fmap) pure data')]
 
 
-  runEffect $ each (toList $ psmc <> psdata <> pstt) >-> P.mapM_ (uncurry $ write True)
-  runEffect $ each (toList psbkg) >-> P.mapM_ (uncurry $ write False)
+  runEffect $ each (toList $ psmc <> psdata <> pstt) >-> P.mapM_ (uncurry write)
+  runEffect $ each (toList psbkg) >-> P.mapM_ (uncurry write)
 
 
 collapseProcs

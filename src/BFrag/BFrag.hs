@@ -29,11 +29,11 @@ zbrelcname = "\\ensuremath{z_{\\mathrm{rel,b}}^\\mathrm{ch}}"
 
 
 zbtbin, zbtcbin, zblbin, zblcbin, zbrelbin, zbrelcbin :: BinD
-zbtbin = binD 0 21 1.05
+zbtbin = binD 0 20 1
 zbtcbin = zbtbin
 zblbin = zbtbin
 zblcbin = zblbin
-zbrelbin = binD 0 20 0.05
+zbrelbin = binD 0 20 0.02
 zbrelcbin = zbrelbin
 
 
@@ -44,7 +44,7 @@ nsvtrkname = "\\ensuremath{n_{\\mathrm{B}}^\\mathrm{ch}}"
 
 npvtrkbin, nsvtrkbin :: BinD
 npvtrkbin = binD 0 20 20
-nsvtrkbin = binD 0 20 20
+nsvtrkbin = binD 3 8 11
 
 
 class HasSVConstits a where
@@ -85,7 +85,9 @@ zblc j = do
   p3 <- toXYZ <$> chargedSum j
   let denom = modulus2 p3
       num = svp3 `inner` p3
-  return $ num / denom
+  case denom of
+    0.0 -> empty
+    x -> return $ num / x
 
 
 zbrelc j = do
@@ -93,7 +95,9 @@ zbrelc j = do
   p3 <- toXYZ <$> chargedSum j
   let denom = modulus2 p3
       num = modulus $ svp3 `cross` p3
-  return $ num / denom
+  case denom of
+    0.0 -> empty
+    x -> return $ num / x
 
 
 zbt, zbl, zbrel :: (HasSVConstits a, HasPVConstits a) => a -> PhysObj Double
@@ -110,7 +114,9 @@ zbl j = do
   p3 <- toXYZ <$> constitsSum j
   let denom = modulus2 p3
       num = svp3 `inner` p3
-  return $ num / denom
+  case denom of
+    0.0 -> empty
+    x -> return $ num / x
 
 
 zbrel j = do
@@ -118,18 +124,23 @@ zbrel j = do
   p3 <- toXYZ <$> constitsSum j
   let denom = modulus2 p3
       num = modulus $ svp3 `cross` p3
-  return $ num / denom
+  case denom of
+    0.0 -> empty
+    x -> return $ num / x
 
+
+
+localBins = binD 0 20 120
 
 chargedPtH :: (HasSVConstits a, HasPVConstits a) => VarFill a
 chargedPtH = h =$<< fmap (view lvPt) . chargedSum
   where
-    h = hist1DDef (binD 0 25 250) "charged $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
+    h = hist1DDef localBins "charged $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
 
 
 pvPtH :: HasPVConstits a => VarFill a
 pvPtH = h =$<< fmap (view lvPt . fold) . pvConstits
-  where h = hist1DDef (binD 0 25 250) "PV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
+  where h = hist1DDef localBins "PV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
 
 
 pvPtcH :: HasPVConstits a => VarFill a
@@ -137,14 +148,14 @@ pvPtcH = h =$<< fmap (view lvPt . fold) . pvChargedConstits
   where
     h =
       hist1DDef
-        (binD 0 25 250)
+        localBins
         "PV charged $p_{\\mathrm T}$ [GeV]"
         (dsigdXpbY pt gev)
 
 
 svPtH :: HasSVConstits a => VarFill a
 svPtH = h =$<< fmap (view lvPt . fold) . svConstits
-  where h = hist1DDef (binD 0 25 250) "SV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
+  where h = hist1DDef localBins "SV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
 
 
 svPtcH :: HasSVConstits a => VarFill a
@@ -152,7 +163,7 @@ svPtcH = h =$<< fmap (view lvPt . fold) . svChargedConstits
   where
     h =
       hist1DDef
-        (binD 0 25 250)
+        localBins
         "SV charged $p_{\\mathrm T}$"
         (dsigdXpbY pt gev)
 
@@ -160,13 +171,13 @@ svPtcH = h =$<< fmap (view lvPt . fold) . svChargedConstits
 svMH :: HasSVConstits a => VarFill a
 svMH = h =$<< fmap (view lvM . fold) . svConstits
   where
-    h = hist1DDef (binD 0 20 10) "SV mass [GeV]" (dsigdXpbY "m" gev)
+    h = hist1DDef (binD 0 12 6) "SV mass [GeV]" (dsigdXpbY "m" gev)
 
 
 svMcH :: HasSVConstits a => VarFill a
 svMcH = h =$<< fmap (view lvM . fold) . svChargedConstits
   where
-    h = hist1DDef (binD 0 20 10) "SV charged mass [GeV]" (dsigdXpbY "m" gev)
+    h = hist1DDef (binD 0 12 6) "SV charged mass [GeV]" (dsigdXpbY "m" gev)
 
 
 zbtH :: (HasSVConstits a, HasPVConstits a) => VarFill a
@@ -276,12 +287,12 @@ bfragHs =
 zbtcMerges, zblcMerges, zbrelcMerges, zbtMerges, zblMerges, zbrelMerges
   :: [[Int]]
 zbtcMerges =
-  [ [00, 01, 02, 03, 04, 05, 06, 07, 08, 09]
-  , [10, 11, 12]
-  , [13, 14]
-  , [15, 16]
-  , [17, 18]
-  , [19, 20]
+  [ [00, 01, 02, 03, 04, 05, 06, 07, 08]
+  , [09, 10, 11]
+  , [12, 13]
+  , [14, 15]
+  , [16, 17]
+  , [18, 19]
   ]
 
 zbtMerges = zbtcMerges
@@ -314,21 +325,21 @@ obsTruthTrimmers s =
 
 
 obsRecoTrimmers
-  :: (Eq a1, Fractional a, Ord a, Monoid b, IsString a1)
+  :: (Eq a1, Fractional a, Ord a, Monoid b, IsString a1, Show a1)
   => a1 -> Histogram Vector (ArbBin a) b -> Histogram Vector (ArbBin a) b
 obsRecoTrimmers s =
   case s of
-    "zbtc"   -> trimH [ [00, 01], [02..18], [19, 20] ]
-    "zblc"   -> trimH [ [00, 01], [02..18], [19, 20] ]
-    "zbrelc" -> trimH [ [00..17], [18, 19] ]
-    "zbt"    -> trimH [ [00, 01], [02..18], [19, 20] ]
-    "zbl"    -> trimH [ [00, 01], [02..18], [19, 20] ]
-    "zbrel"  -> trimH [ [00..17], [18, 19] ]
-    _         -> error "unrecognized observable"
+    "zbtc"   -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
+    "zblc"   -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
+    "zbt"    -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
+    "zbl"    -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
+    "zbrelc" -> trimH $ pure <$> [00..19]
+    "zbrel"  -> trimH $ pure <$> [00..19]
+    _         -> id
 
 
 obsNames
-  :: (IsString t, IsString a, Eq a)
+  :: (IsString t, IsString a, Eq a, Show a)
   => a -> (t, t, t, t)
 obsNames s =
   case s of
@@ -338,7 +349,7 @@ obsNames s =
     "zbt"     -> (zbtrecohname, zbttruehname, zbtrecomatchhname, zbtmatrixname)
     "zbl"     -> (zblrecohname, zbltruehname, zblrecomatchhname, zblmatrixname)
     "zbrel"   -> (zbrelrecohname, zbreltruehname, zbrelrecomatchhname, zbrelmatrixname)
-    _         -> error "unrecognized observable"
+    x         -> error $ "unrecognized observable" ++ show x
 
 
 trimV :: Monoid a => [[Int]] -> Vector a -> Vector a

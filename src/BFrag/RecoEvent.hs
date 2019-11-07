@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE OverloadedLists     #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -90,36 +91,26 @@ readRecoEvent dmc bhs = do
 muH :: VarFill RecoEvent
 muH = h =$<< poFromVars . view mu
   where
-    h = hist1DDef (binD 0 25 100) "\\ensuremath{< \\mu >}" (dsigdXpbY "<\\mu>" "1")
+    h = hist1DDef (binD 0 20 40) "\\ensuremath{< \\mu >}" (dsigdXpbY "<\\mu>" "1")
 
 
 elmujj :: RecoEvent -> PhysObj Bool
-elmujj e =
-  let els = _electrons e
-      mus = _muons e
-      js = _jets e
-  in return
-    $ length els == 1
-      && length mus == 1
-      && case js of
-        [j1, j2] -> lvDREta j1 j2 > 1.0
-        _        -> False
+elmujj RecoEvent{..} =
+  return
+  $ length _electrons == 1    
+    && length _muons == 1    
+    && length _jets >= 2    
+    
 
 
 fakeEvent :: RecoEvent -> PhysObj Bool
-fakeEvent e =
-  let els = _electrons e
-      mus = _muons e
-  in do
-    re <- elmujj
-    return $ re && (not (any ePrompt els) || not (any mPrompt mus))
+fakeEvent RecoEvent{..} =
+  return $ not (any ePrompt _electrons) || not (any mPrompt _muons)
 
 
 -- so much boilerplate
 recoEventHs :: VarFills RecoEvent
-recoEventHs =
-  mappend hs
-  $ channelWithLabel "/fakes" fakeEvent hs
+recoEventHs = hs `mappend` channelWithLabel "/fakes" fakeEvent hs
 
   where
     hs =
@@ -135,7 +126,8 @@ recoEventHs =
 
             , prefixF "/jets"
               . over (traverse.xlabel) ("jet " <>)
-              <$> F.handles folded lvHs <$= collapsePO . fmap (view jets)
+              <$> ((singleton "/n" <$> nH 5) `mappend` (F.handles folded lvHs <$= collapsePO))
+              <$= fmap (view jets)
 
             , prefixF "/electrons"
               . over (traverse.xlabel) ("electron " <>)
@@ -156,25 +148,31 @@ recoEventHs =
 -- note:
 -- AnalysisTop selection requires == 2 jets with pT > 30 GeV
 probeJets :: RecoEvent -> [PhysObj Jet]
-probeJets revt = fmap join . collapsePO . return $
-  case view jets revt of
-    [j1, j2] ->
-      if lvDREta j1 j2 > 1.0
-        then [probeJet j1 j2, probeJet j2 j1]
-        else []
-    _ -> []
+probeJets revt =
+  fmap join
+  . collapsePO
+  . return
+  . fmap (uncurry probeJet)
+  $ combinations [] (view jets revt)
 
   where
-    probeJet :: Jet -> Jet -> PhysObj Jet
-    probeJet j j' = do
-      bt <- view isBTagged j
-      sv <- hasSV j'
-      trks <- svChargedConstits j'
-      let pt' = view lvPt j'
-      guard
-        $ bt
-          && sv
-          && (view lvAbsEta j' < 2.1)
-          && length trks >= 3
-          && pt' >= 30
-      return j'
+    combinations _ [] = []
+    combinations ls (x:rs) = (x, ls ++ rs) : combinations (x:ls) rs
+
+    probeJet :: Jet -> [Jet] -> PhysObj Jet
+    probeJet j js = do
+      bt <- traverse (view isBTagged) js
+      trks <- svChargedConstits j
+
+      let drs = lvDREta j <$> js
+
+      guard $ view lvAbsEta j < 2.1
+      guard $ view lvPt j >= 30
+      guard $ length trks >= 3
+
+      guard $ all (>= 0.5) drs
+
+      guard $ or bt
+      guard =<< hasSV j
+
+      return j

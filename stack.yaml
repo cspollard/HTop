@@ -14,7 +14,7 @@ extra-deps:
     commit: 7b413750c82cc6ffd776c603de3e2c42ce8f9cb4
 
   - git: https://github.com/cspollard/atlas.git
-    commit: 7ca8ff94e48d6ba065d9241831f63303ff991819
+    commit: 633fc6eee0526a8588bbad997e2cbe1759b2c6f9
 
   - git: https://github.com/cspollard/ttree.git
     commit: a38292370f8c2186379f3b3324583156e47f9694

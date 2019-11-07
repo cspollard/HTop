@@ -18,6 +18,7 @@ import           Control.Lens
 import           Data.Semigroup
 import           Data.TTree
 import           GHC.Generics       (Generic)
+import Data.List (partition)
 
 
 data TrueEvent =
@@ -53,7 +54,7 @@ trueEventHs =
   $ prefixF "/truejets"
     . over (traverse.xlabel) ("true jet " <>)
     <$> F.handles folded (bfragHs `mappend` lvHs `mappend` bHs)
-    <$= collapsePO . fmap (view trueJets)
+    <$= collapsePO . fmap (filter hasGoodSV . view trueJets)
 
   where
     bHs :: VarFills TrueJet
@@ -67,5 +68,8 @@ elmujjTrue te =
   let ne = lengthOf trueElectrons te
       nm = lengthOf trueMuons te
       js = view trueJets te
-      bjs = filter trueBJet js
-  in ne == 1 && nm == 1 && length js == 2 && length bjs == 2
+      (bjs, notbjs) = partition trueBJet js
+      wellsep = all (\b -> all ((> 0.5) . lvDREta b) notbjs) bjs
+  in case bjs of
+    [b1, b2] -> ne == 1 && nm == 1 && (lvDREta b1 b2 > 0.5) && wellsep
+    _ -> False

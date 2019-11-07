@@ -8,6 +8,7 @@
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE TupleSections             #-}
 {-# LANGUAGE TypeFamilies              #-}
+{-# LANGUAGE RecordWildCards              #-}
 
 module BFrag.Event
   ( Event(..)
@@ -71,9 +72,9 @@ readRunEventNumber = (,) <$> readRunNumber <*> readEventNumber
 eventHs :: VarFills Event
 eventHs =
   mconcat
-  [ recoEventHs =$<< view recoEvent
-  , trueEventHs =$<< view trueEvent
-  , matchedEventHs =$<< go
+  [ hs
+  , channelWithLabel "/mu_le_22" (muCut (<= 22)) hs
+  , channelWithLabel "/mu_gt_22" (muCut (> 22)) hs
   ]
 
   where
@@ -81,6 +82,21 @@ eventHs =
       tevt <- view trueEvent evt
       revt <- view recoEvent evt
       return (tevt, revt)
+
+    hs =
+      mconcat
+      [ recoEventHs =$<< view recoEvent
+      , trueEventHs =$<< view trueEvent
+      , matchedEventHs =$<< go
+      ]
+
+    muCut :: (Double -> Bool) -> Event -> PhysObj Bool
+    muCut c Event{..} = do
+        re <- _recoEvent
+        m <- poFromVars $ view mu re
+        return $ c m
+
+
 
 
 matchedEventHs :: VarFills (TrueEvent, RecoEvent)
@@ -100,17 +116,22 @@ matchedEventHs =
     go (tevt, revt) =
       let rjs = probeJets revt
           tjs = toListOf (trueJets . traverse . filtered trueBJet) tevt
-          matches = fmap (fmap swap . sequence . trueMatch tjs) <$> rjs
+          tjs' = filter hasGoodSV tjs
+          matches = fmap (fmap swap . sequence . trueMatch tjs') <$> rjs
       in (>>= fromMaybe') <$> matches
 
     fromMaybe' (Just x) = return x
     fromMaybe' Nothing  = poFail
 
 
+
+
 trueMatch :: [TrueJet] -> Jet -> (Jet, Maybe TrueJet)
 trueMatch tjs j = (j,) . getOption $ do
+
   Min (Arg dr tj) <-
     foldMap (\tj' -> Option . Just . Min $ Arg (lvDREta j tj') tj') tjs
+
   if dr < 0.3
     then return tj
     else Option Nothing
@@ -118,23 +139,6 @@ trueMatch tjs j = (j,) . getOption $ do
 
 matchedJetHs :: VarFills (TrueJet, Jet)
 matchedJetHs =
-  -- channelsWithLabels
-    -- [ ("/2precosvtrks", recoSVTrkCut (>= 2))
-    -- , ("/2recosvtrks", recoSVTrkCut (== 2))
-    -- , ("/3recosvtrks", recoSVTrkCut (== 3))
-    -- , ("/4recosvtrks", recoSVTrkCut (== 4))
-    -- [ ("", return . const True)
-    -- , ("/4precosvtrks", recoSVTrkCut (>= 4))
-    -- , ("/5precosvtrks", recoSVTrkCut (>= 5))
-    -- , ("/6precosvtrks", recoSVTrkCut (>= 6))
-    -- ]
-    -- . channelsWithLabels
-    --   [ ("/recoptgt30", recoPtCut 30)
-    --   , ("/recoptgt40", recoPtCut 40)
-    --   , ("/recoptgt50", recoPtCut 50)
-    --   , ("/recoptgt75", recoPtCut 75)
-      -- ]
-    -- . mconcat
   mconcat
   $ (prefixF "/probejets" <$> bfragHs <$= fmap snd)
     : (prefixF "/truejets" <$> bfragHs <$= fmap fst)
@@ -142,15 +146,7 @@ matchedJetHs =
       , nsvtrkMig, npvtrkMig
       , zbtDiff, zbtcDiff, zblDiff, zblcDiff, zbrelDiff, zbrelcDiff
       , nsvtrkDiff, npvtrkDiff, nsvtrkRelDiff, npvtrkRelDiff
-      -- , svPtDiff
-      -- , svPtcDiff
-      -- , pvPtDiff
-      -- , pvPtcDiff
       ]
-
-  where
-    recoSVTrkCut f = fmap (f . length) . svChargedConstits . snd
-  --   recoPtCut ptMin = pure . (> ptMin) . view lvPt . snd
 
 
 zbtMig :: VarFills (TrueJet, Jet)

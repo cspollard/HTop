@@ -203,7 +203,9 @@ readJets dmc bhs = do
       Data' -> return $ pure Nothing
       _     -> fmap (Just . flavFromCInt) <$> readBranch "jet_truthflav"
 
-  let js = getZipList
+  let js =
+        filter ((> 30) . view lvPt)
+        . getZipList
         $ Jet
           <$> tlvs
           <*> mv2c10s

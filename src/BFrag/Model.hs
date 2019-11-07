@@ -129,7 +129,11 @@ bfragModel stresstest procs = do
         <$> strictMap ttprocs
 
 
-  return (data', fullpred, nonttpred, ttpred)
+  data'
+    `seq` fullpred
+    `seq` nonttpred
+    `seq` ttpred
+    `seq` return (data', fullpred, nonttpred, ttpred)
 
   where
     toEither s Nothing  = Left s
