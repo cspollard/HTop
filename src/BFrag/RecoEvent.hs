@@ -110,7 +110,7 @@ fakeEvent RecoEvent{..} =
 
 -- so much boilerplate
 recoEventHs :: VarFills RecoEvent
-recoEventHs = hs `mappend` channelWithLabel "/fakes" fakeEvent hs
+recoEventHs = hs -- `mappend` channelWithLabel "/fakes" fakeEvent hs
 
   where
     hs =
