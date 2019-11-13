@@ -37,14 +37,16 @@ zbrelbin = binD 0 20 0.02
 zbrelcbin = zbrelbin
 
 
-npvtrkname, nsvtrkname :: Text
+npvtrkname, nsvtrkname, msvname :: Text
 npvtrkname = "\\ensuremath{n_{\\mathrm{PV}}^\\mathrm{ch}}"
 nsvtrkname = "\\ensuremath{n_{\\mathrm{B}}^\\mathrm{ch}}"
+msvname = "SV mass [GeV]"
 
 
-npvtrkbin, nsvtrkbin :: BinD
+npvtrkbin, nsvtrkbin, msvbin :: BinD
 npvtrkbin = binD 0 20 20
 nsvtrkbin = binD 3 8 11
+msvbin = binD 0 12 6
 
 
 class HasSVConstits a where
@@ -171,13 +173,13 @@ svPtcH = h =$<< fmap (view lvPt . fold) . svChargedConstits
 svMH :: HasSVConstits a => VarFill a
 svMH = h =$<< fmap (view lvM . fold) . svConstits
   where
-    h = hist1DDef (binD 0 12 6) "SV mass [GeV]" (dsigdXpbY "m" gev)
+    h = hist1DDef msvbin "SV mass [GeV]" (dsigdXpbY "m" gev)
 
 
 svMcH :: HasSVConstits a => VarFill a
 svMcH = h =$<< fmap (view lvM . fold) . svChargedConstits
   where
-    h = hist1DDef (binD 0 12 6) "SV charged mass [GeV]" (dsigdXpbY "m" gev)
+    h = hist1DDef msvbin "SV charged mass [GeV]" (dsigdXpbY "m" gev)
 
 
 zbtH :: (HasSVConstits a, HasPVConstits a) => VarFill a

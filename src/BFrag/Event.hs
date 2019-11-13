@@ -35,6 +35,7 @@ import           Data.HEP.LorentzVector as X
 import           Data.Semigroup         (Arg (..), Min (..), Option (..), (<>))
 import           Data.TTree
 import           Data.Tuple             (swap)
+import Data.Foldable (fold)
 import           GHC.Generics           (Generic)
 
 
@@ -142,17 +143,11 @@ matchedJetHs =
   mconcat
   $ (prefixF "/probejets" <$> bfragHs <$= fmap snd)
     : (prefixF "/truejets" <$> bfragHs <$= fmap fst)
-    : [ zbtMig, zbtcMig, zblMig, zblcMig, zbrelMig, zbrelcMig
-      , nsvtrkMig, npvtrkMig
-      , zbtDiff, zbtcDiff, zblDiff, zblcDiff, zbrelDiff, zbrelcDiff
-      , nsvtrkDiff, npvtrkDiff, nsvtrkRelDiff, npvtrkRelDiff
+    : [ zbtcMig, zblcMig, zbrelcMig
+      , nsvtrkMig, npvtrkMig, msvMig
+      , zbtcDiff, zblcDiff, zbrelcDiff
+      , nsvtrkDiff, npvtrkDiff
       ]
-
-
-zbtMig :: VarFills (TrueJet, Jet)
-zbtMig = singleton "/zbtmig" <$> h =$<< zbts
-  where
-    h = hist2DDef zbtbin zbtbin ("true " <> zbtname) ("reco " <> zbtname)
 
 
 zbtcMig :: VarFills (TrueJet, Jet)
@@ -161,27 +156,10 @@ zbtcMig = singleton "/zbtcmig" <$> h =$<< zbtcs
     h = hist2DDef zbtcbin zbtcbin ("true " <> zbtcname) ("reco " <> zbtcname)
 
 
-zblMig :: VarFills (TrueJet, Jet)
-zblMig = singleton "/zblmig" <$> h =$<< zbls
-  where
-    h = hist2DDef zblbin zblbin ("true " <> zblname) ("reco " <> zblname)
-
-
 zblcMig :: VarFills (TrueJet, Jet)
 zblcMig = singleton "/zblcmig" <$> h =$<< zblcs
   where
     h = hist2DDef zblcbin zblcbin ("true " <> zblcname) ("reco " <> zblcname)
-
-
-zbrelMig :: VarFills (TrueJet, Jet)
-zbrelMig = singleton "/zbrelmig" <$> h =$<< zbrels
-  where
-    h =
-      hist2DDef
-        zbrelbin
-        zbrelbin
-        ("true " <> zbrelname)
-        ("reco " <> zbrelname)
 
 
 zbrelcMig :: VarFills (TrueJet, Jet)
@@ -195,19 +173,37 @@ zbrelcMig = singleton "/zbrelcmig" <$> h =$<< zbrelcs
         ("reco " <> zbrelcname)
 
 
-zbtDiff :: VarFills (TrueJet, Jet)
-zbtDiff = singleton "/zbtdiff" <$> h =$<< f
+npvtrkMig :: VarFills (TrueJet, Jet)
+npvtrkMig = singleton "/npvtrkmig" <$> h =$<< npvtrks
   where
-    f (tj, rj) = do
-      tz <- zbt tj
-      rz <- zbt rj
-      return $ tz - rz
-
     h =
-      hist1DDef
-        (binD (-1) 50 1)
-        ("(true - reco) " <> zbtname)
-        (dsigdXpbY zbtname "1")
+      hist2DDef
+        npvtrkbin
+        npvtrkbin
+        ("true " <> npvtrkname)
+        ("reco " <> npvtrkname)
+
+
+nsvtrkMig :: VarFills (TrueJet, Jet)
+nsvtrkMig = singleton "/nsvtrkmig" <$> h =$<< nsvtrks
+  where
+    h =
+      hist2DDef
+        nsvtrkbin
+        nsvtrkbin
+        ("true " <> nsvtrkname)
+        ("reco " <> nsvtrkname)
+
+
+msvMig :: VarFills (TrueJet, Jet)
+msvMig = singleton "/msvmig" <$> h =$<< msvs
+  where
+    h =
+      hist2DDef
+        msvbin
+        msvbin
+        ("true " <> msvname)
+        ("reco " <> msvname)
 
 
 zbtcDiff :: VarFills (TrueJet, Jet)
@@ -220,21 +216,6 @@ zbtcDiff = singleton "/zbtcdiff" <$> h =$<< fmap (uncurry (-)) . zbtcs
         (dsigdXpbY zbtcname "1")
 
 
-zblDiff :: VarFills (TrueJet, Jet)
-zblDiff = singleton "/zbldiff" <$> h =$<< f
-  where
-    f (tj, rj) = do
-      tz <- zbl tj
-      rz <- zbl rj
-      return $ tz - rz
-
-    h =
-      hist1DDef
-        (binD (-1) 50 1)
-        ("(true - reco) " <> zblname)
-        (dsigdXpbY zblname "1")
-
-
 zblcDiff :: VarFills (TrueJet, Jet)
 zblcDiff = singleton "/zblcdiff" <$> h =$<< fmap (uncurry (-)) . zblcs
   where
@@ -243,21 +224,6 @@ zblcDiff = singleton "/zblcdiff" <$> h =$<< fmap (uncurry (-)) . zblcs
         (binD (-1) 50 1)
         ("(true - reco) " <> zblcname)
         (dsigdXpbY zblcname "1")
-
-
-zbrelDiff :: VarFills (TrueJet, Jet)
-zbrelDiff = singleton "/zbreldiff" <$> h =$<< f
-  where
-    f (tj, rj) = do
-      tz <- zbrel tj
-      rz <- zbrel rj
-      return $ tz - rz
-
-    h =
-      hist1DDef
-        (binD (-1) 50 1)
-        ("(true - reco) " <> zbrelname)
-        (dsigdXpbY zbrelname "1")
 
 
 zbrelcDiff :: VarFills (TrueJet, Jet)
@@ -289,38 +255,6 @@ npvtrkDiff = singleton "/npvtrkdiff" <$> h =$<< fmap (uncurry (-)) . npvtrks
         ("(true - reco) " <> npvtrkname)
         (dsigdXpbY npvtrkname "1")
 
-
-nsvtrkRelDiff :: VarFills (TrueJet, Jet)
-nsvtrkRelDiff = singleton "/nsvtrkreldiff" <$> (h =$<< f)
-  where
-    f :: (TrueJet, Jet) -> PhysObj Double
-    f (tj, j) = do
-      ntj <- fromIntegral . length <$> svChargedConstits tj
-      nj <- fromIntegral . length <$> svChargedConstits j
-      return $ (ntj - nj) / ntj
-
-    h =
-      hist1DDef
-        (binD (-1) 20 1)
-        ("(true - reco) / true " <> nsvtrkname)
-        (dsigdXpbY nsvtrkname "1")
-
-
-npvtrkRelDiff :: VarFills (TrueJet, Jet)
-npvtrkRelDiff = singleton "/npvtrkreldiff" <$> h =$<< f
-  where
-    f (tj, j) = do
-      ntj <- fromIntegral . length <$> pvChargedConstits tj
-      nj <- fromIntegral . length <$> pvChargedConstits j
-      return $ (ntj - nj) / ntj
-
-    h =
-      hist1DDef
-        (binD (-1) 20 1)
-        ("(true - reco) / true " <> npvtrkname)
-        (dsigdXpbY npvtrkname "1")
-
-
 zbs
   :: (forall a. (HasSVConstits a, HasPVConstits a) => a -> PhysObj Double)
   -> (TrueJet, Jet) -> PhysObj (Double, Double)
@@ -330,29 +264,10 @@ zbs f (tj, rj) = do
   return (tjz, rjz)
 
 
-zbts, zbtcs, zbls, zblcs, zbrels, zbrelcs, nsvtrks, npvtrks
-  :: (TrueJet, Jet) -> PhysObj (Double, Double)
-zbts = zbs zbt
+zbtcs, zblcs, zbrelcs, nsvtrks, npvtrks :: (TrueJet, Jet) -> PhysObj (Double, Double)
 zbtcs = zbs zbtc
-zbls = zbs zbl
 zblcs = zbs zblc
-zbrels = zbs zbrel
 zbrelcs = zbs zbrelc
 nsvtrks = zbs $ fmap (fromIntegral . length) . svChargedConstits
 npvtrks = zbs $ fmap (fromIntegral . length) . pvChargedConstits
-
-
-nsvtrkMig :: VarFills (TrueJet, Jet)
-nsvtrkMig = singleton "/nsvtrkmig" <$> h =$<< nsvtrks
-  where
-    h = hist2DDef nsvtrkbin nsvtrkbin ("true " <> nsvtrkname) ("reco " <> nsvtrkname)
-
-
-npvtrkMig :: VarFills (TrueJet, Jet)
-npvtrkMig = singleton "/npvtrkmig" <$> h =$<< npvtrks
-  where
-    h = hist2DDef
-        npvtrkbin
-        npvtrkbin
-        ("true " <> npvtrkname)
-        ("reco " <> npvtrkname)
+msvs = zbs $ fmap (view lvM . fold) . pvChargedConstits
