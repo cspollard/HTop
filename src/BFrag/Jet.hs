@@ -71,12 +71,10 @@ instance HasLorentzVector Jet where
     toPtEtaPhiE = lens _jPtEtaPhiE $ \j x -> j { _jPtEtaPhiE = x }
 
 instance HasSVConstits Jet where
-  svConstits = view svTrks
-  svChargedConstits = svConstits
+  svChargedConstits = view svTrks
 
 instance HasPVConstits Jet where
-  pvConstits = view pvTrks
-  pvChargedConstits = pvConstits
+  pvChargedConstits = view pvTrks
 
 
 appSVRW :: DataMC' -> Maybe BHadron -> [PtEtaPhiE] -> PhysObj ()

@@ -1,28 +1,28 @@
 {-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE RecordWildCards     #-}
+{-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module BFrag.TrueJet
   ( TrueParticle(..), BHadron(..), TrueJet(..)
   , HasPID(..)
   , neutral, charged, threeCharge
-  , tjPVConstits, tjBHadrons
-  , bhTP
-  , readTrueJets, bhChildren
-  , trueBJet, svTrue, hasGoodSV
-  , bMesonH, bBaryonH
+  , tjPVFiducialConstits, tjBHadrons
+  , bhTP, trueProbeJet
+  , readTrueJets, bhFiducialChildren
+  , trueBJet, bMesonH, bBaryonH
   ) where
 
 import           Atlas
 import           BFrag.BFrag
 import           BFrag.PtEtaPhiE
-import           Control.Applicative (ZipList (..), liftA2, liftA3)
+import           Control.Applicative (ZipList (..))
 import           Control.Lens
 import           Data.HEP.PID
 import           Data.TTree
 import qualified Data.Vector         as V
 import           GHC.Float
 import           GHC.Generics        (Generic)
+
 
 data TrueParticle =
   TrueParticle
@@ -50,7 +50,7 @@ instance HasLorentzVector TrueParticle where
 data TrueJet =
   TrueJet
   { _tjPtEtaPhiE  :: PtEtaPhiE
-  , _tjPVConstits :: [TrueParticle]
+  , _tjPVFiducialConstits :: [TrueParticle]
   , _tjBHadrons   :: [BHadron]
   } deriving (Generic, Show)
 
@@ -60,7 +60,7 @@ instance HasLorentzVector TrueJet where
 data BHadron =
   BHadron
   { _bhTP       :: TrueParticle
-  , _bhChildren :: [TrueParticle]
+  , _bhFiducialChildren :: [TrueParticle]
   } deriving (Generic, Show)
 
 
@@ -71,18 +71,15 @@ instance HasLorentzVector BHadron where
   toPtEtaPhiE = bhTP . toPtEtaPhiE
 
 instance HasSVConstits TrueJet where
-  svConstits = pure . toListOf (tjBHadrons.traverse.toPtEtaPhiE)
-  -- cut out charged constituents with pT < 500 MeV
-  svChargedConstits = pure . filter ((> 0.5) . view lvPt) . toListOf (tjBHadrons.traverse.bhChildren.traverse.filtered charged.toPtEtaPhiE)
+  svChargedConstits = pure . toListOf (tjBHadrons.traverse.bhFiducialChildren.traverse.toPtEtaPhiE)
 
 instance HasPVConstits TrueJet where
-  pvConstits = pure . toListOf (tjPVConstits.traverse.toPtEtaPhiE)
-  -- cut out charged constituents with pT < 500 MeV
-  pvChargedConstits = pure . filter ((> 0.5) . view lvPt) . toListOf (tjPVConstits.traverse.filtered charged.toPtEtaPhiE)
+  pvChargedConstits = pure . toListOf (tjPVFiducialConstits.traverse.toPtEtaPhiE)
 
 
-svTrue :: TrueJet -> PtEtaPhiE
-svTrue = foldOf $ tjBHadrons . traverse . toPtEtaPhiE
+fiducialParticle :: TrueParticle -> Bool
+fiducialParticle p = view lvPt p > 0.5 && charged p
+
 
 readBHadrons :: (MonadIO m, MonadThrow m) => TreeRead m [BHadron]
 readBHadrons = do
@@ -96,20 +93,20 @@ readBHadrons = do
   chs <- fmap cintToInt <$> readBranch "bhad_3q"
   pids <- fmap (toEnum . cintToInt) <$> readBranch "bhad_pdgid"
 
-  childs <- vecVecTP "bhad_child_"
-  let tps = liftA3 TrueParticle pids chs tlvs
-      bhs = getZipList $ liftA2 BHadron tps childs
+  childs <- fmap (filter fiducialParticle) <$> vecVecTP "bhad_child_"
 
-      -- bcfilt tp = charged tp && view lvPt tp > 0.5
-      -- bhfilt BHadron{..} = length (filter bcfilt _bhChildren) >= 3
+  let tps = TrueParticle <$> pids <*> chs <*> tlvs
+      bhs = getZipList $ BHadron <$> tps <*> childs
 
   return bhs
+
 
 
 readTrueJets :: (MonadIO m, MonadThrow m) => TreeRead m [TrueJet]
 readTrueJets = do
   tlvs <- lvsFromTTreeF "jet_pt" "jet_eta" "jet_phi" "jet_e"
-  pvconstits <- vecVecTP "jet_constit_"
+  pvconstits <- fmap (filter fiducialParticle) <$> vecVecTP "jet_constit_"
+
   let tmp = V.fromList . getZipList $ TrueJet <$> tlvs <*> pvconstits <*> pure []
 
   bhads <- filter ((> 5) . view lvPt) <$> readBHadrons
@@ -118,14 +115,13 @@ readTrueJets = do
 
 
 trueBJet :: TrueJet -> Bool
-trueBJet j = lengthOf (tjBHadrons.traverse) j == 1 && view lvPt j > 25
+trueBJet j = lengthOf (tjBHadrons.traverse) j == 1 && view lvPt j > 30
 
-hasGoodSV :: TrueJet -> Bool
-hasGoodSV =
-    (>= 3)
-    . length
-    . filter ((> 0.5) . view lvPt)
-    . toListOf (tjBHadrons.traverse.bhChildren.traverse.filtered charged.toPtEtaPhiE)
+
+trueProbeJet :: TrueJet -> Bool
+trueProbeJet j = trueBJet j && hasGoodSV j
+  where
+    hasGoodSV = (>= 3) . lengthOf (tjBHadrons.traverse.bhFiducialChildren.traverse)
 
 
 vecVecTP
@@ -205,8 +201,8 @@ bBaryonH = singleton "/bbaryonpid" <$> h =$<< pure . fromIntegral . view abspid
 
 
 
-tjPVConstits :: Lens' TrueJet [TrueParticle]
-tjPVConstits = lens _tjPVConstits $ \tj x -> tj { _tjPVConstits = x }
+tjPVFiducialConstits :: Lens' TrueJet [TrueParticle]
+tjPVFiducialConstits = lens _tjPVFiducialConstits $ \tj x -> tj { _tjPVFiducialConstits = x }
 
 tjBHadrons :: Lens' TrueJet [BHadron]
 tjBHadrons = lens _tjBHadrons $ \tj x -> tj { _tjBHadrons = x }
@@ -214,5 +210,5 @@ tjBHadrons = lens _tjBHadrons $ \tj x -> tj { _tjBHadrons = x }
 bhTP :: Lens' BHadron TrueParticle
 bhTP = lens _bhTP $ \bh x -> bh { _bhTP = x }
 
-bhChildren :: Lens' BHadron [TrueParticle]
-bhChildren = lens _bhChildren $ \b x -> b { _bhChildren = x }
+bhFiducialChildren :: Lens' BHadron [TrueParticle]
+bhFiducialChildren = lens _bhFiducialChildren $ \b x -> b { _bhFiducialChildren = x }

@@ -116,9 +116,8 @@ matchedEventHs =
     go :: (TrueEvent, RecoEvent) -> [PhysObj (TrueJet, Jet)]
     go (tevt, revt) =
       let rjs = probeJets revt
-          tjs = toListOf (trueJets . traverse . filtered trueBJet) tevt
-          tjs' = filter hasGoodSV tjs
-          matches = fmap (fmap swap . sequence . trueMatch tjs') <$> rjs
+          tjs = trueProbeJets tevt
+          matches = fmap (fmap swap . sequence . trueMatch tjs) <$> rjs
       in (>>= fromMaybe') <$> matches
 
     fromMaybe' (Just x) = return x

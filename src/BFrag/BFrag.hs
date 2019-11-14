@@ -50,20 +50,17 @@ msvbin = binD 0 12 6
 
 
 class HasSVConstits a where
-  svConstits :: a -> PhysObj [PtEtaPhiE]
+  svChargedTLV :: a -> PhysObj PtEtaPhiE
+  svChargedTLV = fmap fold <$> svChargedConstits
+
   svChargedConstits :: a -> PhysObj [PtEtaPhiE]
 
 
 class HasPVConstits a where
-  pvConstits :: a -> PhysObj [PtEtaPhiE]
+  pvChargedTLV :: a -> PhysObj PtEtaPhiE
+  pvChargedTLV = fmap fold <$> pvChargedConstits
+
   pvChargedConstits :: a -> PhysObj [PtEtaPhiE]
-
-
-constitsSum :: (HasSVConstits a, HasPVConstits a) => a -> PhysObj PtEtaPhiE
-constitsSum j = do
-  svt <- svConstits j
-  pvt <- pvConstits j
-  return . fold $ svt ++ pvt
 
 
 chargedSum :: (HasSVConstits a, HasPVConstits a) => a -> PhysObj PtEtaPhiE
@@ -102,47 +99,12 @@ zbrelc j = do
     x -> return $ num / x
 
 
-zbt, zbl, zbrel :: (HasSVConstits a, HasPVConstits a) => a -> PhysObj Double
-zbt j = do
-  svp4 <- fold <$> svConstits j
-  p4 <- constitsSum j
-  case view lvPt p4 of
-    0.0 -> empty
-    x   -> return $ view lvPt svp4 / x
-
-
-zbl j = do
-  svp3 <- toXYZ . fold <$> svConstits j
-  p3 <- toXYZ <$> constitsSum j
-  let denom = modulus2 p3
-      num = svp3 `inner` p3
-  case denom of
-    0.0 -> empty
-    x -> return $ num / x
-
-
-zbrel j = do
-  svp3 <- toXYZ . fold <$> svConstits j
-  p3 <- toXYZ <$> constitsSum j
-  let denom = modulus2 p3
-      num = modulus $ svp3 `cross` p3
-  case denom of
-    0.0 -> empty
-    x -> return $ num / x
-
-
-
 localBins = binD 0 20 120
 
-chargedPtH :: (HasSVConstits a, HasPVConstits a) => VarFill a
-chargedPtH = h =$<< fmap (view lvPt) . chargedSum
+ptcH :: (HasSVConstits a, HasPVConstits a) => VarFill a
+ptcH = h =$<< fmap (view lvPt) . chargedSum
   where
     h = hist1DDef localBins "charged $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
-
-
-pvPtH :: HasPVConstits a => VarFill a
-pvPtH = h =$<< fmap (view lvPt . fold) . pvConstits
-  where h = hist1DDef localBins "PV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
 
 
 pvPtcH :: HasPVConstits a => VarFill a
@@ -155,11 +117,6 @@ pvPtcH = h =$<< fmap (view lvPt . fold) . pvChargedConstits
         (dsigdXpbY pt gev)
 
 
-svPtH :: HasSVConstits a => VarFill a
-svPtH = h =$<< fmap (view lvPt . fold) . svConstits
-  where h = hist1DDef localBins "SV $p_{\\mathrm T}$ [GeV]" (dsigdXpbY pt gev)
-
-
 svPtcH :: HasSVConstits a => VarFill a
 svPtcH = h =$<< fmap (view lvPt . fold) . svChargedConstits
   where
@@ -170,22 +127,10 @@ svPtcH = h =$<< fmap (view lvPt . fold) . svChargedConstits
         (dsigdXpbY pt gev)
 
 
-svMH :: HasSVConstits a => VarFill a
-svMH = h =$<< fmap (view lvM . fold) . svConstits
-  where
-    h = hist1DDef msvbin "SV mass [GeV]" (dsigdXpbY "m" gev)
-
-
 svMcH :: HasSVConstits a => VarFill a
 svMcH = h =$<< fmap (view lvM . fold) . svChargedConstits
   where
     h = hist1DDef msvbin "SV charged mass [GeV]" (dsigdXpbY "m" gev)
-
-
-zbtH :: (HasSVConstits a, HasPVConstits a) => VarFill a
-zbtH = h =$<< zbt
-  where
-    h = hist1DDef zbtbin zbtname (dsigdXpbY zbtname "1")
 
 
 zbtcH :: (HasSVConstits a, HasPVConstits a) => VarFill a
@@ -194,23 +139,10 @@ zbtcH = h =$<< zbtc
     h = hist1DDef zbtcbin zbtcname (dsigdXpbY zbtcname "1")
 
 
-zblH :: (HasSVConstits a, HasPVConstits a) => VarFill a
-zblH = h =$<< zbl
-  where
-    h = hist1DDef zblbin zblname (dsigdXpbY zblname "1")
-
-
 zblcH :: (HasSVConstits a, HasPVConstits a) => VarFill a
 zblcH = h =$<< zblc
   where
     h = hist1DDef zblcbin zblcname (dsigdXpbY zblcname "1")
-
-
-zbrelH :: (HasSVConstits a, HasPVConstits a) => VarFill a
-zbrelH = h =$<< zbrel
-  where
-    h = hist1DDef zbrelbin zbrelname (dsigdXpbY zbrelname "1")
-
 
 
 zbrelcH :: (HasSVConstits a, HasPVConstits a) => VarFill a
@@ -252,38 +184,19 @@ zbtcVszbrelcH = h =$<< (\j -> (,) <$> zbtc j <*> zbrelc j)
 bfragHs :: (HasPVConstits a, HasSVConstits a, HasLorentzVector a) => VarFills a
 bfragHs =
   mconcat
-  [ singleton "/zbt" <$> zbtH
-  , singleton "/zbtc" <$> zbtcH
-  , singleton "/zbl" <$> zblH
+  [ singleton "/zbtc" <$> zbtcH
   , singleton "/zblc" <$> zblcH
-  , singleton "/zbrel" <$> zbrelH
   , singleton "/zbrelc" <$> zbrelcH
-  , singleton "/chargedpt" <$> chargedPtH
-  , singleton "/pvpt" <$> pvPtH
+  , singleton "/ptc" <$> ptcH
   , singleton "/pvptc" <$> pvPtcH
-  , singleton "/svpt" <$> svPtH
-  , singleton "/svmass" <$> svMH
-  , singleton "/svmassc" <$> svMcH
   , singleton "/svptc" <$> svPtcH
+  , singleton "/svmc" <$> svMcH
   , singleton "/npvtrk" <$> nPVTracksH
   , singleton "/nsvtrk" <$> nSVTracksH
   , singleton "/zblcvszbtc" <$> zblcVszbtcH
   , singleton "/zblcvszbrelc" <$> zblcVszbrelcH
   , singleton "/zbtcvszbrelc" <$> zbtcVszbrelcH
-
-      --     -- , childSumPtProfPt
-      --     -- , svChildSumPtProfPt
-      --     -- , zbtChargedProfPt
-      --     -- , childSumPtProfEta
-      --     -- , svChildSumPtProfEta
-      --     -- , zbtChargedProfEta
-      --     -- , nPVChildProfPt
-      --     -- , nSVChildProfPt
-      --     -- , zbtChargedVsPt
   ]
-    --
-    -- hs' = channelWithLabel "/5psvtrk" (fmap ((>= 5) . length) . svChargedConstits) hs
-    -- hs'' = channelWithLabel "/4psvtrk" (fmap ((>= 4) . length) . svChargedConstits) hs
 
 
 zbtcMerges, zblcMerges, zbrelcMerges, zbtMerges, zblMerges, zbrelMerges
@@ -426,135 +339,3 @@ zbrelcmatrixname = "/elmujjmatched/zbrelcmig"
 zbrelcrecohname = "/elmujj/probejets/zbrelc"
 zbrelcrecomatchhname = "/elmujjmatched/probejets/zbrelc"
 zbrelctruehname = "/elmujjtrue/truejets/zbrelc"
-
--- childSumPtProfPt
---   :: (HasLorentzVector a, HasSVConstits a, HasPVConstits a)
---   => Foldl (a, Double) YodaObj
--- childSumPtProfPt =
---   fmap (singleton "/childsumptprofpt")
---   $ prof1DDef
---     (binD 25 18 250)
---     "$p_{\\mathrm T}$ [GeV]"
---     "$<p_{\\mathrm T} \\sum \\mathrm{child}>$"
---     <$= first (view lvPt &&& trackSumPt)
---
---
--- svChildSumPtProfPt
---   :: (HasLorentzVector a, HasSVConstits a, HasPVConstits a)
---   => Foldl (a, Double) YodaObj
--- svChildSumPtProfPt =
---   fmap (singleton "/svchildsumptprofpt")
---   $  prof1DDef
---     (binD 25 18 250)
---     "$p_{\\mathrm T}$ [GeV]"
---     "$<p_{\\mathrm T} \\sum \\mathrm{SV child}>$"
---     <$= first (view lvPt &&& svConstitsSumPt)
---
---
--- zbtChargedVsPt
---   :: (HasLorentzVector a, HasSVConstits a, HasPVConstits a)
---   => Foldl (a, Double) YodaObj
--- zbtChargedVsPt =
---   fmap (singleton "/zbtvspt")
---   $ hist2DDef
---     (binD 25 18 250)
---     (binD 0 21 1.05)
---     "$p_{\\mathrm T}$ [GeV]"
---     "$z_{p_{\\mathrm T}}$"
---     <$= first (view lvPt &&& zbtCharged)
---
---
--- zbtChargedProfPt
---   :: (HasLorentzVector a, HasSVConstits a, HasPVConstits a)
---   => Foldl (a, Double) YodaObj
--- zbtChargedProfPt =
---   fmap (singleton "/zbtprofpt")
---   $ prof1DDef
---     (binD 25 18 250)
---     "$p_{\\mathrm T}$ [GeV]"
---     "$<z_{p_{\\mathrm T}}>$"
---     <$= first (view lvPt &&& zbtCharged)
---
---
--- childSumPtProfEta
---   :: (HasLorentzVector a, HasSVConstits a, HasPVConstits a)
---   => Foldl (a, Double) YodaObj
--- childSumPtProfEta =
---   fmap (singleton "/childsumptprofeta")
---   $ prof1DDef
---     (binD 0 21 2.1)
---     "$\\eta$"
---     "$<p_{\\mathrm T} \\sum \\mathrm{child}>$"
---     <$= first (view lvEta &&& trackSumPt)
---
--- svChildSumPtProfEta
---   :: (HasLorentzVector a, HasSVConstits a, HasPVConstits a)
---   => Foldl (a, Double) YodaObj
--- svChildSumPtProfEta =
---   fmap (singleton "/svchildsumptprofeta")
---   $ prof1DDef
---     (binD 0 21 2.1)
---     "$\\eta$"
---     "$<p_{\\mathrm T} \\sum \\mathrm{SV child}>$"
---     <$= first (view lvEta &&& svConstitsSumPt)
---
---
--- zbtChargedProfEta
---   :: (HasLorentzVector a, HasSVConstits a, HasPVConstits a)
---   => Foldl (a, Double) YodaObj
--- zbtChargedProfEta =
---   fmap (singleton "/zbtprofeta")
---   $ prof1DDef
---     (binD 0 21 2.1)
---     "$\\eta$"
---     "$<z_{p_{\\mathrm T}}>$"
---     <$= first (view lvEta &&& zbtCharged)
---
---
--- svChildSumPtProfChildSumPt
---   :: (HasLorentzVector a, HasSVConstits a, HasPVConstits a)
---   => Foldl (a, Double) YodaObj
--- svChildSumPtProfChildSumPt =
---   fmap (singleton "/svchildsumptprofchildsumpt")
---   $ prof1DDef
---     (binD 0 25 100)
---     "$p_{\\mathrm T} \\sum \\mathrm{child}$"
---     "$<p_{\\mathrm T} \\sum \\mathrm{SV child}>$"
---     <$= first (svConstitsSumPt &&& trackSumPt)
---
---
--- zbtChargedProfChildSumPt
---   :: (HasLorentzVector a, HasSVConstits a, HasPVConstits a)
---   => Foldl (a, Double) YodaObj
--- zbtChargedProfChildSumPt =
---   fmap (singleton "/zbtprofchildsumpt")
---   $ prof1DDef
---     (binD 0 25 100)
---     "$p_{\\mathrm T} \\sum \\mathrm{child}$"
---     "$<z_{p_{\\mathrm T}}>$"
---     <$= first (trackSumPt &&& zbtCharged)
---
---
---
--- nPVChildProfPt
---   :: (HasLorentzVector a, HasSVConstits a, HasPVConstits a)
---   => Foldl (a, Double) YodaObj
--- nPVChildProfPt =
---   fmap (singleton "/npvchildsprofpt")
---   $ prof1DDef
---     (binD 25 18 250)
---     "$p_{\\mathrm T}$ [GeV]"
---     "$<n$ PV tracks $>$"
---     <$= first (view lvPt &&& (fromIntegral . nPVConstits))
---
---
--- nSVChildProfPt
---   :: (HasLorentzVector a, HasSVConstits a, HasPVConstits a)
---   => Foldl (a, Double) YodaObj
--- nSVChildProfPt =
---   fmap (singleton "/nsvchildsprofpt")
---   $ prof1DDef
---     (binD 25 18 250)
---     "$p_{\\mathrm T}$ [GeV]"
---     "$<n$ SV tracks $>$"
---     <$= first (view lvPt &&& (fromIntegral . nSVConstits))

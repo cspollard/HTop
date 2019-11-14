@@ -4,7 +4,7 @@
 module BFrag.TrueEvent
   ( module X
   , TrueEvent(TrueEvent), trueJets, trueElectrons, trueMuons
-  , trueEventHs, readTrueEvent, elmujjTrue
+  , trueEventHs, readTrueEvent, elmujjTrue, trueProbeJets
   ) where
 
 import           Atlas
@@ -48,13 +48,17 @@ trueElectrons :: Lens' TrueEvent [TrueElectron]
 trueElectrons = lens _trueElectrons $ \te x -> te { _trueElectrons = x }
 
 
+trueProbeJets :: TrueEvent -> [TrueJet]
+trueProbeJets = filter trueProbeJet . view trueJets
+
+
 trueEventHs :: VarFills TrueEvent
 trueEventHs =
   channelWithLabel "/elmujjtrue" (return . elmujjTrue)
   $ prefixF "/truejets"
     . over (traverse.xlabel) ("true jet " <>)
     <$> F.handles folded (bfragHs `mappend` lvHs `mappend` bHs)
-    <$= collapsePO . fmap (filter hasGoodSV . view trueJets)
+    <$= collapsePO . fmap trueProbeJets
 
   where
     bHs :: VarFills TrueJet
