@@ -263,7 +263,7 @@ zbs f (tj, rj) = do
   return (tjz, rjz)
 
 
-zbtcs, zblcs, zbrelcs, nsvtrks, npvtrks :: (TrueJet, Jet) -> PhysObj (Double, Double)
+zbtcs, zblcs, zbrelcs, nsvtrks, npvtrks, msvs :: (TrueJet, Jet) -> PhysObj (Double, Double)
 zbtcs = zbs zbtc
 zblcs = zbs zblc
 zbrelcs = zbs zbrelc
