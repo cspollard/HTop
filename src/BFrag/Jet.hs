@@ -121,8 +121,10 @@ appPVSVRW (MC' NoVars) _ _ = return ()
 appPVSVRW _ jpt trkpt = do
   let -- note that the binning used in the reweighting histograms is in MeV!!!
       trkVars = (+1) . flip safeAt (jpt*1e3, trkpt*1e3) <$> sumPtTrkSysts
+      ptcRW = safeAt ptcSyst trkpt
 
   varSF $ sf "trkptsf" <$> Variation 1.0 trkVars
+  varSF $ sf "ptcsf" <$> Variation 1.0 [("ptcsf", ptcRW)]
 
 
 safeAt
