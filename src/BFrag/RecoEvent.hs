@@ -33,7 +33,7 @@ import           GHC.Generics      (Generic)
 
 data RecoEvent =
   RecoEvent
-    { _mu        :: Vars Double
+    { _mu        :: Double
     -- , _nPV       :: Double
     , _electrons :: [Electron]
     , _muons     :: [Muon]
@@ -42,7 +42,7 @@ data RecoEvent =
     } deriving (Generic, Show)
 
 
-mu :: Lens' RecoEvent (Vars Double)
+mu :: Lens' RecoEvent Double
 mu = lens _mu $ \e x -> e { _mu = x }
 
 -- nPV :: Lens' RecoEvent Double
@@ -67,12 +67,10 @@ readMET = do
   return $ PtEtaPhiE et 0 phi et
 
 
-muVars :: DataMC' -> Double -> Vars Double
-muVars Data' m =
-    -- TODO
-    -- here we assume the scaling has already taken place...
-    Variation m [("datapileupup", m*1.09), ("datapileupdown", m/1.09)]
-muVars _ m = pure m
+-- observed mu needs to be corrected in data
+muCorr :: DataMC' -> Double -> Double
+muCorr Data' = (/1.09)
+muCorr _ = id
 
 
 readRecoEvent
@@ -80,7 +78,7 @@ readRecoEvent
   => DataMC' -> [BHadron] -> TreeRead m (PhysObj RecoEvent)
 readRecoEvent dmc bhs = do
   w <- recoWgt dmc
-  mu' <- muVars dmc . float2Double <$> readBranch "mu"
+  mu' <- muCorr dmc . float2Double <$> readBranch "mu"
   els <- readElectrons dmc
   mus <- readMuons dmc
   js <- readJets dmc bhs
@@ -89,7 +87,7 @@ readRecoEvent dmc bhs = do
 
 
 muH :: VarFill RecoEvent
-muH = h =$<< poFromVars . view mu
+muH = h =$<< views mu pure
   where
     h = hist1DDef (binD 0 20 40) "\\ensuremath{< \\mu >}" (dsigdXpbY "<\\mu>" "1")
 

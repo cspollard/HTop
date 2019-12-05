@@ -94,7 +94,7 @@ eventHs =
     muCut :: (Double -> Bool) -> Event -> PhysObj Bool
     muCut c Event{..} = do
         re <- _recoEvent
-        m <- poFromVars $ view mu re
+        let m = view mu re
         return $ c m
 
 

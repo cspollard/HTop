@@ -70,13 +70,21 @@ chargedSum j = do
   return . fold $ svt ++ pvt
 
 
+fixOne :: (Ord a, Fractional a) => a -> a
+fixOne x
+  | x < 1 = x
+  | x == 1 = 1 - 1e-9
+  | otherwise = error "observable above unity!"
+
+
 zbtc, zblc, zbrelc :: (HasSVConstits a, HasPVConstits a) => a -> PhysObj Double
 zbtc j = do
   svp4 <- fold <$> svChargedConstits j
   p4 <- chargedSum j
-  case view lvPt p4 of
+  let denom = view lvPt p4
+  case denom of
     0.0 -> empty
-    x   -> pure $ view lvPt svp4 / x
+    x   -> pure . fixOne $ view lvPt svp4 / x
 
 
 zblc j = do
@@ -86,7 +94,7 @@ zblc j = do
       num = svp3 `inner` p3
   case denom of
     0.0 -> empty
-    x -> return $ num / x
+    x   -> pure . fixOne $ num / x
 
 
 zbrelc j = do
@@ -96,7 +104,7 @@ zbrelc j = do
       num = modulus $ svp3 `cross` p3
   case denom of
     0.0 -> empty
-    x -> return $ num / x
+    x   -> pure . fixOne $ num / x
 
 
 localBins = binD 0 20 120
