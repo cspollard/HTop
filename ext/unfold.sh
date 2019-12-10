@@ -10,8 +10,8 @@ stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/zbtcmcmc.dat --nsample
 mkdir -p unfold/particlelevel/data/unfoldzblc
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/zblcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/data/unfoldzblc --xsecfile data/XSection-MC15-13TeV.data --observable zblc hist/*hist.gz > unfold/mcmc/data/zblc.log 2>&1
 
-mkdir -p unfold/particlelevel/data/unfoldzbrelc
-stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/zbrelcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/data/unfoldzbrelc --xsecfile data/XSection-MC15-13TeV.data --observable zbrelc hist/*hist.gz > unfold/mcmc/data/zbrelc.log 2>&1
+mkdir -p unfold/particlelevel/data/unfoldnsvtrk
+stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/data/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk hist/*hist.gz > unfold/mcmc/data/nsvtrk.log 2>&1
 
 
 mkdir -p unfold/particlelevel/closure/unfoldzbtc
@@ -20,8 +20,8 @@ stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/zbtcmcmc.dat --nsam
 mkdir -p unfold/particlelevel/closure/unfoldzblc
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/zblcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure/unfoldzblc --xsecfile data/XSection-MC15-13TeV.data --observable zblc --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure/zblc.log 2>&1
 
-mkdir -p unfold/particlelevel/closure/unfoldzbrelc
-stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/zbrelcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure/unfoldzbrelc --xsecfile data/XSection-MC15-13TeV.data --observable zbrelc --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure/zbrelc.log 2>&1
+mkdir -p unfold/particlelevel/closure/unfoldnsvtrk
+stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure/nsvtrk.log 2>&1
 
 
 mkdir -p unfold/particlelevel/closure_statonly/unfoldzbtc
@@ -30,8 +30,8 @@ stack exec run-htop-unfold -- --stat-only --mcmcfile unfold/mcmc/closure_statonl
 mkdir -p unfold/particlelevel/closure_statonly/unfoldzblc
 stack exec run-htop-unfold -- --stat-only --mcmcfile unfold/mcmc/closure_statonly/zblcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure_statonly/unfoldzblc --xsecfile data/XSection-MC15-13TeV.data --observable zblc --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure_statonly/zblc.log 2>&1
 
-mkdir -p unfold/particlelevel/closure_statonly/unfoldzbrelc
-stack exec run-htop-unfold -- --stat-only --mcmcfile unfold/mcmc/closure_statonly/zbrelcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure_statonly/unfoldzbrelc --xsecfile data/XSection-MC15-13TeV.data --observable zbrelc --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure_statonly/zbrelc.log 2>&1
+mkdir -p unfold/particlelevel/closure_statonly/unfoldnsvtrk
+stack exec run-htop-unfold -- --stat-only --mcmcfile unfold/mcmc/closure_statonly/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure_statonly/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure_statonly/nsvtrk.log 2>&1
 
 
 mkdir -p unfold/particlelevel/stress_herwig/unfoldzbtc
@@ -40,5 +40,19 @@ stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/stress_herwig/zbtcmcmc.dat 
 mkdir -p unfold/particlelevel/stress_herwig/unfoldzblc
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/stress_herwig/zblcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/stress_herwig/unfoldzblc --xsecfile data/XSection-MC15-13TeV.data --observable zblc --stresstest ps hist/{3,4}*hist.gz > unfold/mcmc/stress_herwig/zblc.log 2>&1
 
-mkdir -p unfold/particlelevel/stress_herwig/unfoldzbrelc
-stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/stress_herwig/zbrelcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/stress_herwig/unfoldzbrelc --xsecfile data/XSection-MC15-13TeV.data --observable zbrelc --stresstest ps hist/{3,4}*hist.gz > unfold/mcmc/stress_herwig/zbrelc.log 2>&1
+mkdir -p unfold/particlelevel/stress_herwig/unfoldnsvtrk
+stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/stress_herwig/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/stress_herwig/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk --stresstest ps hist/{3,4}*hist.gz > unfold/mcmc/stress_herwig/nsvtrk.log 2>&1
+
+
+# mkdir -p unfold/particlelevel/data/unfoldzbrelc
+# stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/zbrelcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/data/unfoldzbrelc --xsecfile data/XSection-MC15-13TeV.data --observable zbrelc hist/*hist.gz > unfold/mcmc/data/zbrelc.log 2>&1
+# 
+# mkdir -p unfold/particlelevel/closure/unfoldzbrelc
+# stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/zbrelcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure/unfoldzbrelc --xsecfile data/XSection-MC15-13TeV.data --observable zbrelc --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure/zbrelc.log 2>&1
+# 
+# mkdir -p unfold/particlelevel/closure_statonly/unfoldzbrelc
+# stack exec run-htop-unfold -- --stat-only --mcmcfile unfold/mcmc/closure_statonly/zbrelcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure_statonly/unfoldzbrelc --xsecfile data/XSection-MC15-13TeV.data --observable zbrelc --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure_statonly/zbrelc.log 2>&1
+# 
+# mkdir -p unfold/particlelevel/stress_herwig/unfoldzbrelc
+# stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/stress_herwig/zbrelcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/stress_herwig/unfoldzbrelc --xsecfile data/XSection-MC15-13TeV.data --observable zbrelc --stresstest ps hist/{3,4}*hist.gz > unfold/mcmc/stress_herwig/zbrelc.log 2>&1
+# 
