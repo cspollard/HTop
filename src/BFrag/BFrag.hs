@@ -240,9 +240,9 @@ obsTruthTrimmers s =
     "zbtc"   -> trimH zbtcMerges
     "zblc"   -> trimH zblcMerges
     "zbrelc" -> trimH zbrelcMerges
-    "zbt"    -> trimH zbtMerges
-    "zbl"    -> trimH zblMerges
-    "zbrel"  -> trimH zbrelMerges
+    "zbtcnorm"   -> trimH zbtcMerges
+    "zblcnorm"   -> trimH zblcMerges
+    "zbrelcnorm" -> trimH zbrelcMerges
     _        -> id
 
 
@@ -253,10 +253,10 @@ obsRecoTrimmers s =
   case s of
     "zbtc"   -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
     "zblc"   -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
-    "zbt"    -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
-    "zbl"    -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
     "zbrelc" -> trimH $ pure <$> [00..19]
-    "zbrel"  -> trimH $ pure <$> [00..19]
+    "zbtcnorm"   -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
+    "zblcnorm"   -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
+    "zbrelcnorm" -> trimH $ pure <$> [00..19]
     _         -> id
 
 
@@ -268,9 +268,6 @@ obsNames s =
     "zbtc"    -> (zbtcrecohname, zbtctruehname, zbtcrecomatchhname, zbtcmatrixname)
     "zblc"    -> (zblcrecohname, zblctruehname, zblcrecomatchhname, zblcmatrixname)
     "zbrelc"  -> (zbrelcrecohname, zbrelctruehname, zbrelcrecomatchhname, zbrelcmatrixname)
-    "zbt"     -> (zbtrecohname, zbttruehname, zbtrecomatchhname, zbtmatrixname)
-    "zbl"     -> (zblrecohname, zbltruehname, zblrecomatchhname, zblmatrixname)
-    "zbrel"   -> (zbrelrecohname, zbreltruehname, zbrelrecomatchhname, zbrelmatrixname)
     x         -> error $ "unrecognized observable" ++ show x
 
 
