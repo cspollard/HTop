@@ -122,6 +122,9 @@ writeFiles outf pm = do
 
       predhs' = over (traverse.traverse) addTot $ addNorm predhs
 
+    
+      ttpreds' = over (traverse.traverse) addTot $ addNorm ttpreds
+
       psmc :: VarMap (Folder YodaObj)
       psmc = variationToMap "nominal" . sequence $ sequence <$> predhs'
 

@@ -41,24 +41,3 @@ cd unfold/particlelevel/stress_herwig/zbtcposteriors
 python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/stress_herwig/zbtcmcmc.dat
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
-
-
-mkdir -p unfold/particlelevel/data/zbrelcposteriors
-cd unfold/particlelevel/data/zbrelcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbrelcmcmc.dat
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
-cd $DIR
-
-
-mkdir -p unfold/particlelevel/closure/zbrelcposteriors
-cd unfold/particlelevel/closure/zbrelcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/zbrelcmcmc.dat
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
-cd $DIR
-
-
-mkdir -p unfold/particlelevel/stress_herwig/zbrelcposteriors
-cd unfold/particlelevel/stress_herwig/zbrelcposteriors
-python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/stress_herwig/zbrelcmcmc.dat
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
-cd $DIR

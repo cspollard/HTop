@@ -236,6 +236,9 @@ obsTruthTrimmers s =
     "zbtc"   -> trimH zbtcMerges
     "zblc"   -> trimH zblcMerges
     "zbrelc" -> trimH zbrelcMerges
+    "zbtcnorm"   -> trimH zbtcMerges
+    "zblcnorm"   -> trimH zblcMerges
+    "zbrelcnorm" -> trimH zbrelcMerges
     _        -> id
 
 
@@ -247,6 +250,9 @@ obsRecoTrimmers s =
     "zbtc"   -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
     "zblc"   -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
     "zbrelc" -> trimH $ pure <$> [00..19]
+    "zbtcnorm"   -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
+    "zblcnorm"   -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
+    "zbrelcnorm" -> trimH $ pure <$> [00..19]
     _         -> id
 
 

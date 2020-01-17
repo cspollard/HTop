@@ -35,22 +35,6 @@ make-plots --pdf unfold/particlelevel/closure/zbtcplots/*/*dat
 
 rivet-mkhtml -c ext/htop.plot \
   -m ".*migeffY?[0-9]*$" \
-  unfold/particlelevel/closure/unfoldzbrelc/nominal.yoda \
-  unfold/particlelevel/closure/unfoldzbrelc/fsr.yoda \
-  unfold/particlelevel/closure/unfoldzbrelc/ptcsf.yoda \
-  unfold/particlelevel/closure/unfoldzbrelc/ps.yoda \
-  unfold/particlelevel/closure/unfoldzbrelc/puwgt.yoda \
-  unfold/particlelevel/closure/unfoldzbrelc/v2trk_fake_rate_tight.yoda \
-  unfold/particlelevel/closure/unfoldzbrelc/v2trk_res_d0_meas.yoda \
-  unfold/particlelevel/closure/unfoldzbrelc/v2trk_res_z0_meas.yoda \
-  -o unfold/particlelevel/closure/zbrelcplots
-
-
-make-plots --pdf unfold/particlelevel/closure/zbrelcplots/*/*dat
-
-
-rivet-mkhtml -c ext/htop.plot \
-  -m ".*migeffY?[0-9]*$" \
   unfold/particlelevel/closure/unfoldnsvtrk/nominal.yoda \
   unfold/particlelevel/closure/unfoldnsvtrk/fsr.yoda \
   unfold/particlelevel/closure/unfoldnsvtrk/ptcsf.yoda \
