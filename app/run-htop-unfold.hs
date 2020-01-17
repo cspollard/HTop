@@ -24,7 +24,7 @@ import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
 import           Data.List              (intercalate, nub, sort, sortBy, sortOn)
-import           Data.Maybe             (fromJust, fromMaybe)
+import           Data.Maybe             (fromMaybe)
 import           Data.Monoid            (Sum (..))
 import           Data.Semigroup         ((<>))
 import           Data.TDigest           (quantile)
@@ -53,10 +53,14 @@ type H1DD = Histogram V.Vector (ArbBin Double) (Uncert Double)
 type H2DD = Histogram V.Vector (Bin2D (ArbBin Double) (ArbBin Double)) (Uncert Double)
 
 
-unsafeHAdd h h' = fromJust $ hzip (+) h h'
-unsafeHSub h h' = fromJust $ hzip (-) h h'
-unsafeHDiv h h' = fromJust $ hzip (/) h h'
-unsafeHMul h h' = fromJust $ hzip (*) h h'
+fromJust' :: String -> Maybe a -> a
+fromJust' s = fromMaybe (error s)
+
+
+unsafeHAdd h h' = fromJust' "unsafeHAdd" $ hzip (+) h h'
+unsafeHSub h h' = fromJust' "unsafeHSub" $ hzip (-) h h'
+unsafeHDiv h h' = fromJust' "unsafeHDiv" $ hzip (/) h h'
+unsafeHMul h h' = fromJust' "unsafeHMul" $ hzip (*) h h'
 
 data Args =
   Args
@@ -120,7 +124,7 @@ main = do
 
       -- only keep bkg variations with a > 5% deviation
       bkgFilt hnom hvar =
-        or . view histData . fromJust
+        or . view histData . fromJust' "bkgFilt"
         $ hzip' f hnom hvar
         where
           f n v =
@@ -129,7 +133,7 @@ main = do
 
       -- only keep matrix variations with a deviation > 0.01%
       matFilt hnom hvar =
-        or . view histData . fromJust
+        or . view histData . fromJust' "matFilt"
         $ hzip' f hnom hvar
         where
           f n v =
@@ -346,7 +350,16 @@ unfoldingInputs obs hs =
   let (recohname, truehname, recomatchhname, matrixname)
         = obsNames obs
 
+      trimR
+        :: Monoid b
+        => Histogram Vector (ArbBin Double) b
+        -> Histogram Vector (ArbBin Double) b
       trimR = obsRecoTrimmers obs
+
+      trimT
+        :: Monoid b
+        => Histogram Vector (ArbBin Double) b
+        -> Histogram Vector (ArbBin Double) b
       trimT = obsTruthTrimmers obs
 
       recoh, trueh, recomatchh :: Annotated (Vars H1D)
@@ -364,21 +377,22 @@ unfoldingInputs obs hs =
 
       math =
         fmap
-          ( H.liftY (obsRecoTrimmers obs)
-          . H.liftX (obsTruthTrimmers obs)
-          . fromJust . preview _H2DD
+          ( H.liftY trimR
+          . H.liftX trimT
+          . fromJust' "math"
+          . preview _H2DD
           )
         <$> hs ^?! ix matrixname
 
       bkgrecoh :: Annotated (Vars H1DD)
       bkgrecoh =
         liftA2 (\h h' ->
-          fromJust $ hzip (\d d' -> distToUncert (removeSubDist d d')) h h'
+          fromJust' "bkgrecoh" $ hzip (\d d' -> distToUncert (removeSubDist d d')) h h'
           )
         <$> recoh
         <*> recomatchh
 
-      normmat m h = H.liftX (\hm -> fromJust $ hzip divCorr hm h) m
+      normmat m h = H.liftX (\hm -> fromJust' "normmat" $ hzip divCorr hm h) m
 
       mats = liftA2 normmat <$> math <*> trueh
 
@@ -386,7 +400,6 @@ unfoldingInputs obs hs =
       nommat = view (noted.nominal) mats
 
       smooth = smoothRatioUncorr2DAlongXY nommat
-      -- smooth = smoothRatioUncorr2DAlongY nommat
 
       -- can't this be simplified somehow? e.g. target several keys in
       -- one pass?

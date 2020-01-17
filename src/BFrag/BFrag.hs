@@ -207,29 +207,25 @@ bfragHs =
   ]
 
 
-zbtcMerges, zblcMerges, zbrelcMerges, zbtMerges, zblMerges, zbrelMerges
-  :: [[Int]]
+zbtcMerges, zblcMerges, zbrelcMerges :: [[Int]]
 zbtcMerges =
   [ [00, 01, 02, 03, 04, 05, 06, 07, 08]
-  , [09, 10, 11]
-  , [12, 13]
-  , [14, 15]
-  , [16, 17]
-  , [18, 19]
+  , [09, 10]
+  , [11, 12]
+  , [13, 14]
+  , [15, 16]
+  , [17]
+  , [18]
+  , [19]
   ]
 
-zbtMerges = zbtcMerges
-
 zblcMerges = zbtcMerges
-zblMerges = zblcMerges
 
 zbrelcMerges =
   [ [00, 01, 02, 03]
   , [04, 05, 06, 07, 08, 09]
   , [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
   ]
-
-zbrelMerges = zbrelcMerges
 
 
 obsTruthTrimmers
@@ -240,9 +236,6 @@ obsTruthTrimmers s =
     "zbtc"   -> trimH zbtcMerges
     "zblc"   -> trimH zblcMerges
     "zbrelc" -> trimH zbrelcMerges
-    "zbt"    -> trimH zbtMerges
-    "zbl"    -> trimH zblMerges
-    "zbrel"  -> trimH zbrelMerges
     _        -> id
 
 
@@ -253,10 +246,7 @@ obsRecoTrimmers s =
   case s of
     "zbtc"   -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
     "zblc"   -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
-    "zbt"    -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
-    "zbl"    -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
     "zbrelc" -> trimH $ pure <$> [00..19]
-    "zbrel"  -> trimH $ pure <$> [00..19]
     _         -> id
 
 
@@ -268,9 +258,7 @@ obsNames s =
     "zbtc"    -> (zbtcrecohname, zbtctruehname, zbtcrecomatchhname, zbtcmatrixname)
     "zblc"    -> (zblcrecohname, zblctruehname, zblcrecomatchhname, zblcmatrixname)
     "zbrelc"  -> (zbrelcrecohname, zbrelctruehname, zbrelcrecomatchhname, zbrelcmatrixname)
-    "zbt"     -> (zbtrecohname, zbttruehname, zbtrecomatchhname, zbtmatrixname)
-    "zbl"     -> (zblrecohname, zbltruehname, zblrecomatchhname, zblmatrixname)
-    "zbrel"   -> (zbrelrecohname, zbreltruehname, zbrelrecomatchhname, zbrelmatrixname)
+    "nsvtrk"  -> (nsvtrkrecohname, nsvtrktruehname, nsvtrkrecomatchhname, nsvtrkmatrixname)
     x         -> error $ "unrecognized observable" ++ show x
 
 
@@ -301,27 +289,12 @@ mergeV f x ks v = V.fromList $ go <$> ks
     go is = foldl f x $ (v !) <$> is
 
 
-zbtmatrixname, zbtrecohname, zbtrecomatchhname, zbttruehname :: IsString s => s
-zbtmatrixname = "/elmujjmatched/zbtmig"
-zbtrecohname = "/elmujj/probejets/zbt"
-zbtrecomatchhname = "/elmujjmatched/probejets/zbt"
-zbttruehname = "/elmujjtrue/truejets/zbt"
-
-
 zbtcmatrixname, zbtcrecohname, zbtcrecomatchhname, zbtctruehname
   :: IsString s => s
 zbtcmatrixname = "/elmujjmatched/zbtcmig"
 zbtcrecohname = "/elmujj/probejets/zbtc"
 zbtcrecomatchhname = "/elmujjmatched/probejets/zbtc"
 zbtctruehname = "/elmujjtrue/truejets/zbtc"
-
-
-zblmatrixname, zblrecohname, zblrecomatchhname, zbltruehname
-  :: IsString s => s
-zblmatrixname = "/elmujjmatched/zblmig"
-zblrecohname = "/elmujj/probejets/zbl"
-zblrecomatchhname = "/elmujjmatched/probejets/zbl"
-zbltruehname = "/elmujjtrue/truejets/zbl"
 
 
 zblcmatrixname, zblcrecohname, zblcrecomatchhname, zblctruehname
@@ -332,17 +305,17 @@ zblcrecomatchhname = "/elmujjmatched/probejets/zblc"
 zblctruehname = "/elmujjtrue/truejets/zblc"
 
 
-zbrelmatrixname, zbrelrecohname, zbrelrecomatchhname, zbreltruehname
-  :: IsString s => s
-zbrelmatrixname = "/elmujjmatched/zbrelmig"
-zbrelrecohname = "/elmujj/probejets/zbrel"
-zbrelrecomatchhname = "/elmujjmatched/probejets/zbrel"
-zbreltruehname = "/elmujjtrue/truejets/zbrel"
-
-
 zbrelcmatrixname, zbrelcrecohname, zbrelcrecomatchhname, zbrelctruehname
   :: IsString s => s
 zbrelcmatrixname = "/elmujjmatched/zbrelcmig"
 zbrelcrecohname = "/elmujj/probejets/zbrelc"
 zbrelcrecomatchhname = "/elmujjmatched/probejets/zbrelc"
 zbrelctruehname = "/elmujjtrue/truejets/zbrelc"
+
+
+nsvtrkmatrixname, nsvtrkrecohname, nsvtrkrecomatchhname, nsvtrktruehname
+  :: IsString s => s
+nsvtrkmatrixname = "/elmujjmatched/nsvtrkmig"
+nsvtrkrecohname = "/elmujj/probejets/nsvtrk"
+nsvtrkrecomatchhname = "/elmujjmatched/probejets/nsvtrk"
+nsvtrktruehname = "/elmujjtrue/truejets/nsvtrk"
