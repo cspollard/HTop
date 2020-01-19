@@ -392,7 +392,7 @@ unfoldingInputs obs hs =
         <$> recoh
         <*> recomatchh
 
-      normmat m h = H.liftX (\hm -> fromJust' "normmat" $ hzip divCorr hm h) m
+      normmat m h = H.liftX (\hm -> fromJust' "normmat" . hzip divCorr hm $ set outOfRange Nothing h) m
 
       mats = liftA2 normmat <$> math <*> trueh
 
