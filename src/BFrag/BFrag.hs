@@ -209,15 +209,11 @@ bfragHs =
 
 zbtcMerges, zblcMerges, zbrelcMerges :: [[Int]]
 zbtcMerges =
-  [ [00, 01, 02, 03, 04, 05, 06, 07, 08]
-  , [09, 10]
-  , [11, 12]
-  , [13, 14]
-  , [15, 16]
-  , [17]
-  , [18]
-  , [19]
-  ]
+  [ [00, 01, 02, 03, 04, 05, 06, 07] ]
+  ++ fmap andOne [08, 10, 12, 14, 16, 18]
+  where
+    andOne x = [x, x+1]
+
 
 zblcMerges = zbtcMerges
 
@@ -225,6 +221,14 @@ zbrelcMerges =
   [ [00, 01, 02, 03]
   , [04, 05, 06, 07, 08, 09]
   , [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+  ]
+
+nsvtrkMerges =
+  [ [00, 01]
+  , [02, 03]
+  , [04, 05]
+  , [06, 07]
+  , [08, 09]
   ]
 
 
@@ -239,6 +243,8 @@ obsTruthTrimmers s =
     "zbtcnorm"   -> trimH zbtcMerges
     "zblcnorm"   -> trimH zblcMerges
     "zbrelcnorm" -> trimH zbrelcMerges
+    "nsvtrk" -> trimH nsvtrkMerges
+    "nsvtrknorm" -> trimH nsvtrkMerges
     _        -> id
 
 
