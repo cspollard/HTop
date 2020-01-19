@@ -207,13 +207,12 @@ bfragHs =
   ]
 
 
-zbtcMerges, zblcMerges, zbrelcMerges :: [[Int]]
+zbtcMerges, zblcMerges, zbrelcMerges, nsvtrkMerges :: [[Int]]
 zbtcMerges =
   [ [00, 01, 02, 03, 04, 05, 06, 07] ]
   ++ fmap andOne [08, 10, 12, 14, 16, 18]
   where
     andOne x = [x, x+1]
-
 
 zblcMerges = zbtcMerges
 
@@ -228,7 +227,6 @@ nsvtrkMerges =
   , [02, 03]
   , [04, 05]
   , [06, 07]
-  , [08, 09]
   ]
 
 
