@@ -56,5 +56,3 @@ stack exec run-htop-unfold -- --stat-only --mcmcfile unfold/mcmc/closure_statonl
 
 mkdir -p unfold/particlelevel/stress_herwig/unfoldnsvtrk
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/stress_herwig/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/stress_herwig/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk --stresstest ps hist/{3,4}*hist.gz > unfold/mcmc/stress_herwig/nsvtrk.log 2>&1
-
-
