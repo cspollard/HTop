@@ -16,6 +16,7 @@ mkdir -p unfold/particlelevel/stress_herwig/unfoldzbtc
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/stress_herwig/zbtcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/stress_herwig/unfoldzbtc --xsecfile data/XSection-MC15-13TeV.data --observable zbtc --stresstest ps hist/{3,4}*hist.gz > unfold/mcmc/stress_herwig/zbtc.log 2>&1
 
 
+
 mkdir -p unfold/particlelevel/data/unfoldzblc
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/zblcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/data/unfoldzblc --xsecfile data/XSection-MC15-13TeV.data --observable zblc hist/*hist.gz > unfold/mcmc/data/zblc.log 2>&1
 
@@ -27,6 +28,7 @@ stack exec run-htop-unfold -- --stat-only --mcmcfile unfold/mcmc/closure_statonl
 
 mkdir -p unfold/particlelevel/stress_herwig/unfoldzblc
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/stress_herwig/zblcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/stress_herwig/unfoldzblc --xsecfile data/XSection-MC15-13TeV.data --observable zblc --stresstest ps hist/{3,4}*hist.gz > unfold/mcmc/stress_herwig/zblc.log 2>&1
+
 
 
 mkdir -p unfold/particlelevel/data/unfoldzbrelc
