@@ -56,6 +56,7 @@ writeFiles outf pm = do
       predhs = imap appLumi pred'
       bkghs = imap appLumi bkgs
 
+      ttpredhs :: StrictMap ProcessInfo (Folder (Annotated Obj))
       ttpredhs =
         ((fmap.fmap) (view nominal) . imap appLumi . (fmap.fmap) pure)
         <$> ttpreds
@@ -128,7 +129,14 @@ writeFiles outf pm = do
       psmc = variationToMap "nominal" . sequence $ sequence <$> predhs'
 
       pstt :: VarMap (Folder YodaObj)
-      pstt = fromList . fmap (first procToText) . toList $ ttpredhs
+      pstt =
+        fromList
+        . fmap (first procToText)
+        . toList
+        . (fmap.fmap.fmap) (view nominal)
+        . fmap addNorm
+        . (fmap.fmap.fmap) pure
+        $ ttpredhs
 
       psbkg :: VarMap (Folder YodaObj)
       psbkg = [("background", view nominal . sequence $ sequence <$> bkghs)]
