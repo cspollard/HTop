@@ -3,20 +3,6 @@ mkdir -p unfold/mcmc/closure_statonly
 mkdir -p unfold/mcmc/stress_herwig
 mkdir -p unfold/mcmc/data
 
-
-mkdir -p unfold/particlelevel/data/unfoldnsvtrk
-stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/data/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk hist/*hist.gz > unfold/mcmc/data/nsvtrk.log 2>&1
-
-mkdir -p unfold/particlelevel/closure/unfoldnsvtrk
-stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure/nsvtrk.log 2>&1
-
-mkdir -p unfold/particlelevel/closure_statonly/unfoldnsvtrk
-stack exec run-htop-unfold -- --stat-only --mcmcfile unfold/mcmc/closure_statonly/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure_statonly/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure_statonly/nsvtrk.log 2>&1
-
-mkdir -p unfold/particlelevel/stress_herwig/unfoldnsvtrk
-stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/stress_herwig/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/stress_herwig/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk --stresstest ps hist/{3,4}*hist.gz > unfold/mcmc/stress_herwig/nsvtrk.log 2>&1
-
-
 mkdir -p unfold/particlelevel/data/unfoldzbtc
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/zbtcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/data/unfoldzbtc --xsecfile data/XSection-MC15-13TeV.data --observable zbtc hist/*hist.gz > unfold/mcmc/data/zbtc.log 2>&1
 
@@ -25,7 +11,6 @@ stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/zbtcmcmc.dat --nsam
 
 mkdir -p unfold/particlelevel/closure_statonly/unfoldzbtc
 stack exec run-htop-unfold -- --stat-only --mcmcfile unfold/mcmc/closure_statonly/zbtcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure_statonly/unfoldzbtc --xsecfile data/XSection-MC15-13TeV.data --observable zbtc --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure_statonly/zbtc.log 2>&1
-
 
 mkdir -p unfold/particlelevel/stress_herwig/unfoldzbtc
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/stress_herwig/zbtcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/stress_herwig/unfoldzbtc --xsecfile data/XSection-MC15-13TeV.data --observable zbtc --stresstest ps hist/{3,4}*hist.gz > unfold/mcmc/stress_herwig/zbtc.log 2>&1
@@ -55,3 +40,17 @@ stack exec run-htop-unfold -- --stat-only --mcmcfile unfold/mcmc/closure_statonl
 
 mkdir -p unfold/particlelevel/stress_herwig/unfoldzbrelc
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/stress_herwig/zbrelcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/stress_herwig/unfoldzbrelc --xsecfile data/XSection-MC15-13TeV.data --observable zbrelc --stresstest ps hist/{3,4}*hist.gz > unfold/mcmc/stress_herwig/zbrelc.log 2>&1
+
+
+
+mkdir -p unfold/particlelevel/data/unfoldnsvtrk
+stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/data/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk hist/*hist.gz > unfold/mcmc/data/nsvtrk.log 2>&1
+
+mkdir -p unfold/particlelevel/closure/unfoldnsvtrk
+stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure/nsvtrk.log 2>&1
+
+mkdir -p unfold/particlelevel/closure_statonly/unfoldnsvtrk
+stack exec run-htop-unfold -- --stat-only --mcmcfile unfold/mcmc/closure_statonly/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure_statonly/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure_statonly/nsvtrk.log 2>&1
+
+mkdir -p unfold/particlelevel/stress_herwig/unfoldnsvtrk
+stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/stress_herwig/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/stress_herwig/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk --stresstest ps hist/{3,4}*hist.gz > unfold/mcmc/stress_herwig/nsvtrk.log 2>&1

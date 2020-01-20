@@ -264,13 +264,13 @@ obsRecoTrimmers s =
 
 obsNames
   :: (IsString t, IsString a, Eq a, Show a)
-  => a -> (t, t, t, t)
+  => a -> (t, t, t)
 obsNames s =
   case s of
-    "zbtc"    -> (zbtcrecohname, zbtctruehname, zbtcrecomatchhname, zbtcmatrixname)
-    "zblc"    -> (zblcrecohname, zblctruehname, zblcrecomatchhname, zblcmatrixname)
-    "zbrelc"  -> (zbrelcrecohname, zbrelctruehname, zbrelcrecomatchhname, zbrelcmatrixname)
-    "nsvtrk"  -> (nsvtrkrecohname, nsvtrktruehname, nsvtrkrecomatchhname, nsvtrkmatrixname)
+    "zbtc"    -> (zbtcrecohname, zbtctruehname, zbtcmatrixname)
+    "zblc"    -> (zblcrecohname, zblctruehname, zblcmatrixname)
+    "zbrelc"  -> (zbrelcrecohname, zbrelctruehname, zbrelcmatrixname)
+    "nsvtrk"  -> (nsvtrkrecohname, nsvtrktruehname, nsvtrkmatrixname)
     x         -> error $ "unrecognized observable" ++ show x
 
 

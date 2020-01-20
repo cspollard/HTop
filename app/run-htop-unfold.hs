@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE RankNTypes                #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedLists           #-}
 {-# LANGUAGE OverloadedStrings         #-}
@@ -104,7 +105,7 @@ main = do
   hSetBuffering stdout LineBuffering
   args <- execParser $ info (helper <*> inArgs) fullDesc
 
-  let (recohname, truehname, _, matrixname) = obsNames (observable args)
+  let (recohname, truehname, matrixname) = obsNames $ observable args
       regex = intercalate "|" $ obsNames (observable args) ^.. each
 
   xsecs <- fromMaybe (error "failed to read xsecs") <$> readXSecFile (xsecfile args)
@@ -210,12 +211,19 @@ main = do
         V.toList . fmap (\(mn, mx) -> ((mn+mx)/2, (mn, mx))) . binsList
         $ view bins datah
 
+      filtNSVSF :: Vars a -> Vars a
+      filtNSVSF =
+        if observable args == "nsvtrk"
+          then over variations $ sans "nsvtrksf"
+          else id
+
       (model, params) =
         buildModel
           (statOnly args)
           (view histData trueh)
-          (getH2DD <$> filtVar matFilt (view noted migration))
-          (HM.singleton "bkg" . fmap uMean . view histData <$> filtVar bkgFilt (view noted bkg))
+          (filtNSVSF $ getH2DD <$> filtVar matFilt (view noted migration))
+          (filtNSVSF $ HM.singleton "bkg" . fmap uMean . view histData <$> filtVar bkgFilt (view noted bkg))
+
 
   imapM_ writeMigs . variationToMap "nominal"
     $ liftA3 (,,)
@@ -347,8 +355,7 @@ unfoldingInputs
   -> Folder (Annotated (Vars Obj))
   -> (Annotated (Vars  H1DD), Annotated (Vars H2DD))
 unfoldingInputs obs hs =
-  let (recohname, truehname, recomatchhname, matrixname)
-        = obsNames obs
+  let (recohname, truehname, matrixname) = obsNames obs
 
       trimR
         :: Monoid b
@@ -362,7 +369,7 @@ unfoldingInputs obs hs =
         -> Histogram Vector (ArbBin Double) b
       trimT = obsTruthTrimmers obs
 
-      recoh, trueh, recomatchh :: Annotated (Vars H1D)
+      recoh, trueh :: Annotated (Vars H1D)
       recoh =
         fmap (trimR . (^?! _H1DD))
         <$> hs ^?! ix recohname
@@ -371,10 +378,7 @@ unfoldingInputs obs hs =
         fmap (trimT . (^?! _H1DD))
         <$> hs ^?! ix truehname
 
-      recomatchh =
-        fmap (trimR . (^?! _H1DD))
-        <$> hs ^?! ix recomatchhname
-
+      math :: Annotated (Variation VarMap (Histogram Vector (Bin2D (ArbBin Double) (ArbBin Double)) (Dist2D Double)))
       math =
         fmap
           ( H.liftY trimR
@@ -384,13 +388,16 @@ unfoldingInputs obs hs =
           )
         <$> hs ^?! ix matrixname
 
+      recomatchh = over noted (fmap $ H.reduceX (hoistD (\(Pair x _) -> Only x) . H.foldl mappend mempty)) math
+
+
       bkgrecoh :: Annotated (Vars H1DD)
       bkgrecoh =
         liftA2 (\h h' ->
           fromJust' "bkgrecoh" $ hzip (\d d' -> distToUncert (removeSubDist d d')) h h'
           )
-        <$> recoh
-        <*> recomatchh
+        <$> (fmap.fmap) (set outOfRange Nothing) recoh
+        <*> (fmap.fmap) (set outOfRange Nothing) recomatchh
 
       normmat m h = H.liftX (\hm -> fromJust' "normmat" . hzip divCorr hm $ set outOfRange Nothing h) m
 
@@ -404,14 +411,6 @@ unfoldingInputs obs hs =
       -- can't this be simplified somehow? e.g. target several keys in
       -- one pass?
       mats' = mats & over (noted.variations.traverse) smooth
-        -- mats
-        -- & over (noted.variations.ix "ps") smooth
-        -- & over (noted.variations.ix "fsr") smooth
-        -- & over (noted.variations.ix "rad") smooth
-        -- & over (noted.variations.ix "puwgt") smooth
-        -- & over (noted.variations.ix "jet_21np_jet_flavor_composition__1") smooth
-        -- & over (noted.variations.ix "jet_jer_single_np__1") smooth
-        -- & over (noted.variations.ix "jet_21np_jet_pileup_rhotopology__1") smooth
 
   in (bkgrecoh, mats')
 
@@ -672,3 +671,11 @@ falling :: (Ord a, Num a) => a -> [a] -> a
 falling weight = vdiff >>> foldMap go >>> getSum >>> (*weight)
   where
     go x = if x > 0 then mempty else Sum (abs x)
+
+
+hoistD :: Functor v => (forall x. v x -> w x) -> DistND v a -> DistND w a
+hoistD f DistND{..} = DistND _sumW _sumWW (f _sumWX) (f $ f <$> _sumWXY) _nentries
+
+
+instance Functor Pair where
+    fmap f (Pair x y) = Pair (f x) (f y)
