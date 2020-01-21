@@ -388,7 +388,11 @@ unfoldingInputs obs hs =
           )
         <$> hs ^?! ix matrixname
 
-      recomatchh = over noted (fmap $ H.reduceX (hoistD (\(Pair x _) -> Only x) . H.foldl mappend mempty)) math
+      recomatchh =
+        over
+          noted
+          (fmap $ H.reduceX (hoistD (\(Pair x _) -> Only x) . H.foldl mappend mempty))
+          math
 
 
       bkgrecoh :: Annotated (Vars H1DD)
@@ -396,10 +400,10 @@ unfoldingInputs obs hs =
         liftA2 (\h h' ->
           fromJust' "bkgrecoh" $ hzip (\d d' -> distToUncert (removeSubDist d d')) h h'
           )
-        <$> (fmap.fmap) (set outOfRange Nothing) recoh
-        <*> (fmap.fmap) (set outOfRange Nothing) recomatchh
+        <$> (fmap.fmap) rmOverflow recoh
+        <*> (fmap.fmap) rmOverflow recomatchh
 
-      normmat m h = H.liftX (\hm -> fromJust' "normmat" . hzip divCorr hm $ set outOfRange Nothing h) m
+      normmat m h = H.liftX (\hm -> fromJust' "normmat" . hzip divCorr hm $ rmOverflow h) m
 
       mats = liftA2 normmat <$> math <*> trueh
 
@@ -408,9 +412,11 @@ unfoldingInputs obs hs =
 
       smooth = smoothRatioUncorr2DAlongXY nommat
 
-      -- can't this be simplified somehow? e.g. target several keys in
-      -- one pass?
-      mats' = mats & over (noted.variations.traverse) smooth
+      -- don't smooth for nsvtrk
+      mats' =
+        if obs == "nsvtrk"
+          then mats
+          else mats & over (noted.variations.traverse) smooth
 
   in (bkgrecoh, mats')
 
@@ -679,3 +685,7 @@ hoistD f DistND{..} = DistND _sumW _sumWW (f _sumWX) (f $ f <$> _sumWXY) _nentri
 
 instance Functor Pair where
     fmap f (Pair x y) = Pair (f x) (f y)
+
+
+rmOverflow :: Bin b => Histogram Vector b a -> Histogram Vector b a
+rmOverflow = set outOfRange Nothing
