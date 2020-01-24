@@ -65,7 +65,10 @@ executables:
     source-dirs: app
     main: run-htop-toyoda.hs
     dependencies:
+      - hunfold
+      - linear
       - htop
+      - matrix
 
   run-htop-unfold:
     source-dirs: app
