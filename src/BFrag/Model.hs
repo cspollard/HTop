@@ -90,8 +90,7 @@ bfragModel stresstest procs = do
     <$> getProcs procs [sherpakey] & (traverse.traverse.noted) %~ view nominal
 
 
-  let nomnom =
-        nom & (traverse.noted) %~ view nominal
+  let nomnom = nom & (traverse.noted) %~ view nominal
 
       afiidiff = inFA2 corrDiffO nomnom afii
       raddiff = inFA2 (fmap (scaleO 0.5) . corrDiffO) radup raddown
@@ -113,12 +112,27 @@ bfragModel stresstest procs = do
         case stresstest of
           Nothing ->
             either error ((fmap.fmap) (view nominal)) $ getProcs procs [datakey]
-          Just "closure" ->
-            (fmap.fmap) (scaleO $ view nominal lumi) nomnom
+          Just "closure" -> (fmap.fmap) (scaleO $ view nominal lumi) nomnom
+          Just "mugt22" ->
+            (fmap.fmap) (scaleO $ view nominal lumi)
+            $ imap
+                (\k v -> if T.take 7 k == "elmujj/" then nomnom ^?! ix (T.replace "elmujj/" "mu_gt_22/elmujj/" k) else v)
+                nomnom
+
+          Just "mult22" ->
+            (fmap.fmap) (scaleO $ view nominal lumi)
+            $ imap
+                (\k v -> if T.take 7 k == "elmujj/" then nomnom ^?! ix (T.replace "elmujj/" "mu_lt_22/elmujj/" k) else v)
+                nomnom
+
           Just var ->
-            let vs = (traverse.traverse) (view $ variations . at (T.pack var)) fullpred
-            in case vs of
-              Nothing -> error "missing stress test variation"
+            let vs = sequence $ sequence <$> fullpred :: Vars (Folder (Annotated Obj))
+                mv = view (variations . at (T.pack var)) vs :: Maybe (Folder (Annotated Obj))
+            in case mv of
+              Nothing ->
+                let ks = views variations (inSM HM.keys) vs
+                in error $ "missing stress test variation " ++ var ++ ".\nall variations:\n" ++ show ks ++ "\n"
+
               Just fo -> (fmap.fmap) (scaleO $ view nominal lumi) fo
 
 

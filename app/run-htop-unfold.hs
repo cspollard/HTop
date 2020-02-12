@@ -57,6 +57,13 @@ type H2DD = Histogram V.Vector (Bin2D (ArbBin Double) (ArbBin Double)) (Uncert D
 fromJust' :: String -> Maybe a -> a
 fromJust' s = fromMaybe (error s)
 
+-- reco-level stress tests
+stressReco (Just "mugt22") = traceShowId . T.replace "elmujj" "mu_gt_22/elmujj"
+stressReco (Just "mult22") = traceShowId . T.replace "elmujj" "mu_lt_22/elmujj"
+stressReco (Just x) = error $ "unknown stress test: " ++ show x
+stressReco _ = id
+
+
 
 unsafeHAdd h h' = fromJust' "unsafeHAdd" $ hzip (+) h h'
 unsafeHSub h h' = fromJust' "unsafeHSub" $ hzip (-) h h'
@@ -412,11 +419,13 @@ unfoldingInputs obs hs =
 
       smooth = smoothRatioUncorr2DAlongXY nommat
 
+      -- TODO TODO TODO
+      mats' = mats -- & over (noted.variations.traverse) smooth
+
       -- don't smooth for nsvtrk
-      mats' =
-        if obs == "nsvtrk"
-          then mats
-          else mats & over (noted.variations.traverse) smooth
+      --  if obs == "nsvtrk"
+      --    then mats
+      --    else mats & over (noted.variations.traverse) smooth
 
   in (bkgrecoh, mats')
 
