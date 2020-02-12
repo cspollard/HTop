@@ -1,9 +1,11 @@
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RankNTypes #-}
 
 module BFrag.Smooth where
 
 import           Data.Functor.Compose
 import           Numeric.AD
+import Linear.Matrix
 
 
 polynomial :: (Num a, Foldable f) => f a -> a -> a
@@ -60,3 +62,16 @@ polySmooth2D start steps v = (getCompose end, (\(b, _) -> (b, polynomial2D end b
     go ((i, j), (m, s)) = ((auto i, auto j), normalLogLH (auto m) (auto s))
 
     end = last . take steps $ conjugateGradientDescent (fitPoly2D $ go <$> v) (Compose start)
+
+
+
+-- newton
+--   :: (Ord a, Fractional a, Traversable f)
+--   => Int -> f a -> (forall b. Num b => f b -> b) -> f a
+-- newton steps start func =
+--   last . (start :) . take steps
+--   $ conjugateGradientDescent func start
+
+
+-- divergence :: (Num a, Trace m) => (m a -> m a) -> m a -> a
+-- divergence f = trace . fmap (grad f)

@@ -124,7 +124,7 @@ main = do
         either error id
         $ bfragModel (stresstest args) normedProcs
 
-      (bkg, migration) = unfoldingInputs (observable args) pred'
+      (bkg, migration, _migration_nosmooth) = unfoldingInputs (observable args) pred'
 
       filtVar f v =
         let nom = view nominal v
@@ -360,7 +360,7 @@ main = do
 unfoldingInputs
   :: String
   -> Folder (Annotated (Vars Obj))
-  -> (Annotated (Vars  H1DD), Annotated (Vars H2DD))
+  -> (Annotated (Vars  H1DD), Annotated (Vars H2DD), Annotated (Vars H2DD))
 unfoldingInputs obs hs =
   let (recohname, truehname, matrixname) = obsNames obs
 
@@ -417,18 +417,24 @@ unfoldingInputs obs hs =
       nommat :: H2DD
       nommat = view (noted.nominal) mats
 
-      smooth = smoothRatioUncorr2DAlongXY nommat
+      binningmat = focusOrCenter (\(Pair x y) -> (x, y)) id $ view (noted.nominal) math
 
-      -- TODO TODO TODO
-      mats' = mats -- & over (noted.variations.traverse) smooth
+      smooth = smoothRatioUncorr2DAlongXY binningmat nommat
 
       -- don't smooth for nsvtrk
-      --  if obs == "nsvtrk"
-      --    then mats
-      --    else mats & over (noted.variations.traverse) smooth
+      mats' =
+        if obs == "nsvtrk"
+          then mats
+          else mats & over (noted.variations.traverse) smooth
 
-  in (bkgrecoh, mats')
+  in (bkgrecoh, mats', mats)
 
+
+focus :: (Eq a, Fractional a, Functor f) => DistND f a -> Maybe (f a)
+focus d =
+  case view sumW d of
+    0 -> Nothing
+    x -> Just $ (/x) <$> view sumWX d
 
 
 buildModel
@@ -634,14 +640,14 @@ smoothRatioUncorr2DAlongY mnom mvar =
 
 smoothRatioUncorr2D
   :: (Ord a, Floating a, Show a, Bin bX, BinValue bX ~ a, Bin bY, BinValue bY ~ a)
-  => Histogram Vector (Bin2D bX bY) (Uncert a, Uncert a)
+  => Histogram Vector (Bin2D bX bY) ((a, a), (Uncert a, Uncert a))
   -> Histogram Vector (Bin2D bX bY) (Uncert a)
 smoothRatioUncorr2D h = H.histogramUO (view bins h) Nothing (V.fromList smoothed)
   where
-    lh = H.asList h
+    lh = views histData V.toList h
 
     rat = over (traverse._2) (\(nom, var) -> uMeanStd $ safeDiv var nom) lh
-    (end, result) = traceShowId $ polySmooth2D start (length start ^ 2) rat
+    (end, result) = polySmooth2D start (length start ^ 2) rat
 
     correction = exact . snd <$> result
 
@@ -664,12 +670,24 @@ smoothRatioUncorr2D h = H.histogramUO (view bins h) Nothing (V.fromList smoothed
 
 smoothRatioUncorr2DAlongXY
   :: (Ord a, Floating a, Show a, BinValue bY ~ a, BinValue bX ~ a, BinEq bX, BinEq bY)
-  => Histogram Vector (Bin2D bX bY) (Uncert a)
+  => Histogram Vector (Bin2D bX bY) (a, a)
   -> Histogram Vector (Bin2D bX bY) (Uncert a)
   -> Histogram Vector (Bin2D bX bY) (Uncert a)
-smoothRatioUncorr2DAlongXY mnom mvar =
-  smoothRatioUncorr2D $ H.zip (,) mnom mvar
+  -> Histogram Vector (Bin2D bX bY) (Uncert a)
+smoothRatioUncorr2DAlongXY binvals mnom mvar =
+  smoothRatioUncorr2D . H.zip (,) binvals $ H.zip (,) mnom mvar
 
+
+focusOrCenter
+  :: (Eq a, Fractional a, Functor v, Bin b)
+  => (v a -> c)
+  -> (BinValue b -> c)
+  -> Histogram Vector b (DistND v a)
+  -> Histogram Vector b c
+focusOrCenter f g h =
+  let foci = focus <$> view histData h
+      bins' = H.binsCenters $ H.bins h
+  in H.histogram (H.bins h) $ V.zipWith (\bc -> maybe (g bc) f) bins' foci
 
 
 normFactors :: (IntervalBin bin, Num (BinValue bin)) => Histogram Vector bin a -> [BinValue bin]

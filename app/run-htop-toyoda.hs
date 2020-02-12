@@ -14,21 +14,78 @@ import           BFrag.BFrag
 import           BFrag.Model
 import           BFrag.Systematics
 import           Control.Applicative
+import Control.Arrow ((>>>))
 import           Control.Lens           hiding (each)
 import           Data.Bifunctor
+import Data.Maybe (fromMaybe)
+import Linear hiding (trace)
+import qualified Data.Map as M
 import qualified Data.Histogram.Generic as H
 import           Data.Semigroup
 import qualified Data.Text              as T
 import           Data.Vector            (Vector)
+import qualified Data.Vector as V
 import           GHC.Exts               (IsList (..))
 import           Pipes
 import qualified Pipes.Prelude          as P
 import           System.IO
 import Control.Monad (foldM)
+import Numeric (showFFloat)
+import Debug.Trace
+import qualified Data.Matrix as Mat
 
 
-main :: IO ()
-main = mainWith writeFiles
+fromJust' :: String -> Maybe a -> a
+fromJust' s = fromMaybe (error s)
+
+
+-- only eta plots fail as far as I can tell.
+dataChi2 :: Obj -> Vars Obj -> Maybe (Int, Double)
+dataChi2 (P1DD _) _ = Nothing
+dataChi2 (H2DD _) _ = Nothing
+dataChi2 d vs = do
+  if det > 0
+      then Just (length d', chi2)
+      else Nothing
+
+  where
+    vs' :: Vars (Vector (Dist1D Double))
+    vs' = (^?! (_H1DD.histData)) <$> vs
+
+    d', datastat :: Vector Double
+    d' = view sumW <$> (d ^?! _H1DD . histData)
+    datastat = view sumWW <$> (d ^?! _H1DD . histData)
+
+    n', mcstat :: Vector Double
+    n' = view sumW <$> view nominal vs'
+    mcstat = view sumWW <$> view nominal vs'
+
+    vars = fmap (view sumW) <$> vs'
+
+    cov = binnedCovariance vars !+! scaled datastat !+! scaled mcstat
+
+    mat = Mat.fromLists . fmap toList $ toList cov
+
+    -- could use SVD but for now just throw out singular matrices
+    det = Mat.detLU mat
+
+    invcovmat = either (error . ("invcov: " ++)) id . Mat.inverse $ mat
+
+    invcov = fromList . fmap fromList $ Mat.toLists invcovmat
+
+    chi2 = let x = d' ^-^ n' in dot x $ x *! invcov
+
+
+binnedCovariance :: (Num a, Functor f, Foldable f, Additive v) => Variation f (v a) -> v (v a)
+binnedCovariance (Variation n vs) = foldl (!+!) (const zeroV <$> n) $ matdiff <$> vs
+  where
+    matdiff v = let v' = v ^-^ n in outer (*) v' v'
+
+    outer :: (Functor w, Functor v) => (a -> a -> a) -> v a -> w a -> v (w a)
+    outer f a b = (\x -> f x <$> b) <$> a
+
+    zeroV = const 0 <$> n
+
 
 
 totalUncert :: Vars Obj -> Obj
@@ -48,13 +105,22 @@ totalUncert (Variation (H1DD n') vs') =
         foldM (hzip' addSyst) n vs
   
 
+pruneData :: Folder a -> Folder a
+pruneData =
+  inF . M.filterWithKey
+  $ \k _ -> not $ "elmujjmatched" `T.isInfixOf` k || "elmujjtrue" `T.isInfixOf` k
+
+
+main :: IO ()
+main = mainWith writeFiles
+
+
 writeFiles :: String -> ProcMap (Folder (Annotated (Vars Obj))) -> IO ()
 writeFiles outf pm = do
-  let (data', pred', bkgs, ttpreds) =
-        either error id $ bfragModel Nothing pm
+  let (data', pred', bkgs, ttpreds) = either error id $ bfragModel Nothing pm
 
       predhs = imap appLumi pred'
-      bkghs = imap appLumi bkgs
+      bkghs = imap (\k x -> set title "background" $ appLumi k x) bkgs
 
       ttpredhs :: StrictMap ProcessInfo (Folder (Annotated Obj))
       ttpredhs =
@@ -119,14 +185,16 @@ writeFiles outf pm = do
               else "\\ensuremath{\\frac{1}{n}}" <> yl
 
 
-      addTot v = let tot = totalUncert v in v & variations . at "total" ?~ tot
+      data'' = (fmap.fmap) (view nominal) . addNorm . (fmap.fmap) pure $ pruneData data'
 
-      predhs' = over (traverse.traverse) addTot $ addNorm predhs
+      predhs' = addNorm predhs
 
-      -- ttpreds' = over (traverse.traverse) addTot $ addNorm ttpreds
+      toths :: Folder YodaObj
+      toths = over (traverse.traverse) totalUncert $ addChi2 data'' predhs'
 
       psmc :: VarMap (Folder YodaObj)
-      psmc = variationToMap "nominal" . sequence $ sequence <$> predhs'
+      psmc = imap (\k h -> h & traverse.title .~ k) . variationToMap "nominal" . sequence $ sequence <$> predhs'
+
 
       pstt :: VarMap (Folder YodaObj)
       pstt =
@@ -138,15 +206,30 @@ writeFiles outf pm = do
         . (fmap.fmap.fmap) pure
         $ ttpredhs
 
-      psbkg :: VarMap (Folder YodaObj)
-      psbkg = [("background", view nominal . sequence $ sequence <$> bkghs)]
+      -- psbkg :: VarMap (Folder YodaObj)
+      psbkg = ("background", view nominal . sequence $ sequence <$> bkghs)
+      pstot = ("total", toths)
 
-      psdata :: VarMap (Folder YodaObj)
-      psdata = [("data", (fmap.fmap) (view nominal) . addNorm $ (fmap.fmap) pure data')]
+      -- psdata :: VarMap (Folder YodaObj)
+      psdata = ("data", (<$> data'') $ title .~ "data" >>> annots . ix "LineColor" .~ "black" )
 
 
-  runEffect $ each (toList $ psmc <> psdata <> pstt) >-> P.mapM_ (uncurry write)
-  runEffect $ each (toList psbkg) >-> P.mapM_ (uncurry write)
+      -- I'm not sure why e.g. matched and truth histograms are getting a
+      -- chi2...
+      addChi2 :: Folder YodaObj -> Folder (Annotated (Vars Obj)) -> Folder (Annotated (Vars Obj))
+      addChi2 = inF2 (M.mergeWithKey (\_k x y -> Just $ go x y) (const mempty) id)
+        where
+          go (Annotated _ dh) p@(Annotated _ ph) = maybe p id $ do
+            (nbins, chi2) <- dataChi2 dh ph
+            let chi2txt = T.pack $ showFFloat (Just 3) chi2 ""
+                str = " (\\ensuremath{\\chi^2} / bins = " <> chi2txt <> " / " <> T.pack (show nbins) <> ")"
+            return $ set title ("prediction" <> str) p
+
+
+  runEffect $ each (toList $ psmc <> pstt) >-> P.mapM_ (uncurry write)
+  runEffect $ yield psdata >-> P.mapM_ (uncurry write)
+  runEffect $ yield psbkg >-> P.mapM_ (uncurry write)
+  runEffect $ yield pstot >-> P.mapM_ (uncurry write)
 
 
 collapseProcs
@@ -157,3 +240,5 @@ collapseProcs pm =
       dat = (fmap.fmap) (view nominal) $ pm ^. at datakey
 
   in (preds, dat)
+
+

@@ -4,15 +4,14 @@ LogY=0
 Legend=1
 RatioPlotYMin=0.50
 RatioPlotYMax=1.50
+LegendXPos=0.1
 # END PLOT
 
 # BEGIN PLOT /.*zbtc?(norm)?$
-LegendXPos=0.1
 XLabel=\ensuremath{z_{\mathrm{T,b}}^\mathrm{ch}}
 # END PLOT
 
 # BEGIN PLOT /.*zblc?(norm)?$
-LegendXPos=0.1
 XLabel=\ensuremath{z_{\mathrm{L,b}}^\mathrm{ch}}
 # END PLOT
 
