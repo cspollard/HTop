@@ -14,6 +14,7 @@ import           BFrag.BFrag
 import           BFrag.Model
 import           BFrag.Systematics
 import           Control.Applicative
+import Control.Arrow ((>>>))
 import           Control.Lens           hiding (each)
 import           Data.Bifunctor
 import Data.Maybe (fromMaybe)
@@ -192,7 +193,7 @@ writeFiles outf pm = do
       toths = over (traverse.traverse) totalUncert $ addChi2 data'' predhs'
 
       psmc :: VarMap (Folder YodaObj)
-      psmc = variationToMap "nominal" . sequence $ sequence <$> predhs'
+      psmc = imap (\k h -> h & traverse.title .~ k) . variationToMap "nominal" . sequence $ sequence <$> predhs'
 
 
       pstt :: VarMap (Folder YodaObj)
@@ -210,7 +211,7 @@ writeFiles outf pm = do
       pstot = ("total", toths)
 
       -- psdata :: VarMap (Folder YodaObj)
-      psdata = ("data", data'')
+      psdata = ("data", (<$> data'') $ title .~ "data" >>> annots . ix "LineColor" .~ "black" )
 
 
       -- I'm not sure why e.g. matched and truth histograms are getting a
@@ -219,9 +220,9 @@ writeFiles outf pm = do
       addChi2 = inF2 (M.mergeWithKey (\_k x y -> Just $ go x y) (const mempty) id)
         where
           go (Annotated _ dh) p@(Annotated _ ph) = maybe p id $ do
-            (ndf, chi2) <- dataChi2 dh ph
+            (nbins, chi2) <- dataChi2 dh ph
             let chi2txt = T.pack $ showFFloat (Just 3) chi2 ""
-                str = " (\\ensuremath{\\chi^2} / n.d.f = " <> chi2txt <> " / " <> T.pack (show ndf) <> ")"
+                str = " (\\ensuremath{\\chi^2} / bins = " <> chi2txt <> " / " <> T.pack (show nbins) <> ")"
             return $ set title ("prediction" <> str) p
 
 

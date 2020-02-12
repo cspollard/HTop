@@ -46,6 +46,7 @@ dependencies:
 - histogram-extras
 - ttree
 - atlas
+- linear
 
 library:
   source-dirs: src
