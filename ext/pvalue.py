@@ -19,14 +19,25 @@ def llh(modes, cov):
     return f
 
 
-names = map(str.strip, stdin.readline().split(","))
+names = np.array(map(str.strip, stdin.readline().split(",")))
+binidxs = []
+for (i, n) in enumerate(names):
+    if "normtruthbin" in n:
+        binidxs.append((int(n[12:]), i))
+
+binidxs.sort()
+idxs = np.array([0] + map(lambda (x, y): y, binidxs))
+
+print("idxs: %s" % idxs)
+print("names[idxs]: %s" % names[idxs])
+
+# read in the toys
 xs_unsorted = np.loadtxt(stdin, delimiter=',')
-print xs_unsorted
-stdout.flush()
+
+# only keep the llh and the observable
+xs_unsorted = xs_unsorted[:,idxs]
 
 xs_sorted = np.flipud(xs_unsorted[xs_unsorted[:,0].argsort()])
-print xs_sorted
-stdout.flush()
 
 xs = xs_sorted.transpose()
 
@@ -34,23 +45,11 @@ xs = xs_sorted.transpose()
 if len(xs.shape) == 1:
     xs.shape = (1, xs.shape[0])
 
-idxs = []
-ns = []
+# we remove the llh and the first bin since these are normalized
+xs = xs[2:]
 
-i = 0
-for n in names:
-    if "normtruthbin" in n:
-        idxs.append(i)
-        ns.append(int(n[12:]))
-    i += 1
-
-names = ns
-idxs = np.array(idxs)
-
-print("names: %s" % names)
-print("idxs: %s" % idxs)
-
-xs = xs[idxs[names]]
+print("xs:")
+print(xs)
 
 modes = xs[:,0]
 
@@ -60,21 +59,21 @@ print(modes)
 cov = np.cov(xs)
 
 
-print("uncertainties")
+print("absolute uncertainties")
 print(np.sqrt(np.diag(cov)))
 
-print("covariance:")
+print("absolute covariance:")
 print(cov)
 
-# we throw out the last bin since this is a normalized distribution.
-xs = xs[:-1]
 modes = xs[:,0]
 cov = np.cov(xs)
 
 
-
 thisllh = llh(modes, cov)
 llhs = np.array([thisllh(x) for x in xs.T])
+
+print("llhs:")
+print(llhs)
 
 tsts = -2*np.log(llhs)
 meantsts = np.mean(tsts)
@@ -91,15 +90,15 @@ observable = argv[1]
 histkey = "/htop/elmujjtrue/truejets/" + observable
 
 files = \
-    { "PowPy8" : "yoda/PowPy8FS.yoda" \
-    , "Sherpa221" : "yoda/Sherpa221AFII.yoda" \
-    , "Powheg+Herwig7": "yoda/PowH7AFII.yoda" \
-    , "Powheg+Pythia6": "yoda/PowPy6FS.yoda" \
-    , "Powheg+Pythia8 (FSR down)": "yoda/PowPy8FSRDownAFII.yoda" \
-    , "Powheg+Pythia8 (FSR up)": "yoda/PowPy8FSRUpAFII.yoda" \
-    , "Powheg+Pythia8 (ISR down)": "yoda/PowPy8RadDownAFII.yoda" \
-    , "Powheg+Pythia8 (ISR up)": "yoda/PowPy8RadUpAFII.yoda" \
-    , "aMC@NLO+Pythia8": "yoda/aMCPy8AFII.yoda" \
+    { "PowPy8" : "yoda.nochi2/PowPy8FS.yoda" \
+    , "Sherpa221" : "yoda.nochi2/Sherpa221AFII.yoda" \
+    , "Powheg+Herwig7": "yoda.nochi2/PowH7AFII.yoda" \
+    , "Powheg+Pythia6": "yoda.nochi2/PowPy6FS.yoda" \
+    , "Powheg+Pythia8 (FSR down)": "yoda.nochi2/PowPy8FSRDownAFII.yoda" \
+    , "Powheg+Pythia8 (FSR up)": "yoda.nochi2/PowPy8FSRUpAFII.yoda" \
+    , "Powheg+Pythia8 (ISR down)": "yoda.nochi2/PowPy8RadDownAFII.yoda" \
+    , "Powheg+Pythia8 (ISR up)": "yoda.nochi2/PowPy8RadUpAFII.yoda" \
+    , "aMC@NLO+Pythia8": "yoda.nochi2/aMCPy8AFII.yoda" \
     }
 
 
@@ -107,19 +106,17 @@ hs = {}
 
 for (k, f) in files.iteritems():
     h = y.readYODA(f)[histkey]
-    hs[k] = [b.area for b in h.bins[:-1]]
+    hs[k] = [b.area for b in h.bins[1:]]
 
 
 print("pvalues:")
 
 for (k, h) in hs.iteritems():
-    print("%s: %0.3f" % (k, pval(h)))
-    # print("")
-    # print("pvalue of %s:" % k)
-    # print(pval(h))
-    # print("")
-    #
-    #
-    # print("Z of %s:" % k)
-    # print((-2*np.log(thisllh(h)) - meantsts)/stddevtst)
-    # print("")
+    # print("%s distribution:" % k)
+    # print(h)
+
+    print("")
+    print("pvalue of %s:" % k)
+    print(pval(h))
+    print("Z of %s:" % k)
+    print((-2*np.log(thisllh(h)) - meantsts)/stddevtst)
