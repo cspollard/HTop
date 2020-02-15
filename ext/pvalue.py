@@ -1,3 +1,13 @@
+"""
+to run this script call
+
+$ python pvalue.py histogram mcmcfile yodafile
+
+where the "histogram" parameter indicates which histogram should be read in
+from the yoda files, "mcmcfile" is a suitable data file of toys, and
+yodafiles is a list of input yoda files of the form "path/to/file.yoda:Title".
+"""
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -5,8 +15,18 @@ import matplotlib.mlab as mlab
 import matplotlib.lines as lines
 import numpy as np
 import yoda as y
-from sys import stdin, stdout, argv
+from sys import stdout, argv
 
+def parse_infile(str):
+    xs = str.split(":")
+
+    path = xs[0]
+    title = xs[1] if len(xs) > 1 else xs[0]
+
+    return (title, path)
+
+
+files = map(parse_infile, argv[3:])
 
 
 def llh(modes, cov):
@@ -18,15 +38,24 @@ def llh(modes, cov):
 
     return f
 
+infile = open(argv[2])
 
-names = map(str.strip, stdin.readline().split(","))
-xs_unsorted = np.loadtxt(stdin, delimiter=',')
-print xs_unsorted
-stdout.flush()
+names = np.array(map(str.strip, infile.readline().split(",")))
+binidxs = []
+for (i, n) in enumerate(names):
+    if "normtruthbin" in n:
+        binidxs.append((int(n[12:]), i))
+
+binidxs.sort()
+idxs = np.array([0] + map(lambda (x, y): y, binidxs))
+
+# read in the toys
+xs_unsorted = np.loadtxt(infile, delimiter=',')
+
+# only keep the llh and the observable
+xs_unsorted = xs_unsorted[:,idxs]
 
 xs_sorted = np.flipud(xs_unsorted[xs_unsorted[:,0].argsort()])
-print xs_sorted
-stdout.flush()
 
 xs = xs_sorted.transpose()
 
@@ -34,43 +63,25 @@ xs = xs_sorted.transpose()
 if len(xs.shape) == 1:
     xs.shape = (1, xs.shape[0])
 
-idxs = []
-ns = []
-
-i = 0
-for n in names:
-    if "normtruthbin" in n:
-        idxs.append(i)
-        ns.append(int(n[12:]))
-    i += 1
-
-names = ns
-idxs = np.array(idxs)
-
-print("names: %s" % names)
-print("idxs: %s" % idxs)
-
-xs = xs[idxs[names]]
+# we remove the llh and the first bin since these are normalized
+xs = xs[2:]
 
 modes = xs[:,0]
 
-print("modes:")
+print("modes of each bin of this observable:")
 print(modes)
 
 cov = np.cov(xs)
 
 
-print("uncertainties")
+print("absolute uncertainty on each observable bin")
 print(np.sqrt(np.diag(cov)))
 
-print("covariance:")
+print("absolute covariance between bins:")
 print(cov)
 
-# we throw out the last bin since this is a normalized distribution.
-xs = xs[:-1]
 modes = xs[:,0]
 cov = np.cov(xs)
-
 
 
 thisllh = llh(modes, cov)
@@ -86,40 +97,23 @@ nllhs = len(llhs)
 def pval(xs):
     return float(np.sum(thisllh(xs) > llhs)) / nllhs
 
-observable = argv[1]
+histkey = argv[1]
 
-histkey = "/htop/elmujjtrue/truejets/" + observable
-
-files = \
-    { "PowPy8" : "yoda/PowPy8FS.yoda" \
-    , "Sherpa221" : "yoda/Sherpa221AFII.yoda" \
-    , "Powheg+Herwig7": "yoda/PowH7AFII.yoda" \
-    , "Powheg+Pythia6": "yoda/PowPy6FS.yoda" \
-    , "Powheg+Pythia8 (FSR down)": "yoda/PowPy8FSRDownAFII.yoda" \
-    , "Powheg+Pythia8 (FSR up)": "yoda/PowPy8FSRUpAFII.yoda" \
-    , "Powheg+Pythia8 (ISR down)": "yoda/PowPy8RadDownAFII.yoda" \
-    , "Powheg+Pythia8 (ISR up)": "yoda/PowPy8RadUpAFII.yoda" \
-    , "aMC@NLO+Pythia8": "yoda/aMCPy8AFII.yoda" \
-    }
-
-
-hs = {}
-
-for (k, f) in files.iteritems():
+hs = []
+for (k, f) in files:
     h = y.readYODA(f)[histkey]
-    hs[k] = [b.area for b in h.bins[:-1]]
+    hs.append((k, [b.area for b in h.bins[1:]]))
 
 
+print("")
 print("pvalues:")
 
-for (k, h) in hs.iteritems():
-    print("%s: %0.3f" % (k, pval(h)))
-    # print("")
-    # print("pvalue of %s:" % k)
-    # print(pval(h))
-    # print("")
-    #
-    #
-    # print("Z of %s:" % k)
-    # print((-2*np.log(thisllh(h)) - meantsts)/stddevtst)
-    # print("")
+for (k, h) in hs:
+    print("%s distribution:" % k)
+    print(h)
+
+    print("")
+    print("pvalue of %s:" % k)
+    print(pval(h))
+    print("Z of %s:" % k)
+    print((-2*np.log(thisllh(h)) - meantsts)/stddevtst)
