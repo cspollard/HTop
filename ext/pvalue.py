@@ -73,16 +73,11 @@ print(modes)
 
 cov = np.cov(xs)
 
-
 print("absolute uncertainty on each observable bin")
 print(np.sqrt(np.diag(cov)))
 
 print("absolute covariance between bins:")
 print(cov)
-
-modes = xs[:,0]
-cov = np.cov(xs)
-
 
 thisllh = llh(modes, cov)
 llhs = np.array([thisllh(x) for x in xs.T])
@@ -94,8 +89,8 @@ stddevtst = np.sqrt(np.var(tsts))
 nllhs = len(llhs)
 
 
-def pval(xs):
-    return float(np.sum(thisllh(xs) > llhs)) / nllhs
+def pval(llh):
+    return float(np.sum(llh > llhs)) / nllhs
 
 histkey = argv[1]
 
@@ -108,12 +103,30 @@ for (k, f) in files:
 print("")
 print("pvalues:")
 
+fig, ax = plt.subplots()
+hist, bins = np.histogram(tsts, bins=50)
+width = 0.7 * (bins[1] - bins[0])
+center = (bins[:-1] + bins[1:]) / 2
+plt.bar(center, hist, align='center', width=width, color='green')
+yint = ax.get_yaxis().get_data_interval()
+ymin = yint[0]
+ymax = yint[1]*1.2
+
 for (k, h) in hs:
+    print("")
     print("%s distribution:" % k)
     print(h)
 
+    llh = thisllh(h)
+    thistst = -2*np.log(llh)
     print("")
+    print("-2*log(llh) of %s:" % k)
+    print(thistst)
     print("pvalue of %s:" % k)
-    print(pval(h))
+    print(pval(llh))
     print("Z of %s:" % k)
-    print((-2*np.log(thisllh(h)) - meantsts)/stddevtst)
+    print((thistst - meantsts)/stddevtst)
+
+    plt.plot([thistst, thistst], [ymin, ymax], color='blue', lw=2)
+
+plt.savefig("teststats.pdf")
