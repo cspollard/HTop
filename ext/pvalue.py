@@ -1,28 +1,12 @@
 """
 to run this script call
 
-$ python pvalue.py histogram infile
+$ python pvalue.py histogram mcmcfile yodafile
 
 where the "histogram" parameter indicates which histogram should be read in
-from the yoda files and "infile" is a suitable data file of toys.
-the input yoda files should be indicated by changing the "files" variable
-below.
+from the yoda files, "mcmcfile" is a suitable data file of toys, and
+yodafiles is a list of input yoda files of the form "path/to/file.yoda:Title".
 """
-
-# please give a label and a file path for each yoda file for which you'd like to
-# calculate the pvalue.
-files = \
-    { "PowPy8" : "yoda.nochi2/PowPy8FS.yoda" \
-    , "Sherpa221" : "yoda.nochi2/Sherpa221AFII.yoda" \
-    , "Powheg+Herwig7": "yoda.nochi2/PowH7AFII.yoda" \
-    , "Powheg+Pythia6": "yoda.nochi2/PowPy6FS.yoda" \
-    , "Powheg+Pythia8 (FSR down)": "yoda.nochi2/PowPy8FSRDownAFII.yoda" \
-    , "Powheg+Pythia8 (FSR up)": "yoda.nochi2/PowPy8FSRUpAFII.yoda" \
-    , "Powheg+Pythia8 (ISR down)": "yoda.nochi2/PowPy8RadDownAFII.yoda" \
-    , "Powheg+Pythia8 (ISR up)": "yoda.nochi2/PowPy8RadUpAFII.yoda" \
-    , "aMC@NLO+Pythia8": "yoda.nochi2/aMCPy8AFII.yoda" \
-    }
-
 
 import matplotlib
 matplotlib.use('Agg')
@@ -32,6 +16,17 @@ import matplotlib.lines as lines
 import numpy as np
 import yoda as y
 from sys import stdout, argv
+
+def parse_infile(str):
+    xs = str.split(":")
+
+    path = xs[0]
+    title = xs[1] if len(xs) > 1 else xs[0]
+
+    return (title, path)
+
+
+files = map(parse_infile, argv[3:])
 
 
 def llh(modes, cov):
@@ -104,19 +99,18 @@ def pval(xs):
 
 histkey = argv[1]
 
-hs = {}
-
-for (k, f) in files.iteritems():
+hs = []
+for (k, f) in files:
     h = y.readYODA(f)[histkey]
-    hs[k] = [b.area for b in h.bins[1:]]
+    hs.append((k, [b.area for b in h.bins[1:]]))
 
 
 print("")
 print("pvalues:")
 
-for (k, h) in hs.iteritems():
-    # print("%s distribution:" % k)
-    # print(h)
+for (k, h) in hs:
+    print("%s distribution:" % k)
+    print(h)
 
     print("")
     print("pvalue of %s:" % k)
