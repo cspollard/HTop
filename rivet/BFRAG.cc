@@ -259,10 +259,11 @@ namespace Rivet {
 
         // Require exactly one of each lepton flavour and exactly 2 well-separated central jets, with b-tags
         _h_cutflow->fill(0, 1.0);
-        if (es.size() != 1) vetoEvent;
+        // if (es.size() != 1) vetoEvent;
 
         _h_cutflow->fill(1, 1.0);
-        if (mus.size() != 1) vetoEvent;
+        // if (mus.size() != 1) vetoEvent;
+        if (es.size() + mus.size() != 2) vetoEvent;
 
         _h_cutflow->fill(2, 1.0);
         if (isojets.size() < 1) vetoEvent;
