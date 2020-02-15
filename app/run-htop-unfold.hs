@@ -421,7 +421,8 @@ unfoldingInputs obs hs =
 
       smooth = smoothRatioUncorr2DAlongXY binningmat nommat
 
-      -- don't smooth for nsvtrk
+      -- don't smooth for nsvtrk?
+      -- TODO
       mats' =
         if obs == "nsvtrk"
           then mats
