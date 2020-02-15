@@ -1,5 +1,5 @@
 run-pythia -n 100000 \
-  -c Top:all=on -c 24:onMode=off -c "24:onIfAny=11 13" \
+  -c Top:all=on -c 24:onMode=off -c "24:onIfAny=11 13 15" \
   -c Tune:pp=19 \
   -c StringZ:rFactB=1.05 \
   -c PDF:pSet=13 \
@@ -7,22 +7,22 @@ run-pythia -n 100000 \
   2>&1 > A14-rb.log &
 
 run-pythia -n 100000 \
-  -c Top:all=on -c 24:onMode=off -c "24:onIfAny=11 13" \
+  -c Top:all=on -c 24:onMode=off -c "24:onIfAny=11 13 15" \
   -c Tune:pp=19 \
   -c PDF:pSet=13 \
   -o A14.hepmc \
   2>&1 > A14.log &
 
 run-pythia -n 100000 \
-  -c Top:all=on -c 24:onMode=off -c "24:onIfAny=11 13" \
+  -c Top:all=on -c 24:onMode=off -c "24:onIfAny=11 13 15" \
   -c Tune:pp=14 \
   -c PDF:pSet=13 \
   -o Monash.hepmc \
   2>&1 > Monash.log &
 
-run-pythia -n 100000 \
-  -c Top:all=on -c 24:onMode=off -c "24:onIfAny=11 13" \
-  -c Tune:pp=0 \
-  -c PDF:pSet=13 \
-  -o Pythia.hepmc \
-  2>&1 > Pythia.log &
+# run-pythia -n 100000 \
+#   -c Top:all=on -c 24:onMode=off -c "24:onIfAny=11 13 15" \
+#   -c Tune:pp=0 \
+#   -c PDF:pSet=13 \
+#   -o Pythia.hepmc \
+#   2>&1 > Pythia.log &
