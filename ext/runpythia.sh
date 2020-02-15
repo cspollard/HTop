@@ -1,11 +1,11 @@
 # rb values to test
-rbs="0.855 1.05 0.67"
+rbs="0.855 0.92 0.97 1.05"
 
 # as values to test
-ases="0.127 0.136 0.124"
+ases="0.127 0.136 0.130 0.124 0.120"
 
 
-NEVT=1000000
+NEVT=250000
 
 for rb in $rbs
 do
@@ -26,12 +26,12 @@ do
 done
   
 
-BASE=Monash
-mkfifo ${BASE}.hepmc
-run-pythia -s -n $NEVT \
-  -c Top:all=on -c 24:onMode=off -c "24:onIfAny=11 13 15" \
-  -c Tune:pp=14 \
-  -c PDF:pSet=13 \
-  -o ${BASE}.hepmc \
-  2>&1 > ${BASE}.log & \
-rivet --pwd -a BFRAG -o ${BASE}.yoda ${BASE}.hepmc > ${BASE}.rivet.log 2>&1 &
+# BASE=Monash
+# mkfifo ${BASE}.hepmc
+# run-pythia -s -n $NEVT \
+#   -c Top:all=on -c 24:onMode=off -c "24:onIfAny=11 13 15" \
+#   -c Tune:pp=14 \
+#   -c PDF:pSet=13 \
+#   -o ${BASE}.hepmc \
+#   2>&1 > ${BASE}.log & \
+# rivet --pwd -a BFRAG -o ${BASE}.yoda ${BASE}.hepmc > ${BASE}.rivet.log 2>&1 &
