@@ -72,6 +72,7 @@ print("modes of each bin of this observable:")
 print(modes)
 
 cov = np.cov(xs)
+covinv = np.linalg.inv(cov)
 
 print("absolute uncertainty on each observable bin")
 print(np.sqrt(np.diag(cov)))
@@ -117,16 +118,18 @@ for (k, h) in hs:
     print("%s distribution:" % k)
     print(h)
 
+    hdiff = h - modes
+
     llh = thisllh(h)
     thistst = -2*np.log(llh)
     print("")
     print("-2*log(llh) of %s:" % k)
     print(thistst)
+    print("chi2 of %s:" % k)
+    print(np.matmul(np.matmul(hdiff.T, covinv), hdiff))
     print("pvalue of %s:" % k)
     print(pval(llh))
     print("Z of %s:" % k)
     print((thistst - meantsts)/stddevtst)
-
-    plt.plot([thistst, thistst], [ymin, ymax], color='blue', lw=2)
 
 plt.savefig("teststats.pdf")
