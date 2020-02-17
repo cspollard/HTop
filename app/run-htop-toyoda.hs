@@ -187,19 +187,32 @@ writeFiles outf pm = do
 
       data'' = (fmap.fmap) (view nominal) . addNorm . (fmap.fmap) pure $ pruneData data'
 
+      predhs' :: Folder (Annotated (Vars Obj))
       predhs' = addNorm predhs
 
       toths :: Folder YodaObj
-      toths = over (traverse.traverse) totalUncert $ addChi2 data'' predhs'
+      toths = (fmap.fmap) totalUncert $ addChi2 data'' predhs'
 
       psmc :: VarMap (Folder YodaObj)
-      psmc = imap (\k h -> h & traverse.title .~ k) . variationToMap "nominal" . sequence $ sequence <$> predhs'
+      psmc =
+        imap (\k h -> h & traverse.title .~ k)
+        . variationToMap "nominal"
+        . sequence
+        $ sequence <$> predhs'
+
+      psfid :: Folder YodaObj
+      psfid =
+        inF
+          ( M.mapKeysMonotonic (T.replace "/elmujjmatched/" "/elmujj/")
+            . M.filterWithKey (\k _ -> "/elmujjmatched/probejets/" `T.isInfixOf` k)
+          )
+        $ psmc ^?! ix "nominal"
 
 
       pstt :: VarMap (Folder YodaObj)
       pstt =
         fromList
-        . fmap (first procToText)
+        . fmap (\(ds, h) -> let t = procToText ds in (t, h & traverse.title .~ t))
         . toList
         . (fmap.fmap.fmap) (view nominal)
         . fmap addNorm
@@ -213,11 +226,11 @@ writeFiles outf pm = do
       -- psdata :: VarMap (Folder YodaObj)
       psdata = ("data", (<$> data'') $ title .~ "data" >>> annots . ix "LineColor" .~ "black" )
 
+      psfid' = ("fiducial", (<$> psfid) $ title .~ "fiducial")
 
-      -- I'm not sure why e.g. matched and truth histograms are getting a
-      -- chi2...
+
       addChi2 :: Folder YodaObj -> Folder (Annotated (Vars Obj)) -> Folder (Annotated (Vars Obj))
-      addChi2 = inF2 (M.mergeWithKey (\_k x y -> Just $ go x y) (const mempty) id)
+      addChi2 d p = inF2 (M.mergeWithKey (\_k x y -> Just $ go x y) (const mempty) id) d p
         where
           go (Annotated _ dh) p@(Annotated _ ph) = maybe p id $ do
             (nbins, chi2) <- dataChi2 dh ph
@@ -229,6 +242,7 @@ writeFiles outf pm = do
   runEffect $ each (toList $ psmc <> pstt) >-> P.mapM_ (uncurry write)
   runEffect $ yield psdata >-> P.mapM_ (uncurry write)
   runEffect $ yield psbkg >-> P.mapM_ (uncurry write)
+  runEffect $ yield psfid' >-> P.mapM_ (uncurry write)
   runEffect $ yield pstot >-> P.mapM_ (uncurry write)
 
 
@@ -238,7 +252,4 @@ collapseProcs
 collapseProcs pm =
   let preds = sans datakey pm
       dat = (fmap.fmap) (view nominal) $ pm ^. at datakey
-
   in (preds, dat)
-
-

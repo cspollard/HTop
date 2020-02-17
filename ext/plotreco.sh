@@ -1,5 +1,6 @@
 rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --pwd -c ext/htop.plot \
   yoda/total.yoda \
+  yoda/fiducial.yoda \
   yoda/background.yoda:"backgrounds" \
   yoda/data.yoda:"LineColor=black" \
   -o detectorlevel/total
