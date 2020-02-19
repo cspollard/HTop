@@ -426,7 +426,11 @@ unfoldingInputs obs hs =
       mats' =
         if obs == "nsvtrk"
           then mats
-          else mats & over (noted.variations.traverse) smooth
+          else mats
+            & over (noted.variations.ix "rad") smooth
+            & over (noted.variations.ix "fsr") smooth
+            & over (noted.variations.ix "ps") smooth
+            & over (noted.variations.ix "puwgt") smooth
 
   in (bkgrecoh, mats', mats)
 

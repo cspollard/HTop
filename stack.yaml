@@ -20,7 +20,7 @@ extra-deps:
     commit: a38292370f8c2186379f3b3324583156e47f9694
 
   - git: https://github.com/cspollard/hunfold.git
-    commit: 8ccb29f6bdebfa6f4625d0ee79ea0d95e9583b86
+    commit: 27efe8785eab0a01ac0382dc97c2140eb15f5fd6
 
   - histogram-fill-0.9.1.0
   - histogram-fill-cereal-0.8.5.0
