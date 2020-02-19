@@ -67,9 +67,15 @@ if len(xs.shape) == 1:
 xs = xs[2:]
 
 modes = xs[:,0]
+means = np.mean(xs, axis=1)
 
 print("modes of each bin of this observable:")
 print(modes)
+print("")
+
+print("means of each bin of this observable:")
+print(means)
+print("")
 
 cov = np.cov(xs)
 covinv = np.linalg.inv(cov)
@@ -80,7 +86,7 @@ print(np.sqrt(np.diag(cov)))
 print("absolute covariance between bins:")
 print(cov)
 
-thisllh = llh(modes, cov)
+thisllh = llh(means, cov)
 llhs = np.array([thisllh(x) for x in xs.T])
 
 tsts = -2*np.log(llhs)
@@ -118,7 +124,7 @@ for (k, h) in hs:
     print("%s distribution:" % k)
     print(h)
 
-    hdiff = h - modes
+    hdiff = h - means
 
     llh = thisllh(h)
     thistst = -2*np.log(llh)
