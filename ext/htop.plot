@@ -4,8 +4,10 @@ LogY=0
 Legend=1
 RatioPlotYMin=0.50
 RatioPlotYMax=1.50
+RatioPlotDrawReferenceFirst=1
 LegendXPos=0.1
 # END PLOT
+
 
 # BEGIN PLOT /.*zbtc?(norm)?$
 XLabel=\ensuremath{z_{\mathrm{T,b}}^\mathrm{ch}}

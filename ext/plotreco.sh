@@ -1,8 +1,8 @@
 rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --pwd -c ext/htop.plot \
-  yoda/total.yoda \
-  yoda/fiducial.yoda \
-  yoda/background.yoda:"backgrounds" \
-  yoda/data.yoda:"LineColor=black" \
+  yoda/total.yoda:"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0" \
+  yoda/fiducial.yoda:"fiducial":"LineColor=Black":"ErrorBars=0":"LineStyle=dashed" \
+  yoda/background.yoda:"backgrounds":"LineColor=Black":"ErrorBars=0":"LineStyle=dotted" \
+  yoda/data.yoda:"Title=data":"LineColor=Black":"ConnectBins=0" \
   -o detectorlevel/total
 
 rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --pwd -c ext/htop.plot \
@@ -13,15 +13,16 @@ rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --pwd -c ext/htop.plot \
   yoda/puwgt.yoda:"pileup" \
   yoda/ptcsf.yoda:"jet $p_T^c$" \
   yoda/background.yoda:"backgrounds" \
-  yoda/data.yoda:"LineColor=black" \
+  yoda/data.yoda:"Title=data":"LineColor=Black":"ConnectBins=0" \
   -o detectorlevel/modeling
 
 rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --pwd -c ext/htop.plot \
-  yoda/nominal.yoda yoda/nsvtrksf.yoda:"SV track multiplicity" \
+  yoda/nominal.yoda \
+  yoda/nsvtrksf.yoda:"SV track multiplicity" \
   yoda/v2trk_fake_rate_tight.yoda:"track fake rate" \
   yoda/v2trk_eff_tight_global.yoda:"track efficiency" \
   yoda/v2trk_res_d0_meas.yoda:"track \$d_0\$" \
   yoda/v2trk_res_z0_meas.yoda:"track \$z_0\$" \
   yoda/background.yoda:"backgrounds" \
-  yoda/data.yoda:"LineColor=black" \
+  yoda/data.yoda:"Title=data":"LineColor=Black":"ConnectBins=0" \
   -o detectorlevel/tracking

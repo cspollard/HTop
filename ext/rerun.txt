@@ -12,4 +12,3 @@ all the things that need to be rerun:
 - rsync detectorlevel/ into note figs/ directory
 - copy covariance/correlation/uncertainty tables from e.g. unfold/particlelevel/data/unfoldzblc/htop.stat
 - make pvalue tables (ext/pvalue.py)
-
