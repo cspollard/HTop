@@ -10,6 +10,7 @@
 
 module Main where
 
+import Linear.Vector
 import           Atlas
 import           Atlas.CrossSections
 import           BFrag.BFrag
@@ -124,7 +125,7 @@ main = do
         either error id
         $ bfragModel (stresstest args) normedProcs
 
-      (bkg, migration, _migration_nosmooth) = unfoldingInputs (observable args) pred'
+      (bkg, migration) = unfoldingInputs (observable args) pred'
 
       filtVar f v =
         let nom = view nominal v
@@ -148,17 +149,6 @@ main = do
             let d = abs (v - n)
             in d > 0.0001
 
-      matdiffs :: Annotated (Vars (Maybe H2DD))
-      matdiffs =
-        let tmp = fmap Just <$> migration
-            vs = tmp & traverse.nominal .~ Nothing
-            n = tmp & traverse.variations .~ mempty
-        in (liftA2.liftA2.liftA2) unsafeHSub vs n
-
-      matreldiffs :: Annotated (Vars (Maybe H2DD))
-      matreldiffs =
-        let n = migration & traverse.variations .~ mempty & (fmap.fmap) Just
-        in (liftA2.liftA2.liftA2) unsafeHDiv matdiffs n
 
       showMigMat :: T.Text -> H2DD -> T.Text
       showMigMat n mat =
@@ -167,20 +157,30 @@ main = do
         . asList'
         $ uncertToScat <$> mat
 
-      writeMigs :: T.Text -> (H2DD, Maybe H2DD, Maybe H2DD) -> IO ()
-      writeMigs t (m, mdiff, mreldiff) =
+
+      writeVariation :: T.Text -> (Vector Double, Vector Double, Vector (Vector Double)) -> IO ()
+      writeVariation t (bkg, reco, mat) =
         writeFile (yodafolder args <> "/" <> T.unpack t <> ".yoda")
-          . T.unpack . T.intercalate "\n\n"
-          $ [ showMigMat (matrixname <> "eff") m
-            , maybe "" (showMigMat $ matrixname <> "diff") mdiff
-            , maybe "" (showMigMat $ matrixname <> "reldiff") mreldiff
-            ]
-            ++ showEffSlicesY matrixname (m :: H2DD)
-            ++ showEffSlicesX matrixname m
-            ++ maybe [] (showEffSlicesY $ matrixname <> "diff") mdiff
-            ++ maybe [] (showEffSlicesX $ matrixname <> "diff") mdiff
+        . T.unpack . T.intercalate "\n\n"
+        $ [ showMigMat (matrixname <> "eff") mat'
+          , printScatter2D recohname False True $ asList' reco'
+          , printScatter2D (recohname <> "bkg") False True $ asList' bkg'
+          ] ++ showEffSlicesY matrixname mat'
+            ++ showEffSlicesX matrixname mat'
 
         where
+          matbinning :: Bin2D (ArbBin Double) (ArbBin Double)
+          matbinning = view (noted.nominal.bins) migration
+
+          mat' :: H2DD
+          mat' = ungetH2DD matbinning $ fmap exact <$> mat
+
+          reco' = H.histogram recobinning $ uncertToScat . exact <$> reco
+          bkg' = H.histogram recobinning $ uncertToScat . exact <$> bkg
+
+          recobinning = view bins datah
+
+
           showEffSlicesX :: T.Text -> H2DD -> [T.Text]
           showEffSlicesX name m =
             ( \n (_, h) ->
@@ -231,12 +231,45 @@ main = do
           (filtNSVSF $ getH2DD <$> filtVar matFilt (view noted migration))
           (filtNSVSF $ HM.singleton "bkg" . fmap uMean . view histData <$> filtVar bkgFilt (view noted bkg))
 
+      pois = HM.filterWithKey (\k _ -> T.isInfixOf "truthbin" k) params
 
-  imapM_ writeMigs . variationToMap "nominal"
-    $ liftA3 (,,)
-      (view noted migration)
-      (view noted matdiffs)
-      (view noted matreldiffs)
+      nps = HM.filterWithKey (\k _ -> not $ T.isInfixOf "truthbin" k) params
+
+
+      appParam :: Num a => Model a -> a -> ModelParam a -> Model a
+      appParam m w ModelParam{..} =
+        either error id
+        $ appVars (Identity _mpVariation) (pure w) m
+
+
+      nommodel :: Model Double
+      nommodel =
+        either error id
+        $ appVars (_mpVariation <$> pois) (_mpInitialValue <$> pois) model
+
+
+      dumpModel :: Num a => Model a -> (Vector a, Vector a, Vector (Vector a))
+      dumpModel m@Model{..} =
+        let pred = either error id $ prediction m
+        in (_mLumi *^ foldl (^+^) zero _mBkgs, pred, _mMig)
+
+
+      modelvariations :: HM.HashMap T.Text (Vector Double, Vector Double, Vector (Vector Double))
+      modelvariations =
+        HM.insert "nominal" (dumpModel nommodel)
+        $ dumpModel . appParam nommodel 1 <$> nps
+
+
+  putStrLn "pois:"
+  print pois
+  putStrLn "nps:"
+  print nps
+
+  putStrLn "nom model:"
+  print nommodel
+
+  imapM_ writeVariation modelvariations
+
 
   putStrLn "data:"
   views histData print datah
@@ -360,7 +393,7 @@ main = do
 unfoldingInputs
   :: String
   -> Folder (Annotated (Vars Obj))
-  -> (Annotated (Vars  H1DD), Annotated (Vars H2DD), Annotated (Vars H2DD))
+  -> (Annotated (Vars  H1DD), Annotated (Vars H2DD))
 unfoldingInputs obs hs =
   let (recohname, truehname, matrixname) = obsNames obs
 
@@ -402,37 +435,43 @@ unfoldingInputs obs hs =
           math
 
 
-      bkgrecoh :: Annotated (Vars H1DD)
+      -- TODO
+      -- is this properly maintaining fiducial backgrounds?
+      -- what about overflows?
+      bkgrecoh :: Annotated (Vars (Histogram Vector (ArbBin Double) (Dist1D Double)))
       bkgrecoh =
-        liftA2 (\h h' ->
-          fromJust' "bkgrecoh" $ hzip (\d d' -> distToUncert (removeSubDist d d')) h h'
-          )
+        liftA2 (\h h' -> fromJust' "bkgrecoh" $ removeSubHist' h h')
         <$> (fmap.fmap) rmOverflow recoh
         <*> (fmap.fmap) rmOverflow recomatchh
 
-      normmat m h = H.liftX (\hm -> fromJust' "normmat" . hzip divCorr hm $ rmOverflow h) m
+      -- bkgs :: Annotated (Vars H1DD)
+      bkgs :: Annotated (Vars (Histogram Vector (ArbBin Double) (Uncert Double)))
+      bkgs = fmap (over histVals distToUncert) <$> bkgrecoh
+
+      normmat m h =
+        H.liftX (\hm -> fromJust' "normmat" . hzip divCorr hm $ rmOverflow h) m
 
       mats = liftA2 normmat <$> math <*> trueh
 
       nommat :: H2DD
       nommat = view (noted.nominal) mats
 
-      binningmat = focusOrCenter (\(Pair x y) -> (x, y)) id $ view (noted.nominal) math
+      nombkg :: H1DD
+      nombkg = view (noted.nominal) bkgs
 
-      smooth = smoothRatioUncorr2DAlongXY binningmat nommat
+      binningmat = focusOrCenter (\(Pair x y) -> (x, y)) id $ view (noted.nominal) math
+      binningbkg = focusOrCenter (\(Only x) -> x) id $ view (noted.nominal) bkgrecoh
+
+      smooth2D = smoothRatioUncorr2DAlongXY binningmat nommat
+      smooth1D = smoothRatioUncorr1DAlongX binningbkg nombkg
 
       -- don't smooth for nsvtrk?
       -- TODO
-      mats' =
-        if obs == "nsvtrk"
-          then mats
-          else mats
-            & over (noted.variations.ix "rad") smooth
-            & over (noted.variations.ix "fsr") smooth
-            & over (noted.variations.ix "ps") smooth
-            & over (noted.variations.ix "puwgt") smooth
+      mats' = mats & over (noted.variations.traverse) smooth2D
 
-  in (bkgrecoh, mats', mats)
+      bkgs' = bkgs & over (noted.variations.traverse) smooth1D
+
+  in (bkgs', mats')
 
 
 focus :: (Eq a, Fractional a, Functor f) => DistND f a -> Maybe (f a)
@@ -498,6 +537,13 @@ getH2DD h =
   V.fromList
   . fmap (fmap uMean . view histData . snd)
   $ H.listSlicesAlongY h
+
+
+ungetH2DD :: (Bin bx, Bin by) => Bin2D bx by -> Vector (Vector a) -> Histogram Vector (Bin2D bx by) a
+ungetH2DD b vv =
+  let (nx, ny) = nBins2D b
+      v = V.generate (nx*ny) (\i -> let (ix, iy) = toIndex2D b i in vv V.! ix V.! iy)
+  in H.histogram b v
 
 
 printScatter2D
@@ -610,13 +656,23 @@ convertBin3D (((x, y), ((xdown, ydown), (xup, yup))), zs)
   = ((x, (xdown, xup)), (y, (ydown, yup)), zs)
 
 
-smoothRatioUncorr
+smoothRatioUncorr1DAlongX
+  :: (Ord a, Floating a, BinValue b ~ a, BinEq b)
+  => Histogram Vector b a
+  -> Histogram Vector b (Uncert a)
+  -> Histogram Vector b (Uncert a)
+  -> Histogram Vector b (Uncert a)
+smoothRatioUncorr1DAlongX binvals hnom hvar =
+    smoothRatioUncorr1D . H.zip (,) binvals $ H.zip (,) hnom hvar
+
+
+smoothRatioUncorr1D
   :: (Ord a, Floating a, BinValue bin ~ a, Bin bin)
-  => Histogram Vector bin (Uncert a, Uncert a)
+  => Histogram Vector bin (a, (Uncert a, Uncert a))
   -> Histogram Vector bin (Uncert a)
-smoothRatioUncorr h = H.histogramUO (view bins h) Nothing (V.fromList smoothed)
+smoothRatioUncorr1D h = H.histogramUO (view bins h) Nothing (V.fromList smoothed)
   where
-    lh = H.asList h
+    lh = views histData V.toList h
 
     rat = over (traverse._2) (\(nom, var) -> uMeanStd $ safeDiv var nom) lh
     (end, result) = polySmooth start 10 rat
@@ -633,18 +689,9 @@ smoothRatioUncorr h = H.histogramUO (view bins h) Nothing (V.fromList smoothed)
     start = [1, 0, 0, 0]
 
 
-smoothRatioUncorr2DAlongY
-  :: (Ord a, Floating a, BinValue bY ~ a, BinEq bX, BinEq bY)
-  => Histogram Vector (Bin2D bX bY) (Uncert a)
-  -> Histogram Vector (Bin2D bX bY) (Uncert a)
-  -> Histogram Vector (Bin2D bX bY) (Uncert a)
-smoothRatioUncorr2DAlongY mnom mvar =
-  H.liftY smoothRatioUncorr $ H.zip (,) mnom mvar
-
-
 
 smoothRatioUncorr2D
-  :: (Ord a, Floating a, Show a, Bin bX, BinValue bX ~ a, Bin bY, BinValue bY ~ a)
+  :: (Ord a, Floating a, Bin bX, BinValue bX ~ a, Bin bY, BinValue bY ~ a)
   => Histogram Vector (Bin2D bX bY) ((a, a), (Uncert a, Uncert a))
   -> Histogram Vector (Bin2D bX bY) (Uncert a)
 smoothRatioUncorr2D h = H.histogramUO (view bins h) Nothing (V.fromList smoothed)
@@ -652,7 +699,7 @@ smoothRatioUncorr2D h = H.histogramUO (view bins h) Nothing (V.fromList smoothed
     lh = views histData V.toList h
 
     rat = over (traverse._2) (\(nom, var) -> uMeanStd $ safeDiv var nom) lh
-    (end, result) = polySmooth2D start (length start ^ 2) rat
+    (end, result) = polySmooth2D start (2*length start) rat
 
     correction = exact . snd <$> result
 
@@ -665,16 +712,26 @@ smoothRatioUncorr2D h = H.histogramUO (view bins h) Nothing (V.fromList smoothed
     start :: Num a => [[a]]
     start =
       [ [1, 0, 0, 0, 0, 0]
-      , [0, 0, 0, 0, 0, 0]
-      , [0, 0, 0, 0, 0, 0]
-      , [0, 0, 0, 0, 0, 0]
-      , [0, 0, 0, 0, 0, 0]
-      , [0, 0, 0, 0, 0, 0]
+      , [0, 0, 0, 0, 0]
+      , [0, 0, 0, 0]
+      , [0, 0, 0]
+      , [0, 0]
+      , [0]
       ]
+
+    -- start :: Num a => [[a]]
+    -- start =
+    --   [ [1, 0, 0, 0, 0, 0]
+    --   , [0, 0, 0, 0, 0, 0]
+    --   , [0, 0, 0, 0, 0, 0]
+    --   , [0, 0, 0, 0, 0, 0]
+    --   , [0, 0, 0, 0, 0, 0]
+    --   , [0, 0, 0, 0, 0, 0]
+    --   ]
 
 
 smoothRatioUncorr2DAlongXY
-  :: (Ord a, Floating a, Show a, BinValue bY ~ a, BinValue bX ~ a, BinEq bX, BinEq bY)
+  :: (Ord a, Floating a, BinValue bY ~ a, BinValue bX ~ a, BinEq bX, BinEq bY)
   => Histogram Vector (Bin2D bX bY) (a, a)
   -> Histogram Vector (Bin2D bX bY) (Uncert a)
   -> Histogram Vector (Bin2D bX bY) (Uncert a)
