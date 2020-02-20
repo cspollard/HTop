@@ -6,18 +6,18 @@ mkdir -p unfold/mcmc/stress_mugt22
 mkdir -p unfold/mcmc/data
 
 
-mkdir -p unfold/particlelevel/closure/unfoldzblc
-stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/zblcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure/unfoldzblc --xsecfile data/XSection-MC15-13TeV.data --observable zblc --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure/zblc.log 2>&1
-
-mkdir -p unfold/particlelevel/closure/unfoldnsvtrk
-stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure/nsvtrk.log 2>&1
-
-
 mkdir -p unfold/particlelevel/data/unfoldzblc
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/zblcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/data/unfoldzblc --xsecfile data/XSection-MC15-13TeV.data --observable zblc hist/*hist.gz > unfold/mcmc/data/zblc.log 2>&1
 
 mkdir -p unfold/particlelevel/data/unfoldnsvtrk
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/data/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk hist/*hist.gz > unfold/mcmc/data/nsvtrk.log 2>&1
+
+
+mkdir -p unfold/particlelevel/closure/unfoldzblc
+stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/zblcmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure/unfoldzblc --xsecfile data/XSection-MC15-13TeV.data --observable zblc --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure/zblc.log 2>&1
+
+mkdir -p unfold/particlelevel/closure/unfoldnsvtrk
+stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/nsvtrkmcmc.dat --nsamples 10000 --yodafolder unfold/particlelevel/closure/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure/nsvtrk.log 2>&1
 
 
 mkdir -p unfold/particlelevel/data/unfoldzbtc
