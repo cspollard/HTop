@@ -9,7 +9,6 @@ rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --pwd -c ext/htop.plot \
   yoda/nominal.yoda \
   yoda/ps.yoda:"parton shower" \
   yoda/fsr.yoda:"FSR" \
-  yoda/rad.yoda:"ISR" \
   yoda/puwgt.yoda:"pileup" \
   yoda/ptcsf.yoda:"jet $p_T^c$" \
   yoda/background.yoda:"backgrounds" \
