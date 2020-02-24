@@ -1,11 +1,11 @@
-rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --pwd -c ext/htop.plot \
+rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --pwd --linear -c ext/htop.plot \
   yoda/total.yoda:"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0" \
-  yoda/fiducial.yoda:"fiducial":"LineColor=Black":"ErrorBars=0":"LineStyle=dashed" \
+  yoda/fiducial.yoda:'Title=fiducial $e \mu bb$':"LineColor=Black":"ErrorBars=0":"LineStyle=dashed" \
   yoda/background.yoda:"backgrounds":"LineColor=Black":"ErrorBars=0":"LineStyle=dotted" \
   yoda/data.yoda:"Title=data":"LineColor=Black":"ConnectBins=0" \
   -o detectorlevel/total
 
-rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --pwd -c ext/htop.plot \
+rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --linear --pwd -c ext/htop.plot \
   yoda/nominal.yoda \
   yoda/ps.yoda:"parton shower" \
   yoda/fsr.yoda:"FSR" \
@@ -15,7 +15,7 @@ rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --pwd -c ext/htop.plot \
   yoda/data.yoda:"Title=data":"LineColor=Black":"ConnectBins=0" \
   -o detectorlevel/modeling
 
-rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --pwd -c ext/htop.plot \
+rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --linear --pwd -c ext/htop.plot \
   yoda/nominal.yoda \
   yoda/nsvtrksf.yoda:"SV track multiplicity" \
   yoda/v2trk_fake_rate_tight.yoda:"track fake rate" \

@@ -234,7 +234,7 @@ writeFiles outf pm = do
         where
           go (Annotated _ dh) p@(Annotated _ ph) = maybe p id $ do
             (nbins, chi2) <- dataChi2 dh ph
-            let chi2txt = T.pack $ showFFloat (Just 3) chi2 ""
+            let chi2txt = T.pack $ showFFloat (Just 1) chi2 ""
                 str = " (\\ensuremath{\\chi^2} / bins = " <> chi2txt <> " / " <> T.pack (show nbins) <> ")"
             return $ set title ("prediction" <> str) p
 
