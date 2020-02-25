@@ -14,6 +14,7 @@ module BFrag.RecoEvent
   ) where
 
 
+import Data.Foldable (fold)
 import           Atlas
 import           BFrag.BFrag       as X
 import           BFrag.Electron    as X
@@ -92,6 +93,37 @@ muH = h =$<< views mu pure
     h = hist1DDef (binD 0 20 40) "\\ensuremath{< \\mu >}" (dsigdXpbY "<\\mu>" "1")
 
 
+rhoH :: VarFill RecoEvent
+rhoH = F.premap rho $ F.handles folded h
+  where
+    h = hist1DDef (binD 0 20 2) "\\ensuremath{\\rho}" (dsigdXpbY "\\rho" "1")
+
+    lepAvgPt :: RecoEvent -> PhysObj Double
+    lepAvgPt RecoEvent{..} = do
+      let [e] = _electrons
+          [m] = _muons
+      return $ (view lvPt e + view lvPt m) / 2
+
+
+    svPt :: PhysObj Jet -> PhysObj Double
+    svPt j' = do
+      j <- j'
+      sv <- svChargedTLV j
+      return $ view lvPt sv
+
+    rho :: PhysObj RecoEvent -> [PhysObj Double]
+    rho r = fmap join . collapsePO $ do
+      r' <- r
+
+      denom <- lepAvgPt r'
+
+      let js = probeJets r' -- [PhysObj Jet]
+          svpts = svPt <$> js -- [PhysObj Double]
+
+      return $ fmap (/denom) <$> svpts -- PhysObj [PhysObj Double]
+
+
+
 elmujj :: RecoEvent -> PhysObj Bool
 elmujj RecoEvent{..} =
   return
@@ -116,6 +148,7 @@ recoEventHs = hs -- `mappend` channelWithLabel "/fakes" fakeEvent hs
           $ mconcat
             [ singleton "/mu" <$> muH
             -- , singleton "/npv" <$> npvH
+            , singleton "/rho" <$> rhoH
 
             , singleton "/met/pt"
               . set xlabel "\\ensuremath{E_{\\rm T}^{\\rm miss}} [GeV]"
@@ -147,30 +180,27 @@ recoEventHs = hs -- `mappend` channelWithLabel "/fakes" fakeEvent hs
 -- AnalysisTop selection requires == 2 jets with pT > 30 GeV
 probeJets :: RecoEvent -> [PhysObj Jet]
 probeJets revt =
-  fmap join
-  . collapsePO
-  . return
-  . fmap (uncurry probeJet)
+  fmap (uncurry probeJet) -- [PhysObj Jet]
   $ combinations [] (view jets revt)
-
   where
     combinations _ [] = []
     combinations ls (x:rs) = (x, ls ++ rs) : combinations (x:ls) rs
 
-    probeJet :: Jet -> [Jet] -> PhysObj Jet
-    probeJet j js = do
-      bt <- traverse (view isBTagged) js
-      trks <- svChargedConstits j
 
-      let drs = lvDREta j <$> js
+probeJet :: Jet -> [Jet] -> PhysObj Jet
+probeJet j js = do
+  bt <- traverse (view isBTagged) js
+  trks <- svChargedConstits j
 
-      guard $ view lvAbsEta j < 2.1
-      guard $ view lvPt j >= 30
-      guard $ length trks >= 3
+  let drs = lvDREta j <$> js
 
-      guard $ all (>= 0.5) drs
+  guard $ view lvAbsEta j < 2.1
+  guard $ view lvPt j >= 30
+  guard $ length trks >= 3
 
-      guard $ or bt
-      guard =<< hasSV j
+  guard $ all (>= 0.5) drs
 
-      return j
+  guard $ or bt
+  guard =<< hasSV j
+
+  return j
