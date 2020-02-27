@@ -101,8 +101,8 @@ btagSF vcfg = do
   case vcfg of
     NoVars -> return . tell $ sf "weight_btag" btagw
     AllVars -> do
-      btagwsup <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_B_up"
-      btagwsdown <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_B_down"
+      btagwsup <- fmap float2Double . take 3 <$> readBranch "weight_bTagSF_70_eigenvars_B_up"
+      btagwsdown <- fmap float2Double . take 3 <$> readBranch "weight_bTagSF_70_eigenvars_B_down"
       -- ctagwsup <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_C_up"
       -- ctagwsdown <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_C_down"
       -- ltagwsup <- fmap float2Double <$> readBranch "weight_bTagSF_70_eigenvars_Light_up"

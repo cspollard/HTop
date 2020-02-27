@@ -98,9 +98,9 @@ appSVRW _ (Just bh) svtrks = do
       nsvtrkRW = safeAt nsvtrkSyst nsvtrks
 
   varSF $ sf "sveffsf" <$> Variation 1.0 svEffVars
-  varSF $ sf "svphiressf" <$> Variation 1.0 phiResVars
-  varSF $ sf "svetaressf" <$> Variation 1.0 etaResVars
-  varSF $ sf "svptressf" <$> Variation 1.0 ptResVars
+  -- varSF $ sf "svphiressf" <$> Variation 1.0 phiResVars
+  -- varSF $ sf "svetaressf" <$> Variation 1.0 etaResVars
+  -- varSF $ sf "svptressf" <$> Variation 1.0 ptResVars
   varSF $ sf "nsvtrksf" <$> Variation 1.0 [("nsvtrksf", nsvtrkRW)]
 
 
@@ -123,7 +123,7 @@ appPVSVRW _ jpt trkpt = do
       trkVars = (+1) . flip safeAt (jpt*1e3, trkpt*1e3) <$> sumPtTrkSysts
       ptcRW = safeAt ptcSyst trkpt
 
-  varSF $ sf "trkptsf" <$> Variation 1.0 trkVars
+  -- varSF $ sf "trkptsf" <$> Variation 1.0 trkVars
   varSF $ sf "ptcsf" <$> Variation 1.0 [("ptcsf", ptcRW)]
 
 
