@@ -14,6 +14,12 @@ import           Data.Text              (Text)
 import           Data.Vector            (Vector, (!))
 import qualified Data.Vector            as V
 import           GHC.Exts
+import qualified Control.Foldl as F
+import Control.Monad (join)
+
+
+twine :: (c -> [PhysObj b]) -> VarFills b -> VarFills c
+twine g h = F.handles folded h <$= fmap join . collapsePO . fmap g
 
 
 zbtname, zblname, zbrelname :: Text
@@ -47,6 +53,13 @@ npvtrkbin, nsvtrkbin, msvbin :: BinD
 npvtrkbin = binD 0 20 20
 nsvtrkbin = binD 3 8 11
 msvbin = binD 0 12 6
+
+
+rhoname :: Text
+rhoname = "\\ensuremath{\\rho}"
+
+rhobin :: BinD
+rhobin = binD 0 20 2
 
 
 class HasSVConstits a where
@@ -189,6 +202,10 @@ zbtcVszbrelcH = h =$<< (\j -> (,) <$> zbtc j <*> zbrelc j)
     h = hist2DDef zbtcbin zbrelcbin zbtcname zbrelcname
 
 
+rhoH :: VarFill Double
+rhoH = hist1DDef rhobin rhoname (dsigdXpbY rhoname "1")
+
+
 bfragHs :: (HasPVConstits a, HasSVConstits a, HasLorentzVector a) => VarFills a
 bfragHs =
   mconcat
@@ -201,9 +218,6 @@ bfragHs =
   , singleton "/svmc" <$> svMcH
   , singleton "/npvtrk" <$> nPVTracksH
   , singleton "/nsvtrk" <$> nSVTracksH
-  , singleton "/zblcvszbtc" <$> zblcVszbtcH
-  , singleton "/zblcvszbrelc" <$> zblcVszbrelcH
-  , singleton "/zbtcvszbrelc" <$> zbtcVszbrelcH
   ]
 
 

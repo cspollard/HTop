@@ -103,7 +103,7 @@ eventHs =
 matchedEventHs :: VarFills (TrueEvent, RecoEvent)
 matchedEventHs =
   channelWithLabel "/elmujjmatched" filt
-  $ F.handles folded matchedJetHs <$= fmap join . collapsePO . fmap go
+  $ twine go matchedJetHs
 
   where
     filt :: (TrueEvent, RecoEvent) -> PhysObj Bool
@@ -113,12 +113,19 @@ matchedEventHs =
       return $ x && y
 
 
-    go :: (TrueEvent, RecoEvent) -> [PhysObj (TrueJet, Jet)]
+    go :: (TrueEvent, RecoEvent) -> [PhysObj ((TrueJet, TrueEvent), (Jet, RecoEvent))]
     go (tevt, revt) =
-      let rjs = probeJets revt
-          tjs = trueProbeJets tevt
-          matches = fmap (fmap swap . sequence . trueMatch tjs) <$> rjs
-      in (>>= fromMaybe') <$> matches
+      let rjs = fmap fst <$> probeJets revt
+          tjs = fst <$> trueProbeJets tevt
+
+          addEvents (j, mtj) = ((j, revt), (,tevt) <$> mtj)
+
+          matches :: [PhysObj ((Jet, RecoEvent), Maybe (TrueJet, TrueEvent))]
+          matches = fmap (addEvents . trueMatch tjs) <$> rjs
+
+          matches' = fmap (fmap swap . sequence) <$> matches
+
+      in (>>= fromMaybe') <$> matches'
 
     fromMaybe' (Just x) = return x
     fromMaybe' Nothing  = poFail
@@ -137,16 +144,25 @@ trueMatch tjs j = (j,) . getOption $ do
     else Option Nothing
 
 
-matchedJetHs :: VarFills (TrueJet, Jet)
+matchedJetHs :: VarFills ((TrueJet, TrueEvent), (Jet, RecoEvent))
 matchedJetHs =
   mconcat
-  $ (prefixF "/probejets" <$> bfragHs <$= fmap snd)
-    : (prefixF "/truejets" <$> bfragHs <$= fmap fst)
-    : [ zbtcMig, zblcMig, zbrelcMig
+  $ (prefixF "/probejets" <$> bfragHs <$= fmap (fst.snd))
+    : (prefixF "/truejets" <$> bfragHs <$= fmap (fst.fst))
+    : (mconcat jetmigs <$= fmap (bimap fst fst))
+    : [ rhoMig ]
+
+  where
+    jetmigs =
+      [ zbtcMig, zblcMig, zbrelcMig
       , nsvtrkMig, npvtrkMig, msvMig
-      , zbtcDiff, zblcDiff, zbrelcDiff
-      , nsvtrkDiff, npvtrkDiff
       ]
+
+
+rhoMig :: VarFills ((TrueJet, TrueEvent), (Jet, RecoEvent))
+rhoMig = singleton "/rhomig" <$> h =$<< rhos
+  where
+    h = hist2DDef rhobin rhobin ("true " <> rhoname) ("reco " <> rhoname)
 
 
 zbtcMig :: VarFills (TrueJet, Jet)
@@ -270,3 +286,9 @@ zbrelcs = zbs zbrelc
 nsvtrks = zbs $ fmap (fromIntegral . length) . svChargedConstits
 npvtrks = zbs $ fmap (fromIntegral . length) . pvChargedConstits
 msvs = zbs $ fmap (view lvM . fold) . pvChargedConstits
+
+rhos :: ((TrueJet, TrueEvent), (Jet, RecoEvent)) -> PhysObj (Double, Double)
+rhos (t, r) = do
+  tr <- trueRho t
+  rr <- recoRho r
+  return (tr, rr)

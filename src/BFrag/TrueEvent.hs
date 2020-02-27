@@ -1,10 +1,12 @@
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module BFrag.TrueEvent
   ( module X
   , TrueEvent(TrueEvent), trueJets, trueElectrons, trueMuons
-  , trueEventHs, readTrueEvent, elmujjTrue, trueProbeJets
+  , trueEventHs, readTrueEvent, elmujjTrue, trueProbeJets, trueRho
   ) where
 
 import           Atlas
@@ -48,17 +50,20 @@ trueElectrons :: Lens' TrueEvent [TrueElectron]
 trueElectrons = lens _trueElectrons $ \te x -> te { _trueElectrons = x }
 
 
-trueProbeJets :: TrueEvent -> [TrueJet]
-trueProbeJets = filter trueProbeJet . view trueJets
+trueProbeJets :: TrueEvent -> [(TrueJet, TrueEvent)]
+trueProbeJets te =
+  let tjs = filter trueProbeJet $ view trueJets te
+  in (,te) <$> tjs
 
 
 trueEventHs :: VarFills TrueEvent
 trueEventHs =
   channelWithLabel "/elmujjtrue" (return . elmujjTrue)
-  $ prefixF "/truejets"
-    . over (traverse.xlabel) ("true jet " <>)
-    <$> F.handles folded (bfragHs `mappend` lvHs `mappend` bHs)
-    <$= collapsePO . fmap trueProbeJets
+  $ prefixF "/truejets" . over (traverse.xlabel) ("true jet " <>)
+    <$> twine (fmap return . trueProbeJets)
+      ( ((bfragHs `mappend` lvHs `mappend` bHs) <$= fmap fst)
+        `mappend` (prebind trueRho $ singleton "/rho" <$> rhoH)
+      )
 
   where
     bHs :: VarFills TrueJet
@@ -77,3 +82,22 @@ elmujjTrue te =
   in case bjs of
     [b1, b2] -> ne == 1 && nm == 1 && (lvDREta b1 b2 > 0.5) && wellsep
     _ -> False
+
+
+trueRho :: (TrueJet, TrueEvent) -> PhysObj Double
+trueRho (j, e) = do
+  denom <- lepAvgPt e
+  svpt <- svPt j
+  return $ svpt / denom
+
+  where
+    lepAvgPt :: TrueEvent -> PhysObj Double
+    lepAvgPt TrueEvent{..} = do
+      let [e] = _trueElectrons
+          [m] = _trueMuons
+      return $ (view lvPt e + view lvPt m) / 2
+
+    svPt :: TrueJet -> PhysObj Double
+    svPt j = view lvPt <$> svChargedTLV j
+
+

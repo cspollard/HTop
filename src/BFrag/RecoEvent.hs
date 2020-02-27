@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections       #-}
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE OverloadedLists     #-}
@@ -10,7 +11,7 @@ module BFrag.RecoEvent
   , RecoEvent(RecoEvent)
   , mu, electrons, muons, jets, met
   , readRecoEvent, recoEventHs, probeJets
-  , elmujj
+  , elmujj, recoRho
   ) where
 
 
@@ -92,95 +93,11 @@ muH = h =$<< views mu pure
   where
     h = hist1DDef (binD 0 20 40) "\\ensuremath{< \\mu >}" (dsigdXpbY "<\\mu>" "1")
 
-
-rhoH :: VarFill RecoEvent
-rhoH = F.premap rho $ F.handles folded h
-  where
-    h = hist1DDef (binD 0 20 2) "\\ensuremath{\\rho}" (dsigdXpbY "\\rho" "1")
-
-    lepAvgPt :: RecoEvent -> PhysObj Double
-    lepAvgPt RecoEvent{..} = do
-      let [e] = _electrons
-          [m] = _muons
-      return $ (view lvPt e + view lvPt m) / 2
-
-
-    svPt :: PhysObj Jet -> PhysObj Double
-    svPt j' = do
-      j <- j'
-      sv <- svChargedTLV j
-      return $ view lvPt sv
-
-    rho :: PhysObj RecoEvent -> [PhysObj Double]
-    rho r = fmap join . collapsePO $ do
-      r' <- r
-
-      denom <- lepAvgPt r'
-
-      let js = probeJets r' -- [PhysObj Jet]
-          svpts = svPt <$> js -- [PhysObj Double]
-
-      return $ fmap (/denom) <$> svpts -- PhysObj [PhysObj Double]
-
-
-
-elmujj :: RecoEvent -> PhysObj Bool
-elmujj RecoEvent{..} =
-  return
-  $ length _electrons == 1    
-    && length _muons == 1    
-    && length _jets >= 2    
-    
-
-
-fakeEvent :: RecoEvent -> PhysObj Bool
-fakeEvent RecoEvent{..} =
-  return $ not (any ePrompt _electrons) || not (any mPrompt _muons)
-
-
--- so much boilerplate
-recoEventHs :: VarFills RecoEvent
-recoEventHs = hs -- `mappend` channelWithLabel "/fakes" fakeEvent hs
-
-  where
-    hs =
-          channelWithLabel "/elmujj" elmujj
-          $ mconcat
-            [ singleton "/mu" <$> muH
-            -- , singleton "/npv" <$> npvH
-            , singleton "/rho" <$> rhoH
-
-            , singleton "/met/pt"
-              . set xlabel "\\ensuremath{E_{\\rm T}^{\\rm miss}} [GeV]"
-              <$> ptH
-              <$= fmap (view met)
-
-            , prefixF "/jets"
-              . over (traverse.xlabel) ("jet " <>)
-              <$> ((singleton "/n" <$> nH 5) `mappend` (F.handles folded lvHs <$= collapsePO))
-              <$= fmap (view jets)
-
-            , prefixF "/electrons"
-              . over (traverse.xlabel) ("electron " <>)
-              <$> F.handles folded lvHs <$= collapsePO . fmap (view electrons)
-
-            , prefixF "/muons"
-              . over (traverse.xlabel) ("muon " <>)
-              <$> F.handles folded lvHs <$= collapsePO . fmap (view muons)
-
-            , prefixF "/probejets"
-              . over (traverse.xlabel) ("probe jet " <>)
-              <$> F.handles folded (bfragHs `mappend` lvHs `mappend` hadronLabelH)
-              <$= fmap join . collapsePO . fmap probeJets
-            ]
-
-
-
 -- note:
 -- AnalysisTop selection requires == 2 jets with pT > 30 GeV
-probeJets :: RecoEvent -> [PhysObj Jet]
+probeJets :: RecoEvent -> [PhysObj (Jet, RecoEvent)]
 probeJets revt =
-  fmap (uncurry probeJet) -- [PhysObj Jet]
+  fmap (fmap (,revt) . uncurry probeJet) -- [PhysObj Jet]
   $ combinations [] (view jets revt)
   where
     combinations _ [] = []
@@ -204,3 +121,74 @@ probeJet j js = do
   guard =<< hasSV j
 
   return j
+
+
+recoRho :: (Jet, RecoEvent) -> PhysObj Double
+recoRho (j, r) = do
+  denom <- lepAvgPt r
+  svpt <- svPt j
+  return $ svpt / denom
+
+  where
+    lepAvgPt :: RecoEvent -> PhysObj Double
+    lepAvgPt RecoEvent{..} = do
+      let [e] = _electrons
+          [m] = _muons
+      return $ (view lvPt e + view lvPt m) / 2
+
+    svPt :: Jet -> PhysObj Double
+    svPt j = view lvPt <$> svChargedTLV j
+
+
+elmujj :: RecoEvent -> PhysObj Bool
+elmujj RecoEvent{..} =
+  return
+  $ length _electrons == 1    
+    && length _muons == 1    
+    && length _jets >= 2    
+    
+
+
+fakeEvent :: RecoEvent -> PhysObj Bool
+fakeEvent RecoEvent{..} =
+  return $ not (any ePrompt _electrons) || not (any mPrompt _muons)
+
+
+-- so much boilerplate
+recoEventHs :: VarFills RecoEvent
+recoEventHs = hs -- `mappend` channelWithLabel "/fakes" fakeEvent hs
+
+  where
+    hs =
+      channelWithLabel "/elmujj" elmujj
+      $ mconcat
+        [ singleton "/mu" <$> muH
+        -- , singleton "/npv" <$> npvH
+
+        , singleton "/met/pt"
+          . set xlabel "\\ensuremath{E_{\\rm T}^{\\rm miss}} [GeV]"
+          <$> ptH
+          <$= fmap (view met)
+
+        , prefixF "/jets"
+          . over (traverse.xlabel) ("jet " <>)
+          <$> ((singleton "/n" <$> nH 5) `mappend` (F.handles folded lvHs <$= collapsePO))
+          <$= fmap (view jets)
+
+        , prefixF "/electrons"
+          . over (traverse.xlabel) ("electron " <>)
+          <$> F.handles folded lvHs <$= collapsePO . fmap (view electrons)
+
+        , prefixF "/muons"
+          . over (traverse.xlabel) ("muon " <>)
+          <$> F.handles folded lvHs <$= collapsePO . fmap (view muons)
+
+        , prefixF "/probejets"
+          . over (traverse.xlabel) ("probe jet " <>)
+          <$> twine probeJets
+            ( ( (bfragHs `mappend` lvHs `mappend` hadronLabelH)
+                <$= fmap fst
+              )
+              `mappend` (singleton "/rho" <$> prebind recoRho rhoH)
+            )
+        ]
