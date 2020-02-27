@@ -33,6 +33,45 @@ zbtcname = "\\ensuremath{z_{\\mathrm{T,b}}^\\mathrm{ch}}"
 zblcname = "\\ensuremath{z_{\\mathrm{L,b}}^\\mathrm{ch}}"
 zbrelcname = "\\ensuremath{z_{\\mathrm{rel,b}}^\\mathrm{ch}}"
 
+zbtcmatrixname, zbtcrecohname, zbtcrecomatchhname, zbtctruehname
+  :: IsString s => s
+zbtcmatrixname = "/elmujjmatched/zbtcmig"
+zbtcrecohname = "/elmujj/probejets/zbtc"
+zbtcrecomatchhname = "/elmujjmatched/probejets/zbtc"
+zbtctruehname = "/elmujjtrue/truejets/zbtc"
+
+
+zblcmatrixname, zblcrecohname, zblcrecomatchhname, zblctruehname
+  :: IsString s => s
+zblcmatrixname = "/elmujjmatched/zblcmig"
+zblcrecohname = "/elmujj/probejets/zblc"
+zblcrecomatchhname = "/elmujjmatched/probejets/zblc"
+zblctruehname = "/elmujjtrue/truejets/zblc"
+
+
+zbrelcmatrixname, zbrelcrecohname, zbrelcrecomatchhname, zbrelctruehname
+  :: IsString s => s
+zbrelcmatrixname = "/elmujjmatched/zbrelcmig"
+zbrelcrecohname = "/elmujj/probejets/zbrelc"
+zbrelcrecomatchhname = "/elmujjmatched/probejets/zbrelc"
+zbrelctruehname = "/elmujjtrue/truejets/zbrelc"
+
+
+nsvtrkmatrixname, nsvtrkrecohname, nsvtrkrecomatchhname, nsvtrktruehname
+  :: IsString s => s
+nsvtrkmatrixname = "/elmujjmatched/nsvtrkmig"
+nsvtrkrecohname = "/elmujj/probejets/nsvtrk"
+nsvtrkrecomatchhname = "/elmujjmatched/probejets/nsvtrk"
+nsvtrktruehname = "/elmujjtrue/truejets/nsvtrk"
+
+
+rhomatrixname, rhorecohname, rhorecomatchhname, rhotruehname
+  :: IsString s => s
+rhomatrixname = "/elmujjmatched/rhomig"
+rhorecohname = "/elmujj/probejets/rho"
+rhorecomatchhname = "/elmujjmatched/probejets/rho"
+rhotruehname = "/elmujjtrue/truejets/rho"
+
 
 zbtbin, zbtcbin, zblbin, zblcbin, zbrelbin, zbrelcbin :: BinD
 zbtbin = binD 0 20 1
@@ -221,7 +260,7 @@ bfragHs =
   ]
 
 
-zbtcMerges, zblcMerges, zbrelcMerges, nsvtrkMerges :: [[Int]]
+zbtcMerges, zblcMerges, zbrelcMerges, nsvtrkMerges, rhoMerges, rhoRecoMerges :: [[Int]]
 zbtcMerges =
   [ [00, 01, 02, 03, 04, 05, 06, 07] ]
   ++ fmap andOne [08, 10, 12, 14, 16, 18]
@@ -247,6 +286,23 @@ nsvtrkMerges =
   , [06, 07]
   ]
 
+rhoMerges =
+  [ [00 .. 03]
+  , [04, 05, 06]
+  , [07, 08, 09]
+  , [10, 11, 12]
+  , [13, 14, 15]
+  , [16, 17, 18, 19]
+  ]
+
+rhoRecoMerges =
+  [00, 01]
+  : (pure <$> [02 .. 09])
+  ++ fmap andOne [10, 12, 14, 16, 18]
+  where
+    andOne x = [x, x+1]
+
+
 
 obsTruthTrimmers
   :: (Eq a1, Fractional a, Ord a, Monoid b, IsString a1)
@@ -261,6 +317,8 @@ obsTruthTrimmers s =
     "zbrelcnorm" -> trimH zbrelcMerges
     "nsvtrk" -> trimH nsvtrkMerges
     "nsvtrknorm" -> trimH nsvtrkMerges
+    "rho" -> trimH rhoMerges
+    "rhonorm" -> trimH rhoMerges
     _        -> id
 
 
@@ -275,7 +333,11 @@ obsRecoTrimmers s =
     "zbtcnorm"   -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
     "zblcnorm"   -> trimH $ [ [00, 01] ] ++ (pure <$> [02..19])
     "zbrelcnorm" -> trimH $ pure <$> [00..19]
+    "rho" -> trimH rhoRecoMerges
+    "rhonorm" -> trimH rhoRecoMerges
     _         -> id
+
+
 
 
 obsNames
@@ -287,6 +349,7 @@ obsNames s =
     "zblc"    -> (zblcrecohname, zblctruehname, zblcmatrixname)
     "zbrelc"  -> (zbrelcrecohname, zbrelctruehname, zbrelcmatrixname)
     "nsvtrk"  -> (nsvtrkrecohname, nsvtrktruehname, nsvtrkmatrixname)
+    "rho"     -> (rhorecohname, rhotruehname, rhomatrixname)
     x         -> error $ "unrecognized observable" ++ show x
 
 
@@ -317,33 +380,3 @@ mergeV f x ks v = V.fromList $ go <$> ks
     go is = foldl f x $ (v !) <$> is
 
 
-zbtcmatrixname, zbtcrecohname, zbtcrecomatchhname, zbtctruehname
-  :: IsString s => s
-zbtcmatrixname = "/elmujjmatched/zbtcmig"
-zbtcrecohname = "/elmujj/probejets/zbtc"
-zbtcrecomatchhname = "/elmujjmatched/probejets/zbtc"
-zbtctruehname = "/elmujjtrue/truejets/zbtc"
-
-
-zblcmatrixname, zblcrecohname, zblcrecomatchhname, zblctruehname
-  :: IsString s => s
-zblcmatrixname = "/elmujjmatched/zblcmig"
-zblcrecohname = "/elmujj/probejets/zblc"
-zblcrecomatchhname = "/elmujjmatched/probejets/zblc"
-zblctruehname = "/elmujjtrue/truejets/zblc"
-
-
-zbrelcmatrixname, zbrelcrecohname, zbrelcrecomatchhname, zbrelctruehname
-  :: IsString s => s
-zbrelcmatrixname = "/elmujjmatched/zbrelcmig"
-zbrelcrecohname = "/elmujj/probejets/zbrelc"
-zbrelcrecomatchhname = "/elmujjmatched/probejets/zbrelc"
-zbrelctruehname = "/elmujjtrue/truejets/zbrelc"
-
-
-nsvtrkmatrixname, nsvtrkrecohname, nsvtrkrecomatchhname, nsvtrktruehname
-  :: IsString s => s
-nsvtrkmatrixname = "/elmujjmatched/nsvtrkmig"
-nsvtrkrecohname = "/elmujj/probejets/nsvtrk"
-nsvtrkrecomatchhname = "/elmujjmatched/probejets/nsvtrk"
-nsvtrktruehname = "/elmujjtrue/truejets/nsvtrk"
