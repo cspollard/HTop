@@ -147,12 +147,20 @@ trueMatch tjs j = (j,) . getOption $ do
 matchedJetHs :: VarFills ((TrueJet, TrueEvent), (Jet, RecoEvent))
 matchedJetHs =
   mconcat
-  $ (prefixF "/probejets" <$> bfragHs <$= fmap (fst.snd))
-    : (prefixF "/truejets" <$> bfragHs <$= fmap (fst.fst))
+  $ (prefixF "/probejets" <$> recofraghs <$= fmap snd)
+    : (prefixF "/truejets" <$> truefraghs <$= fmap fst)
     : (mconcat jetmigs <$= fmap (bimap fst fst))
     : [ rhoMig ]
 
   where
+    recofraghs =
+        (bfragHs <$= fmap fst)
+        `mappend` (singleton "/rho" <$> prebind recoRho rhoH)
+
+    truefraghs =
+        (bfragHs <$= fmap fst)
+        `mappend` (singleton "/rho" <$> prebind trueRho rhoH)
+
     jetmigs =
       [ zbtcMig, zblcMig, zbrelcMig
       , nsvtrkMig, npvtrkMig, msvMig
