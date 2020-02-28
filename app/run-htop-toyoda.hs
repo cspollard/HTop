@@ -173,16 +173,21 @@ writeFiles outf pm = do
           go t f' avo = f' & at (t <> "norm") ?~ normalize avo
 
 
+      -- we only normalize the non-overflow bins
       normalize :: Annotated (Vars Obj) -> Annotated (Vars Obj)
       normalize =
-        set (noted.nominal._H1DD.integral) 1
-        . set (noted.variations.traverse._H1DD.integral) 1
+        over (noted.nominal._H1DD) norm
+        . over (noted.variations.traverse._H1DD) norm
         . over ylabel g
         where
           g yl =
             if T.isInfixOf "\\sigma" yl
               then "\\ensuremath{\\frac{1}{\\sigma}}" <> yl
               else "\\ensuremath{\\frac{1}{n}}" <> yl
+
+          norm h =
+            h & outOfRange .~ Nothing
+              & integral .~ 1
 
 
       data'' = (fmap.fmap) (view nominal) . addNorm . (fmap.fmap) pure $ pruneData data'
