@@ -22,6 +22,27 @@ gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
 cd $DIR
 
 
+mkdir -p unfold/particlelevel/data/rhoposteriors
+cd unfold/particlelevel/data/rhoposteriors
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/rhomcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
+cd $DIR
+
+
+mkdir -p unfold/particlelevel/closure/rhoposteriors
+cd unfold/particlelevel/closure/rhoposteriors
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/closure/rhomcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
+cd $DIR
+
+
+mkdir -p unfold/particlelevel/stress_herwig/rhoposteriors
+cd unfold/particlelevel/stress_herwig/rhoposteriors
+python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/stress_herwig/rhomcmc.dat
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=posteriors.pdf *pdf
+cd $DIR
+
+
 mkdir -p unfold/particlelevel/data/zbtcposteriors
 cd unfold/particlelevel/data/zbtcposteriors
 python $DIR/../hunfold.git/ext/plot.py $TWOD < $DIR/unfold/mcmc/data/zbtcmcmc.dat

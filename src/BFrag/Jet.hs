@@ -7,6 +7,7 @@
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE RecordWildCards          #-}
 
 module BFrag.Jet where
 
@@ -27,6 +28,7 @@ import qualified Data.Vector            as V
 import qualified Data.Vector.Generic    as GV
 import           GHC.Float
 import           GHC.Generics           (Generic)
+import Debug.Trace
 
 
 data JetFlavor = L | C | B | T
@@ -71,7 +73,11 @@ instance HasLorentzVector Jet where
     toPtEtaPhiE = lens _jPtEtaPhiE $ \j x -> j { _jPtEtaPhiE = x }
 
 instance HasSVConstits Jet where
-  svChargedConstits = view svTrks
+  svChargedConstits Jet{..} =
+    let tmp = runPhysObj _svTrks
+        nom = fst $ view nominal tmp
+        wgtvars = snd <$> tmp 
+    in traceShow nom $ traceShow wgtvars _svTrks
 
 instance HasPVConstits Jet where
   pvChargedConstits = view pvTrks
@@ -98,9 +104,9 @@ appSVRW _ (Just bh) svtrks = do
       nsvtrkRW = safeAt nsvtrkSyst nsvtrks
 
   varSF $ sf "sveffsf" <$> Variation 1.0 svEffVars
-  -- varSF $ sf "svphiressf" <$> Variation 1.0 phiResVars
-  -- varSF $ sf "svetaressf" <$> Variation 1.0 etaResVars
-  -- varSF $ sf "svptressf" <$> Variation 1.0 ptResVars
+  varSF $ sf "svphiressf" <$> Variation 1.0 phiResVars
+  varSF $ sf "svetaressf" <$> Variation 1.0 etaResVars
+  varSF $ sf "svptressf" <$> Variation 1.0 ptResVars
   varSF $ sf "nsvtrksf" <$> Variation 1.0 [("nsvtrksf", nsvtrkRW)]
 
 
@@ -123,7 +129,7 @@ appPVSVRW _ jpt trkpt = do
       trkVars = (+1) . flip safeAt (jpt*1e3, trkpt*1e3) <$> sumPtTrkSysts
       ptcRW = safeAt ptcSyst trkpt
 
-  -- varSF $ sf "trkptsf" <$> Variation 1.0 trkVars
+  varSF $ sf "trkptsf" <$> Variation 1.0 trkVars
   varSF $ sf "ptcsf" <$> Variation 1.0 [("ptcsf", ptcRW)]
 
 
@@ -190,6 +196,7 @@ readJets dmc bhs = do
         (\pvsvrw pvt -> appPVRW dmc pvt >> pvsvrw >> return pvt)
         <$> pvsvrws
         <*> pvtrks
+
       svtrks' :: ZipList (PhysObj [PtEtaPhiE])
       svtrks' =
         (\pvsvrw mbh svt -> appSVRW dmc mbh svt >> pvsvrw >> return svt)
