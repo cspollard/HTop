@@ -51,3 +51,21 @@ rivet-mkhtml -c ext/htop.plot \
 
 
 make-plots --pdf unfold/particlelevel/closure/nsvtrkplots/*/*dat
+
+
+rivet-mkhtml -c ext/htop.plot \
+  -m ".*migeffY?[0-9]*$" \
+  unfold/particlelevel/closure/unfoldrho/nominal.yoda \
+  unfold/particlelevel/closure/unfoldrho/fsr.yoda \
+  unfold/particlelevel/closure/unfoldrho/rad.yoda \
+  unfold/particlelevel/closure/unfoldrho/ptcsf.yoda \
+  unfold/particlelevel/closure/unfoldrho/ps.yoda \
+  unfold/particlelevel/closure/unfoldrho/puwgt.yoda \
+  unfold/particlelevel/closure/unfoldrho/v2trk_fake_rate_tight.yoda \
+  unfold/particlelevel/closure/unfoldrho/v2trk_res_d0_meas.yoda \
+  unfold/particlelevel/closure/unfoldrho/v2trk_res_z0_meas.yoda \
+  -o unfold/particlelevel/closure/rhoplots
+
+make-plots --pdf unfold/particlelevel/closure/rhoplots/*/*dat
+
+
