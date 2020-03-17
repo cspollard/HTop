@@ -8,6 +8,10 @@ RatioPlotDrawReferenceFirst=1
 LegendXPos=0.1
 # END PLOT
 
+# BEGIN PLOT /.*rho.*
+RatioPlotYMin=0.75
+RatioPlotYMax=1.25
+# END PLOT
 
 # BEGIN PLOT /.*zbtc?(norm)?$
 XLabel=\ensuremath{z_{\mathrm{T,b}}^\mathrm{ch}}

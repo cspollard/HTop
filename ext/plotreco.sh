@@ -10,7 +10,7 @@ rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --linear --pwd -c ext/htop.plot \
   yoda/ps.yoda:"parton shower" \
   yoda/fsr.yoda:"FSR" \
   yoda/puwgt.yoda:"pileup" \
-  yoda/ptcsf.yoda:"jet $p_T^c$" \
+  yoda/ptcsf.yoda:"jet $p_\\mathrm{T}\^\\mathrm{ch}$" \
   yoda/background.yoda:"backgrounds" \
   yoda/data.yoda:"Title=data":"LineColor=Black":"ConnectBins=0" \
   -o detectorlevel/modeling
