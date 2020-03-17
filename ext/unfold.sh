@@ -1,8 +1,6 @@
 mkdir -p unfold/mcmc/closure
 mkdir -p unfold/mcmc/closure_statonly
 mkdir -p unfold/mcmc/stress_herwig
-mkdir -p unfold/mcmc/stress_mu
-mkdir -p unfold/mcmc/stress_mugt22
 mkdir -p unfold/mcmc/data
 
 
@@ -20,6 +18,11 @@ mkdir -p unfold/particlelevel/closure/unfoldnsvtrk
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/nsvtrkmcmc.dat --nsamples 20000 --yodafolder unfold/particlelevel/closure/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure/nsvtrk.log 2>&1
 
 
+mkdir -p unfold/particlelevel/data/unfoldrho
+stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/rhomcmc.dat --nsamples 20000 --yodafolder unfold/particlelevel/data/unfoldrho --xsecfile data/XSection-MC15-13TeV.data --observable rho hist/*hist.gz > unfold/mcmc/data/rho.log 2>&1
+
+mkdir -p unfold/particlelevel/closure/unfoldrho
+stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/rhomcmc.dat --nsamples 20000 --yodafolder unfold/particlelevel/closure/unfoldrho --xsecfile data/XSection-MC15-13TeV.data --observable rho --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure/rho.log 2>&1
 
 
 
@@ -36,12 +39,6 @@ stack exec run-htop-unfold -- --stat-only --mcmcfile unfold/mcmc/closure_statonl
 mkdir -p unfold/particlelevel/stress_herwig/unfoldnsvtrk
 stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/stress_herwig/nsvtrkmcmc.dat --nsamples 20000 --yodafolder unfold/particlelevel/stress_herwig/unfoldnsvtrk --xsecfile data/XSection-MC15-13TeV.data --observable nsvtrk --stresstest ps hist/{3,4}*hist.gz > unfold/mcmc/stress_herwig/nsvtrk.log 2>&1
 
-
-mkdir -p unfold/particlelevel/data/unfoldrho
-stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/data/rhomcmc.dat --nsamples 20000 --yodafolder unfold/particlelevel/data/unfoldrho --xsecfile data/XSection-MC15-13TeV.data --observable rho hist/*hist.gz > unfold/mcmc/data/rho.log 2>&1
-
-mkdir -p unfold/particlelevel/closure/unfoldrho
-stack exec run-htop-unfold -- --mcmcfile unfold/mcmc/closure/rhomcmc.dat --nsamples 20000 --yodafolder unfold/particlelevel/closure/unfoldrho --xsecfile data/XSection-MC15-13TeV.data --observable rho --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure/rho.log 2>&1
 
 mkdir -p unfold/particlelevel/closure_statonly/unfoldrho
 stack exec run-htop-unfold -- --stat-only --mcmcfile unfold/mcmc/closure_statonly/rhomcmc.dat --nsamples 20000 --yodafolder unfold/particlelevel/closure_statonly/unfoldrho --xsecfile data/XSection-MC15-13TeV.data --observable rho --stresstest closure hist/{3,4}*hist.gz > unfold/mcmc/closure_statonly/rho.log 2>&1

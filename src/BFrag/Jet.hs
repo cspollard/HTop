@@ -28,7 +28,6 @@ import qualified Data.Vector            as V
 import qualified Data.Vector.Generic    as GV
 import           GHC.Float
 import           GHC.Generics           (Generic)
-import Debug.Trace
 
 
 data JetFlavor = L | C | B | T
@@ -73,11 +72,7 @@ instance HasLorentzVector Jet where
     toPtEtaPhiE = lens _jPtEtaPhiE $ \j x -> j { _jPtEtaPhiE = x }
 
 instance HasSVConstits Jet where
-  svChargedConstits Jet{..} =
-    let tmp = runPhysObj _svTrks
-        nom = fst $ view nominal tmp
-        wgtvars = snd <$> tmp 
-    in traceShow nom $ traceShow wgtvars _svTrks
+  svChargedConstits = view svTrks
 
 instance HasPVConstits Jet where
   pvChargedConstits = view pvTrks
