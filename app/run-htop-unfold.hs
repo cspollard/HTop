@@ -224,12 +224,18 @@ main = do
           then over variations $ sans "nsvtrksf"
           else id
 
-      (model, params) =
+      (model, params') =
         buildModel
           (statOnly args)
           (view histData trueh)
           (filtNSVSF $ getH2DD <$> filtVar matFilt (view noted migration))
           (filtNSVSF $ HM.singleton "bkg" . fmap uMean . view histData <$> filtVar bkgFilt (view noted bkg))
+
+
+      params =
+        if observable args == "rho"
+          then params' & at "ptcsf" .~ Nothing
+          else params'
 
       pois = HM.filterWithKey (\k _ -> T.isInfixOf "truthbin" k) params
 
