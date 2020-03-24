@@ -58,7 +58,6 @@ rivet-mkhtml -c ext/htop.plot \
   unfold/particlelevel/closure/unfoldrho/nominal.yoda \
   unfold/particlelevel/closure/unfoldrho/fsr.yoda \
   unfold/particlelevel/closure/unfoldrho/rad.yoda \
-  unfold/particlelevel/closure/unfoldrho/ptcsf.yoda \
   unfold/particlelevel/closure/unfoldrho/ps.yoda \
   unfold/particlelevel/closure/unfoldrho/puwgt.yoda \
   unfold/particlelevel/closure/unfoldrho/v2trk_fake_rate_tight.yoda \

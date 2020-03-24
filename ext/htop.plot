@@ -8,42 +8,124 @@ RatioPlotDrawReferenceFirst=1
 LegendXPos=0.1
 # END PLOT
 
-# BEGIN PLOT /.*rho.*
+# BEGIN PLOT /.*rho(norm)?$
 RatioPlotYMin=0.75
 RatioPlotYMax=1.25
+LegendXPos=0.4
 # END PLOT
 
-# BEGIN PLOT /.*zbtc?(norm)?$
-XLabel=\ensuremath{z_{\mathrm{T,b}}^\mathrm{ch}}
+# BEGIN PLOT /.*nsvtrk(norm)?$
+LegendXPos=0.4
 # END PLOT
 
-# BEGIN PLOT /.*zblc?(norm)?$
-XLabel=\ensuremath{z_{\mathrm{L,b}}^\mathrm{ch}}
+# BEGIN PLOT /htop/elmujj/.*rho(norm)?$
+XLabel=detector jet \ensuremath{\rho}
 # END PLOT
 
-# BEGIN PLOT /.*zbrellc?(norm)?$
-XLabel=\ensuremath{z_{\mathrm{rel,b}}^\mathrm{ch}}
+# BEGIN PLOT /htop/elmujj/.*rho$
+YLabel=\ensuremath{\frac{dn}{d\rho}}
 # END PLOT
+
+# BEGIN PLOT /htop/elmujj/.*rhonorm$
+YLabel=\ensuremath{\frac{1}{n}\frac{dn}{d\rho}}
+# END PLOT
+
+
+# BEGIN PLOT /htop/elmujj/.*zbtc(norm)?$
+XLabel=detector jet \ensuremath{z_{\mathrm{T,b}}^\mathrm{ch}}
+# END PLOT
+
+# BEGIN PLOT /htop/elmujj/.*zbtc$
+YLabel=\ensuremath{\frac{dn}{z_{\mathrm{T,b}}^\mathrm{ch}}}
+# END PLOT
+
+# BEGIN PLOT /htop/elmujj/.*zbtcnorm$
+YLabel=\ensuremath{\frac{1}{n}\frac{dn}{dz_{\mathrm{T,b}}^\mathrm{ch}}}
+# END PLOT
+
+
+# BEGIN PLOT /htop/elmujj/.*zblc(norm)?$
+XLabel=detector jet \ensuremath{z_{\mathrm{L,b}}^\mathrm{ch}}
+# END PLOT
+
+# BEGIN PLOT /htop/elmujj/.*zblc$
+YLabel=\ensuremath{\frac{dn}{z_{\mathrm{L,b}}^\mathrm{ch}}}
+# END PLOT
+
+# BEGIN PLOT /htop/elmujj/.*zblcnorm$
+YLabel=\ensuremath{\frac{1}{n}\frac{dn}{dz_{\mathrm{L,b}}^\mathrm{ch}}}
+# END PLOT
+
+
+# BEGIN PLOT /htop/elmujj/.*nsvtrk(norm)?$
+XLabel=detector jet \ensuremath{n_\mathrm{B}^\mathrm{ch}}
+# END PLOT
+
+# BEGIN PLOT /htop/elmujj/.*nsvtrk$
+YLabel=\ensuremath{\frac{dn}{dn_\mathrm{B}^\mathrm{ch}}}
+# END PLOT
+
+# BEGIN PLOT /htop/elmujj/.*nsvtrknorm$
+YLabel=\ensuremath{\frac{1}{n}\frac{dn}{dn_\mathrm{B}^\mathrm{ch}}}
+# END PLOT
+
+
+
+# BEGIN PLOT /htop/elmujjtrue/.*rho(norm)?$
+XLabel=particle jet \ensuremath{\rho}
+# END PLOT
+
+# BEGIN PLOT /htop/elmujjtrue/.*rho$
+YLabel=\ensuremath{\frac{d\sigma}{\rho}}
+# END PLOT
+
+# BEGIN PLOT /htop/elmujjtrue/.*rhonorm$
+YLabel=\ensuremath{\frac{1}{\sigma}\frac{d\sigma}{\rho}}
+# END PLOT
+
+
+# BEGIN PLOT /htop/elmujjtrue/.*zbtc(norm)?$
+XLabel=particle jet \ensuremath{z_{\mathrm{T,b}}^\mathrm{ch}}
+# END PLOT
+
+# BEGIN PLOT /htop/elmujjtrue/.*zbtc$
+YLabel=\ensuremath{\frac{d\sigma}{z_{\mathrm{T,b}}^\mathrm{ch}}}
+# END PLOT
+
+# BEGIN PLOT /htop/elmujjtrue/.*zbtcnorm$
+YLabel=\ensuremath{\frac{1}{\sigma}\frac{d\sigma}{dz_{\mathrm{T,b}}^\mathrm{ch}}}
+# END PLOT
+
+
+# BEGIN PLOT /htop/elmujjtrue/.*zblc(norm)?$
+XLabel=particle jet \ensuremath{z_{\mathrm{L,b}}^\mathrm{ch}}
+# END PLOT
+
+# BEGIN PLOT /htop/elmujjtrue/.*zblc$
+YLabel=\ensuremath{\frac{d\sigma}{z_{\mathrm{L,b}}^\mathrm{ch}}}
+# END PLOT
+
+# BEGIN PLOT /htop/elmujjtrue/.*zblcnorm$
+YLabel=\ensuremath{\frac{1}{\sigma}\frac{d\sigma}{dz_{\mathrm{L,b}}^\mathrm{ch}}}
+# END PLOT
+
+
+# BEGIN PLOT /htop/elmujjtrue/.*nsvtrk(norm)?$
+XLabel=particle jet \ensuremath{n_\mathrm{B}^\mathrm{ch}}
+# END PLOT
+
+# BEGIN PLOT /htop/elmujjtrue/.*nsvtrk$
+YLabel=\ensuremath{\frac{d\sigma}{dn_\mathrm{B}^\mathrm{ch}}}
+# END PLOT
+
+# BEGIN PLOT /htop/elmujjtrue/.*nsvtrknorm$
+YLabel=\ensuremath{\frac{1}{\sigma}\frac{d\sigma}{dn_\mathrm{B}^\mathrm{ch}}}
+# END PLOT
+
+
 
 # BEGIN PLOT /.*ptc?$
 LogY=1
-# END PLOT
-
-
-# BEGIN PLOT /.*migreldiff$
-LogZ=0
-Legend=0
-ZMin=-0.25
-ZMax=0.25
-ZLabel=relative probability difference
-# END PLOT
-
-# BEGIN PLOT /.*migdiff$
-LogZ=0
-Legend=0
-ZMin=-0.01
-ZMax=0.01
-ZLabel=probability difference
 # END PLOT
 
 # BEGIN PLOT /.*migeff$
@@ -66,15 +148,20 @@ color=black
 
 # BEGIN PLOT /.*zblcmigeffY.*
 YLabel=probability
-XLabel=reco \ensuremath{z_{\mathrm{L,b}}^\mathrm{ch}}
+XLabel=detector \ensuremath{z_{\mathrm{L,b}}^\mathrm{ch}}
 # END PLOT
 
 # BEGIN PLOT /.*zbtcmigeffY.*
 YLabel=probability
-XLabel=reco \ensuremath{z_{\mathrm{T,b}}^\mathrm{ch}}
+XLabel=detector \ensuremath{z_{\mathrm{T,b}}^\mathrm{ch}}
 # END PLOT
 
-# BEGIN PLOT /.*zbtcmigeffY.*
+# BEGIN PLOT /.*nsvtrkmigeffY.*
 YLabel=probability
-XLabel=reco \ensuremath{z_{\mathrm{rel,b}}^\mathrm{ch}}
+XLabel=detector \ensuremath{n_\mathrm{B}^\mathrm{ch}}
+# END PLOT
+#
+# BEGIN PLOT /.*rhomigeffY.*
+YLabel=probability
+XLabel=detector \ensuremath{\rho}
 # END PLOT

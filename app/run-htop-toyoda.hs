@@ -5,6 +5,7 @@
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE TypeFamilies              #-}
+{-# LANGUAGE RecordWildCards              #-}
 
 module Main where
 
@@ -196,7 +197,7 @@ writeFiles outf pm = do
       predhs' = addNorm predhs
 
       toths :: Folder YodaObj
-      toths = (fmap.fmap) totalUncert $ addChi2 data'' predhs'
+      toths = fmap (setymax . fmap totalUncert) $ addChi2 data'' predhs'
 
       psmc :: VarMap (Folder YodaObj)
       psmc =
@@ -235,9 +236,11 @@ writeFiles outf pm = do
 
 
       addChi2 :: Folder YodaObj -> Folder (Annotated (Vars Obj)) -> Folder (Annotated (Vars Obj))
-      addChi2 d p = inF2 (M.mergeWithKey (\_k x y -> Just $ go x y) (const mempty) id) d p
+      addChi2 d p = inF2 (M.mergeWithKey (\_k x y -> Just $ go x y) (const mempty) (set title "prediction" <$>)) d p
         where
-          go (Annotated _ dh) p@(Annotated _ ph) = maybe p id $ do
+          -- if we have a well-formed chi2, set it in the title
+          -- otherwise set the title "prediction"
+          go (Annotated _ dh) p@(Annotated _ ph) = maybe (set title "prediction" p) id $ do
             (nbins, chi2) <- dataChi2 dh ph
             let chi2txt = T.pack $ showFFloat (Just 1) chi2 ""
                 str = " (\\ensuremath{\\chi^2} / bins = " <> chi2txt <> " / " <> T.pack (show nbins) <> ")"
@@ -258,3 +261,33 @@ collapseProcs pm =
   let preds = sans datakey pm
       dat = (fmap.fmap) (view nominal) $ pm ^. at datakey
   in (preds, dat)
+
+
+
+setymax :: YodaObj -> YodaObj
+setymax yo =
+  let m = ymax $ view noted yo
+  in case m of
+    Option (Just (Max m)) ->
+      yo
+        & annots . at "YMax"
+          ?~ T.pack (showFFloat (Just 4) (1.5*m) "")
+
+    _ -> yo
+
+  where
+    ymax :: Obj -> Option (Max Double)
+    ymax (H1DD h) =
+      foldMap (pure . Max . maxWithUncert) . view histData $ scaleByBinSize1D h
+    ymax _ = mempty
+
+    maxWithUncert DistND{..} = _sumW + sqrt _sumWW
+
+
+scaleByBinSize1D
+  :: (BinValue b ~ Weight a, IntervalBin b, Fractional (Weight a), Weighted a)
+  => Histogram Vector b a -> Histogram Vector b a
+scaleByBinSize1D h =
+  let intervals = views bins binsList h
+      go (xmin, xmax) = scaling (xmax - xmin)
+  in over histData (V.zipWith go intervals) h
