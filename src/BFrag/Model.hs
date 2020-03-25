@@ -18,7 +18,6 @@ import qualified Data.Text           as T
 import           GHC.Exts            (toList)
 
 
-
 bfragModel
   :: Maybe String
   -> StrictMap ProcessInfo (Folder (Annotated (Vars Obj)))

@@ -58,13 +58,6 @@ type H2DD = Histogram V.Vector (Bin2D (ArbBin Double) (ArbBin Double)) (Uncert D
 fromJust' :: String -> Maybe a -> a
 fromJust' s = fromMaybe (error s)
 
--- reco-level stress tests
-stressReco (Just "mugt22") = traceShowId . T.replace "elmujj" "mu_gt_22/elmujj"
-stressReco (Just "mult22") = traceShowId . T.replace "elmujj" "mu_lt_22/elmujj"
-stressReco (Just x) = error $ "unknown stress test: " ++ show x
-stressReco _ = id
-
-
 
 unsafeHAdd h h' = fromJust' "unsafeHAdd" $ hzip (+) h h'
 unsafeHSub h h' = fromJust' "unsafeHSub" $ hzip (-) h h'
@@ -113,7 +106,16 @@ main = do
   hSetBuffering stdout LineBuffering
   args <- execParser $ info (helper <*> inArgs) fullDesc
 
-  let (recohname, truehname, matrixname) = obsNames $ observable args
+  let (recohname', truehname, matrixhname') = obsNames $ observable args
+
+      rename s = T.replace "elmujj" $ s <> "/elmujj"
+
+      (recohname, matrixhname) =
+        case stresstest args of
+          Just "mugt22" -> traceShowId (rename "mu_gt_22" recohname, rename "mu_gt_22" matrixhname)
+          Just "mult22" -> traceShowId (rename "mu_lt_22" recohname, rename "mu_lt_22" matrixhname)
+          _ -> (recohname', matrixhname')
+
       regex = intercalate "|" $ obsNames (observable args) ^.. each
 
   xsecs <- fromMaybe (error "failed to read xsecs") <$> readXSecFile (xsecfile args)
@@ -162,11 +164,11 @@ main = do
       writeVariation t (bkg, reco, mat) =
         writeFile (yodafolder args <> "/" <> T.unpack t <> ".yoda")
         . T.unpack . T.intercalate "\n\n"
-        $ [ showMigMat (matrixname <> "eff") mat'
+        $ [ showMigMat (matrixhname <> "eff") mat'
           , printScatter2D recohname False True $ asList' reco'
           , printScatter2D (recohname <> "bkg") False True $ asList' bkg'
-          ] ++ showEffSlicesY matrixname mat'
-            ++ showEffSlicesX matrixname mat'
+          ] ++ showEffSlicesY matrixhname mat'
+            ++ showEffSlicesX matrixhname mat'
 
         where
           matbinning :: Bin2D (ArbBin Double) (ArbBin Double)
@@ -401,7 +403,7 @@ unfoldingInputs
   -> Folder (Annotated (Vars Obj))
   -> (Annotated (Vars  H1DD), Annotated (Vars H2DD))
 unfoldingInputs obs hs =
-  let (recohname, truehname, matrixname) = obsNames obs
+  let (recohname, truehname, matrixhname) = obsNames obs
 
       trimR
         :: Monoid b
@@ -432,7 +434,7 @@ unfoldingInputs obs hs =
           . fromJust' "math"
           . preview _H2DD
           )
-        <$> hs ^?! ix matrixname
+        <$> hs ^?! ix matrixhname
 
       recomatchh =
         over
