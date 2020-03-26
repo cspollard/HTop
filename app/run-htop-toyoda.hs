@@ -121,7 +121,11 @@ writeFiles outf pm = do
   let (data', pred', bkgs, ttpreds) = either error id $ bfragModel "data" pm
 
       predhs = imap appLumi pred'
-      bkghs = imap (\k x -> set title "background" $ appLumi k x) bkgs
+
+      bkghs :: Folder YodaObj
+      bkghs =
+        (fmap.fmap) totalUncert . addCount
+        $ imap (\k x -> set title "background" $ appLumi k x) bkgs
 
       ttpredhs :: StrictMap ProcessInfo (Folder (Annotated Obj))
       ttpredhs =
@@ -166,6 +170,24 @@ writeFiles outf pm = do
           --   let fx = obsRecoTrimmers t'
           --   in H2DD . H.liftX f $ H.liftY f h
 
+      addCount :: Folder (Annotated (Vars Obj)) -> Folder (Annotated (Vars Obj))
+      addCount f =
+        let toth = (fmap.fmap) totalH $ f ^?! ix "/elmujj/electrons/eta"
+            totprobe = (fmap.fmap) totalH $ f ^?! ix "/elmujj/probejets/zblc"
+            -- this one doesn't necessarily exist
+            totfid = (fmap.fmap.fmap) totalH $ f ^? ix "/elmujjmatched/probejets/zblc"
+        in
+          f & at "/elmujj/total" ?~ toth
+            & at "/elmujj/probejets/total" ?~ totprobe
+            & at "/elmujjmatched/probejets/total" .~ totfid
+
+        where
+          totalH :: Obj -> Obj
+          totalH (H1DD h) =
+            H1DD . H.histogram (toArbBin $ binD 0 1 1) . pure $ total h
+          totalH h = h
+
+
 
       addNorm :: Folder (Annotated (Vars Obj)) -> Folder (Annotated (Vars Obj))
       addNorm f = ifoldl go f f
@@ -191,10 +213,10 @@ writeFiles outf pm = do
               & integral .~ 1
 
 
-      data'' = (fmap.fmap) (view nominal) . addNorm . (fmap.fmap) pure $ pruneData data'
+      data'' = (fmap.fmap) (view nominal) . addCount . addNorm . (fmap.fmap) pure $ pruneData data'
 
       predhs' :: Folder (Annotated (Vars Obj))
-      predhs' = addNorm predhs
+      predhs' = addCount $ addNorm predhs
 
       toths :: Folder YodaObj
       toths = fmap (setymax . fmap totalUncert) $ addChi2 data'' predhs'
@@ -221,12 +243,12 @@ writeFiles outf pm = do
         . fmap (\(ds, h) -> let t = procToText ds in (t, h & traverse.title .~ t))
         . toList
         . (fmap.fmap.fmap) (view nominal)
-        . fmap addNorm
+        . fmap (addCount . addNorm)
         . (fmap.fmap.fmap) pure
         $ ttpredhs
 
-      -- psbkg :: VarMap (Folder YodaObj)
-      psbkg = ("background", view nominal . sequence $ sequence <$> bkghs)
+      psbkg :: (T.Text, Folder YodaObj)
+      psbkg = ("background", bkghs)
       pstot = ("total", toths)
 
       -- psdata :: VarMap (Folder YodaObj)
