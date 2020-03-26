@@ -108,21 +108,13 @@ bfragModel stresstest procs = do
 
 
       data' :: Folder (Annotated Obj) =
-        case stresstest of
-          Nothing ->
-            either error ((fmap.fmap) (view nominal)) $ getProcs procs [datakey]
-          Just "closure" -> (fmap.fmap) (scaleO $ view nominal lumi) nomnom
-          Just "mugt22" ->
-            (fmap.fmap) (scaleO $ view nominal lumi)
-            $ imap
-                (\k v -> if T.take 7 k == "elmujj/" then nomnom ^?! ix (T.replace "elmujj/" "mu_gt_22/elmujj/" k) else v)
-                nomnom
+        let def = either error ((fmap.fmap) (view nominal)) $ getProcs procs [datakey]
+        in case stresstest of
+          Nothing -> def
+          Just "mugt22" -> def
+          Just "mule22" -> def
 
-          Just "mult22" ->
-            (fmap.fmap) (scaleO $ view nominal lumi)
-            $ imap
-                (\k v -> if T.take 7 k == "elmujj/" then nomnom ^?! ix (T.replace "elmujj/" "mu_lt_22/elmujj/" k) else v)
-                nomnom
+          Just "closure" -> (fmap.fmap) (scaleO $ view nominal lumi) nomnom
 
           Just var ->
             let vs = sequence $ sequence <$> fullpred :: Vars (Folder (Annotated Obj))

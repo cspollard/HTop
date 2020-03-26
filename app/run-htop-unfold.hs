@@ -112,8 +112,8 @@ main = do
 
       (recohname, matrixhname) =
         case stresstest args of
-          Just "mugt22" -> traceShowId (rename "mu_gt_22" recohname, rename "mu_gt_22" matrixhname)
-          Just "mult22" -> traceShowId (rename "mu_lt_22" recohname, rename "mu_lt_22" matrixhname)
+          Just "mugt22" -> traceShowId (rename "mu_gt_22" recohname', rename "mu_gt_22" matrixhname')
+          Just "mule22" -> traceShowId (rename "mu_le_22" recohname', rename "mu_le_22" matrixhname')
           _ -> (recohname', matrixhname')
 
       regex = intercalate "|" $ obsNames (observable args) ^.. each
@@ -203,8 +203,16 @@ main = do
             `imap` H.listSlicesAlongY m
 
 
-      trueh = fmap (view sumW) . obsTruthTrimmers (observable args)
+      trueh' = fmap (view sumW) . obsTruthTrimmers (observable args)
         $ pred' ^?! ix truehname . noted . nominal . _H1DD
+
+      -- deal with mu stress
+      trueh =
+        case stresstest args of
+          Just "mugt22" -> (*0.45) <$> trueh'
+          Just "mule22" -> (*0.55) <$> trueh'
+          _ -> trueh'
+            
 
       datah :: H1DI
       datah =
@@ -325,11 +333,11 @@ main = do
 
   withFile (yodafolder args <> "/htop.yoda") WriteMode $ \h -> do
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname) True True
-        $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) truebins unfolded'''
+        $ zipWith (\x (_, (_, (q16, q50, q84))) -> (x, (q50, (q16, q84)))) truebins unfolded'''
       hPutStrLn h . T.unpack . printScatter2D ("/REF/htop" <> truehname <> "norm") True True
-        $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) truebins unfoldednorm
+        $ zipWith (\x (_, (_, (q16, q50, q84))) -> (x, (q50, (q16, q84)))) truebins unfoldednorm
       hPutStrLn h . T.unpack . printScatter2D ("/htop" <> recohname) False True
-        $ zipWith (\x (_, (mode, (q16, _, q84))) -> (x, (mode, (q16, q84)))) recobins reco'
+        $ zipWith (\x (_, (_, (q16, q50, q84))) -> (x, (q50, (q16, q84)))) recobins reco'
 
   let symmetrize hm =
         let insert' h (x, y) = HM.insert (y, x) (h HM.! (x, y)) h
