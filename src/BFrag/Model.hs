@@ -19,7 +19,7 @@ import           GHC.Exts            (toList)
 
 
 bfragModel
-  :: Maybe String
+  :: String
   -> StrictMap ProcessInfo (Folder (Annotated (Vars Obj)))
   -> Either String
       ( Folder (Annotated Obj)
@@ -28,7 +28,7 @@ bfragModel
       , StrictMap ProcessInfo (Folder YodaObj)
       )
 
-bfragModel stresstest procs = do
+bfragModel test procs = do
   zjets <-
     getProcs procs zjetskeys
     & traverse.traverse.traverse %~ addVar "ZJetsNormUp" (scaleO 1.3)
@@ -109,14 +109,15 @@ bfragModel stresstest procs = do
 
       data' :: Folder (Annotated Obj) =
         let def = either error ((fmap.fmap) (view nominal)) $ getProcs procs [datakey]
-        in case stresstest of
-          Nothing -> def
-          Just "mugt22" -> def
-          Just "mule22" -> def
+        in case test of
+          "data" -> def
+          "mugt22" -> def
+          "mule22" -> def
 
-          Just "closure" -> (fmap.fmap) (scaleO $ view nominal lumi) nomnom
+          "closure" -> (fmap.fmap) (scaleO $ view nominal lumi) nomnom
+          "closure_statonly" -> (fmap.fmap) (scaleO $ view nominal lumi) nomnom
 
-          Just var ->
+          var ->
             let vs = sequence $ sequence <$> fullpred :: Vars (Folder (Annotated Obj))
                 mv = view (variations . at (T.pack var)) vs :: Maybe (Folder (Annotated Obj))
             in case mv of

@@ -68,12 +68,11 @@ data Args =
   Args
     { mcmcfile   :: String
     , nsamples   :: Int
-    , statOnly   :: Bool
     , yodafolder :: String
     , xsecfile   :: String
     , observable :: String
     , infiles    :: [String]
-    , stresstest :: Maybe String
+    , test       :: String
     } deriving (Show)
 
 inArgs :: Parser Args
@@ -85,7 +84,6 @@ inArgs =
     option auto ( long "nsamples" <> metavar "NSAMPLES=10000" )
     <|> pure 10000
     )
-  <*> switch (long "stat-only")
   <*> strOption
     ( long "yodafolder" <> metavar "YODAFOLDER" )
   <*> strOption
@@ -93,11 +91,9 @@ inArgs =
   <*> strOption
     ( long "observable" <> metavar "OBSERVABLE" )
   <*> some (strArgument (metavar "INFILES"))
-  <*> optional
-    ( strOption
-      ( long "stresstest"
-      <> help "unfold a variation as a stress test"
-      )
+  <*> strOption
+    ( long "test"
+    <> help "the unfolding test to perform"
     )
 
 
@@ -111,9 +107,9 @@ main = do
       rename s = T.replace "elmujj" $ s <> "/elmujj"
 
       (recohname, matrixhname) =
-        case stresstest args of
-          Just "mugt22" -> traceShowId (rename "mu_gt_22" recohname', rename "mu_gt_22" matrixhname')
-          Just "mule22" -> traceShowId (rename "mu_le_22" recohname', rename "mu_le_22" matrixhname')
+        case test args of
+          "mugt22" -> traceShowId (rename "mu_gt_22" recohname', rename "mu_gt_22" matrixhname')
+          "mule22" -> traceShowId (rename "mu_le_22" recohname', rename "mu_le_22" matrixhname')
           _ -> (recohname', matrixhname')
 
       regex = intercalate "|" $ obsNames (observable args) ^.. each
@@ -125,7 +121,7 @@ main = do
 
       (data', pred', _, _) =
         either error id
-        $ bfragModel (stresstest args) normedProcs
+        $ bfragModel (test args) normedProcs
 
       (bkg, migration) = unfoldingInputs (observable args) pred'
 
@@ -208,9 +204,9 @@ main = do
 
       -- deal with mu stress
       trueh =
-        case stresstest args of
-          Just "mugt22" -> (*0.45) <$> trueh'
-          Just "mule22" -> (*0.55) <$> trueh'
+        case test args of
+          "mugt22" -> (*0.45) <$> trueh'
+          "mule22" -> (*0.55) <$> trueh'
           _ -> trueh'
             
 
@@ -236,7 +232,7 @@ main = do
 
       (model, params') =
         buildModel
-          (statOnly args)
+          (T.isInfixOf "statonly" . T.pack $ test args)
           (view histData trueh)
           (filtNSVSF $ getH2DD <$> filtVar matFilt (view noted migration))
           (filtNSVSF $ HM.singleton "bkg" . fmap uMean . view histData <$> filtVar bkgFilt (view noted bkg))

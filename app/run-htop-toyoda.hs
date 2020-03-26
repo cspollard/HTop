@@ -118,7 +118,7 @@ main = mainWith writeFiles
 
 writeFiles :: String -> ProcMap (Folder (Annotated (Vars Obj))) -> IO ()
 writeFiles outf pm = do
-  let (data', pred', bkgs, ttpreds) = either error id $ bfragModel Nothing pm
+  let (data', pred', bkgs, ttpreds) = either error id $ bfragModel "data" pm
 
       predhs = imap appLumi pred'
       bkghs = imap (\k x -> set title "background" $ appLumi k x) bkgs

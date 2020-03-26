@@ -9,6 +9,8 @@ unfold () {
     --yodafolder unfold/particlelevel/$1/unfold$2 \
     --xsecfile data/XSection-MC15-13TeV.data \
     --observable $2 hist/*hist.gz \
+    --test $1 \
+    hist/*hist.gz \
     > unfold/mcmc/$1/$2.log 2>&1
 
 }
@@ -18,7 +20,7 @@ for vers in data closure closure_statonly stress_herwig stress_mugt22 stress_mul
 do
   for obs in zblc rho nsvtrk zbtc
   do
-    unfold $obs $vers 20000
+    unfold $vers $obs 20000
   done
 done
 
