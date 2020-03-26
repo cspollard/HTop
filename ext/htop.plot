@@ -110,6 +110,20 @@ YLabel=\ensuremath{\frac{1}{\sigma}\frac{d\sigma}{dz_{\mathrm{L,b}}^\mathrm{ch}}
 # END PLOT
 
 
+# BEGIN PLOT /BFRAG/.*nsvtrk(norm)?$
+XLabel=particle jet \ensuremath{n_\mathrm{B}^\mathrm{ch}}
+# END PLOT
+
+# BEGIN PLOT /BFRAG/.*nsvtrk$
+YLabel=\ensuremath{\frac{d\sigma}{dn_\mathrm{B}^\mathrm{ch}}}
+# END PLOT
+
+# BEGIN PLOT /BFRAG/.*nsvtrknorm$
+YLabel=\ensuremath{\frac{1}{\sigma}\frac{d\sigma}{dn_\mathrm{B}^\mathrm{ch}}}
+# END PLOT
+
+
+
 # BEGIN PLOT /htop/elmujjtrue/.*nsvtrk(norm)?$
 XLabel=particle jet \ensuremath{n_\mathrm{B}^\mathrm{ch}}
 # END PLOT

@@ -109,8 +109,8 @@ for (k, f) in files:
     hs.append((k, [b.area for b in h.bins[1:]]))
 
 
-print("")
-print("pvalues:")
+# print("")
+# print("pvalues:")
 
 fig, ax = plt.subplots()
 hist, bins = np.histogram(tsts, bins=50)
@@ -130,14 +130,16 @@ for (k, h) in hs:
 
     llh = thisllh(h)
     thistst = -2*np.log(llh)
-    print("")
-    print("-2*log(llh) of %s:" % k)
+    # print("")
+    # print("-2*log(llh) of %s:" % k)
+    print(k)
+    print("teststat:")
     print(thistst)
     print("chi2 of %s:" % k)
     print(np.matmul(np.matmul(hdiff.T, covinv), hdiff))
-    print("pvalue of %s:" % k)
+    print("pvalue:")
     print(pval(llh))
-    print("Z of %s:" % k)
-    print((thistst - meantsts)/stddevtst)
+    # print("Z of %s:" % k)
+    # print((thistst - meantsts)/stddevtst)
 
 plt.savefig("teststats.pdf")
