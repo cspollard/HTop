@@ -30,13 +30,23 @@ rivet-mkhtml -m "/htop/elmujj/probejets/(rho|zbtc|zblc|zbrelc|nsvtrk)$" --mc-err
 
 rm -f htop.yoda
 
-yodamerge -o htop.yoda unfold/particlelevel/stress_mu/unfold*/htop.yoda
+yodamerge -o htop.yoda unfold/particlelevel/stress_mugt22/unfold*/htop.yoda
 
-rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(rho|zbtc|zblc|zbrelc|nsvtrk)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowH7AFII.yoda:"PowH7" yoda/aMCPy8AFII.yoda:"aMCPy8" yoda/Sherpa221AFII.yoda:"Sherpa221" -o unfold/particlelevel/stress_mu/genplots
-rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(rho|zbtc|zblc|zbrelc|nsvtrk)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowPy8FSRUpAFII.yoda:"PowPy8FSRUp" yoda/PowPy8FSRDownAFII.yoda:"PowPy8FSRDown" yoda/PowPy6FS.yoda:"PowPy6" -o unfold/particlelevel/stress_mu/powpygenplots
+rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(rho|zbtc|zblc|zbrelc|nsvtrk)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowH7AFII.yoda:"PowH7" yoda/aMCPy8AFII.yoda:"aMCPy8" yoda/Sherpa221AFII.yoda:"Sherpa221" -o unfold/particlelevel/stress_mugt22/genplots
+rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(rho|zbtc|zblc|zbrelc|nsvtrk)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowPy8FSRUpAFII.yoda:"PowPy8FSRUp" yoda/PowPy8FSRDownAFII.yoda:"PowPy8FSRDown" yoda/PowPy6FS.yoda:"PowPy6" -o unfold/particlelevel/stress_mugt22/powpygenplots
 
 perl -p -i -e "s/\/REF\/htop\/elmujj\//\/htop\/elmujj\//g" htop.yoda
-rivet-mkhtml -m "/htop/elmujj/probejets/(rho|zbtc|zblc|zbrelc|nsvtrk)$" --mc-errs -c ext/htop.plot yoda/nominal.yoda yoda/background.yoda:"backgrounds" htop.yoda:"Title=posterior":"LineColor=green" yoda/ps.yoda:"Title=PowH7":"LineColor=black" -o detectorlevel/recoclosure/stress_mu
+rivet-mkhtml -m "/htop/elmujj/probejets/(rho|zbtc|zblc|zbrelc|nsvtrk)$" --mc-errs -c ext/htop.plot yoda/nominal.yoda yoda/background.yoda:"backgrounds" htop.yoda:"Title=posterior":"LineColor=green" yoda/ps.yoda:"Title=PowH7":"LineColor=black" -o detectorlevel/recoclosure/stress_mugt22
+
+rm -f htop.yoda
+
+yodamerge -o htop.yoda unfold/particlelevel/stress_mule22/unfold*/htop.yoda
+
+rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(rho|zbtc|zblc|zbrelc|nsvtrk)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowH7AFII.yoda:"PowH7" yoda/aMCPy8AFII.yoda:"aMCPy8" yoda/Sherpa221AFII.yoda:"Sherpa221" -o unfold/particlelevel/stress_mule22/genplots
+rivet-mkhtml --mc-errs --pwd -m "/htop/elmujjtrue/truejets/(rho|zbtc|zblc|zbrelc|nsvtrk)(|norm)$" -c ext/htop.plot yoda/PowPy8FS.yoda:"PowPy8" yoda/PowPy8FSRUpAFII.yoda:"PowPy8FSRUp" yoda/PowPy8FSRDownAFII.yoda:"PowPy8FSRDown" yoda/PowPy6FS.yoda:"PowPy6" -o unfold/particlelevel/stress_mule22/powpygenplots
+
+perl -p -i -e "s/\/REF\/htop\/elmujj\//\/htop\/elmujj\//g" htop.yoda
+rivet-mkhtml -m "/htop/elmujj/probejets/(rho|zbtc|zblc|zbrelc|nsvtrk)$" --mc-errs -c ext/htop.plot yoda/nominal.yoda yoda/background.yoda:"backgrounds" htop.yoda:"Title=posterior":"LineColor=green" yoda/ps.yoda:"Title=PowH7":"LineColor=black" -o detectorlevel/recoclosure/stress_mule22
 
 rm -f htop.yoda
 
