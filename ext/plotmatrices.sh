@@ -1,16 +1,23 @@
 plotmatrices() {
 
+  if [[ -a unfold/particlelevel/closure/unfold$1/ptcsf.yoda ]]
+  then
+    FILE=unfold/particlelevel/closure/unfold$1/ptcsf.yoda:"\$p_\\mathrm{T}^\\mathrm{ch}\$"
+  else
+    FILE=
+  fi
+  
+
   rivet-mkhtml -c ext/htop.plot \
     -m ".*migeffY?[0-9]*$" \
-    unfold/particlelevel/closure/unfold$1/nominal.yoda \
-    unfold/particlelevel/closure/unfold$1/fsr.yoda \
-    unfold/particlelevel/closure/unfold$1/rad.yoda \
-    unfold/particlelevel/closure/unfold$1/ptcsf.yoda \
-    unfold/particlelevel/closure/unfold$1/ps.yoda \
-    unfold/particlelevel/closure/unfold$1/puwgt.yoda \
-    unfold/particlelevel/closure/unfold$1/v2trk_fake_rate_tight.yoda \
-    unfold/particlelevel/closure/unfold$1/v2trk_res_d0_meas.yoda \
-    unfold/particlelevel/closure/unfold$1/v2trk_res_z0_meas.yoda \
+    unfold/particlelevel/closure/unfold$1/nominal.yoda:"nominal" \
+    unfold/particlelevel/closure/unfold$1/fsr.yoda:"fsr" \
+    $FILE \
+    unfold/particlelevel/closure/unfold$1/ps.yoda:"ps" \
+    unfold/particlelevel/closure/unfold$1/puwgt.yoda:"puwgt" \
+    unfold/particlelevel/closure/unfold$1/v2trk_fake_rate_tight.yoda:"track fake rate"\
+    unfold/particlelevel/closure/unfold$1/v2trk_res_d0_meas.yoda:"track d0 resolution" \
+    unfold/particlelevel/closure/unfold$1/v2trk_res_z0_meas.yoda:"track z0 resolution" \
     -o unfold/particlelevel/closure/$1plots
 
   make-plots --pdf unfold/particlelevel/closure/$1plots/*/*dat

@@ -8,6 +8,8 @@ from the yoda files, "mcmcfile" is a suitable data file of toys, and
 yodafiles is a list of input yoda files of the form "path/to/file.yoda:Title".
 """
 
+debug=False
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -71,22 +73,24 @@ means = np.mean(xs, axis=1)
 
 centers = means
 
-print("modes of each bin of this observable:")
-print(modes)
-print("")
-
-print("means of each bin of this observable:")
-print(means)
-print("")
-
 cov = np.cov(xs)
 covinv = np.linalg.inv(cov)
 
-print("absolute uncertainty on each observable bin")
-print(np.sqrt(np.diag(cov)))
 
-print("absolute covariance between bins:")
-print(cov)
+if debug:
+    print("modes of each bin of this observable:")
+    print(modes)
+    print("")
+
+    print("means of each bin of this observable:")
+    print(means)
+    print("")
+
+    print("absolute uncertainty on each observable bin")
+    print(np.sqrt(np.diag(cov)))
+
+    print("absolute covariance between bins:")
+    print(cov)
 
 thisllh = llh(centers, cov)
 llhs = np.array([thisllh(x) for x in xs.T])
@@ -122,9 +126,10 @@ ymin = yint[0]
 ymax = yint[1]*1.2
 
 for (k, h) in hs:
-    print("")
-    print("%s distribution:" % k)
-    print(h)
+    if debug:
+        print("")
+        print("%s distribution:" % k)
+        print(h)
 
     hdiff = h - centers
 
@@ -132,14 +137,18 @@ for (k, h) in hs:
     thistst = -2*np.log(llh)
     # print("")
     # print("-2*log(llh) of %s:" % k)
-    print(k)
-    print("teststat:")
-    print(thistst)
-    print("chi2 of %s:" % k)
-    print(np.matmul(np.matmul(hdiff.T, covinv), hdiff))
-    print("pvalue:")
-    print(pval(llh))
-    # print("Z of %s:" % k)
-    # print((thistst - meantsts)/stddevtst)
+    if debug:
+        print(k)
+        print("teststat:")
+        print(thistst)
+        print("chi2 of %s:" % k)
+        print(np.matmul(np.matmul(hdiff.T, covinv), hdiff))
+        print("pvalue:")
+        print(pval(llh))
+        print("Z of %s:" % k)
+        print((thistst - meantsts)/stddevtst)
+
+    else:
+        print("%s: %.3f" % (k, pval(llh)))
 
 plt.savefig("teststats.pdf")
