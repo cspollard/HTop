@@ -19,16 +19,29 @@ plotunfold() {
     yoda/PowPy6FS.yoda:"PowPy6" \
     -o unfold/particlelevel/$1/powpygenplots
 
+
+  rivet-mkhtml --mc-errs --pwd \
+    -m "/htop/elmujjtrue/truejets/(rho|zbtc|zblc|zbrelc|nsvtrk)(|norm)$" \
+    -c ext/htop.plot \
+    yoda/PowPy8FS.yoda:"PowPy8" \
+    yoda/PowPy8RadUpAFII.yoda:"PowPy8ISRUp" \
+    yoda/PowPy8RadDownAFII.yoda:"PowPy8ISRDown" \
+    -o unfold/particlelevel/$1/powpyisrgenplots
+
   perl -p -i -e "s/\/REF\/htop\/elmujj\//\/htop\/elmujj\//g" htop.yoda
 
-  rivet-mkhtml --mc-errs \
-    -m "/htop/elmujj/probejets/(rho|zbtc|zblc|zbrelc|nsvtrk)$" \
-    -c ext/htop.plot \
-    yoda/nominal.yoda \
-    yoda/background.yoda:"backgrounds" \
-    htop.yoda:"Title=posterior":"LineColor=green" \
-    yoda/nominal.yoda:"LineColor=black" \
-    -o detectorlevel/recoclosure/$1
+  if [ -e yoda/$1.yoda ]
+  then
+    rivet-mkhtml --mc-errs \
+      -m "/htop/elmujj/probejets/(rho|zbtc|zblc|zbrelc|nsvtrk)$" \
+      -c ext/htop.plot \
+      htop.yoda:"Title=posterior":"LineColor=green" \
+      yoda/background.yoda:"backgrounds":"LineColor=blue" \
+      yoda/$1.yoda:"LineColor=black":"ConnectBins=0" \
+      yoda/nominal.yoda:"LineColor=red" \
+      -o detectorlevel/recoclosure/$1
+  else
+  fi
 
   rm -f htop.yoda
 
