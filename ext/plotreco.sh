@@ -5,6 +5,7 @@ rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --pwd --linear -c ext/htop.plot \
   yoda/data.yoda:"Title=data":"LineColor=Black":"ConnectBins=0" \
   -o detectorlevel/total
 
+
 rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --linear --pwd -c ext/htop.plot \
   yoda/nominal.yoda \
   yoda/ps.yoda:"parton shower" \
@@ -14,6 +15,7 @@ rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --linear --pwd -c ext/htop.plot \
   yoda/background.yoda:"backgrounds" \
   yoda/data.yoda:"Title=data":"LineColor=Black":"ConnectBins=0" \
   -o detectorlevel/modeling
+
 
 rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --linear --pwd -c ext/htop.plot \
   yoda/nominal.yoda \
@@ -25,3 +27,9 @@ rivet-mkhtml -m ".*/elmujj/.*" --mc-errs --linear --pwd -c ext/htop.plot \
   yoda/background.yoda:"backgrounds" \
   yoda/data.yoda:"Title=data":"LineColor=Black":"ConnectBins=0" \
   -o detectorlevel/tracking
+
+
+rivet-mkhtml -m ".*/elmujj/.*norm" --mc-errs --linear --pwd -c ext/htop.plot \
+  yoda/PowPy8FS.yoda:'Title=nominal $t \bar{t}$' \
+  yoda/background.yoda:"backgrounds" \
+  -o detectorlevel/sigbkg

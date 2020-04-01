@@ -124,7 +124,7 @@ writeFiles outf pm = do
 
       bkghs :: Folder YodaObj
       bkghs =
-        (fmap.fmap) totalUncert . addCount
+        (fmap.fmap) totalUncert . addCount . addNorm
         $ imap (\k x -> set title "background" $ appLumi k x) bkgs
 
       ttpredhs :: StrictMap ProcessInfo (Folder (Annotated Obj))
