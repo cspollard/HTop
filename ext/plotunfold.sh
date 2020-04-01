@@ -32,22 +32,21 @@ plotunfold() {
 
   if [ -e yoda/$1.yoda ]
   then
+    mkdir -p detectorlevel/recoclosure/$1
     rivet-mkhtml --mc-errs \
       -m "/htop/elmujj/probejets/(rho|zbtc|zblc|zbrelc|nsvtrk)$" \
       -c ext/htop.plot \
-      htop.yoda:"Title=posterior":"LineColor=green" \
-      yoda/background.yoda:"backgrounds":"LineColor=blue" \
-      yoda/$1.yoda:"LineColor=black":"ConnectBins=0" \
-      yoda/nominal.yoda:"LineColor=red" \
+      yoda/total.yoda:"Title=nominal prediction":"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0" \
+      yoda/background.yoda:"backgrounds":"LineColor=Black":"ErrorBars=0":"LineStyle=dotted" \
+      htop.yoda:"Title=posterior prediction":"LineColor=green":"ErrorBandColor={[cmyk]{1,0,1,0.10}}":"ErrorBands=1":"ErrorBars=0" \
+      yoda/$1.yoda:"Title=data":"LineColor=black":"ConnectBins=0" \
       -o detectorlevel/recoclosure/$1
-  else
   fi
 
   rm -f htop.yoda
 
 }
 
-mkdir -p detectorlevel/recoclosure/
 
 for vers in data closure closure_statonly ps mule22 mugt22
 do
