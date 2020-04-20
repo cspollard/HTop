@@ -51,7 +51,7 @@ plotunfold() {
 plotunfold_closure() {
   yodamerge -o htop.yoda unfold/particlelevel/$1/unfold*/htop.yoda
 
-  if [[ $1 -eq ps ]]
+  if [[ $1 == "ps" ]]
   then 
     rivet-mkhtml --mc-errs --pwd \
       -m "/htop/elmujjtrue/truejets/(rho|zbtc|zblc|zbrelc|nsvtrk)(|norm)$" \

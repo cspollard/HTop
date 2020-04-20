@@ -174,8 +174,33 @@ XLabel=detector \ensuremath{z_{\mathrm{T,b}}^\mathrm{ch}}
 YLabel=probability
 XLabel=detector \ensuremath{n_\mathrm{B}^\mathrm{ch}}
 # END PLOT
-#
+ 
 # BEGIN PLOT /.*rhomigeffY.*
 YLabel=probability
 XLabel=detector \ensuremath{\rho}
+# END PLOT
+
+# BEGIN PLOT /BFRAG/zbtc
+Title=Fragmentation function $z_b = p_T(b)/p_T(\text{jet})$
+XLabel=$z_{T,b}^{\mathrm{ch}}$
+YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{z_{T,b}^\text{ch}}$ [pb$^{-1}$]
+# END PLOT
+
+# BEGIN PLOT /BFRAG/zblc
+Title=Longitudinal fragmentation function $z_b^\text{long}$
+XLabel=$z_{L,b}^{\mathrm{ch}}$
+YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{z_{L,b}^\text{ch}}$ [pb$^{-1}$]
+# END PLOT
+
+# BEGIN PLOT /BFRAG/nsvtrk
+Title=Number of charged $b$-hadron children with $p_\mathrm{T} > 500$ MeV
+XLabel=$n_{b}^{\mathrm{ch}}$
+YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{n_b^{\mathrm{ch}}}$ [pb$^{-1}$]
+LegendXPos=0.6
+# END PLOT
+
+# BEGIN PLOT /BFRAG/rho
+Title=$\rho = 2 p_\mathrm{T}^\mathrm{ch}(b) / (p_\mathrm{T}(e) + p_\mathrm{T}(\mu))$
+XLabel=$\rho$
+YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{\rho}$ [pb$^{-1}$]
 # END PLOT
