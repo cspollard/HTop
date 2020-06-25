@@ -79,11 +79,11 @@ rivet-mkhtml --mc-errs --pwd \
 
 
 
-yodamerge -o htop.yoda unfold/particlelevel/data/unfold*/htop.yoda
-yodacnv -m "(rho|zbtc|zblc|nsvtrk)norm$" htop.yoda htop.yoda
+yodamerge -o htop.yoda unfold/particlelevel/data/unfold*/BFRAG.yoda
+yodacnv -m "(rho|zbtc|zblc|nsvtrk)norm$" BFRAG.yoda BFRAG.yoda
 
-perl -p -i -e "s/htop.*jets/BFRAG/g" htop.yoda
-perl -p -i -e "s/norm//g" htop.yoda
+perl -p -i -e "s/htop.*jets/BFRAG/g" BFRAG.yoda
+perl -p -i -e "s/norm//g" BFRAG.yoda
 
 
 for obs in zblc rho nsvtrk zbtc
@@ -117,7 +117,7 @@ rivet-mkhtml --mc-errs --pwd \
   -c ext/htop.plot \
   gridYoda/Merge_PH704.yoda:"PowHer704" \
   gridYoda/Merge_411234_PH713.yoda:"PowHer713" \
-  gridYoda/Merge_PH16.yoda:"PowHer716" \
+  gridYoda/Merge_PH16.yoda:"PowHer16" \
   -o unfold/interpret/herwig.plots
 
 
@@ -148,4 +148,4 @@ do
   plotaS $x
 done
 
-rm -f htop.yoda
+rm -f BFRAG.yoda

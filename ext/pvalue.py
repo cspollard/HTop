@@ -125,6 +125,9 @@ yint = ax.get_yaxis().get_data_interval()
 ymin = yint[0]
 ymax = yint[1]*1.2
 
+pvals = {}
+llhs = {}
+
 for (k, h) in hs:
     if debug:
         print("")
@@ -135,6 +138,10 @@ for (k, h) in hs:
 
     llh = thisllh(h)
     thistst = -2*np.log(llh)
+
+    llhs[k] = llh
+    pvals[k] = pval(llh)
+
     # print("")
     # print("-2*log(llh) of %s:" % k)
     if debug:
@@ -148,7 +155,14 @@ for (k, h) in hs:
         print("Z of %s:" % k)
         print((thistst - meantsts)/stddevtst)
 
-    else:
-        print("%s: %.3f" % (k, pval(llh)))
+
+print()
+print("llhs:")
+print(llhs.items())
+
+print()
+print("pvals:")
+print(pvals.items())
+
 
 plt.savefig("teststats.pdf")

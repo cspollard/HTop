@@ -21,7 +21,7 @@ import           BFrag.Systematics      (lumi)
 import           Control.Applicative    (liftA2, liftA3)
 import           Control.Lens
 import           Data.Char              (isNumber)
-import           Data.Foldable          (fold)
+import           Data.Foldable          (fold, foldl')
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HM
 import qualified Data.Histogram.Generic as H
@@ -35,7 +35,7 @@ import           Data.Vector            (Vector)
 import qualified Data.Vector            as V
 import           Debug.Trace
 import           Model
-import           Numeric.Uncertain
+import           Numeric.Uncertain hiding (liftU2)
 import qualified Numeric.AD             as AD
 import           Options.Applicative
 import           RunModel               (latextable, runModel)
@@ -43,6 +43,7 @@ import           System.IO              (BufferMode (..), IOMode (..),
                                          hPutStrLn, hSetBuffering, stdout,
                                          withFile)
 import           Text.Printf
+import           Data.Functor.Compose
 
 
 type TextMap = HashMap T.Text
@@ -150,53 +151,10 @@ main = do
 
       showMigMat :: T.Text -> H2DD -> T.Text
       showMigMat n mat =
-        printScatter3D ("/htop" <> n) False False
+        printScatter3D n False False
         . fmap convertBin3D
         . asList'
         $ uncertToScat <$> mat
-
-
-      writeVariation :: T.Text -> (Vector Double, Vector Double, Vector (Vector Double)) -> IO ()
-      writeVariation t (bkg, reco, mat) =
-        writeFile (yodafolder args <> "/" <> T.unpack t <> ".yoda")
-        . T.unpack . T.intercalate "\n\n"
-        $ [ showMigMat (matrixhname <> "eff") mat'
-          , printScatter2D recohname False True $ asList' reco'
-          , printScatter2D (recohname <> "bkg") False True $ asList' bkg'
-          ] ++ showEffSlicesY matrixhname mat'
-            ++ showEffSlicesX matrixhname mat'
-
-        where
-          matbinning :: Bin2D (ArbBin Double) (ArbBin Double)
-          matbinning = view (noted.nominal.bins) migration
-
-          mat' :: H2DD
-          mat' = ungetH2DD matbinning $ fmap exact <$> mat
-
-          reco' = H.histogram recobinning $ uncertToScat . exact <$> reco
-          bkg' = H.histogram recobinning $ uncertToScat . exact <$> bkg
-
-          recobinning = view bins datah
-
-
-          showEffSlicesX :: T.Text -> H2DD -> [T.Text]
-          showEffSlicesX name m =
-            ( \n (_, h) ->
-                printScatter2D ("htop" <> name <> "effX" <> T.pack (show n)) False False
-                . asList'
-                $ uncertToScat <$> h
-            )
-            `imap` H.listSlicesAlongX m
-
-
-          showEffSlicesY :: T.Text -> H2DD -> [T.Text]
-          showEffSlicesY name m =
-            ( \n (_, h) ->
-                printScatter2D ("htop" <> name <> "effY" <> T.pack (show n)) False False
-                . asList'
-                $ uncertToScat <$> h
-            )
-            `imap` H.listSlicesAlongY m
 
 
       trueh' = fmap (view sumW) . obsTruthTrimmers (observable args)
@@ -266,11 +224,80 @@ main = do
         in (_mLumi *^ foldl (^+^) zero _mBkgs, pred, _mMig)
 
 
-      modelvariations :: HM.HashMap T.Text (Vector Double, Vector Double, Vector (Vector Double))
-      modelvariations =
-        HM.insert "nominal" (dumpModel nommodel)
-        $ dumpModel . appParam nommodel 1 <$> nps
+      -- modelvariations :: HM.HashMap T.Text (Vector Double, Vector Double, Vector (Vector Double))
+      -- modelvariations =
+      --   HM.insert "nominal" (dumpModel nommodel)
+      --   $ dumpModel . appParam nommodel 1 <$> nps
 
+      modelvariations :: Vars (Vector Double, Vector Double, Vector (Vector Double))
+      modelvariations =
+        fmap dumpModel
+        . Variation nommodel
+        . strictMap
+        $ appParam nommodel 1 <$> nps
+
+
+      writeModel
+        :: T.Text
+        -> Vars (Vector Double, Vector Double, Vector (Vector Double))
+        -> IO ()
+      writeModel t cs =
+        writeFile (yodafolder args <> "/" <> T.unpack t <> ".yoda")
+          . T.unpack . T.intercalate "\n\n"
+          $ [ showMigMat ("/htop" <> matrixhname <> "eff") mat'
+            , printScatter2D ("/htop" <> recohname) False True $ asList' reco'
+            , printScatter2D ("/htop" <> recohname <> "bkg") False True $ asList' bkg'
+            ] ++ showEffSlicesY matrixhname mat'
+              ++ showEffSlicesX matrixhname mat'
+
+        where
+          withUncert :: (Num a, Additive v) => Vars (v a) -> v (Uncert a)
+          withUncert (Variation n vs) =
+            let go (x, dx2) x' = (x, dx2 ^+^ (fmap (^2) $ x ^-^ x'))
+            in uncurry (liftI2 withVar) $ foldl' go (n, const 0 <$> n) vs
+
+          bkgs = view _1 <$> cs
+          reco = view _2 <$> cs
+          mat = view _3 <$> cs
+
+          withVar' :: Double -> Double -> Uncert Double
+          withVar' = withVar
+
+          matu = getCompose . withUncert $ Compose <$> mat
+          bkgsu = withUncert bkgs
+          recou = withUncert reco
+
+        
+          matbinning :: Bin2D (ArbBin Double) (ArbBin Double)
+          matbinning = view (noted.nominal.bins) migration
+
+          mat' :: H2DD
+          mat' = ungetH2DD matbinning matu
+
+          reco' = H.histogram recobinning $ uncertToScat <$> recou
+          bkg' = H.histogram recobinning $ uncertToScat <$> bkgsu
+
+          recobinning = view bins datah
+
+
+          showEffSlicesX :: T.Text -> H2DD -> [T.Text]
+          showEffSlicesX name m =
+            ( \n (_, h) ->
+                printScatter2D ("htop" <> name <> "effX" <> T.pack (show n)) False False
+                . asList'
+                $ uncertToScat <$> h
+            )
+            `imap` H.listSlicesAlongX m
+
+
+          showEffSlicesY :: T.Text -> H2DD -> [T.Text]
+          showEffSlicesY name m =
+            ( \n (_, h) ->
+                printScatter2D ("htop" <> name <> "effY" <> T.pack (show n)) False False
+                . asList'
+                $ uncertToScat <$> h
+            )
+            `imap` H.listSlicesAlongY m
 
   putStrLn "pois:"
   print pois
@@ -280,7 +307,9 @@ main = do
   putStrLn "nom model:"
   print nommodel
 
-  imapM_ writeVariation modelvariations
+  writeModel "total" modelvariations
+
+  imapM_ (\t -> writeModel t . pure) $ variationToMap "nominal" modelvariations
 
 
   putStrLn "data:"
@@ -790,3 +819,18 @@ instance Functor Pair where
 
 rmOverflow :: Bin b => Histogram Vector b a -> Histogram Vector b a
 rmOverflow = set outOfRange Nothing
+
+
+
+instance (Additive f, Additive g) => Additive (Compose f g) where
+  zero = Compose $ zero <$ (zero :: f Int)
+  {-# INLINE zero #-}
+  Compose a ^+^ Compose b = Compose $ liftU2 (^+^) a b
+  {-# INLINE (^+^) #-}
+  Compose a ^-^ Compose b = Compose $ liftU2 (^-^) a b
+  {-# INLINE (^-^) #-}
+  liftU2 f (Compose a) (Compose b) = Compose $ liftU2 (liftU2 f) a b
+  {-# INLINE liftU2 #-}
+  liftI2 f (Compose a) (Compose b) = Compose $ liftI2 (liftI2 f) a b
+  {-# INLINE liftI2 #-}
+

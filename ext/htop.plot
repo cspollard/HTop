@@ -180,27 +180,40 @@ YLabel=probability
 XLabel=detector \ensuremath{\rho}
 # END PLOT
 
+# BEGIN PLOT /BFRAG/.*
+CustomLegend=\textit{\textbf{ATLAS} Internal}
+ErrorBars=0
+ErrorBands=1
+ErrorBandColor={[cmyk]{0,0,0,0.15}}
+ErrorBandStyle=solid
+RatioPlotErrorBandColor={[cmyk]{0,0,0,0.15}}
+RatioPlotSameStyle=0
+DrawReferenceFirst=0
+# END PLOT
+
 # BEGIN PLOT /BFRAG/zbtc
-Title=Fragmentation function $z_b = p_T(b)/p_T(\text{jet})$
+Title=$z_{T,b}^\text{ch} = p_\text{T}^\text{ch}(b) / p_\text{T}^\text{ch}(\text{jet})$
 XLabel=$z_{T,b}^{\mathrm{ch}}$
-YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{z_{T,b}^\text{ch}}$ [pb$^{-1}$]
+YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{z_{T,b}^\text{ch}}$
 # END PLOT
 
 # BEGIN PLOT /BFRAG/zblc
-Title=Longitudinal fragmentation function $z_b^\text{long}$
+Title=$z_{L,b}^\text{ch} = p_\text{T}^\text{ch}(b) \cdot p_\text{T}^\text{ch}(\text{jet}) / | p_\text{T}^\text{ch}(\text{jet}) |^2$
 XLabel=$z_{L,b}^{\mathrm{ch}}$
-YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{z_{L,b}^\text{ch}}$ [pb$^{-1}$]
+YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{z_{L,b}^\text{ch}}$
 # END PLOT
 
 # BEGIN PLOT /BFRAG/nsvtrk
 Title=Number of charged $b$-hadron children with $p_\mathrm{T} > 500$ MeV
 XLabel=$n_{b}^{\mathrm{ch}}$
-YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{n_b^{\mathrm{ch}}}$ [pb$^{-1}$]
-LegendXPos=0.6
+YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{n_b^{\mathrm{ch}}}$
+LegendXPos=0.4
+YMax=0.5
 # END PLOT
 
 # BEGIN PLOT /BFRAG/rho
 Title=$\rho = 2 p_\mathrm{T}^\mathrm{ch}(b) / (p_\mathrm{T}(e) + p_\mathrm{T}(\mu))$
 XLabel=$\rho$
-YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{\rho}$ [pb$^{-1}$]
+YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{\rho}$
+YMax=1.4
 # END PLOT
