@@ -11,6 +11,12 @@ LegendXPos=0.1
 # BEGIN PLOT /.*rho(norm)?$
 RatioPlotYMin=0.75
 RatioPlotYMax=1.25
+RatioPlot1YMin=0.75
+RatioPlot1YMax=1.25
+RatioPlot2YMin=0.75
+RatioPlot2YMax=1.25
+RatioPlot3YMin=0.75
+RatioPlot3YMax=1.25
 LegendXPos=0.4
 # END PLOT
 
@@ -181,24 +187,21 @@ XLabel=detector \ensuremath{\rho}
 # END PLOT
 
 # BEGIN PLOT /BFRAG/.*
-CustomLegend=\textit{\textbf{ATLAS} Internal}
-ErrorBars=0
-ErrorBands=1
-ErrorBandColor={[cmyk]{0,0,0,0.15}}
-ErrorBandStyle=solid
+CustomLegend=\textit{\textbf{ATLAS} Internal} \\ $\sqrt{s} = 13\,\text{TeV}, 36\,\text{fb}^{-1}$
 RatioPlotErrorBandColor={[cmyk]{0,0,0,0.15}}
+RatioPlotErrorBandStyle=solid
 RatioPlotSameStyle=0
-DrawReferenceFirst=0
+DrawReferenceFirst=1
 # END PLOT
 
 # BEGIN PLOT /BFRAG/zbtc
-Title=$z_{T,b}^\text{ch} = p_\text{T}^\text{ch}(b) / p_\text{T}^\text{ch}(\text{jet})$
+Title=$z_{T,b}^\text{ch} = p_\text{T}^\text{ch}(b) \ / \ p_\text{T}^\text{ch}(\text{jet})$
 XLabel=$z_{T,b}^{\mathrm{ch}}$
 YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{z_{T,b}^\text{ch}}$
 # END PLOT
 
 # BEGIN PLOT /BFRAG/zblc
-Title=$z_{L,b}^\text{ch} = p_\text{T}^\text{ch}(b) \cdot p_\text{T}^\text{ch}(\text{jet}) / | p_\text{T}^\text{ch}(\text{jet}) |^2$
+Title=$z_{L,b}^\text{ch} = p_\text{T}^\text{ch}(b) \cdot p_\text{T}^\text{ch}(\text{jet}) \ / \ | p_\text{T}^\text{ch}(\text{jet}) |^2$
 XLabel=$z_{L,b}^{\mathrm{ch}}$
 YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{z_{L,b}^\text{ch}}$
 # END PLOT
