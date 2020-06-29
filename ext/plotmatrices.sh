@@ -22,6 +22,18 @@ plotmatrices() {
 
   make-plots --pdf unfold/particlelevel/closure/$1plots/*/*dat
 
+  rivet-mkhtml -c ext/htop.plot \
+    -m ".*bkg$" \
+    unfold/particlelevel/closure/unfold$1/nominal.yoda:"nominal" \
+    unfold/particlelevel/closure/unfold$1/fsr.yoda:"fsr" \
+    $FILE \
+    unfold/particlelevel/closure/unfold$1/ps.yoda:"ps" \
+    unfold/particlelevel/closure/unfold$1/puwgt.yoda:"puwgt" \
+    unfold/particlelevel/closure/unfold$1/v2trk_fake_rate_tight.yoda:"track fake rate"\
+    unfold/particlelevel/closure/unfold$1/v2trk_res_d0_meas.yoda:"track d0 resolution" \
+    unfold/particlelevel/closure/unfold$1/v2trk_res_z0_meas.yoda:"track z0 resolution" \
+    -o unfold/particlelevel/closure/$1bkgplots
+
 }
 
 
