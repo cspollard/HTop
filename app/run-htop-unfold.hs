@@ -506,11 +506,18 @@ unfoldingInputs obs hs =
       smooth2D = smoothRatioUncorr2DAlongXY binningmat nommat
       smooth1D = smoothRatioUncorr1DAlongX binningbkg nombkg
 
-      -- don't smooth for nsvtrk?
+      -- don't smooth for rho and nsvtrk?
+      -- I think this issue is related to the over/underflow.
       -- TODO
-      mats' = mats & over (noted.variations.traverse) smooth2D
+      mats' = 
+        if "zb" `T.isPrefixOf` T.pack obs
+          then mats & over (noted.variations.traverse) smooth2D
+          else mats
 
-      bkgs' = bkgs & over (noted.variations.traverse) smooth1D
+      bkgs' =
+        if "zb" `T.isPrefixOf` T.pack obs
+          then bkgs & over (noted.variations.traverse) smooth1D
+          else bkgs
 
   in (bkgs', mats')
 

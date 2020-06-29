@@ -15,7 +15,7 @@ unfold () {
 }
 
 
-for vers in data closure closure_statonly ps mugt22 mule22
+for vers in data closure closure_statonly ps # mugt22 mule22
 do
   for obs in zblc rho nsvtrk zbtc
   do
