@@ -1,11 +1,11 @@
-# BEGIN PLOT /*
+# BEGIN PLOT /.*
 LogX=0
 LogY=0
 Legend=1
 RatioPlotYMin=0.50
 RatioPlotYMax=1.50
 RatioPlotDrawReferenceFirst=1
-LegendXPos=0.1
+# LegendXPos=0.1
 CustomLegend=\textit{\textbf{ATLAS} Internal} \\ $\sqrt{s} = 13\,\text{TeV}, 36\,\text{fb}^{-1}$
 # END PLOT
 
@@ -21,12 +21,8 @@ RatioPlot3YMax=1.25
 LegendXPos=0.4
 # END PLOT
 
-# BEGIN PLOT /.*npvtrk(norm)?$
-LegendXPos=0.4
-# END PLOT
-#
 # BEGIN PLOT /.*nsvtrk(norm)?$
-LegendXPos=0.4
+LegendXPos=0.9
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/.*rho(norm)?$
@@ -69,7 +65,7 @@ YLabel=\ensuremath{\frac{1}{n}\frac{dn}{dz_{\mathrm{L,b}}^\mathrm{ch}}}
 
 
 # BEGIN PLOT /htop/elmujj/.*nsvtrk(norm)?$
-XLabel=detector jet \ensuremath{n_\mathrm{B}^\mathrm{ch}}
+XLabel=probe-jet n_\text{SV}^\text{ch}
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/.*nsvtrk$
@@ -80,6 +76,11 @@ YLabel=\ensuremath{\frac{dn}{dn_\mathrm{B}^\mathrm{ch}}}
 YLabel=\ensuremath{\frac{1}{n}\frac{dn}{dn_\mathrm{B}^\mathrm{ch}}}
 # END PLOT
 
+# BEGIN PLOT /htop/elmujj/probejets/nsvtrk
+XLabel=probe-jet \ensuremath{n_\text{SV}^\text{ch}}
+YLabel=\ensuremath{\frac{dn}{dn_\mathrm{SV}^\mathrm{ch}}}
+LegendXPos=0.5
+# END PLOT
 
 
 # BEGIN PLOT /htop/elmujjtrue/.*rho(norm)?$

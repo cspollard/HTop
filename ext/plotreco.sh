@@ -52,4 +52,4 @@ rivet-mkhtml -m ".*/elmujj/.*" -M ".*mu_.*" --mc-errs --single \
 #   yoda/background.yoda:"backgrounds" \
 #   -o detectorlevel/sigbkg
 
-rm -f fiducial.yoda background.yoda total.yoda
+# rm -f fiducial.yoda background.yoda total.yoda
