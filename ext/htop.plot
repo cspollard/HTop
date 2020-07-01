@@ -6,6 +6,7 @@ RatioPlotYMin=0.50
 RatioPlotYMax=1.50
 RatioPlotDrawReferenceFirst=1
 LegendXPos=0.1
+CustomLegend=\textit{\textbf{ATLAS} Internal} \\ $\sqrt{s} = 13\,\text{TeV}, 36\,\text{fb}^{-1}$
 # END PLOT
 
 # BEGIN PLOT /.*rho(norm)?$
@@ -20,6 +21,10 @@ RatioPlot3YMax=1.25
 LegendXPos=0.4
 # END PLOT
 
+# BEGIN PLOT /.*npvtrk(norm)?$
+LegendXPos=0.4
+# END PLOT
+#
 # BEGIN PLOT /.*nsvtrk(norm)?$
 LegendXPos=0.4
 # END PLOT
@@ -187,7 +192,6 @@ XLabel=detector \ensuremath{\rho}
 # END PLOT
 
 # BEGIN PLOT /BFRAG/.*
-CustomLegend=\textit{\textbf{ATLAS} Internal} \\ $\sqrt{s} = 13\,\text{TeV}, 36\,\text{fb}^{-1}$
 RatioPlotErrorBandColor={[cmyk]{0,0,0,0.15}}
 RatioPlotErrorBandStyle=solid
 RatioPlotSameStyle=0
