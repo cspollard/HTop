@@ -224,11 +224,6 @@ main = do
         in (_mLumi *^ foldl (^+^) zero _mBkgs, pred, _mMig)
 
 
-      -- modelvariations :: HM.HashMap T.Text (Vector Double, Vector Double, Vector (Vector Double))
-      -- modelvariations =
-      --   HM.insert "nominal" (dumpModel nommodel)
-      --   $ dumpModel . appParam nommodel 1 <$> nps
-
       modelvariations :: Vars (Vector Double, Vector Double, Vector (Vector Double))
       modelvariations =
         fmap dumpModel

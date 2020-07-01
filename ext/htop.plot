@@ -21,12 +21,8 @@ RatioPlot3YMax=1.25
 LegendXPos=0.4
 # END PLOT
 
-# BEGIN PLOT /.*nsvtrk(norm)?$
-LegendXPos=0.9
-# END PLOT
-
 # BEGIN PLOT /htop/elmujj/.*rho(norm)?$
-XLabel=detector jet \ensuremath{\rho}
+XLabel=probe-jet jet \ensuremath{\rho}
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/.*rho$
@@ -39,7 +35,7 @@ YLabel=\ensuremath{\frac{1}{n}\frac{dn}{d\rho}}
 
 
 # BEGIN PLOT /htop/elmujj/.*zbtc(norm)?$
-XLabel=detector jet \ensuremath{z_{\mathrm{T,b}}^\mathrm{ch}}
+XLabel=probe-jet jet \ensuremath{z_{\mathrm{T,b}}^\mathrm{ch}}
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/.*zbtc$
@@ -52,7 +48,7 @@ YLabel=\ensuremath{\frac{1}{n}\frac{dn}{dz_{\mathrm{T,b}}^\mathrm{ch}}}
 
 
 # BEGIN PLOT /htop/elmujj/.*zblc(norm)?$
-XLabel=detector jet \ensuremath{z_{\mathrm{L,b}}^\mathrm{ch}}
+XLabel=probe-jet \ensuremath{z_{\mathrm{L,b}}^\mathrm{ch}}
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/.*zblc$
@@ -76,10 +72,27 @@ YLabel=\ensuremath{\frac{dn}{dn_\mathrm{B}^\mathrm{ch}}}
 YLabel=\ensuremath{\frac{1}{n}\frac{dn}{dn_\mathrm{B}^\mathrm{ch}}}
 # END PLOT
 
-# BEGIN PLOT /htop/elmujj/probejets/nsvtrk
+# BEGIN PLOT /htop/elmujj/probejets/eta$
+YMax=35000
+# END PLOT
+
+# BEGIN PLOT /htop/elmujj/probejets/zbrelc$
+YMax=6000000
+# END PLOT
+
+# BEGIN PLOT /htop/elmujj/probejets/zbtc$
+LegendXPos=0.1
+YMax=200000
+# END PLOT
+
+# BEGIN PLOT /htop/elmujj/probejets/zblc$
+LegendXPos=0.1
+YMax=200000
+# END PLOT
+
+# BEGIN PLOT /htop/elmujj/probejets/nsvtrk$
 XLabel=probe-jet \ensuremath{n_\text{SV}^\text{ch}}
 YLabel=\ensuremath{\frac{dn}{dn_\mathrm{SV}^\mathrm{ch}}}
-LegendXPos=0.5
 # END PLOT
 
 
