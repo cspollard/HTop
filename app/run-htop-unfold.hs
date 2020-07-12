@@ -182,6 +182,9 @@ main = do
         V.toList . fmap (\(mn, mx) -> ((mn+mx)/2, (mn, mx))) . binsList
         $ view bins datah
 
+
+      -- TODO
+      -- nsvtrksf is removed
       filtNSVSF :: Vars a -> Vars a
       filtNSVSF =
         if observable args == "nsvtrk"
@@ -196,6 +199,8 @@ main = do
           (filtNSVSF $ HM.singleton "bkg" . fmap uMean . view histData <$> filtVar bkgFilt (view noted bkg))
 
 
+      -- TODO
+      -- ptcsf is removed
       params =
         if observable args == "rho"
           then params' & at "ptcsf" .~ Nothing

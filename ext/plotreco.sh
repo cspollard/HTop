@@ -30,8 +30,8 @@ mkdir -p detectorlevel/recoclosure/data
 rivet-mkhtml --mc-errs --single \
   -m "/htop/elmujj/probejets/(rho|zbtc|zblc|nsvtrk)$" \
   --font helvetica -c ext/htop.plot \
-  total.yoda:"Title=prior prediction":"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0" \
   htop.yoda:"Title=posterior prediction":"LineColor=green":"ErrorBandColor={[cmyk]{1,0,1,0.10}}":"ErrorBands=1":"ErrorBars=0" \
+  total.yoda:"Title=prior prediction":"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0" \
   yoda/data.yoda:"Title=data":"LineColor=black":"ConnectBins=0" \
   -o detectorlevel/recoclosure/data
 
