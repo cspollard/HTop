@@ -92,25 +92,28 @@ if debug:
     print("absolute covariance between bins:")
     print(cov)
 
+
 thisllh = llh(centers, cov)
 llhs = np.array([thisllh(x) for x in xs.T])
+
 
 tsts = -2*np.log(llhs)
 meantsts = np.mean(tsts)
 stddevtst = np.sqrt(np.var(tsts))
 
-nllhs = len(llhs)
+nllhs = float(len(llhs))
 
 
 def pval(llh):
-    return float(np.sum(llh > llhs)) / nllhs
+    x = float(np.sum(llh > llhs))
+    return x / nllhs
 
 histkey = argv[1]
 
 hs = []
 for (k, f) in files:
     h = y.readYODA(f)[histkey]
-    hs.append((k, [b.area for b in h.bins[1:]]))
+    hs.append((k, [b.area() for b in h.bins()[1:]]))
 
 
 # print("")
@@ -125,8 +128,8 @@ yint = ax.get_yaxis().get_data_interval()
 ymin = yint[0]
 ymax = yint[1]*1.2
 
-pvals = {}
-llhs = {}
+thesepvals = {}
+thesellhs = {}
 
 for (k, h) in hs:
     if debug:
@@ -139,8 +142,8 @@ for (k, h) in hs:
     llh = thisllh(h)
     thistst = -2*np.log(llh)
 
-    llhs[k] = llh
-    pvals[k] = pval(llh)
+    thesellhs[k] = llh
+    thesepvals[k] = pval(llh)
 
     # print("")
     # print("-2*log(llh) of %s:" % k)
@@ -156,13 +159,13 @@ for (k, h) in hs:
         print((thistst - meantsts)/stddevtst)
 
 
-print()
+print("")
 print("llhs:")
-print(llhs.items())
+print(thesellhs.items())
 
-print()
+print("")
 print("pvals:")
-print(pvals.items())
+print(thesepvals.items())
 
 
 plt.savefig("teststats.pdf")
