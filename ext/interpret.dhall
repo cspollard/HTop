@@ -31,7 +31,7 @@ let extra = \(t : Text) -> { extra=t }
 let nomore = extra ""
 
 let data =
-      { path = "htop.yoda"
+      { path = "BFRAG.yoda"
       , title = "data"
       , name = "data"
       } /\ black /\ solid /\ dot /\ extra ":ConnectBins=0:ErrorBars=1"
@@ -179,7 +179,7 @@ let plot =
                 (lmap PlotRecord Text pathstyle ps)
 
         in  ''
-            rivet-mkhtml --pwd --font helvetica \
+            rivet-mkhtml --pwd --font helvetica --single \
               -m "/BFRAG/(rho|zbtc|zblc|nsvtrk)$" \
               -c ext/htop.plot ${Prelude.Optional.default Text "" c} \
               ${t} \
@@ -205,9 +205,20 @@ let config = \(t : Text) -> \(p : Plot) -> \(main : Bool) ->
         EOF
         ''
 
+let setup =
+      ''
+      yodamerge -o BFRAG.yoda unfold/particlelevel/data/unfold*/htop.yoda
+      yodacnv -m "(rho|zbtc|zblc|nsvtrk)norm$" BFRAG.yoda BFRAG.yoda
+
+      perl -p -i -e "s/htop.*jets/BFRAG/g" BFRAG.yoda
+      perl -p -i -e "s/norm//g" BFRAG.yoda
+      ''
+
+
 in  Prelude.Text.concatSep
       "\n\n"
-      [ pvalue "rho" "pythia" pythia
+      [ setup
+      -- , pvalue "rho" "pythia" pythia
       -- , pvalue "rho" "pythiaA14" pythiaa14s
       -- , pvalue "rho" "herwig" herwigs
       -- , pvalue "rho" "sherpa" sherpas
@@ -218,4 +229,5 @@ in  Prelude.Text.concatSep
       , plot (None Text) "herwig" herwigs -- ([data] # herwigs)
       , plot (None Text) "sherpa" sherpas -- ([data] # sherpas)
       , plot (None Text) "generators" gens -- ([data] # gens)
+      , "rm -f BFRAG.yoda\n"
       ]
