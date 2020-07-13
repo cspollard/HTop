@@ -186,25 +186,18 @@ main = do
       -- TODO
       -- nsvtrksf is removed
       filtNSVSF :: Vars a -> Vars a
-      filtNSVSF =
-        if observable args == "nsvtrk"
-          then over variations $ sans "nsvtrksf"
-          else id
+      filtNSVSF = id
+        -- if observable args == "nsvtrk"
+        --   then over variations $ sans "nsvtrksf"
+        --   else id
 
-      (model, params') =
+      (model, params) =
         buildModel
           (T.isInfixOf "statonly" . T.pack $ test args)
           (view histData trueh)
           (filtNSVSF $ getH2DD <$> filtVar matFilt (view noted migration))
           (filtNSVSF $ HM.singleton "bkg" . fmap uMean . view histData <$> filtVar bkgFilt (view noted bkg))
 
-
-      -- TODO
-      -- ptcsf is removed
-      params =
-        if observable args == "rho"
-          then params' & at "ptcsf" .~ Nothing
-          else params'
 
       pois = HM.filterWithKey (\k _ -> T.isInfixOf "truthbin" k) params
 
@@ -318,11 +311,6 @@ main = do
   putStrLn "model:"
   print model
 
-  -- let regularization :: (Ord a, Floating a, AD.Mode a, AD.Scalar a ~ Double) => V.Vector a -> a
-  --     regularization =
-  --       if "rel" `T.isInfixOf` (T.pack $ observable args)
-  --         then V.toList >>> zipWith (flip (/)) (AD.auto <$> normFactors trueh) >>> falling 2
-  --         else const 0
 
   (unfolded', unfoldedcov) <-
     runModel (Just (5, 0.2)) (nsamples args) (mcmcfile args) (view histData datah) model (const 0) params
@@ -476,9 +464,6 @@ unfoldingInputs obs hs =
           math
 
 
-      -- TODO
-      -- is this properly maintaining fiducial backgrounds?
-      -- what about overflows?
       bkgrecoh :: Annotated (Vars (Histogram Vector (ArbBin Double) (Dist1D Double)))
       bkgrecoh =
         liftA2 (\h h' -> fromJust' "bkgrecoh" $ removeSubHist' h h')
@@ -492,10 +477,14 @@ unfoldingInputs obs hs =
       normmat m h =
         H.liftX (\hm -> fromJust' "normmat" . hzip divCorr hm $ rmOverflow h) m
 
-      mats = liftA2 normmat <$> math <*> trueh
+      mats1 :: Annotated (Vars H2DD)
+      mats1 = liftA2 normmat <$> math <*> trueh
 
       nommat :: H2DD
-      nommat = view (noted.nominal) mats
+      nommat = view (noted.nominal) mats1
+
+      -- fix the ptsf factor two issue
+      mats = over (noted . variations . ix "ptcsf") (fmap (/2) . unsafeHAdd nommat) mats1
 
       nombkg :: H1DD
       nombkg = view (noted.nominal) bkgs
