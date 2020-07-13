@@ -62,13 +62,13 @@ let powPy8_MECoff_grec =
 
 let powpy8_fsrup =
       { path = "gridYoda/Merge_410028_V2Up.yoda"
-      , title = "Pow+Py8 \$r_B = 0.855 \\, \\alpha_s = 0.136\$"
+      , title = "Pow+Py8 \$r_B = 0.855 \\, \\alpha_s = 0.139\$"
       , name = "powpy8_fsrup"
       } /\ blue /\ dotted /\ square /\ nomore
 
 let powpy8_fsrdown =
       { path = "gridYoda/Merge_410029_V2Down.yoda"
-      , title = "Pow+Py8 \$r_B = 0.855 \\, \\alpha_s = 0.124\$"
+      , title = "Pow+Py8 \$r_B = 0.855 \\, \\alpha_s = 0.111\$"
       , name = "powpy8_fsrdown"
       } /\ green /\ dashed /\ triangle /\ nomore
 
