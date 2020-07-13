@@ -5,7 +5,6 @@ Legend=1
 RatioPlotYMin=0.50
 RatioPlotYMax=1.50
 RatioPlotDrawReferenceFirst=1
-# LegendXPos=0.1
 CustomLegend=\textit{\textbf{ATLAS} Internal} \\ $\sqrt{s} = 13\,\text{TeV}, 36\,\text{fb}^{-1}$
 # END PLOT
 
@@ -216,12 +215,14 @@ DrawReferenceFirst=1
 Title=$z_{T,b}^\text{ch} = p_\text{T}^\text{ch}(b) \ / \ p_\text{T}^\text{ch}(\text{jet})$
 XLabel=$z_{T,b}^{\mathrm{ch}}$
 YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{z_{T,b}^\text{ch}}$
+LegendXPos=0.1
 # END PLOT
 
 # BEGIN PLOT /BFRAG/zblc
 Title=$z_{L,b}^\text{ch} = p_\text{T}^\text{ch}(b) \cdot p_\text{T}^\text{ch}(\text{jet}) \ / \ | p_\text{T}^\text{ch}(\text{jet}) |^2$
 XLabel=$z_{L,b}^{\mathrm{ch}}$
 YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{z_{L,b}^\text{ch}}$
+LegendXPos=0.1
 # END PLOT
 
 # BEGIN PLOT /BFRAG/nsvtrk
