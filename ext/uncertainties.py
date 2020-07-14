@@ -1,11 +1,11 @@
 """
 to run this script call
 
-$ python uncertainties.py mcmcfile outfile.pdf obsname
+$ python uncertainties.py mcmcfile outfile.pdf logfile.txt obsname
 
 "mcmcfile" is a suitable data file of toys, "outfile.pdf" is the filename of
-the output figure, and "obsname" is the latex observable name used for
-plotting.
+the output figure, logfile is where logs will be written, and "obsname" is the
+latex observable name used for plotting.
 """
 
 debug=False
@@ -20,7 +20,8 @@ from sys import stdout, argv
 
 
 outfile = argv[2]
-obsname = argv[3]
+logfile = argv[3]
+obsname = argv[4]
 infile = open(argv[1])
 
 names = np.array(map(str.strip, infile.readline().split(",")))
@@ -41,9 +42,6 @@ _, poiidxs = zip(*poiidxs)
 poiidxs = np.array(poiidxs, dtype=int)
 npidxs = np.array(npidxs, dtype=int)
 
-print("poi idxs:")
-print(poiidxs)
-
 # read in the toys
 xs = np.loadtxt(infile, delimiter=',').transpose()
 
@@ -56,34 +54,38 @@ cov = np.cov(xs)
 var = np.diag(cov)
 means = np.mean(xs, axis=1)
 
-print("pois:")
-print(names[poiidxs])
-print("")
+if debug:
+    print("poi idxs:")
+    print(poiidxs)
 
-print("nps:")
-print(names[npidxs])
-print("")
+    print("pois:")
+    print(names[poiidxs])
+    print("")
 
-print("poi means:")
-print(means[poiidxs])
-print("")
+    print("nps:")
+    print(names[npidxs])
+    print("")
 
-print("np means:")
-print(means[npidxs])
-print("")
+    print("poi means:")
+    print(means[poiidxs])
+    print("")
 
-print("covariances:")
-print(cov)
-print("")
+    print("np means:")
+    print(means[npidxs])
+    print("")
+
+    print("covariances:")
+    print(cov)
+    print("")
 
 
-print("poi total uncertainties:")
-print(np.sqrt(var)[poiidxs])
-print("")
+    print("poi total uncertainties:")
+    print(np.sqrt(var)[poiidxs])
+    print("")
 
-print("np total uncertainties:")
-print(np.sqrt(var)[npidxs])
-print("")
+    print("np total uncertainties:")
+    print(np.sqrt(var)[npidxs])
+    print("")
 
 
 def uncert(c, poi, nup):
@@ -137,7 +139,6 @@ for i in range(len(poiidxs)):
 for k in catdict.keys():
   catdict[k] = map(np.sqrt, catdict[k])
 
-catdict["total"] = list(np.sqrt(var[poiidxs]))
 
 colors = \
   { "total" : "black"
@@ -153,8 +154,15 @@ fig = plt.figure()
 
 xpts = map(lambda x: x - 0.5, range(len(poiidxs)+1) + [len(poiidxs)])
 
+s = ["\\begin{tabular}{ l " + "| r "*len(poiidxs) + "}"]
+s += ["bin & " + " & ".join(map(str, range(len(poiidxs)))) + " \\\\"]
+s += ["\\hline"]
+
+
 for n, u in catdict.iteritems():
-    print(n, ":", u)
+    
+    s += [" & ".join([n] + map(lambda x: "%0.3f" % x, u)) + " \\\\"]
+
     plt.plot( \
         xpts
       , [0] + u + [0]
@@ -163,6 +171,23 @@ for n, u in catdict.iteritems():
       , label=n
       )
 
+s += ["\\hline"]
+
+n = "total"
+u = list(np.sqrt(var[poiidxs]))
+
+plt.plot( \
+    xpts
+    , [0] + u + [0]
+    , color=colors[n]
+    , ls="steps"
+    , label=n
+    )
+
+s += [" & ".join([n] + map(lambda x: "%0.3f" % x, u)) + " \\\\"]
+
+s += ["\\end{tabular}"]
+
 plt.legend()
 
 fig.axes[0].set_title("uncertainty sources for " + obsname)
@@ -170,3 +195,7 @@ fig.axes[0].set_xlabel(obsname + " bin")
 fig.axes[0].set_ylabel("differential cross section uncertainty")
 
 plt.savefig(outfile)
+
+
+with open(logfile, 'w') as f:
+    f.write('\n'.join(s))

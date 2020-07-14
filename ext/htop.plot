@@ -2,8 +2,8 @@
 LogX=0
 LogY=0
 Legend=1
-RatioPlotYMin=0.50
-RatioPlotYMax=1.50
+# RatioPlotYMin=0.50
+# RatioPlotYMax=1.50
 RatioPlotDrawReferenceFirst=1
 CustomLegend=\textit{\textbf{ATLAS} Internal} \\ $\sqrt{s} = 13\,\text{TeV}, 36\,\text{fb}^{-1}$
 # END PLOT
@@ -238,4 +238,6 @@ Title=$\rho = 2 p_\mathrm{T}^\mathrm{ch}(b) / (p_\mathrm{T}(e) + p_\mathrm{T}(\m
 XLabel=$\rho$
 YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{\rho}$
 YMax=1.4
+RatioPlotYMin=0.75
+RatioPlotYMax=1.25
 # END PLOT

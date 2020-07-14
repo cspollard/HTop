@@ -13,3 +13,7 @@ all the things that need to be rerun:
 - rsync unfold/particlelevel/ into note figs/ directory
 - rsync detectorlevel/ into note figs/ directory
 - copy covariance/correlation/uncertainty tables from e.g. unfold/particlelevel/data/unfoldzblc/htop.stat
+- copy yield tables from ???
+- copy p-value tables from ???
+- copy uncertainty tables from ???
+- copy fraction tables from ???
