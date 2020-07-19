@@ -16,4 +16,4 @@ all the things that need to be rerun:
 - copy yield tables from ???
 - copy p-value tables from ???
 - copy uncertainty tables from unfold/particlelevel/data/*posteriors/uncerts.txt
-- copy fraction tables from ???
+- copy fraction tables from fractiontables.py

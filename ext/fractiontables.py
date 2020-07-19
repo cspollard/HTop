@@ -12,17 +12,17 @@ for s in f.values():
 
   print(path)
 
-  for p in s.points:
-    wx = p.xMax - p.xMin
+  for p in s.points():
+    wx = p.xMax() - p.xMin()
 
-    wy = p.yMax - p.yMin
-    y = p.y
+    wy = p.yMax() - p.yMin()
+    y = p.y()
 
-    stdout.write("$%0.3f\t\\pm %0.3f$\t&\t" % (y*wx, wy*wx/2))
+    stdout.write("\t&\t$%0.3f\t\\pm %0.3f$" % (y*wx, wy*wx/2))
 
-  print
+  print("\t\\\\\n")
 
-print("total uncertainties")
+print("fractional uncertainties")
 
 for s in f.values():
   path = s.annotation("Path")
@@ -31,12 +31,12 @@ for s in f.values():
 
   print(path)
 
-  for p in s.points:
-    wx = p.xMax - p.xMin
+  for p in s.points():
+    wx = p.xMax() - p.xMin()
 
-    wy = p.yMax - p.yMin
-    y = p.y
+    wy = p.yMax() - p.yMin()
+    y = p.y()
 
-    stdout.write("$%0.3f\t\\pm %04.1f$\\%%\t&\t" % (y*wx, 100*wy / 2 / y))
+    stdout.write("\t&\t$%0.3f\t\\pm %04.1f$\\%%" % (y*wx, 100*wy / 2 / y))
 
-  print
+  print("\t\\\\\n")
