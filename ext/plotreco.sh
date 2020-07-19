@@ -22,7 +22,7 @@ rivet-mkhtml -m ".*/elmujj/.*" -M ".*mu_.*" --mc-errs --single \
 
 
 rivet-mkhtml -m ".*/elmujj/.*" -M ".*mu_.*" --mc-errs --single \
-  --font helvetica -c ext/htop.plot \
+  --font helvetica -c ext/htop.chi2.plot \
   yoda/total.yoda:"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0" \
   fiducial.yoda:'Title=fiducial $e \mu bb$':"LineColor=Black":"ErrorBars=0":"LineStyle=dashed" \
   background.yoda:'non-$t\bar{t}$ background':"LineColor=Black":"ErrorBars=0":"LineStyle=dotted" \
@@ -52,7 +52,7 @@ rivet-mkhtml --mc-errs --single \
   total.yoda:"Title=prior prediction":"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0" \
   htop.yoda:"Title=posterior prediction":"LineColor=green":"ErrorBandColor={[cmyk]{1,0,1,0.10}}":"ErrorBands=1":"ErrorBars=0" \
   yoda/ps.yoda:"Title=data":"LineColor=black":"ConnectBins=0" \
-  -o detectorlevel/recoclosure/data
+  -o detectorlevel/recoclosure/ps
 
 
 rivet-mkhtml -m ".*/elmujj/.*" -M ".*mu_.*" --mc-errs --single \

@@ -4,6 +4,7 @@ LogY=0
 Legend=1
 RatioPlotDrawReferenceFirst=1
 CustomLegend=\textit{\textbf{ATLAS} Internal} \\ $\sqrt{s} = 13\,\text{TeV}, 36\,\text{fb}^{-1}$
+LegendXPos=0.5
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/probejets/ptcnorm$
