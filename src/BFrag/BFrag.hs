@@ -303,6 +303,13 @@ rhoRecoMerges =
     andOne x = [x, x+1]
 
 
+-- combine n bins at a time up to a maximum of m
+rebinBy :: Int -> Int -> [[Int]]
+rebinBy n m = go <$> [0 .. m `div` n - 1]
+  where
+    go i = [i*n..(i+1)*n-1]
+
+
 
 obsTruthTrimmers
   :: (Eq a1, Fractional a, Ord a, Monoid b, IsString a1)
@@ -335,6 +342,16 @@ obsRecoTrimmers s =
     "zbrelcnorm" -> trimH $ pure <$> [00..19]
     "rho" -> trimH rhoRecoMerges
     "rhonorm" -> trimH rhoRecoMerges
+    "eta" -> trimH $ rebinBy 3 39
+    "etanorm" -> trimH $ rebinBy 3 39
+    "pt" -> trimH $ rebinBy 2 20
+    "ptnorm" -> trimH $ rebinBy 2 20
+    "ptc" -> trimH $ rebinBy 2 20
+    "ptcnorm" -> trimH $ rebinBy 2 20
+    "pvptc" -> trimH $ rebinBy 2 20
+    "svptcnorm" -> trimH $ rebinBy 2 20
+    "svptc" -> trimH $ rebinBy 2 20
+    "pvptcnorm" -> trimH $ rebinBy 2 20
     _         -> id
 
 

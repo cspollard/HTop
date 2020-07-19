@@ -4,15 +4,16 @@ LogY=0
 Legend=1
 RatioPlotDrawReferenceFirst=1
 CustomLegend=\textit{\textbf{ATLAS} Internal} \\ $\sqrt{s} = 13\,\text{TeV}, 36\,\text{fb}^{-1}$
-LegendXPos=0.3
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/probejets/ptcnorm$
 YMax=0.04
+LegendXPos=0.6
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/probejets/nsvtrknorm$
 YMax=0.7
+LegendXPos=0.6
 # END PLOT
 
 
@@ -20,6 +21,10 @@ YMax=0.7
 RatioPlotYMin=0.75
 RatioPlotYMax=1.25
 LegendXPos=0.4
+# END PLOT
+
+# BEGIN PLOT /.*
+LegendXPos=0.5
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/.*rho(norm)?$
