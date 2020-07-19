@@ -11,6 +11,16 @@ LegendXPos=0.5
 YMax=0.04
 # END PLOT
 
+# BEGIN PLOT /htop/elmujj/probejets/npvtrknorm$
+YMax=0.2
+# END PLOT
+
+
+# BEGIN PLOT /htop/elmujj/probejets/svmcnorm$
+YMax=0.6
+# END PLOT
+
+
 # BEGIN PLOT /htop/elmujj/probejets/nsvtrknorm$
 YMax=0.7
 # END PLOT
