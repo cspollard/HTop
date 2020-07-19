@@ -58,10 +58,12 @@ bfragModel test procs = do
           , T.isInfixOf "/elmujjtrue/"
           ]
 
+
   nom <-
     mappend nonttpred
     . (fmap.fmap) (addVar "TTBarNormUp" (scaleO 1.20))
     <$> getProcs procs [nomkey]
+
 
   afii <-
     getProcs procs [afiikey] & (traverse.traverse.noted) %~ view nominal
@@ -87,6 +89,35 @@ bfragModel test procs = do
   sherpa <-
     mappend nonttpred
     <$> getProcs procs [sherpakey] & (traverse.traverse.noted) %~ view nominal
+
+
+
+  
+  -- print out the normalizations
+  -- let getIntegral :: T.Text -> Folder (Annotated (Vars Obj)) -> Double
+  --     getIntegral t f =
+  --       let h = f ^?! ix t
+  --           h' = h ^. noted.nominal
+  --       in
+  --         case h' of
+  --           H1DD h'' -> total h'' ^. sumW
+  --           _ -> 0
+
+
+  --     pjkey = "/elmujj/probejets/zblc"
+  --     evtkey = "/elmujj/electrons/eta"
+
+  -- trace "probejets" $ return ()
+  -- trace "diboson: " . traceShow (36100 * getIntegral pjkey diboson) $ return ()
+  -- trace "zjets: " . traceShow (36100 * getIntegral pjkey zjets) $ return ()
+  -- trace "stop: " . traceShow (36100 * getIntegral pjkey stop) $ return ()
+  -- trace "nom: " . traceShow (36100 * getIntegral pjkey nom) $ return ()
+
+  -- trace "events" $ return ()
+  -- trace "diboson: " . traceShow (36100 * getIntegral evtkey diboson) $ return ()
+  -- trace "zjets: " . traceShow (36100 * getIntegral evtkey zjets) $ return ()
+  -- trace "stop: " . traceShow (36100 * getIntegral evtkey stop) $ return ()
+  -- trace "nom: " . traceShow (36100 * getIntegral evtkey nom) $ return ()
 
 
   let nomnom = nom & (traverse.noted) %~ view nominal

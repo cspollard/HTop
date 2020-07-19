@@ -15,5 +15,5 @@ all the things that need to be rerun:
 - copy covariance/correlation/uncertainty tables from e.g. unfold/particlelevel/data/unfoldzblc/htop.stat
 - copy yield tables from ???
 - copy p-value tables from ???
-- copy uncertainty tables from ???
+- copy uncertainty tables from unfold/particlelevel/data/*posteriors/uncerts.txt
 - copy fraction tables from ???

@@ -18,7 +18,7 @@ import           Control.Applicative
 import Control.Arrow ((>>>))
 import           Control.Lens           hiding (each)
 import           Data.Bifunctor
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, fromJust)
 import Linear hiding (trace)
 import qualified Data.Map as M
 import qualified Data.Histogram.Generic as H
@@ -32,8 +32,8 @@ import qualified Pipes.Prelude          as P
 import           System.IO
 import Control.Monad (foldM)
 import Numeric (showFFloat)
-import Debug.Trace
 import qualified Data.Matrix as Mat
+
 
 
 fromJust' :: String -> Maybe a -> a
@@ -188,6 +188,10 @@ writeFiles outf pm = do
           totalH h = h
 
 
+      fixPTC f = (fmap.fmap) go f
+        where
+          go (Variation n v) = Variation n $ v & ix "ptcsf" %~ fixPTCSF n
+
 
       addNorm :: Folder (Annotated (Vars Obj)) -> Folder (Annotated (Vars Obj))
       addNorm f = ifoldl go f f
@@ -216,7 +220,7 @@ writeFiles outf pm = do
       data'' = (fmap.fmap) (view nominal) . addCount . addNorm . (fmap.fmap) pure $ pruneData data'
 
       predhs' :: Folder (Annotated (Vars Obj))
-      predhs' = addCount $ addNorm predhs
+      predhs' = fixPTC . addCount $ addNorm predhs
 
       toths :: Folder YodaObj
       toths = fmap (setymax . fmap totalUncert) $ addChi2 data'' predhs'
@@ -313,3 +317,11 @@ scaleByBinSize1D h =
   let intervals = views bins binsList h
       go (xmin, xmax) = scaling (xmax - xmin)
   in over histData (V.zipWith go intervals) h
+
+
+
+fixPTCSF :: Obj -> Obj -> Obj
+fixPTCSF (H1DD hnom) (H1DD hvar) = H1DD . fmap (scaling 0.5) . fromJust $ hadd' hnom hvar
+fixPTCSF (P1DD hnom) (P1DD hvar) = P1DD . fmap (scaling 0.5) . fromJust $ hadd' hnom hvar
+fixPTCSF (H2DD hnom) (H2DD hvar) = H2DD . fmap (scaling 0.5) . fromJust $ hadd' hnom hvar
+fixPTCSF _ h = h
