@@ -115,6 +115,12 @@ let sh228fix =
       , name = "sh228fix"
       } /\ orange /\ dashed /\ triangle /\ nomore
 
+let sh2210 =
+      { path = "gridYoda/Merge_Sherpa2210.yoda"
+      , title = "Sherpa 2.2.10"
+      , name = "sh2210"
+      } /\ red /\ solid /\ dot /\ nomore
+
 let PlotRecord = { path : Text, title : Text, name : Text, color : Text, line : Text, marker : Text, extra : Text }
 
 let Plot = List PlotRecord
@@ -138,7 +144,7 @@ let herwigs
     = [ powher704, powher713, powher716 ]
 
 let sherpas
-    = [ sh221, sh228, sh228fix ]
+    = [ sh221, sh228, sh228fix, sh2210 ]
 
 let gens
     = [ powpy8, powher704, sh221 ]
