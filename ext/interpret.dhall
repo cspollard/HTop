@@ -227,13 +227,16 @@ in  Prelude.Text.concatSep
       -- , pvalue "rho" "pythia" pythia
       -- , pvalue "rho" "pythiaA14" pythiaa14s
       -- , pvalue "rho" "herwig" herwigs
-      -- , pvalue "rho" "sherpa" sherpas
+      , pvalue "rho" "sherpa" sherpas
+      , pvalue "nsvtrk" "sherpa" sherpas
+      , pvalue "zblc" "sherpa" sherpas
+      , pvalue "zbtc" "sherpa" sherpas
       -- , config "pythiaA14ratio" ([data] # pythiaa14s) False
       -- , plot (Some "-c plot/pythiaA14ratio.plot") "pythiaA14ratio" ([data] # pythiaa14s)
-      , plot (None Text) "pythia" pythia -- ([data] # pythia)
-      , plot (None Text) "pythiaA14" pythiaa14s -- ([data] # pythiaa14s)
-      , plot (None Text) "herwig" herwigs -- ([data] # herwigs)
-      , plot (None Text) "sherpa" sherpas -- ([data] # sherpas)
-      , plot (None Text) "generators" gens -- ([data] # gens)
+      -- , plot (None Text) "pythia" pythia -- ([data] # pythia)
+      -- , plot (None Text) "pythiaA14" pythiaa14s -- ([data] # pythiaa14s)
+      -- , plot (None Text) "herwig" herwigs -- ([data] # herwigs)
+      -- , plot (None Text) "sherpa" sherpas -- ([data] # sherpas)
+      -- , plot (None Text) "generators" gens -- ([data] # gens)
       , "rm -f BFRAG.yoda\n"
       ]
