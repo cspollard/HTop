@@ -58,8 +58,8 @@ obsdict = \
 axdict = \
     { "zbtc" : 0.04
     , "zblc" : 0.04
-    , "nsvtrk" : 0.055
-    , "rho" : 0.04
+    , "nsvtrk" : 0.065
+    , "rho" : 0.03
     }
 
 outfile = argv[2]
