@@ -30,12 +30,13 @@ RatioPlotYMax=1.25
 LegendXPos=0.35
 # END PLOT
 
-# BEGIN PLOT /htop/elmujj/.*rho(norm)?$
+# BEGIN PLOT /htop/elmujj/rho(norm)?$
 XLabel=probe-jet jet \ensuremath{\rho}
 # END PLOT
 
-# BEGIN PLOT /htop/elmujj/.*rho$
+# BEGIN PLOT /htop/elmujj/probejets/rho$
 YLabel=\ensuremath{\frac{dn}{d\rho}}
+YLabelSep=10
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/.*rhonorm$
@@ -96,11 +97,12 @@ YMax=35000
 YLabelSep=10
 # END PLOT
 
-# BEGIN PLOT /htop/elmujj/.*zbrelc(norm)$
+# BEGIN PLOT /htop/elmujj/probejets/zbrelc$
 YLabel=\ensuremath{\frac{dn}{dz}}
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/probejets/zbrelc$
+YLabel=\ensuremath{\frac{dn}{dz}}
 YMax=6000000
 YLabelSep=10
 # END PLOT
@@ -120,15 +122,18 @@ YLabelSep=10
 
 # BEGIN PLOT /htop/elmujj/probejets/zbtc$
 YMax=200000
+YLabelSep=10
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/probejets/zblc$
 YMax=200000
+YLabelSep=10
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/probejets/nsvtrk$
 XLabel=probe-jet \ensuremath{n_\text{SV}^\text{ch}}
 YLabel=\ensuremath{\frac{dn}{dn_\mathrm{SV}^\mathrm{ch}}}
+YLabelSep=10
 # END PLOT
 
 
@@ -138,6 +143,7 @@ XLabel=particle jet \ensuremath{\rho}
 
 # BEGIN PLOT /htop/elmujjtrue/.*rho$
 YLabel=\ensuremath{\frac{d\sigma}{\rho}}
+YLabelSep=10
 # END PLOT
 
 # BEGIN PLOT /htop/elmujjtrue/.*rhonorm$
