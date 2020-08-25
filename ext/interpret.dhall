@@ -176,10 +176,10 @@ let sh228 =
       ∧ square
       ∧ nomore
 
-let sh228fix =
+let sh228def =
         { path = "gridYoda/Merge_950033_Sh228_CSSevol.yoda"
-        , title = "Sherpa 2.2.8 (\$b \\to bg\$ fix)"
-        , name = "sh228fix"
+        , title = "Sherpa 2.2.8 (\$b \\to bg\$ default)"
+        , name = "sh228def"
         }
       ∧ orange
       ∧ dashed
@@ -216,9 +216,9 @@ let pythiaa14s = [ powpy8, powpy8_fsrup, powpy8_fsrdown, powpy8_a14rb ]
 
 let herwigs = [ powher704, powher713, powher716 ]
 
-let sherpas = [ sh221, sh228, sh228fix, sh2210 ]
+let sherpas = [ sh221, sh228, sh228def, sh2210 ]
 
-let gens = [ powpy8, powher704, sh221 ]
+let gens = [ powpy8, powher704, sh2210 ]
 
 let pathstyle =
       λ(p : PlotRecord) →
@@ -327,6 +327,7 @@ in  Prelude.Text.concatSep
           (Some "-c plot/herwigratio.plot")
           "herwigratio"
           ([ data ] # herwigs)
+      , plot (None Text) "generators" ([ data ] # gens)
       , ''
         rm -f BFRAGDATA.yoda
         ''

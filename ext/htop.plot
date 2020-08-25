@@ -18,7 +18,7 @@ YMax=0.7
 # BEGIN PLOT /.*rho(norm)?$
 RatioPlotYMin=0.75
 RatioPlotYMax=1.25
-LegendXPos=0.4
+LegendXPos=0.35
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/.*rho(norm)?$
@@ -226,7 +226,7 @@ LegendXPos=0.1
 Title=Number of charged $b$-hadron children with $p_\mathrm{T} > 500$ MeV
 XLabel=$n_{b}^{\mathrm{ch}}$
 YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{n_b^{\mathrm{ch}}}$
-LegendXPos=0.4
+LegendXPos=0.35
 YMax=0.5
 # END PLOT
 
