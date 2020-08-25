@@ -4,6 +4,15 @@ LogY=0
 Legend=1
 RatioPlotDrawReferenceFirst=1
 CustomLegend=\textit{\textbf{ATLAS} Internal} \\ $\sqrt{s} = 13\,\text{TeV}, 36\,\text{fb}^{-1}$
+LeftMargin=2
+# END PLOT
+
+# BEGIN PLOT /BFRAG/.*
+RatioPlotYLabel=Ratio to data
+# END PLOT
+
+# BEGIN PLOT /htop/elmujj/.*
+RatioPlotYLabel=Ratio to total MC
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/probejets/ptcnorm$
@@ -66,6 +75,10 @@ YLabel=\ensuremath{\frac{1}{n}\frac{dn}{dz_{\mathrm{L,b}}^\mathrm{ch}}}
 XLabel=probe-jet \ensuremath{n_\text{SV}^\text{ch}}
 # END PLOT
 
+# BEGIN PLOT /htop/elmujj/.*npvtrk$
+YLabel=\ensuremath{\frac{dn}{dn_\mathrm{PV}^\mathrm{ch}}}
+# END PLOT
+
 # BEGIN PLOT /htop/elmujj/.*nsvtrk$
 YLabel=\ensuremath{\frac{dn}{dn_\mathrm{B}^\mathrm{ch}}}
 # END PLOT
@@ -74,12 +87,35 @@ YLabel=\ensuremath{\frac{dn}{dn_\mathrm{B}^\mathrm{ch}}}
 YLabel=\ensuremath{\frac{1}{n}\frac{dn}{dn_\mathrm{B}^\mathrm{ch}}}
 # END PLOT
 
+# BEGIN PLOT /htop/elmujj/.*eta$
+YLabel=\ensuremath{\frac{dn}{d\eta}}
+# END PLOT
+
 # BEGIN PLOT /htop/elmujj/probejets/eta$
 YMax=35000
+YLabelSep=10
+# END PLOT
+
+# BEGIN PLOT /htop/elmujj/.*zbrelc(norm)$
+YLabel=\ensuremath{\frac{dn}{dz}}
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/probejets/zbrelc$
 YMax=6000000
+YLabelSep=10
+# END PLOT
+
+
+# BEGIN PLOT /htop/elmujj/probejets/ptc$
+YLabelSep=10
+# END PLOT
+
+# BEGIN PLOT /htop/elmujj/probejets/svmc$
+YLabelSep=10
+# END PLOT
+
+# BEGIN PLOT /htop/elmujj/probejets/npvtrk$
+YLabelSep=10
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/probejets/zbtc$

@@ -328,6 +328,9 @@ in  Prelude.Text.concatSep
           "herwigratio"
           ([ data ] # herwigs)
       , plot (None Text) "generators" ([ data ] # gens)
+      , plot (None Text) "pythiaA14" ([ data ] # pythiaa14s)
+      , plot (None Text) "herwig" ([ data ] # herwigs)
+      , plot (None Text) "sherpa" ([ data ] # sherpas)
       , ''
         rm -f BFRAGDATA.yoda
         ''

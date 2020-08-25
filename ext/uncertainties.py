@@ -1,12 +1,36 @@
 """
 to run this script call
 
-$ python uncertainties.py mcmcfile outfile.pdf logfile.txt obsname
+$ python uncertainties.py mcmcfile outfile.pdf obsname logfile.txt
 
 "mcmcfile" is a suitable data file of toys, "outfile.pdf" is the filename of
 the output figure, logfile is where logs will be written, and "obsname" is the
 latex observable name used for plotting.
 """
+from matplotlib import rc, rcParams
+rcParams['text.usetex'] = True
+rcParams['font.family'] = "Nimbus Sans"
+rc('font',**{'family': 'sans-serif', 'sans-serif': 'Nimbus Sans' })
+
+from matplotlib.texmanager import TexManager
+
+#  TexManager.font_info['Nimbus Sans'] = ('Nimbus Sans', r"\usepackage{helvet}")
+#  TexManager.font_family = 'Nimbus Sans'
+#  TexManager.serif = False
+#  TexManager.sans_serif = True
+
+texinfo = \
+    r"""\renewcommand{\familydefault}{\sfdefault}
+    \usepackage{sfmath}
+    \usepackage{helvet}
+    \usepackage[symbolgreek]{mathastext}
+    \usepackage{sansmath}
+    \sansmath"""
+
+rcParams['text.latex.preamble']=[texinfo]
+
+
+
 
 debug=False
 
@@ -19,10 +43,32 @@ import numpy as np
 from sys import stdout, argv
 
 
+zbtclab = "$z_{\\mathrm{T}, b}^\\mathrm{ch}$"
+zblclab = "$z_{\\mathrm{L}, b}^\\mathrm{ch}$"
+nsvtrklab = "$n_b^\\mathrm{ch}$"
+rholab = "$\\rho$"
+
+obsdict = \
+    { "zbtc" : zbtclab
+    , "zblc" : zblclab
+    , "nsvtrk" : nsvtrklab
+    , "rho" : rholab
+    }
+
+axdict = \
+    { "zbtc" : 0.04
+    , "zblc" : 0.04
+    , "nsvtrk" : 0.055
+    , "rho" : 0.04
+    }
+
 outfile = argv[2]
-logfile = argv[3]
-obsname = argv[4]
+obsname = argv[3]
+logfile = argv[4]
 infile = open(argv[1])
+
+obslab = obsdict[obsname]
+
 
 names = np.array(map(str.strip, infile.readline().split(",")))
 poiidxs = []
@@ -169,6 +215,7 @@ for n, u in catdict.iteritems():
       , color=colors[n]
       , ls="steps"
       , label=n
+      , lw=1
       )
 
 s += ["\\hline"]
@@ -182,17 +229,27 @@ plt.plot( \
     , color=colors[n]
     , ls="steps"
     , label=n
+    , lw=1
     )
 
 s += [" & ".join([n] + map(lambda x: "%0.3f" % x, u)) + " \\\\"]
 
 s += ["\\end{tabular}"]
 
-plt.legend()
+plt.tick_params(axis='y', which=u'both', length=5)
+plt.tick_params(axis='x', which=u'both', length=0)
+plt.tick_params(axis='both', which=u'both', direction="in", width=0.2,
+        bottom=True, top=True, left=True, right=True)
 
-fig.axes[0].set_title("uncertainty sources for " + obsname)
-fig.axes[0].set_xlabel(obsname + " bin")
-fig.axes[0].set_ylabel("differential cross section uncertainty")
+plt.plot([], [], ' ', label="\\textbf{ATLAS} \\emph{Internal}")
+plt.plot([], [], ' ', label="$\\sqrt{s} = 13\\,\\mathrm{TeV}, 36\\,\\mathrm{fb}^{-1}$")
+
+plt.legend(frameon=False)
+
+fig.axes[0].set_title("uncertainty sources for " + obslab)
+fig.axes[0].set_xlabel(obslab + " bin")
+fig.axes[0].set_ylabel("$b$-jet fraction uncertainty")
+plt.ylim((0, axdict[obsname]))
 
 plt.savefig(outfile)
 
