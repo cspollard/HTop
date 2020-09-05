@@ -155,6 +155,7 @@ matchedJetHs =
   where
     recofraghs =
         (bfragHs <$= fmap fst)
+        `mappend` (lvHs <$= fmap fst)
         `mappend` (singleton "/rho" <$> prebind recoRho rhoH)
 
     truefraghs =
