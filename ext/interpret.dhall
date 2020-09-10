@@ -166,20 +166,20 @@ let sh221 =
       ∧ diamond
       ∧ nomore
 
-let sh228 =
+let sh228gbb =
         { path = "gridYoda/Merge_950010_Sh228_HTprime.yoda"
-        , title = "Sherpa 2.2.8"
-        , name = "sh228"
+        , title = "Sherpa 2.2.8 ($g \\to bb$ tune)"
+        , name = "sh228gbb"
         }
       ∧ orange
       ∧ dotted
       ∧ square
       ∧ nomore
 
-let sh228def =
+let sh228 =
         { path = "gridYoda/Merge_950033_Sh228_CSSevol.yoda"
-        , title = "Sherpa 2.2.8 (\$b \\to bg\$ default)"
-        , name = "sh228def"
+        , title = "Sherpa 2.2.8 defaults"
+        , name = "sh228"
         }
       ∧ orange
       ∧ dashed
@@ -214,11 +214,11 @@ let pythia
 
 let pythiaa14s = [ powpy8, powpy8_fsrup, powpy8_fsrdown, powpy8_a14rb ]
 
-let herwigs = [ powher704, powher713, powher716 ]
+let herwigs = [ powher704, powher716 ]
 
-let sherpas = [ sh221, sh228, sh228def, sh2210 ]
+let sherpas = [ sh221, sh228gbb, sh228, sh2210 ]
 
-let gens = [ powpy8, powher704, sh2210 ]
+let gens = [ powpy8, powher716, sh2210 ]
 
 let pathstyle =
       λ(p : PlotRecord) →

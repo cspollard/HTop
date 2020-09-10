@@ -7,6 +7,7 @@ $ python uncertainties.py mcmcfile outfile.pdf obsname logfile.txt
 the output figure, logfile is where logs will be written, and "obsname" is the
 latex observable name used for plotting.
 """
+
 from matplotlib import rc, rcParams
 rcParams['text.usetex'] = True
 rcParams['font.family'] = "Nimbus Sans"
@@ -241,7 +242,7 @@ plt.tick_params(axis='x', which=u'both', length=0)
 plt.tick_params(axis='both', which=u'both', direction="in", width=0.2,
         bottom=True, top=True, left=True, right=True)
 
-plt.plot([], [], ' ', label="\\textbf{ATLAS} \\emph{Internal}")
+plt.plot([], [], ' ', label="\\textbf{ATLAS} \\emph{Preliminary}")
 plt.plot([], [], ' ', label="$\\sqrt{s} = 13\\,\\mathrm{TeV}, 36\\,\\mathrm{fb}^{-1}$")
 
 plt.legend(frameon=False)
