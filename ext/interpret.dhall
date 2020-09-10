@@ -54,7 +54,7 @@ let data =
       ∧ black
       ∧ solid
       ∧ dot
-      ∧ extra ":ConnectBins=0:ErrorBars=1"
+      ∧ extra ":ConnectBins=0:ErrorBars=1:ConnectGaps=0"
 
 let powpy8 =
         { path = "gridYoda/Merge_410503_PhPy8.yoda"
@@ -214,11 +214,11 @@ let pythia
 
 let pythiaa14s = [ powpy8, powpy8_fsrup, powpy8_fsrdown, powpy8_a14rb ]
 
-let herwigs = [ powher704, powher716 ]
+let herwigs = [ powher704, powher713 ]
 
 let sherpas = [ sh221, sh228gbb, sh228, sh2210 ]
 
-let gens = [ powpy8, powher716, sh2210 ]
+let gens = [ powpy8, powher713, sh2210 ]
 
 let pathstyle =
       λ(p : PlotRecord) →
