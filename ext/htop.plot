@@ -252,21 +252,21 @@ DrawReferenceFirst=1
 # END PLOT
 
 # BEGIN PLOT /BFRAG/zbtc
-Title=$z_{T,b}^\text{ch} = p_\text{T}^\text{ch}(b) \ / \ p_\text{T}^\text{ch}(\text{jet})$
+# Title=$z_{T,b}^\text{ch} = p_\text{T}^\text{ch}(b) \ / \ p_\text{T}^\text{ch}(\text{jet})$
 XLabel=$z_{T,b}^{\mathrm{ch}}$
 YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{z_{T,b}^\text{ch}}$
 LegendXPos=0.1
 # END PLOT
 
 # BEGIN PLOT /BFRAG/zblc
-Title=$z_{L,b}^\text{ch} = \vec{p}^\text{ch}_b \cdot \vec{p}^\text{ch}_\text{jet} \ / \ | p^\text{ch}_\text{jet} |^2$
+# Title=$z_{L,b}^\text{ch} = \vec{p}^\text{ch}_b \cdot \vec{p}^\text{ch}_\text{jet} \ / \ | p^\text{ch}_\text{jet} |^2$
 XLabel=$z_{L,b}^{\mathrm{ch}}$
 YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{z_{L,b}^\text{ch}}$
 LegendXPos=0.1
 # END PLOT
 
 # BEGIN PLOT /BFRAG/nsvtrk
-Title=Number of charged $b$-hadron children with $p_\mathrm{T} > 500$ MeV
+# Title=Number of charged $b$-hadron children with $p_\mathrm{T} > 500$ MeV
 XLabel=$n_{b}^{\mathrm{ch}}$
 YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{n_b^{\mathrm{ch}}}$
 LegendXPos=0.35
@@ -274,7 +274,7 @@ YMax=0.5
 # END PLOT
 
 # BEGIN PLOT /BFRAG/rho
-Title=$\rho = 2 p_\mathrm{T}^\mathrm{ch}(b) / (p_\mathrm{T}(e) + p_\mathrm{T}(\mu))$
+# Title=$\rho = 2 p_\mathrm{T}^\mathrm{ch}(b) / (p_\mathrm{T}(e) + p_\mathrm{T}(\mu))$
 XLabel=$\rho$
 YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{\rho}$
 YMax=1.4

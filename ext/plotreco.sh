@@ -14,19 +14,19 @@ yoda2yoda -M "norm" yoda/background.yoda ./background.yoda
 
 rivet-mkhtml -m ".*/elmujj/.*" -M ".*mu_.*" --mc-errs --single \
   --font helvetica -c ext/htop.plot \
-  total.yoda:'Title=total prediction':"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0" \
-  fiducial.yoda:'Title=fiducial $e \mu bb$':"LineColor=Black":"ErrorBars=0":"LineStyle=dashed" \
-  background.yoda:'non-$t\bar{t}$ background':"LineColor=Black":"ErrorBars=0":"LineStyle=dotted" \
-  yoda/data.yoda:"Title=data":"LineColor=Black":"ConnectBins=0" \
+  total.yoda:'Title=Total prediction \\ with uncertainty':"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0":"LineWidth=0.03"  \
+  fiducial.yoda:'Title=Fiducial $e \mu bb$':"LineColor=Black":"ErrorBars=0":"LineStyle=dashdotted":"LineWidth=0.03" \
+  background.yoda:'Non-$t\bar{t}$ background':"LineColor=Black":"ErrorBars=0":"LineStyle=dashed":"LineWidth=0.03" \
+  yoda/data.yoda:"Title=Data":"LineColor=Black":"ConnectBins=0":"HorizLine=0" \
   -o detectorlevel/total
 
 
 rivet-mkhtml -m ".*/elmujj/.*" -M ".*mu_.*" --mc-errs --single \
   --font helvetica -c ext/htop.chi2.plot \
-  yoda/total.yoda:"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0" \
-  fiducial.yoda:'Title=fiducial $e \mu bb$':"LineColor=Black":"ErrorBars=0":"LineStyle=dashed" \
-  background.yoda:'non-$t\bar{t}$ background':"LineColor=Black":"ErrorBars=0":"LineStyle=dotted" \
-  yoda/data.yoda:"Title=data":"LineColor=Black":"ConnectBins=0" \
+  yoda/total.yoda:'Title=Total prediction \\ with uncertainty':"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0":"LineWidth=0.03" \
+  fiducial.yoda:'Title=Fiducial $e \mu bb$':"LineColor=Black":"ErrorBars=0":"LineStyle=dashdotted":"LineWidth=0.03"  \
+  background.yoda:'Non-$t\bar{t}$ background':"LineColor=Black":"ErrorBars=0":"LineStyle=dashed":"LineWidth=0.03"  \
+  yoda/data.yoda:"Title=Data":"LineColor=Black":"ConnectBins=0":"HorizLine=0" \
   -o detectorlevel/totalchi2
 
 
@@ -36,9 +36,9 @@ mkdir -p detectorlevel/recoclosure/data
 rivet-mkhtml --mc-errs --single \
   -m "/htop/elmujj/probejets/(rho|zbtc|zblc|nsvtrk)$" \
   --font helvetica -c ext/htop.plot \
-  total.yoda:"Title=prior prediction":"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0" \
-  htop.yoda:"Title=posterior prediction":"LineColor=green":"ErrorBandColor={[cmyk]{1,0,1,0.10}}":"ErrorBands=1":"ErrorBars=0" \
-  yoda/data.yoda:"Title=data":"LineColor=black":"ConnectBins=0" \
+  total.yoda:'Title=Prior prediction \\ with uncertainty':"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0" \
+  htop.yoda:'Title=Posterior prediction \\ with uncertainty':"LineColor=green":"ErrorBandColor={[cmyk]{1,0,1,0.10}}":"ErrorBands=1":"ErrorBars=0" \
+  yoda/data.yoda:"Title=Data":"LineColor=Black":"ConnectBins=0":"HorizLine=0" \
   -o detectorlevel/recoclosure/data
 
 
@@ -49,9 +49,9 @@ mkdir -p detectorlevel/recoclosure/ps
 rivet-mkhtml --mc-errs --single \
   -m "/htop/elmujj/probejets/(rho|zbtc|zblc|nsvtrk)$" \
   --font helvetica -c ext/htop.plot \
-  total.yoda:"Title=prior prediction":"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0" \
-  htop.yoda:"Title=posterior prediction":"LineColor=green":"ErrorBandColor={[cmyk]{1,0,1,0.10}}":"ErrorBands=1":"ErrorBars=0" \
-  yoda/ps.yoda:"Title=data":"LineColor=black":"ConnectBins=0" \
+  total.yoda:'Title=Prior prediction with uncertainty':"LineColor=Black":"ErrorBandColor={[cmyk]{0,0,0,0.15}}":"ErrorBands=1":"ErrorBars=0" \
+  htop.yoda:'Title=Posterior prediction with uncertainty':"LineColor=green":"ErrorBandColor={[cmyk]{1,0,1,0.10}}":"ErrorBands=1":"ErrorBars=0" \
+  yoda/ps.yoda:"Title=Data":"LineColor=black":"ConnectBins=0":"HorizLine=0" \
   -o detectorlevel/recoclosure/ps
 
 
@@ -62,7 +62,7 @@ rivet-mkhtml -m ".*/elmujj/.*" -M ".*mu_.*" --mc-errs --single \
   yoda/fsr.yoda:"FSR" \
   yoda/puwgt.yoda:"pileup" \
   yoda/ptcsf.yoda:"jet \$p_\\mathrm{T}^\\mathrm{ch}\$" \
-  yoda/data.yoda:"Title=data":"LineColor=Black":"ConnectBins=0" \
+  yoda/data.yoda:"Title=Data":"LineColor=Black":"ConnectBins=0":"HorizLine=0" \
   -o detectorlevel/modeling
 
 
@@ -74,7 +74,7 @@ rivet-mkhtml -m ".*/elmujj/.*" -M ".*mu_.*" --mc-errs --single \
   yoda/v2trk_eff_tight_global.yoda:"track efficiency" \
   yoda/v2trk_res_d0_meas.yoda:"track \$d_0\$" \
   yoda/v2trk_res_z0_meas.yoda:"track \$z_0\$" \
-  yoda/data.yoda:"Title=data":"LineColor=Black":"ConnectBins=0" \
+  yoda/data.yoda:"Title=Data":"LineColor=Black":"ConnectBins=0":"HorizLine=0" \
   -o detectorlevel/tracking
 
 

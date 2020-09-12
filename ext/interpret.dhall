@@ -7,12 +7,14 @@ let lmap = Prelude.List.map
 
 let default = Prelude.Optional.default
 
+let Line = < Solid | Dotted | Dashed | DashDotted | LongDashed >
+
 let PlotRecord =
       { path : Text
       , title : Text
       , name : Text
       , color : Text
-      , line : Optional Text
+      , line : Optional Line
       , marker : Optional Text
       , extra : Optional Text
       }
@@ -31,13 +33,15 @@ let orange = { color = "orange" }
 
 let noline = { line = None Text }
 
-let solid = { line = Some "solid" }
+let solid = { line = Some Line.Solid }
 
-let dotted = { line = Some "dotted" }
+let dotted = { line = Some Line.Dotted }
 
-let dashed = { line = Some "dashed" }
+let longdashed = { line = Some Line.LongDashed }
 
-let dashdotted = { line = Some "dashdotted" } 
+let dashed = { line = Some Line.Dashed }
+
+let dashdotted = { line = Some Line.DashDotted } 
 
 let dot = { marker = Some "*" }
 
@@ -64,7 +68,7 @@ let data =
 
 let powpy8 =
         { path = "gridYoda/Merge_410503_PhPy8.yoda"
-        , title = "Pow+Py8 \$r_B = 0.855 \\, \\alpha_S = 0.127\$"
+        , title = "Pow+Py8 \$r_B = 0.855 \\, \\alpha_S^{\\mathrm{FSR}} = 0.127\$"
         , name = "powpy8"
         }
       ∧ green
@@ -104,30 +108,30 @@ let powPy8_MECoff_grec =
 
 let powpy8_fsrup =
         { path = "gridYoda/Merge_410028_V2Up.yoda"
-        , title = "Pow+Py8 \$r_B = 0.855 \\, \\alpha_s = 0.139\$"
+        , title = "Pow+Py8 \$r_B = 0.855 \\, \\alpha_S^{\\mathrm{FSR}} = 0.139\$"
         , name = "powpy8_fsrup"
         }
-      ∧ green
-      ∧ dotted
+      ∧ orange
+      ∧ longdashed
       ∧ nomarker
       ∧ nomore
 
 let powpy8_fsrdown =
         { path = "gridYoda/Merge_410029_V2Down.yoda"
-        , title = "Pow+Py8 \$r_B = 0.855 \\, \\alpha_s = 0.111\$"
+        , title = "Pow+Py8 \$r_B = 0.855 \\, \\alpha_S^{\\mathrm{FSR}} = 0.111\$"
         , name = "powpy8_fsrdown"
         }
-      ∧ green
+      ∧ blue
       ∧ dashed
       ∧ nomarker
       ∧ nomore
 
 let powpy8_a14rb =
         { path = "gridYoda/Merge_411291_PP8_rb1p05.yoda"
-        , title = "Pow+Py8 \$r_B = 1.050 \\, \\alpha_s = 0.127\$"
+        , title = "Pow+Py8 \$r_B = 1.050 \\, \\alpha_S^{\\mathrm{FSR}} = 0.127\$"
         , name = "powpy8_a14rb"
         }
-      ∧ green
+      ∧ red
       ∧ dashdotted
       ∧ nomarker
       ∧ nomore
@@ -137,8 +141,8 @@ let powher704 =
         , title = "Pow+Her 7.0.4"
         , name = "powher704"
         }
-      ∧ blue
-      ∧ dotted
+      ∧ orange
+      ∧ solid
       ∧ nomarker
       ∧ nomore
 
@@ -167,9 +171,9 @@ let sh221 =
         , title = "Sherpa 2.2.1"
         , name = "sh221"
         }
-      ∧ orange
+      ∧ blue
       ∧ dashdotted
-      ∧ diamond
+      ∧ nomarker
       ∧ nomore
 
 let sh228Zbb =
@@ -177,8 +181,8 @@ let sh228Zbb =
         , title = "Sherpa 2.2.8 ($Z+bb$ tune)"
         , name = "sh228Zbb"
         }
-      ∧ orange
-      ∧ dotted
+      ∧ green
+      ∧ longdashed
       ∧ nomarker
       ∧ nomore
 
@@ -187,8 +191,8 @@ let sh228 =
         , title = "Sherpa 2.2.8 defaults"
         , name = "sh228"
         }
-      ∧ orange
-      ∧ dashed
+      ∧ red
+      ∧ solid
       ∧ nomarker
       ∧ nomore
 
@@ -198,7 +202,7 @@ let sh2210 =
         , name = "sh2210"
         }
       ∧ orange
-      ∧ solid
+      ∧ dashed
       ∧ nomarker
       ∧ nomore : PlotRecord
 
@@ -215,10 +219,25 @@ let sherpas = [ sh221, sh228Zbb, sh228, sh2210 ]
 
 let gens = [ powpy8, powher713, sh2210 ]
 
-let linestyle : Optional Text -> Text =
-      \(o : Optional Text) ->
-        merge { Some = \(t : Text) -> ":LineStyle=${t}", None = "" } o
-        
+let maybe : forall (a : Type) -> forall (b : Type) -> (a -> b) -> b -> Optional a -> b =
+      \(a : Type) ->
+      \(b : Type) ->
+      \(f : a -> b) ->
+      \(def : b) ->
+      \(o : Optional a) -> 
+       merge { Some = \(y : a) -> f y, None = def } o
+
+let linestyle : Line -> Text =
+      \(l : Line) ->
+        merge
+        { Solid = ":LineStyle=solid"
+        , Dotted = ":LineStyle=dotted"
+        , Dashed = ":LineStyle=dashed"
+        , DashDotted = ":LineStyle=dashdotted"
+        , LongDashed = ":LineStyle=dashed:LineDash=10pt"
+        }
+        l
+
 let markerstyle : Optional Text -> Text =
       \(o : Optional Text) ->
         merge { Some = \(t : Text) -> ":PolyMarker=${t}:DotScale=1.5", None = "" } o
@@ -226,7 +245,9 @@ let markerstyle : Optional Text -> Text =
 
 let pathstyle =
       λ(p : PlotRecord) →
-        "'${p.path}:Name=${p.name}:Title=${p.title}:PlotOrder=0:LineColor=${p.color}${linestyle p.line}${markerstyle p.marker}${default Text "" p.extra}'"
+        "'${p.path}:Name=${p.name}:Title=${p.title}:PlotOrder=0:LineColor=${p.color}"
+        ++ maybe Line Text linestyle "" p.line
+        ++ "${markerstyle p.marker}${default Text "" p.extra}'"
 
 let pathtitle = λ(p : PlotRecord) → "'${p.path}:${p.title}'"
 
@@ -292,11 +313,26 @@ let config =
 
         # END PLOT
 
+        # BEGIN PLOT /BFRAG/nsvtrk
+
+        ${if    main
+          then  ""
+          else  ''
+                RatioPlotYMax=1.75
+                RatioPlotYMin=0.75
+                ''}
+
+        # END PLOT
+
+
         # BEGIN PLOT /BFRAG/rho
 
         ${if    main
           then  ""
-          else  "RatioPlotYMax=2"}
+          else  ''
+                RatioPlotYMax=1.5
+                RatioPlotYMin=0.7
+                ''}
 
         # END PLOT
         EOF
@@ -316,25 +352,29 @@ let setup =
 in  Prelude.Text.concatSep
       "\n\n"
       [ setup
-      -- , config "pythiaA14ratio" ([ data ] # pythiaa14s) False
-      -- , plot
-      --     (Some "-c plot/pythiaA14ratio.plot")
-      --     "pythiaA14ratio"
-      --     ([ data ] # pythiaa14s)
-      -- , config "sherparatio" ([ data ] # sherpas) False
-      -- , plot
-      --     (Some "-c plot/sherparatio.plot")
-      --     "sherparatio"
-      --     ([ data ] # sherpas)
-      -- , config "herwigratio" ([ data ] # herwigs) False
-      -- , plot
-      --     (Some "-c plot/herwigratio.plot")
-      --     "herwigratio"
-      --     ([ data ] # herwigs)
-      , plot (None Text) "generators" ([ data ] # gens)
-      , plot (None Text) "pythiaA14" ([ data ] # pythiaa14s)
-      , plot (None Text) "herwig" ([ data ] # herwigs)
-      , plot (None Text) "sherpa" ([ data ] # sherpas)
+      , config "pythiaA14ratio" ([ data ] # pythiaa14s) False
+      , plot
+          (Some "-c plot/pythiaA14ratio.plot")
+          "pythiaA14ratio"
+          ([ data ] # pythiaa14s)
+      , config "sherparatio" ([ data ] # sherpas) False
+      , plot
+          (Some "-c plot/sherparatio.plot")
+          "sherparatio"
+          ([ data ] # sherpas)
+      , config "herwigratio" ([ data ] # herwigs) False
+      , plot
+          (Some "-c plot/herwigratio.plot")
+          "herwigratio"
+          ([ data ] # herwigs)
+      , config "generators" ([ data ] # gens) True
+      , plot (Some "-c plot/generators.plot") "generators" ([ data ] # gens)
+      , config "pythiaA14" ([ data ] # gens) True
+      , plot (Some "-c plot/pythiaA14.plot") "pythiaA14" ([ data ] # pythiaa14s)
+      , config "herwig" ([ data ] # gens) True
+      , plot (Some "-c plot/herwig.plot") "herwig" ([ data ] # herwigs)
+      , config "sherpa" ([ data ] # gens) True
+      , plot (Some "-c plot/sherpa.plot") "sherpa" ([ data ] # sherpas)
       , ''
         rm -f BFRAGDATA.yoda
         ''

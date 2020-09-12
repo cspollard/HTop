@@ -31,8 +31,6 @@ texinfo = \
 rcParams['text.latex.preamble']=[texinfo]
 
 
-
-
 debug=False
 
 import matplotlib
@@ -40,6 +38,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import matplotlib.lines as lines
+import matplotlib.patches as mpatches
 import numpy as np
 from sys import stdout, argv
 
@@ -57,8 +56,8 @@ obsdict = \
     }
 
 axdict = \
-    { "zbtc" : 0.04
-    , "zblc" : 0.04
+    { "zbtc" : 0.05
+    , "zblc" : 0.05
     , "nsvtrk" : 0.065
     , "rho" : 0.03
     }
@@ -148,10 +147,7 @@ def uncert(c, poi, nup):
 # pileup uncertainty
 
 catdict = {}
-catlist = \
-  [ "pileup", "tracking", "other detector", "signal modeling"
-  , "background modeling"
-  ]
+catlist = [ "signal modeling", "tracking", "pileup", "other" ]
 
 for c in catlist:
   catdict[c] = [0]*len(poiidxs)
@@ -163,14 +159,11 @@ def uncert_cat(n):
   elif "trk" in n:
     return "tracking"
 
-  elif "btag" in n or "jet" in n or "jvt" in n:
-    return "other detector"
-
   elif n in ["nsvtrksf", "fsr", "rad", "ps", "ptcsf", "ttbarnorm", "lumi"]:
     return "signal modeling"
 
-  elif "stop" in n:
-    return "background modeling"
+  elif "stop" in n or "btag" in n or "jet" in n or "jvt" in n:
+    return "other"
 
   else:
     print("error --- uncategorized uncertainty:", n)
@@ -188,50 +181,64 @@ for k in catdict.keys():
 
 
 colors = \
-  { "total" : "black"
-  , "pileup" : "red"
+  { "pileup" : "red"
   , "tracking" : "green"
-  , "other detector" : "gray"
   , "signal modeling" : "blue"
-  , "background modeling" : "orange"
+  , "other" : "black"
   }
 
+styles = \
+  { "pileup" : "solid"
+  , "tracking" : "dashed"
+  , "signal modeling" : "dashdot"
+  , "other" : "dotted"
+  }
 
 fig = plt.figure()
 
-xpts = map(lambda x: x - 0.5, range(len(poiidxs)+1) + [len(poiidxs)])
+xpts = [x - 0.5 for x in range(len(poiidxs)+1) for i in (1, 2)]
+
 
 s = ["\\begin{tabular}{ l " + "| r "*len(poiidxs) + "}"]
 s += ["bin & " + " & ".join(map(str, range(len(poiidxs)))) + " \\\\"]
 s += ["\\hline"]
 
+n = "total"
+u = [x for x in np.sqrt(var[poiidxs]) for i in (1, 2)]
 
-for n, u in catdict.iteritems():
+
+totalp = \
+    plt.fill( \
+      xpts
+    , [0] + u + [0]
+    , color="gray"
+    , label=n
+    , alpha=0.5
+    )
+
+plts = {}
+for n, p in catdict.iteritems():
     
     s += [" & ".join([n] + map(lambda x: "%0.3f" % x, u)) + " \\\\"]
 
-    plt.plot( \
+    u = [x for x in p for i in (1, 2)]
+    p = \
+      plt.plot( \
         xpts
       , [0] + u + [0]
       , color=colors[n]
-      , ls="steps"
+      , ls=styles[n]
       , label=n
       , lw=1
       )
+
+    plts[n] = p[0]
+
 
 s += ["\\hline"]
 
 n = "total"
 u = list(np.sqrt(var[poiidxs]))
-
-plt.plot( \
-    xpts
-    , [0] + u + [0]
-    , color=colors[n]
-    , ls="steps"
-    , label=n
-    , lw=1
-    )
 
 s += [" & ".join([n] + map(lambda x: "%0.3f" % x, u)) + " \\\\"]
 
@@ -242,12 +249,31 @@ plt.tick_params(axis='x', which=u'both', length=0)
 plt.tick_params(axis='both', which=u'both', direction="in", width=0.2,
         bottom=True, top=True, left=True, right=True)
 
-plt.plot([], [], ' ', label="\\textbf{ATLAS} \\emph{Preliminary}")
-plt.plot([], [], ' ', label="$\\sqrt{s} = 13\\,\\mathrm{TeV}, 36\\,\\mathrm{fb}^{-1}$")
 
-plt.legend(frameon=False)
+tmp1 = mpatches.Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
+tmp2 = mpatches.Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
 
-fig.axes[0].set_title("uncertainty sources for " + obslab)
+leg = plt.legend(
+      [tmp1, tmp2]
+    , ["\\emph{\\textbf{ATLAS} Preliminary}", "$\\sqrt{s} = 13\\,\\mathrm{TeV}, 36\\,\\mathrm{fb}^{-1}$"]
+    , frameon=False
+    , loc="upper left"
+    , prop={'size': 14}
+    )
+
+
+p1 = mpatches.Rectangle((0, 0), 1, 1, fc="gray", alpha=0.5)
+plt.legend(
+    [p1] + [plts[n] for n in catlist]
+  , ["total"] + catlist
+  , frameon=False
+  , loc="upper right"
+  , prop={'size': 14}
+  )
+
+ax = fig.add_subplot(111)
+ax.add_artist(leg)
+
 fig.axes[0].set_xlabel(obslab + " bin")
 fig.axes[0].set_ylabel("$b$-jet fraction uncertainty")
 plt.ylim((0, axdict[obsname]))
