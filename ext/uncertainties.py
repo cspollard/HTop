@@ -147,23 +147,23 @@ def uncert(c, poi, nup):
 # pileup uncertainty
 
 catdict = {}
-catlist = [ "signal modeling", "tracking", "pileup", "other" ]
+catlist = [ "Signal modeling", "Tracking", "Pileup", "Other" ]
 
 for c in catlist:
   catdict[c] = [0]*len(poiidxs)
 
 def uncert_cat(n):
   if n == "puwgt":
-    return "pileup"
+    return "Pileup"
 
   elif "trk" in n:
-    return "tracking"
+    return "Tracking"
 
   elif n in ["nsvtrksf", "fsr", "rad", "ps", "ptcsf", "ttbarnorm", "lumi"]:
-    return "signal modeling"
+    return "Signal modeling"
 
   elif "stop" in n or "btag" in n or "jet" in n or "jvt" in n:
-    return "other"
+    return "Other"
 
   else:
     print("error --- uncategorized uncertainty:", n)
@@ -181,17 +181,17 @@ for k in catdict.keys():
 
 
 colors = \
-  { "pileup" : "red"
-  , "tracking" : "green"
-  , "signal modeling" : "blue"
-  , "other" : "black"
+  { "Pileup" : "red"
+  , "Tracking" : "green"
+  , "Signal modeling" : "blue"
+  , "Other" : "black"
   }
 
 styles = \
-  { "pileup" : "solid"
-  , "tracking" : "dashed"
-  , "signal modeling" : "dashdot"
-  , "other" : "dotted"
+  { "Pileup" : "solid"
+  , "Tracking" : "dashed"
+  , "Signal modeling" : "dashdot"
+  , "Other" : "dotted"
   }
 
 fig = plt.figure()
@@ -203,7 +203,7 @@ s = ["\\begin{tabular}{ l " + "| r "*len(poiidxs) + "}"]
 s += ["bin & " + " & ".join(map(str, range(len(poiidxs)))) + " \\\\"]
 s += ["\\hline"]
 
-n = "total"
+n = "Total"
 u = [x for x in np.sqrt(var[poiidxs]) for i in (1, 2)]
 
 
@@ -237,7 +237,7 @@ for n, p in catdict.iteritems():
 
 s += ["\\hline"]
 
-n = "total"
+n = "Total"
 u = list(np.sqrt(var[poiidxs]))
 
 s += [" & ".join([n] + map(lambda x: "%0.3f" % x, u)) + " \\\\"]
@@ -265,7 +265,7 @@ leg = plt.legend(
 p1 = mpatches.Rectangle((0, 0), 1, 1, fc="gray", alpha=0.5)
 plt.legend(
     [p1] + [plts[n] for n in catlist]
-  , ["total"] + catlist
+  , ["Total"] + catlist
   , frameon=False
   , loc="upper right"
   , prop={'size': 14}
