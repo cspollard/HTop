@@ -7,13 +7,17 @@ let lmap = Prelude.List.map
 
 let default = Prelude.Optional.default
 
-let Color = { color : Text }
+let PlotRecord =
+      { path : Text
+      , title : Text
+      , name : Text
+      , color : Text
+      , line : Optional Text
+      , marker : Optional Text
+      , extra : Optional Text
+      }
 
-let Line = { line : Text }
-
-let Marker = { marker : Text }
-
-let EBand = { band : Text }
+let Plot = List PlotRecord
 
 let black = { color = "black" }
 
@@ -25,36 +29,38 @@ let green = { color = "green" }
 
 let orange = { color = "orange" }
 
-let noline = { line = "none" }
+let noline = { line = None Text }
 
-let solid = { line = "solid" }
+let solid = { line = Some "solid" }
 
-let dotted = { line = "dotted" }
+let dotted = { line = Some "dotted" }
 
-let dashed = { line = "dashed" }
+let dashed = { line = Some "dashed" }
 
-let dashdotted = { line = "dashdotted" }
+let dashdotted = { line = Some "dashdotted" } 
 
-let dot = { marker = "*" }
+let dot = { marker = Some "*" }
 
-let asterisk = { marker = "asterisk" }
+let asterisk = { marker = Some "asterisk" }
 
-let diamond = { marker = "diamond*" }
+let diamond = { marker = Some "diamond*" }
 
-let triangle = { marker = "triangle*" }
+let triangle = { marker = Some "triangle*" }
 
-let square = { marker = "square*" }
+let square = { marker = Some "square*" }
 
-let extra = λ(t : Text) → { extra = t }
+let nomarker = { marker = None Text }
 
-let nomore = extra ""
+let extra = λ(t : Text) → { extra = Some t }
+
+let nomore = { extra = None Text }
 
 let data =
         { path = "BFRAGDATA.yoda", title = "Data", name = "DATA" }
       ∧ black
       ∧ solid
       ∧ dot
-      ∧ extra ":ConnectBins=0:ErrorBars=1:ConnectGaps=0"
+      ∧ extra ":ConnectBins=0:ErrorBars=1:HorizLine=0"
 
 let powpy8 =
         { path = "gridYoda/Merge_410503_PhPy8.yoda"
@@ -63,7 +69,7 @@ let powpy8 =
         }
       ∧ green
       ∧ solid
-      ∧ asterisk
+      ∧ nomarker
       ∧ nomore
 
 let aMCNLOPy8 =
@@ -73,7 +79,7 @@ let aMCNLOPy8 =
         }
       ∧ green
       ∧ dotted
-      ∧ square
+      ∧ nomarker
       ∧ nomore
 
 let powPy8_410470 =
@@ -83,7 +89,7 @@ let powPy8_410470 =
         }
       ∧ green
       ∧ dashed
-      ∧ triangle
+      ∧ nomarker
       ∧ nomore
 
 let powPy8_MECoff_grec =
@@ -93,7 +99,7 @@ let powPy8_MECoff_grec =
         }
       ∧ green
       ∧ dashdotted
-      ∧ diamond
+      ∧ nomarker
       ∧ nomore
 
 let powpy8_fsrup =
@@ -103,7 +109,7 @@ let powpy8_fsrup =
         }
       ∧ green
       ∧ dotted
-      ∧ square
+      ∧ nomarker
       ∧ nomore
 
 let powpy8_fsrdown =
@@ -113,7 +119,7 @@ let powpy8_fsrdown =
         }
       ∧ green
       ∧ dashed
-      ∧ triangle
+      ∧ nomarker
       ∧ nomore
 
 let powpy8_a14rb =
@@ -123,7 +129,7 @@ let powpy8_a14rb =
         }
       ∧ green
       ∧ dashdotted
-      ∧ diamond
+      ∧ nomarker
       ∧ nomore
 
 let powher704 =
@@ -133,7 +139,7 @@ let powher704 =
         }
       ∧ blue
       ∧ dotted
-      ∧ square
+      ∧ nomarker
       ∧ nomore
 
 let powher713 =
@@ -143,7 +149,7 @@ let powher713 =
         }
       ∧ blue
       ∧ dashdotted
-      ∧ diamond
+      ∧ nomarker
       ∧ nomore
 
 let powher716 =
@@ -153,7 +159,7 @@ let powher716 =
         }
       ∧ blue
       ∧ dashed
-      ∧ triangle
+      ∧ nomarker
       ∧ nomore
 
 let sh221 =
@@ -166,14 +172,14 @@ let sh221 =
       ∧ diamond
       ∧ nomore
 
-let sh228gbb =
+let sh228Zbb =
         { path = "gridYoda/Merge_950010_Sh228_HTprime.yoda"
-        , title = "Sherpa 2.2.8 ($g \\to bb$ tune)"
-        , name = "sh228gbb"
+        , title = "Sherpa 2.2.8 ($Z+bb$ tune)"
+        , name = "sh228Zbb"
         }
       ∧ orange
       ∧ dotted
-      ∧ square
+      ∧ nomarker
       ∧ nomore
 
 let sh228 =
@@ -183,7 +189,7 @@ let sh228 =
         }
       ∧ orange
       ∧ dashed
-      ∧ triangle
+      ∧ nomarker
       ∧ nomore
 
 let sh2210 =
@@ -193,20 +199,9 @@ let sh2210 =
         }
       ∧ orange
       ∧ solid
-      ∧ dot
-      ∧ nomore
+      ∧ nomarker
+      ∧ nomore : PlotRecord
 
-let PlotRecord =
-      { path : Text
-      , title : Text
-      , name : Text
-      , color : Text
-      , line : Text
-      , marker : Text
-      , extra : Text
-      }
-
-let Plot = List PlotRecord
 
 let pythia
     : Plot
@@ -216,13 +211,22 @@ let pythiaa14s = [ powpy8, powpy8_fsrup, powpy8_fsrdown, powpy8_a14rb ]
 
 let herwigs = [ powher704, powher713 ]
 
-let sherpas = [ sh221, sh228gbb, sh228, sh2210 ]
+let sherpas = [ sh221, sh228Zbb, sh228, sh2210 ]
 
 let gens = [ powpy8, powher713, sh2210 ]
 
+let linestyle : Optional Text -> Text =
+      \(o : Optional Text) ->
+        merge { Some = \(t : Text) -> ":LineStyle=${t}", None = "" } o
+        
+let markerstyle : Optional Text -> Text =
+      \(o : Optional Text) ->
+        merge { Some = \(t : Text) -> ":PolyMarker=${t}:DotScale=1.5", None = "" } o
+
+
 let pathstyle =
       λ(p : PlotRecord) →
-        "'${p.path}:Name=${p.name}:Title=${p.title}:PlotOrder=0:LineColor=${p.color}:LineStyle=${p.line}:PolyMarker=${p.marker}:DotScale=1.5${p.extra}'"
+        "'${p.path}:Name=${p.name}:Title=${p.title}:PlotOrder=0:LineColor=${p.color}${linestyle p.line}${markerstyle p.marker}${default Text "" p.extra}'"
 
 let pathtitle = λ(p : PlotRecord) → "'${p.path}:${p.title}'"
 
@@ -312,21 +316,21 @@ let setup =
 in  Prelude.Text.concatSep
       "\n\n"
       [ setup
-      , config "pythiaA14ratio" ([ data ] # pythiaa14s) False
-      , plot
-          (Some "-c plot/pythiaA14ratio.plot")
-          "pythiaA14ratio"
-          ([ data ] # pythiaa14s)
-      , config "sherparatio" ([ data ] # sherpas) False
-      , plot
-          (Some "-c plot/sherparatio.plot")
-          "sherparatio"
-          ([ data ] # sherpas)
-      , config "herwigratio" ([ data ] # herwigs) False
-      , plot
-          (Some "-c plot/herwigratio.plot")
-          "herwigratio"
-          ([ data ] # herwigs)
+      -- , config "pythiaA14ratio" ([ data ] # pythiaa14s) False
+      -- , plot
+      --     (Some "-c plot/pythiaA14ratio.plot")
+      --     "pythiaA14ratio"
+      --     ([ data ] # pythiaa14s)
+      -- , config "sherparatio" ([ data ] # sherpas) False
+      -- , plot
+      --     (Some "-c plot/sherparatio.plot")
+      --     "sherparatio"
+      --     ([ data ] # sherpas)
+      -- , config "herwigratio" ([ data ] # herwigs) False
+      -- , plot
+      --     (Some "-c plot/herwigratio.plot")
+      --     "herwigratio"
+      --     ([ data ] # herwigs)
       , plot (None Text) "generators" ([ data ] # gens)
       , plot (None Text) "pythiaA14" ([ data ] # pythiaa14s)
       , plot (None Text) "herwig" ([ data ] # herwigs)

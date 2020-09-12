@@ -31,11 +31,12 @@ LegendXPos=0.35
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/rho(norm)?$
-XLabel=probe-jet jet \ensuremath{\rho}
+XLabel=probe-jet \ensuremath{\rho}
 # END PLOT
 
 # BEGIN PLOT /htop/elmujj/probejets/rho$
 YLabel=\ensuremath{\frac{dn}{d\rho}}
+XLabel=probe-jet \ensuremath{\rho}
 YLabelSep=10
 # END PLOT
 
@@ -258,7 +259,7 @@ LegendXPos=0.1
 # END PLOT
 
 # BEGIN PLOT /BFRAG/zblc
-Title=$z_{L,b}^\text{ch} = p_\text{T}^\text{ch}(b) \cdot p_\text{T}^\text{ch}(\text{jet}) \ / \ | p_\text{T}^\text{ch}(\text{jet}) |^2$
+Title=$z_{L,b}^\text{ch} = \vec{p}^\text{ch}_b \cdot \vec{p}^\text{ch}_\text{jet} \ / \ | p^\text{ch}_\text{jet} |^2$
 XLabel=$z_{L,b}^{\mathrm{ch}}$
 YLabel=$1/\sigma \, \mathrm{d}\sigma/\mathrm{d}{z_{L,b}^\text{ch}}$
 LegendXPos=0.1
