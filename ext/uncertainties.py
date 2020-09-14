@@ -274,8 +274,8 @@ plt.legend(
 ax = fig.add_subplot(111)
 ax.add_artist(leg)
 
-fig.axes[0].set_xlabel(obslab + " bin")
-fig.axes[0].set_ylabel("$b$-jet fraction uncertainty")
+fig.axes[0].set_xlabel(obslab + " bin", fontsize=16)
+fig.axes[0].set_ylabel("$b$-jet fraction uncertainty", fontsize=16)
 plt.ylim((0, axdict[obsname]))
 
 plt.savefig(outfile)
