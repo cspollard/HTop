@@ -5,7 +5,7 @@ packages:
 
 extra-deps:
   - git: https://github.com/cspollard/histogram-extras.git
-    commit: e74e7a17114699c663ba7870e6737159baef7b46
+    commit: 048454ff4447513c23936f93f1cffdece7d11ff3
 
   - git: https://github.com/cspollard/variation.git
     commit: e9874a39eaae7d2675c070ffc9d05e7c97d8a3e3
@@ -27,4 +27,4 @@ extra-deps:
   - cereal-text-0.1.0.2
 
 
-resolver: lts-9.0
+resolver: lts-11.22
