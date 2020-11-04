@@ -21,7 +21,6 @@ from sys import stdout, argv
 
 def parse_infile(str):
     xs = str.split(":")
-    print(xs)
 
     path = xs[0]
     title = xs[1] if len(xs) > 1 else xs[0]
