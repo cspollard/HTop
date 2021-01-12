@@ -1,0 +1,13 @@
+# replacing for f in run/*infiles; do qsub -j oe -q long6 -v # F=${f/.infiles/} ext/runPGS.sh; done
+
+getenv  = True
+executable     = ext/runCondor.sh
+arguments      = $(filename)
+
+error   = $(filename).err
+output  = $(filename).log
+log     = foo.log
+
+requirements   = OpSysAndVer == "CentOS7"
+
+queue filename matching files run/*.infiles
