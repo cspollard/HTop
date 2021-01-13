@@ -15,10 +15,10 @@ unfold () {
 }
 
 
-for vers in data closure closure_statonly ps # mugt22 mule22
-do
-  for obs in zblc rho nsvtrk zbtc
-  do
-    unfold $vers $obs 20000
-  done
-done
+# for vers in data closure closure_statonly ps # mugt22 mule22
+# do
+#   for obs in zblc rho nsvtrk zbtc
+#   do
+#     unfold $vers $obs 20000
+#   done
+# done

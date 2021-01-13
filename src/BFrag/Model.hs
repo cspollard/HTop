@@ -61,7 +61,7 @@ bfragModel test procs = do
 
   nom <-
     mappend nonttpred
-    . (fmap.fmap) (addVar "TTBarNormUp" (scaleO 1.2))
+    . (fmap.fmap) (addVar "TTBarNormUp" (scaleO 1.1))
     <$> getProcs procs [nomkey]
 
 
