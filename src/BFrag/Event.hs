@@ -153,13 +153,18 @@ matchedJetHs =
     : [ rhoMig ]
 
   where
+    bHs :: VarFills TrueJet
+    bHs =
+      F.handles folded (mconcat [bMesonH, bBaryonH])
+      <$= collapsePO . fmap (view tjBHadrons)
+
     recofraghs =
         (bfragHs <$= fmap fst)
         `mappend` (lvHs <$= fmap fst)
         `mappend` (singleton "/rho" <$> prebind recoRho rhoH)
 
     truefraghs =
-        (bfragHs <$= fmap fst)
+        ((bHs <> bfragHs) <$= fmap fst)
         `mappend` (singleton "/rho" <$> prebind trueRho rhoH)
 
     jetmigs =
